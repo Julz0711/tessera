@@ -38,12 +38,20 @@ function click(e: ThreeEvent<MouseEvent>, fn: () => void) {
 function VertexTarget({ x, z, id, kind, color, onPick }: { x: number; z: number; id: number; kind: BoardTargets['kind']; color: PlayerColor | null; onPick: (id: number) => void }) {
   const [hover, setHover] = useState(false);
   const ring = usePulse(id);
-  const lift = kind === 'city' ? 0.5 : 0.36;
+  const subtle = kind === 'knightAction';
+  const lift = kind === 'city' ? 0.5 : kind === 'knightAction' ? 0.06 : 0.36;
   return (
     <group>
       {hover && color && kind === 'settlement' && <Settlement x={x} z={z} color={color} ghost />}
       {hover && color && kind === 'city' && <City x={x} z={z} color={color} ghost />}
-      <mesh ref={ring} geometry={GEO.targetRing} material={mat(hover ? '#fff3cf' : AMBER, { emissive: AMBER })} position={[x, TILE_TOP + lift, z]} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh
+        ref={ring}
+        geometry={GEO.targetRing}
+        material={subtle ? mat(hover ? '#fff3cf' : '#f6eddb', { opacity: hover ? 0.9 : 0.45 }) : mat(hover ? '#fff3cf' : AMBER, { emissive: AMBER })}
+        position={[x, TILE_TOP + lift, z]}
+        rotation={[Math.PI / 2, 0, 0]}
+        scale={subtle ? 1.5 : 1}
+      />
       <mesh
         geometry={GEO.targetHit}
         position={[x, TILE_TOP + 0.2, z]}

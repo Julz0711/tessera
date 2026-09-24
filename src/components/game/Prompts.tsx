@@ -46,12 +46,12 @@ export function DiscardDialog({ view, prompt }: { view: PlayerView; prompt: Extr
   );
 }
 
-export function VictimDialog({ view, hex }: { view: PlayerView; hex: number }) {
+export function VictimDialog({ view, hex, chaseFrom }: { view: PlayerView; hex: number; chaseFrom: number | null }) {
   const ui = useUi();
   const me = view.viewer!;
   const victims = robberVictims(view, me, hex);
   return (
-    <Modal open onClose={() => ui.setRobberHex(null)} title="Steal from…">
+    <Modal open onClose={() => ui.setRobber(null)} title="Steal from…">
       <div className="grid gap-2">
         {victims.map((seat) => {
           const p = view.players[seat];
@@ -63,8 +63,11 @@ export function VictimDialog({ view, hex }: { view: PlayerView; hex: number }) {
               className="btn justify-between px-4 py-3"
               style={{ ['--btn-bg' as string]: c.hex, ['--btn-fg' as string]: c.ink }}
               onClick={async () => {
-                ui.setRobberHex(null);
-                await api.act({ type: 'moveRobber', hex, victim: seat });
+                ui.setRobber(null);
+                const r = await api.act(
+                  chaseFrom !== null ? { type: 'chaseRobber', vertex: chaseFrom, hex, victim: seat } : { type: 'moveRobber', hex, victim: seat },
+                );
+                if (r.ok && chaseFrom !== null) ui.setMode(null);
               }}
             >
               <span className="text-lg">{p.name}</span>

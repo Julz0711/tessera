@@ -183,4 +183,22 @@ describe('realtime server', () => {
     guest2.close();
     watcher.close();
   });
+
+  it('plays a full Cities & Knights game through the server', async () => {
+    const host = client(await guestCookie());
+    let room: RoomDTO | null = null;
+    host.on('room:state', (r) => (room = r));
+    const play = autoplay(host, () => room?.you.seat ?? null);
+    const created = await call<{ code: string }>((ack) => host.emit('room:create', { profile: profile('Kim', 'white'), settings: { mode: 'ck' } }, ack));
+    expect(created.ok).toBe(true);
+    for (let i = 0; i < 2; i++) expect((await call((ack) => host.emit('room:addBot', ack))).ok).toBe(true);
+    expect((await call((ack) => host.emit('room:start', ack))).ok).toBe(true);
+    const deadline = Date.now() + 60_000;
+    while (play.view()?.phase !== 'ended' && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
+    const final = play.view()!;
+    expect(final.mode).toBe('ck');
+    expect(final.phase).toBe('ended');
+    expect(final.settings.vpToWin).toBe(13);
+    host.close();
+  });
 });

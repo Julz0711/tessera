@@ -7,7 +7,7 @@ import type * as THREE from 'three';
 import { getTopology } from '@/engine/board/topology';
 import { SEA } from '@/client/palette';
 import type { BoardProps, BoardScene, BoardTargets } from '@/components/board/types';
-import { City, HarborPiece, NumberToken, Road, Robber, Settlement } from './pieces';
+import { City, CityWall, HarborPiece, Merchant, MetropolisTower, NumberToken, Road, Robber, Settlement } from './pieces';
 import { Targets } from './targets';
 import { HexTile } from './terrain';
 import { Ocean } from './ocean';
@@ -123,12 +123,18 @@ function Island({
       {scene.buildings.map((b, v) => {
         if (!b) return null;
         const p = topo.vertices[v];
-        return b.city ? (
-          <City key={`b${v}`} x={p.x} z={p.y} color={scene.colors[b.owner]} />
-        ) : (
-          <Settlement key={`b${v}`} x={p.x} z={p.y} color={scene.colors[b.owner]} />
+        if (!b.city) return <Settlement key={`b${v}`} x={p.x} z={p.y} color={scene.colors[b.owner]} />;
+        return (
+          <group key={`b${v}`}>
+            <City x={p.x} z={p.y} color={scene.colors[b.owner]} />
+            {b.wall && <CityWall x={p.x} z={p.y} />}
+            {b.metropolis && <MetropolisTower x={p.x} z={p.y} color={scene.colors[b.owner]} track={b.metropolis} />}
+          </group>
         );
       })}
+      {scene.merchant && (
+        <Merchant x={topo.hexes[scene.merchant.hex].x} z={topo.hexes[scene.merchant.hex].y} color={scene.colors[scene.merchant.owner]} />
+      )}
       <KnightPieces scene={scene} topo={topo} />
       <Robber x={robberHex.x} z={robberHex.y + 0.46} />
       <Targets targets={targets} topo={topo} color={scene.myColor} onVertex={onVertex} onEdge={onEdge} onHex={onHex} />

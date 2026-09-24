@@ -683,4 +683,4 @@ export class Room {
 }
 
 /** Flipped to true once the Cities & Knights engine is complete. */
-export const CK_READY = false;
+export const CK_READY = true;

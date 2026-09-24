@@ -73,6 +73,56 @@ export function City({ x, z, color, ghost = false }: { x: number; z: number; col
   );
 }
 
+const CK_GEO = {
+  wall: new THREE.CylinderGeometry(0.31, 0.33, 0.09, 6, 1, true),
+  wallTop: new THREE.TorusGeometry(0.32, 0.025, 4, 6),
+  tower: new THREE.BoxGeometry(0.13, 0.46, 0.13),
+  towerRoof: new THREE.ConeGeometry(0.12, 0.16, 4),
+  pole: new THREE.CylinderGeometry(0.008, 0.008, 0.22, 4),
+  flag: new THREE.BoxGeometry(0.12, 0.07, 0.008),
+  merchantBody: new THREE.ConeGeometry(0.1, 0.28, 6),
+  merchantHead: new THREE.IcosahedronGeometry(0.065, 0),
+  merchantHat: new THREE.CylinderGeometry(0.035, 0.08, 0.06, 6),
+};
+
+const TRACK_FLAG = { trade: '#e9c35a', politics: '#3a74d8', science: '#3f9b4f' } as const;
+
+/** Stone wall ringing a city (C&K). */
+export function CityWall({ x, z }: { x: number; z: number }) {
+  const stone = mat('#8f8a80');
+  return (
+    <group position={[x, TILE_TOP, z]} rotation={[0, Math.PI / 6, 0]}>
+      <mesh geometry={CK_GEO.wall} material={stone} position={[0, 0.045, 0]} castShadow />
+      <mesh geometry={CK_GEO.wallTop} material={mat('#a39e93')} position={[0, 0.09, 0]} rotation={[Math.PI / 2, 0, 0]} />
+    </group>
+  );
+}
+
+/** Metropolis: a tall tower beside the city flying the track's flag. */
+export function MetropolisTower({ x, z, color, track }: { x: number; z: number; color: PlayerColor; track: 'trade' | 'politics' | 'science' }) {
+  const c = PLAYER_COLORS[color];
+  return (
+    <group position={[x + 0.16, TILE_TOP, z - 0.12]}>
+      <mesh geometry={CK_GEO.tower} material={mat(c.hex)} position={[0, 0.23, 0]} castShadow />
+      <mesh geometry={CK_GEO.towerRoof} material={mat(c.dark)} position={[0, 0.54, 0]} rotation={[0, Math.PI / 4, 0]} castShadow />
+      <mesh geometry={CK_GEO.pole} material={mat('#5a3d22')} position={[0, 0.71, 0]} />
+      <mesh geometry={CK_GEO.flag} material={mat(TRACK_FLAG[track])} position={[0.06, 0.78, 0]} />
+    </group>
+  );
+}
+
+/** The merchant (C&K): a little trader in the owner's color on the hex. */
+export function Merchant({ x, z, color }: { x: number; z: number; color: PlayerColor }) {
+  const c = PLAYER_COLORS[color];
+  return (
+    <group position={[x - 0.45, TILE_TOP, z - 0.15]}>
+      <mesh geometry={CK_GEO.merchantBody} material={mat(c.hex)} position={[0, 0.14, 0]} castShadow />
+      <mesh geometry={CK_GEO.merchantHead} material={mat('#e8c9a5')} position={[0, 0.32, 0]} castShadow />
+      <mesh geometry={CK_GEO.merchantHat} material={mat('#e3b94a', { metal: 0.5, rough: 0.4 })} position={[0, 0.39, 0]} />
+    </group>
+  );
+}
+
 export function Robber({ x, z }: { x: number; z: number }) {
   const ref = useRef<THREE.Group>(null);
   const target = useRef(new THREE.Vector3(x, 0, z));

@@ -311,6 +311,23 @@ export default function Board2D({ scene, targets, onVertex, onEdge, onHex }: Boa
         );
       })}
 
+      {/* merchant (C&K) */}
+      {scene.merchant &&
+        (() => {
+          const t = topo.hexes[scene.merchant.hex];
+          const c = PLAYER_COLORS[scene.colors[scene.merchant.owner]];
+          const x = t.x * S - 44;
+          const y = t.y * S - 8;
+          return (
+            <g pointerEvents="none">
+              <title>Merchant</title>
+              <path d={`M${x - 11} ${y + 14}c0-12 4-20 11-20s11 8 11 20Z`} fill={c.hex} stroke={c.dark} strokeWidth="2.5" />
+              <circle cx={x} cy={y - 11} r="6.5" fill="#e8c9a5" stroke="#1f1a14" strokeWidth="1.5" />
+              <path d={`M${x - 8} ${y - 15}h16l-3-6h-10Z`} fill="#e3b94a" stroke="#1f1a14" strokeWidth="1.5" />
+            </g>
+          );
+        })()}
+
       {/* robber */}
       {(() => {
         const t = topo.hexes[scene.robber];
@@ -366,9 +383,13 @@ export default function Board2D({ scene, targets, onVertex, onEdge, onHex }: Boa
               <circle cx={p.x * S} cy={p.y * S} r="22" fill="transparent" />
               {isHover && myColor && targets.kind === 'settlement' && <HousePath x={p.x * S} y={p.y * S} color={myColor} ghost />}
               {isHover && myColor && targets.kind === 'city' && <CityPath x={p.x * S} y={p.y * S} color={myColor} ghost />}
-              <circle cx={p.x * S} cy={p.y * S} r="12" fill="rgba(242,179,61,0.35)" stroke="#f2b33d" strokeWidth="4">
-                <animate attributeName="r" values="10;15;10" dur="1.4s" repeatCount="indefinite" />
-              </circle>
+              {targets.kind === 'knightAction' ? (
+                <circle cx={p.x * S} cy={p.y * S} r="21" fill="none" stroke={isHover ? '#f2b33d' : '#f6eddb'} strokeOpacity={isHover ? 1 : 0.6} strokeWidth="3" strokeDasharray="5 4" />
+              ) : (
+                <circle cx={p.x * S} cy={p.y * S} r="12" fill="rgba(242,179,61,0.35)" stroke="#f2b33d" strokeWidth="4">
+                  <animate attributeName="r" values="10;15;10" dur="1.4s" repeatCount="indefinite" />
+                </circle>
+              )}
             </g>
           );
         })}

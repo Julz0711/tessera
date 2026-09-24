@@ -2,19 +2,25 @@
 
 import { MessageSquare, ScrollText, Trophy } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CARDS, robberVictims, type Card, type DevCardType, type GameEvent, type PartialHand } from '@/engine';
+import { CARDS, type Card, type DevCardType, type GameEvent, type PartialHand } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { DEV_NAMES } from '@/client/describe';
 import { CARD_COLORS } from '@/client/palette';
 import { usePrefs } from '@/client/prefs';
 import { play } from '@/client/sound';
 import { api, toast, useGame } from '@/client/store';
-import { computeTargets, sceneFromView } from '@/client/targets';
+import { computeTargets, handlePick } from '@/client/interaction';
+import { sceneFromView } from '@/client/targets';
 import { useUi } from '@/client/ui';
 import { BoardView } from '@/components/board/BoardView';
 import { ChatPanel } from '@/components/room/ChatPanel';
 import { BankPanel } from './BankPanel';
 import { BankStrip } from './BankStrip';
+import { BarbarianTrack } from './ck/BarbarianTrack';
+import { CkPromptDialog, PickBanner } from './ck/CkPrompts';
+import { ImprovementsPanel } from './ck/ImprovementsPanel';
+import { KnightMenu } from './ck/KnightMenu';
+import { ProgressPanel } from './ck/ProgressPanel';
 import { DevPanel } from './DevPanel';
 import { Dock } from './Dock';
 import { GameOver } from './GameOver';
@@ -125,31 +131,9 @@ export function GameScreen() {
   const scene = useMemo(() => (view ? { ...sceneFromView(view, styles), highlightToken: highlight } : null), [view, styles, highlight]);
   const targets = useMemo(() => computeTargets(view, ui.mode), [view, ui.mode]);
 
-  const onVertex = useCallback(
-    async (vertex: number) => {
-      if (!view) return;
-      const kind = targets.kind;
-      const r = await api.act(kind === 'city' ? { type: 'buildCity', vertex } : { type: 'buildSettlement', vertex });
-      if (r.ok) ui.setMode(null);
-    },
-    [view, targets.kind, ui],
-  );
-  const onEdge = useCallback(
-    async (edge: number) => {
-      const r = await api.act({ type: 'buildRoad', edge });
-      if (r.ok) ui.setMode(null);
-    },
-    [ui],
-  );
-  const onHex = useCallback(
-    async (hex: number) => {
-      if (!view || view.viewer === null) return;
-      const victims = robberVictims(view, view.viewer, hex);
-      if (victims.length > 1) ui.setRobberHex(hex);
-      else await api.act({ type: 'moveRobber', hex, victim: victims[0] ?? null });
-    },
-    [view, ui],
-  );
+  const onVertex = useCallback((id: number) => view && void handlePick(view, 'vertex', id), [view]);
+  const onEdge = useCallback((id: number) => view && void handlePick(view, 'edge', id), [view]);
+  const onHex = useCallback((id: number) => view && void handlePick(view, 'hex', id), [view]);
 
   if (!view || !room || !scene) {
     return <div className="grid min-h-dvh place-items-center text-foam/60">Setting up the board…</div>;
@@ -184,12 +168,16 @@ export function GameScreen() {
               <FreeRoadsBanner count={myPrompt.count} />
             </div>
           )}
+          <div className="pointer-events-auto">
+            <PickBanner view={view} />
+          </div>
         </div>
       </div>
 
       {/* players + offers: right column on desktop */}
       <div className="absolute right-2 top-16 z-10 hidden max-h-[calc(100dvh-220px)] w-72 flex-col gap-2 lg:flex">
         <BankStrip view={view} />
+        {view.mode === 'ck' && <BarbarianTrack view={view} />}
         <PlayersPanel view={view} room={room} />
         <OffersTray view={view} className="w-full" />
       </div>
@@ -215,7 +203,11 @@ export function GameScreen() {
 
       {/* dialogs */}
       {myPrompt?.kind === 'discard' && <DiscardDialog view={view} prompt={myPrompt} />}
-      {ui.robberHex !== null && myPrompt?.kind === 'robber' && <VictimDialog view={view} hex={ui.robberHex} />}
+      {ui.robber !== null && <VictimDialog view={view} hex={ui.robber.hex} chaseFrom={ui.robber.chaseFrom} />}
+      {myPrompt && <CkPromptDialog view={view} prompt={myPrompt} />}
+      {ui.panel === 'improve' && me !== null && <ImprovementsPanel view={view} />}
+      {ui.panel === 'progress' && me !== null && <ProgressPanel view={view} />}
+      {ui.knightMenu !== null && me !== null && <KnightMenu view={view} vertex={ui.knightMenu} />}
       {ui.panel === 'trade' && me !== null && <TradePanel view={view} />}
       {ui.panel === 'bank' && me !== null && <BankPanel view={view} />}
       {ui.panel === 'dev' && me !== null && <DevPanel view={view} />}

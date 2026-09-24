@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeftRight, Dices, Eye, Hourglass, Landmark, Sparkles } from 'lucide-react';
+import { ArrowLeftRight, BrickWall, Dices, Eye, Hammer, Hourglass, Landmark, ScrollText, Sparkles } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import {
   COMMODITIES,
@@ -8,16 +8,18 @@ import {
   RESOURCES,
   hasCards,
   legalCitySpots,
+  legalKnightSpots,
   legalRoadSpots,
   legalSettlementSpots,
   piecesLeft,
+  wallSpots,
   type PartialHand,
 } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { play } from '@/client/sound';
 import { api } from '@/client/store';
-import { useUi } from '@/client/ui';
-import { CityGlyph, DevCardGlyph, RoadGlyph, SettlementGlyph } from '@/components/ui/Glyphs';
+import { buildMode, useUi } from '@/client/ui';
+import { CityGlyph, DevCardGlyph, KnightGlyph, RoadGlyph, SettlementGlyph } from '@/components/ui/Glyphs';
 import { CardList, ResourceCard } from './cards';
 import { Die, EventDie } from './Dice';
 
@@ -117,17 +119,21 @@ export function Dock({ view }: { view: PlayerView }) {
   }
 
   const p = view.players[me];
+  const ck = view.mode === 'ck';
   const myTurn = view.phase === 'play' && view.turn.seat === me;
   const free = view.pending.length === 0;
   const canBuild = myTurn && view.turn.rolled && free;
   const left = piecesLeft(view, me);
   const has = (c: PartialHand) => hasCards(p.hand, c);
+  const building = buildMode(ui.mode);
   const roadOk = canBuild && left.roads > 0 && has(COSTS.road) && legalRoadSpots(view, me).length > 0;
   const settlementOk = canBuild && left.settlements > 0 && has(COSTS.settlement) && legalSettlementSpots(view, me).length > 0;
   const cityOk = canBuild && left.cities > 0 && has(COSTS.city) && legalCitySpots(view, me).length > 0;
-  const devOk = canBuild && view.mode === 'classic' && view.devDeckCount > 0 && has(COSTS.devCard);
-  const cards = view.mode === 'ck' ? [...RESOURCES, ...COMMODITIES] : RESOURCES;
-  const devCount = p.devCards.length;
+  const devOk = canBuild && !ck && view.devDeckCount > 0 && has(COSTS.devCard);
+  const knightOk = canBuild && ck && left.knights[1] > 0 && has(COSTS.knight) && legalKnightSpots(view, me).length > 0;
+  const wallOk = canBuild && ck && has(COSTS.wall) && wallSpots(view, me).length > 0;
+  const cards = ck ? [...RESOURCES, ...COMMODITIES] : RESOURCES;
+  const devCount = ck ? p.progress.length : p.devCards.length;
 
   return (
     <div className="flex flex-col items-center gap-2">
@@ -136,23 +142,21 @@ export function Dock({ view }: { view: PlayerView }) {
         {cards.map((c) => (
           <ResourceCard key={c} card={c} count={p.hand[c]} />
         ))}
-        {view.mode === 'classic' && (
-          <button
-            type="button"
-            onClick={() => ui.setPanel('dev')}
-            className="relative ml-1 flex h-18 w-13 shrink-0 flex-col items-center justify-center rounded-lg border-2 border-ink bg-sea-600 text-paper transition hover:-translate-y-1 sm:h-20 sm:w-14"
-            style={{ boxShadow: '0 3px 0 0 #1f1a14' }}
-            title="Development cards"
-          >
-            <DevCardGlyph size={24} />
-            <span className="mt-0.5 text-[9px] font-black uppercase tracking-wider">Dev</span>
-            {devCount > 0 && (
-              <span className="absolute -right-2 -top-2 grid h-6 min-w-6 place-items-center rounded-full border-2 border-ink bg-amber px-1 text-xs font-black text-ink">
-                {devCount}
-              </span>
-            )}
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => ui.setPanel(ck ? 'progress' : 'dev')}
+          className="relative ml-1 flex h-18 w-13 shrink-0 flex-col items-center justify-center rounded-lg border-2 border-ink bg-sea-600 text-paper transition hover:-translate-y-1 sm:h-20 sm:w-14"
+          style={{ boxShadow: '0 3px 0 0 #1f1a14' }}
+          title={ck ? 'Progress cards' : 'Development cards'}
+        >
+          {ck ? <ScrollText size={24} /> : <DevCardGlyph size={24} />}
+          <span className="mt-0.5 text-[9px] font-black uppercase tracking-wider">{ck ? 'Progress' : 'Dev'}</span>
+          {devCount > 0 && (
+            <span className="absolute -right-2 -top-2 grid h-6 min-w-6 place-items-center rounded-full border-2 border-ink bg-amber px-1 text-xs font-black text-ink">
+              {devCount}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* actions */}
@@ -166,8 +170,8 @@ export function Dock({ view }: { view: PlayerView }) {
         <ActionButton
           label="Road"
           icon={<RoadGlyph size={20} />}
-          onClick={() => ui.setMode(ui.mode === 'road' ? null : 'road')}
-          active={ui.mode === 'road'}
+          onClick={() => ui.toggleBuild('road')}
+          active={building === 'road'}
           disabled={!roadOk}
           cost={COSTS.road}
           left={left.roads}
@@ -175,8 +179,8 @@ export function Dock({ view }: { view: PlayerView }) {
         <ActionButton
           label="Settle"
           icon={<SettlementGlyph size={20} />}
-          onClick={() => ui.setMode(ui.mode === 'settlement' ? null : 'settlement')}
-          active={ui.mode === 'settlement'}
+          onClick={() => ui.toggleBuild('settlement')}
+          active={building === 'settlement'}
           disabled={!settlementOk}
           cost={COSTS.settlement}
           left={left.settlements}
@@ -184,14 +188,28 @@ export function Dock({ view }: { view: PlayerView }) {
         <ActionButton
           label="City"
           icon={<CityGlyph size={20} />}
-          onClick={() => ui.setMode(ui.mode === 'city' ? null : 'city')}
-          active={ui.mode === 'city'}
+          onClick={() => ui.toggleBuild('city')}
+          active={building === 'city'}
           disabled={!cityOk}
           cost={COSTS.city}
           left={left.cities}
         />
-        {view.mode === 'classic' && (
-          <ActionButton label="Buy card" icon={<Sparkles size={20} />} onClick={() => api.act({ type: 'buyDevCard' })} disabled={!devOk} cost={COSTS.devCard} />
+        {!ck && <ActionButton label="Buy card" icon={<Sparkles size={20} />} onClick={() => api.act({ type: 'buyDevCard' })} disabled={!devOk} cost={COSTS.devCard} />}
+        {ck && (
+          <>
+            <ActionButton
+              label="Knight"
+              icon={<KnightGlyph size={20} />}
+              onClick={() => ui.toggleBuild('knight')}
+              active={building === 'knight'}
+              disabled={!knightOk}
+              cost={COSTS.knight}
+              left={left.knights[1]}
+              hint="Recruit a basic knight"
+            />
+            <ActionButton label="Wall" icon={<BrickWall size={20} />} onClick={() => ui.toggleBuild('wall')} active={building === 'wall'} disabled={!wallOk} cost={COSTS.wall} left={left.walls} hint="City wall: +2 hand limit" />
+            <ActionButton label="Improve" icon={<Hammer size={20} />} onClick={() => ui.setPanel('improve')} active={ui.panel === 'improve'} disabled={view.phase !== 'play'} hint="City improvements" />
+          </>
         )}
         <span className="mx-0.5 h-8 w-px bg-white/15" />
         <ActionButton
