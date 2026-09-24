@@ -33,7 +33,7 @@ const server = createServer((req, res) => {
     });
 });
 
-attachRealtime(server);
+const realtime = attachRealtime(server);
 
 // Socket.IO handles its own upgrade requests; everything else (e.g. Next.js HMR) goes to Next.
 server.on('upgrade', (req, socket, head) => {
@@ -48,6 +48,7 @@ server.listen({ port, host: hostname }, () => {
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, () => {
     console.log(`> ${signal} received, shutting down`);
+    realtime.manager.dispose();
     server.close();
     process.exit(0);
   });
