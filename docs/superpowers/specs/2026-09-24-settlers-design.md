@@ -23,7 +23,8 @@ A free, browser-based, 3D multiplayer hex-island trading/building game for frien
 | Player ids | Every seat gets a fresh `randomUUID()` player id; the identity key (user / guest id) never leaves the server | PRD privacy + "never playerId = displayName". |
 | Room ids | 8 chars from an unambiguous 31-symbol alphabet via `crypto.randomInt` (~8.5·10¹¹ codes) + join rate limiting | Non-predictable, easy to read aloud. |
 | Players | 2–4 seats per game (bots fill any seat), unlimited spectators (host toggle) | Standard 19-hex board; 5–6 player board is future work (layout is data-driven). |
-| 3D assets | 100 % procedural low-poly geometry + canvas textures (no model files, no font CDN) | Works offline, tiny bundle, fully themeable by player color. |
+| Art direction | **Low-poly** (user steering 2026-09-25): flat-shaded faceted geometry, `flatShading` materials, small hand-picked palettes, 100 % procedural (no model files, no font CDN; labels via canvas textures) | Distinctive, light, works offline, themeable by player color. |
+| Board views | **2D ⇄ 3D toggle** (user steering): the same board is rendered either by the R3F low-poly scene or by a flat SVG renderer. Both consume one derived `BoardModel` (positions, pieces, legal targets) and dispatch the same click intents; the choice is a per-user graphics preference (profile or localStorage) and can be flipped any time in-game | Accessibility, low-end devices/phones, player preference; one interaction model keeps both views correct. |
 | i18n | English only; Language setting present but only "English" selectable | Out of MVP scope; noted as follow-up. |
 
 ## 3. Architecture

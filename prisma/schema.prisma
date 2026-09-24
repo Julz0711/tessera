@@ -1,0 +1,194 @@
+// Database model — see PRD §9 and docs/superpowers/specs/2026-09-24-settlers-design.md §6.
+// The database is optional at runtime: without DATABASE_URL the game runs fully in memory.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Identity (Auth.js core tables) ──────────────────────────────────────────
+
+model User {
+  id             String         @id @default(cuid())
+  name           String?
+  email          String?        @unique
+  emailVerified  DateTime?
+  image          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  accounts       Account[]
+  sessions       Session[]
+  profile        Profile?
+  players        Player[]
+  migratedGuests GuestSession[]
+
+  @@map("users")
+}
+
+// OAuth provider links. Provider access/refresh/id tokens are intentionally NOT stored
+// (we only need identity) — see src/server/auth/adapter.ts.
+model Account {
+  id                String   @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ── Profiles & guests ───────────────────────────────────────────────────────
+
+model Profile {
+  userId      String   @id
+  displayName String
+  avatarUrl   String?
+  color       String?
+  knight      Json?
+  preferences Json?
+  gamesPlayed Int      @default(0)
+  gamesWon    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model GuestSession {
+  id               String    @id
+  displayName      String?
+  color            String?
+  knight           Json?
+  gamesPlayed      Int       @default(0)
+  gamesWon         Int       @default(0)
+  createdAt        DateTime  @default(now())
+  lastSeenAt       DateTime  @default(now())
+  expiresAt        DateTime
+  migratedToUserId String?
+  migratedAt       DateTime?
+  migratedTo       User?     @relation(fields: [migratedToUserId], references: [id], onDelete: SetNull)
+  players          Player[]
+
+  @@index([migratedToUserId])
+  @@map("guest_sessions")
+}
+
+// ── Games ───────────────────────────────────────────────────────────────────
+
+model Room {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  status    String
+  settings  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  games     Game[]
+
+  @@map("rooms")
+}
+
+model Game {
+  id             String         @id @default(uuid())
+  roomId         String
+  mode           String
+  status         String
+  settings       Json
+  winnerPlayerId String?
+  turns          Int            @default(0)
+  startedAt      DateTime       @default(now())
+  endedAt        DateTime?
+  updatedAt      DateTime       @updatedAt
+  room           Room           @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  players        Player[]
+  events         GameEvent[]
+  snapshots      GameSnapshot[]
+
+  @@index([roomId])
+  @@index([status])
+  @@map("games")
+}
+
+// A player references either userId or guestSessionId — both only after an explicit
+// guest → account migration (guest_sessions.migratedToUserId is then set).
+model Player {
+  id                  String        @id
+  gameId              String
+  seat                Int
+  userId              String?
+  guestSessionId      String?
+  isBot               Boolean       @default(false)
+  displayName         String
+  color               String
+  knightCustomization Json
+  finalVp             Int?
+  rank                Int?
+  won                 Boolean       @default(false)
+  game                Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user                User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guestSession        GuestSession? @relation(fields: [guestSessionId], references: [id], onDelete: SetNull)
+
+  @@unique([gameId, seat])
+  @@index([userId])
+  @@index([guestSessionId])
+  @@map("players")
+}
+
+model GameEvent {
+  id        BigInt   @id @default(autoincrement())
+  gameId    String
+  seq       Int
+  playerId  String?
+  type      String
+  payload   Json
+  createdAt DateTime @default(now())
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, seq])
+  @@map("game_events")
+}
+
+model GameSnapshot {
+  id        String   @id @default(uuid())
+  gameId    String
+  seq       Int
+  state     Json
+  createdAt DateTime @default(now())
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([gameId, seq])
+  @@map("game_snapshots")
+}
