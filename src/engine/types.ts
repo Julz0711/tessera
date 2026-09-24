@@ -14,11 +14,11 @@ export const RESOURCES: readonly Resource[] = ['brick', 'lumber', 'wool', 'grain
 export const COMMODITIES: readonly Commodity[] = ['paper', 'cloth', 'coin'];
 export const CARDS: readonly Card[] = [...RESOURCES, ...COMMODITIES];
 
-export function isResource(card: string): card is Resource {
-  return (RESOURCES as readonly string[]).includes(card);
+export function isResource(card: unknown): card is Resource {
+  return typeof card === 'string' && (RESOURCES as readonly string[]).includes(card);
 }
-export function isCommodity(card: string): card is Commodity {
-  return (COMMODITIES as readonly string[]).includes(card);
+export function isCommodity(card: unknown): card is Commodity {
+  return typeof card === 'string' && (COMMODITIES as readonly string[]).includes(card);
 }
 export function isCard(card: unknown): card is Card {
   return typeof card === 'string' && (CARDS as readonly string[]).includes(card);

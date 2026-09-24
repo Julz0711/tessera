@@ -143,7 +143,7 @@ export function chooseRobber(view: PlayerView, seat: number): { hex: number; vic
 
 // ── Setup ───────────────────────────────────────────────────────────────────
 
-function setupMove(view: PlayerView, seat: number): Action {
+export function setupMove(view: PlayerView, seat: number): Action {
   if (view.setup!.placing === 'settlement') {
     const weights = resourceWeights(view);
     const spots = legalSettlementSpots(view, seat, true);
@@ -164,7 +164,7 @@ function setupMove(view: PlayerView, seat: number): Action {
 
 // ── Trading ─────────────────────────────────────────────────────────────────
 
-function afterTrade(hand: Record<Card, number>, lose: PartialHand, gain: PartialHand): Record<Card, number> {
+export function afterTrade(hand: Record<Card, number>, lose: PartialHand, gain: PartialHand): Record<Card, number> {
   const out = { ...hand };
   for (const c of CARDS) out[c] += (gain[c] ?? 0) - (lose[c] ?? 0);
   return out;
@@ -237,7 +237,7 @@ function playDevCard(view: PlayerView, seat: number): Action | null {
 
 // ── Building ────────────────────────────────────────────────────────────────
 
-function cityValue(view: PlayerView, seat: number, v: number): number {
+export function cityValue(view: PlayerView, seat: number, v: number): number {
   const t = topo(view);
   let pips = 0;
   for (const h of t.vertices[v].hexes) {

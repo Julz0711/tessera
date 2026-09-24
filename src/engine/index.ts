@@ -4,6 +4,7 @@ export { applyAction } from './apply';
 export { createGame, type CreateGameOptions, type NewPlayer } from './state';
 export { viewFor, eventsFor, type PlayerView, type PublicPlayer } from './view';
 export * from './queries';
+export * from './ck/queries';
 export { longestRoadLength } from './longestRoad';
 export { victoryPoints, publicVictoryPoints } from './vp';
 export { getTopology, STANDARD_HEX_COORDS, type Topology, type TopoEdge, type TopoHex, type TopoVertex } from './board/topology';
