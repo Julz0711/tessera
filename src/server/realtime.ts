@@ -4,6 +4,7 @@ import type { Action } from '@/engine';
 import type { ClientToServerEvents, JoinProfile, RoomSettings, ServerToClientEvents } from '@/shared/protocol';
 import { resolveIdentity, type ServerIdentity } from './identity';
 import type { Persistence } from './persistence';
+import type { DurablePersistence } from './prismaPersistence';
 import { limits } from './rateLimit';
 import { UserError, type Room, type RoomIO } from './room';
 import { RoomManager } from './rooms';
@@ -117,6 +118,12 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
       if (!limits.lobby.take(socket.id)) throw new UserError('Slow down a little');
     };
 
+    const remember = (profile: JoinProfile | undefined) => {
+      if (profile && opts.persistence && 'rememberProfile' in opts.persistence) {
+        (opts.persistence as DurablePersistence).rememberProfile(socket.data.identity.key, profile);
+      }
+    };
+
     socket.on('room:create', (p: { profile: JoinProfile; settings?: Partial<RoomSettings> }, ack) =>
       reply(ack, () => {
         if (!limits.roomCreate.take(socket.data.ip)) throw new UserError('Too many rooms created — try again in a minute');
@@ -125,21 +132,28 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
         const room = manager.create(socket.data.identity, p.settings);
         room.join(socket.id, socket.data.identity, { profile: p.profile });
         socket.data.roomCode = room.code;
+        remember(p.profile);
         return { code: room.code };
       }),
     );
 
-    socket.on('room:join', (p: { code: string; profile?: JoinProfile; spectate?: boolean }, ack) =>
+    socket.on('room:join', async (p: { code: string; profile?: JoinProfile; spectate?: boolean }, ack) => {
+      if (!limits.roomJoin.take(socket.data.ip)) {
+        return reply(ack, () => {
+          throw new UserError('Too many attempts — wait a moment');
+        });
+      }
+      // Not in memory? It may be a running game from before a server restart.
+      const room = manager.get(p?.code) ?? (await manager.restore(p?.code));
       reply(ack, () => {
-        if (!limits.roomJoin.take(socket.data.ip)) throw new UserError('Too many attempts — wait a moment');
-        const room = manager.get(p?.code);
         if (!room) throw new UserError("That room doesn't exist (or has ended)");
         if (socket.data.roomCode && socket.data.roomCode !== room.code) leaveCurrent();
         const dto = room.join(socket.id, socket.data.identity, { profile: p.profile, spectate: !!p.spectate });
         socket.data.roomCode = room.code;
+        remember(p.profile);
         return { room: dto };
-      }),
-    );
+      });
+    });
 
     socket.on('room:leave', (ack) => reply(ack, () => leaveCurrent()));
 

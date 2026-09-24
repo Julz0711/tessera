@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto';
 import type { RoomSettings } from '@/shared/protocol';
 import type { ServerIdentity } from './identity';
 import { noopPersistence, type Persistence } from './persistence';
+import type { DurablePersistence } from './prismaPersistence';
 import { Room, type RoomIO } from './room';
 
 /** Unambiguous alphabet (no I/O/0/1): 32^8 ≈ 1.1·10¹² possible codes. */
@@ -53,6 +54,43 @@ export class RoomManager {
     const normalized = normalizeCode(code);
     const room = normalized ? this.rooms.get(normalized) : undefined;
     return room && !room.closed ? room : undefined;
+  }
+
+  /** After a restart, brings a running game back from the database (if persistence is on). */
+  async restore(code: unknown): Promise<Room | undefined> {
+    const normalized = normalizeCode(code);
+    const persistence = this.opts.persistence;
+    if (!normalized || !persistence || !('restoreRoom' in persistence)) return undefined;
+    const existing = this.get(normalized);
+    if (existing) return existing;
+    const pending = this.restoring.get(normalized) ?? this.doRestore(normalized, persistence as DurablePersistence);
+    this.restoring.set(normalized, pending);
+    try {
+      return await pending;
+    } finally {
+      this.restoring.delete(normalized);
+    }
+  }
+
+  private restoring = new Map<string, Promise<Room | undefined>>();
+
+  private async doRestore(code: string, persistence: DurablePersistence): Promise<Room | undefined> {
+    try {
+      const data = await persistence.restoreRoom(code);
+      if (!data) return undefined;
+      const room = Room.restore(data, {
+        io: this.opts.io,
+        persistence,
+        botDelayScale: this.opts.botDelayScale,
+        disconnectGraceMs: this.opts.disconnectGraceMs,
+      });
+      this.rooms.set(code, room);
+      console.log(`[rooms] restored ${code} from the database`);
+      return room;
+    } catch (err) {
+      console.error('[rooms] restore failed', err);
+      return undefined;
+    }
   }
 
   /** Drops closed rooms and rooms nobody has touched for a while. */

@@ -2,8 +2,10 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { PlayerColor } from '@/engine';
 import { isPlayerColor } from '@/shared/colors';
 import { isFaceId, sanitizeKnight } from '@/shared/knight';
+import { discordConfigured, googleConfigured, handleAuth } from './auth';
 import { FACE_MAX_BYTES, FaceError, loadFace, storeFace } from './faces';
-import type { SessionInfo } from '@/shared/protocol';
+import type { ProfileData, SessionInfo } from '@/shared/protocol';
+import { favoriteMode, historyFor, linkedProviders, preferencesFor, sanitizePreferences, updateProfile } from './profileApi';
 import { dbEnabled, getDb } from './db';
 import { GUEST_TTL_DAYS, newGuestId, resolveIdentity, setGuestCookie, type ServerIdentity } from './identity';
 import { limits } from './rateLimit';
@@ -16,10 +18,7 @@ function json(res: ServerResponse, status: number, body: unknown): void {
 
 export function authProviders(): SessionInfo['auth'] {
   const db = dbEnabled();
-  return {
-    google: db && !!process.env.AUTH_GOOGLE_ID && !!process.env.AUTH_GOOGLE_SECRET,
-    discord: db && !!process.env.AUTH_DISCORD_ID && !!process.env.AUTH_DISCORD_SECRET,
-  };
+  return { google: db && googleConfigured(), discord: db && discordConfigured() };
 }
 
 async function sessionInfo(identity: ServerIdentity | null): Promise<SessionInfo> {
@@ -39,15 +38,21 @@ async function sessionInfo(identity: ServerIdentity | null): Promise<SessionInfo
     if (identity.kind === 'user') {
       const profile = await db.profile.findUnique({ where: { userId: identity.id } });
       if (profile) {
+        const prefs = sanitizePreferences(profile.preferences);
         base.displayName = profile.displayName;
-        base.avatarUrl = profile.avatarUrl ?? base.avatarUrl;
+        base.avatarUrl = prefs.useProviderAvatar === false ? null : (profile.avatarUrl ?? base.avatarUrl);
         base.color = isPlayerColor(profile.color) ? (profile.color as PlayerColor) : null;
         base.knight = profile.knight ? sanitizeKnight(profile.knight) : null;
         base.stats = { gamesPlayed: profile.gamesPlayed, gamesWon: profile.gamesWon };
       }
     } else {
       const guest = await db.guestSession.findUnique({ where: { id: identity.id } });
-      if (guest) base.stats = { gamesPlayed: guest.gamesPlayed, gamesWon: guest.gamesWon };
+      if (guest) {
+        base.displayName = guest.displayName;
+        base.color = isPlayerColor(guest.color) ? (guest.color as PlayerColor) : null;
+        base.knight = guest.knight ? sanitizeKnight(guest.knight) : null;
+        base.stats = { gamesPlayed: guest.gamesPlayed, gamesWon: guest.gamesWon };
+      }
     }
   } catch (err) {
     console.error('[http] session info failed', err);
@@ -144,6 +149,10 @@ export async function handleHttp(req: IncomingMessage, res: ServerResponse): Pro
     json(res, 200, { ok: true });
     return true;
   }
+  if (path === '/api/auth' || path.startsWith('/api/auth/')) {
+    await handleAuth(req, res);
+    return true;
+  }
   if (path === '/api/face' && req.method === 'POST') {
     await uploadFace(req, res);
     return true;
@@ -154,6 +163,40 @@ export async function handleHttp(req: IncomingMessage, res: ServerResponse): Pro
   }
   if (path === '/api/session' && req.method === 'GET') {
     json(res, 200, await sessionInfo(await resolveIdentity(req.headers.cookie)));
+    return true;
+  }
+  if (path === '/api/profile' && (req.method === 'GET' || req.method === 'PATCH')) {
+    const identity = await resolveIdentity(req.headers.cookie);
+    if (!identity) {
+      json(res, 401, { error: 'No session' });
+      return true;
+    }
+    if (req.method === 'PATCH') {
+      if (!originAllowed(req)) {
+        json(res, 403, { error: 'Bad origin' });
+        return true;
+      }
+      const body = await readBody(req, 16 * 1024);
+      let parsed: unknown = null;
+      try {
+        parsed = body ? JSON.parse(body.toString('utf8')) : null;
+      } catch {
+        parsed = null;
+      }
+      if (!parsed) {
+        json(res, 400, { error: 'Invalid request' });
+        return true;
+      }
+      await updateProfile(identity, parsed);
+    }
+    const [session, history, providers, preferences] = await Promise.all([
+      sessionInfo(identity),
+      historyFor(identity),
+      linkedProviders(identity),
+      preferencesFor(identity),
+    ]);
+    const data: ProfileData = { session, history, providers, preferences, favoriteMode: favoriteMode(history) };
+    json(res, 200, data);
     return true;
   }
   if (path === '/api/session/guest' && req.method === 'POST') {

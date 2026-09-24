@@ -10,3 +10,4 @@ First session feedback:
    7. i attached some references for each type that you could implement. keep in m,ind to leave a gap for the number pad. -> E:\Coding\colonist\docs\feedback\round1\maxresdefault.jpg
 2. the knight customization was wrongly interpretated. i dont need all thos options, rather a basic figure, where users can upload images to give it a face. if not, it stays the basic knight
 3. i attached some images of colonist.io's ui as reference and inspiration. take what you need.
+4. the settlements are here and there not visible enough. e.g orange next to brick. they need to be clearly visible.

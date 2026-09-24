@@ -5,8 +5,7 @@ const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || '.next',
   reactStrictMode: true,
   poweredByHeader: false,
-  // Server-only packages that must not be bundled into route handlers.
-  serverExternalPackages: ['pg', '@prisma/adapter-pg', '@prisma/client'],
+  // Note: database/auth code runs only in the custom server (server.ts), never in Next bundles.
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },

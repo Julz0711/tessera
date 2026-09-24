@@ -111,6 +111,43 @@ export interface ServerToClientEvents {
   'session:replaced': () => void;
 }
 
+export interface ProfilePreferences {
+  view?: '3d' | '2d';
+  graphics?: 'high' | 'low';
+  volume?: number;
+  language?: 'en';
+  /** Use the OAuth picture as avatar (true) or the knight portrait (false). */
+  useProviderAvatar?: boolean;
+}
+
+export interface GameSummary {
+  gameId: string;
+  mode: Mode;
+  startedAt: string;
+  endedAt: string | null;
+  status: string;
+  won: boolean;
+  rank: number | null;
+  finalVp: number | null;
+  players: { name: string; color: PlayerColor; vp: number | null; isBot: boolean; isYou: boolean; won: boolean }[];
+}
+
+/** GET /api/profile — only ever returned to the identity itself. */
+export interface ProfileData {
+  session: SessionInfo;
+  preferences: ProfilePreferences;
+  favoriteMode: Mode | null;
+  providers: string[];
+  history: GameSummary[];
+}
+
+export interface ProfileUpdate {
+  displayName?: string;
+  color?: PlayerColor;
+  knight?: KnightCustomization;
+  preferences?: ProfilePreferences;
+}
+
 /** Summary of the current browser identity, served by GET /api/session. */
 export interface SessionInfo {
   kind: 'guest' | 'user' | 'none';

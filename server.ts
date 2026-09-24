@@ -6,7 +6,9 @@ import './src/server/loadEnv';
 import { createServer } from 'node:http';
 import next from 'next';
 import { APP_NAME } from './src/config/app';
+import { getDb } from './src/server/db';
 import { handleHttp } from './src/server/http';
+import { createPrismaPersistence } from './src/server/prismaPersistence';
 import { findFreePort } from './src/server/port';
 import { attachRealtime } from './src/server/realtime';
 
@@ -33,7 +35,10 @@ const server = createServer((req, res) => {
     });
 });
 
-const realtime = attachRealtime(server);
+const db = getDb();
+if (db) console.log('> Persistence: PostgreSQL (profiles, history and game recovery enabled)');
+else console.log('> Persistence: off (no DATABASE_URL) — games live in memory; sign-in is disabled');
+const realtime = attachRealtime(server, { persistence: db ? createPrismaPersistence(db) : undefined });
 
 // Socket.IO handles its own upgrade requests; everything else (e.g. Next.js HMR) goes to Next.
 server.on('upgrade', (req, socket, head) => {

@@ -30,6 +30,7 @@ import { autopilotAction } from './autopilot';
 import { BOT_NAMES } from './botNames';
 import type { ServerIdentity } from './identity';
 import type { Persistence } from './persistence';
+import type { RestoredRoom } from './prismaPersistence';
 
 /** Errors whose message is safe to show the user. */
 export class UserError extends Error {}
@@ -74,7 +75,7 @@ const CHAT_HISTORY = 100;
 const MAX_BOT_ACTIONS_PER_TURN = 120;
 
 export class Room {
-  readonly id = randomUUID();
+  id: string = randomUUID();
   hostKey: string;
   settings: RoomSettings;
   seats: Seat[] = [];
@@ -96,16 +97,48 @@ export class Room {
 
   constructor(
     readonly code: string,
-    host: ServerIdentity,
+    host: ServerIdentity | { key: string },
     settings: Partial<RoomSettings> | undefined,
     private readonly deps: RoomDeps,
+    restoring = false,
   ) {
     this.now = deps.now ?? Date.now;
     this.hostKey = host.key;
     this.settings = { ...DEFAULT_ROOM_SETTINGS };
     this.lastActivity = this.now();
     if (settings) this.applySettings(settings);
-    deps.persistence.roomCreated(this.persistRoom());
+    if (!restoring) deps.persistence.roomCreated(this.persistRoom());
+  }
+
+  /** Rebuilds a running game from the database after a server restart. */
+  static restore(data: RestoredRoom, deps: RoomDeps): Room {
+    const host = data.seats.find((s) => s.identityKey)?.identityKey ?? '';
+    const room = new Room(data.code, { key: host }, data.settings, deps, true);
+    room.id = data.id;
+    room.seats = data.seats.map((s) => ({
+      playerId: s.playerId,
+      identityKey: s.identityKey,
+      isBot: s.isBot,
+      isGuest: !!s.identityKey?.startsWith('g:'),
+      name: s.name,
+      color: s.color as PlayerColor,
+      knight: sanitizeKnight(s.knight),
+      sockets: new Set<string>(),
+      lastSeen: room.now(),
+      left: false,
+    }));
+    room.game = data.state;
+    room.gameId = data.gameId;
+    room.gameNumber = data.gameNumber;
+    room.status = data.state.phase === 'ended' ? 'finished' : 'playing';
+    room.window = { key: '', startedAt: room.now() };
+    room.system('The server restarted — your game was restored. Welcome back!');
+    if (room.status === 'playing') {
+      room.updateWindow();
+      room.startTicker();
+      room.scheduleBots();
+    }
+    return room;
   }
 
   // ── Membership ────────────────────────────────────────────────────────────
