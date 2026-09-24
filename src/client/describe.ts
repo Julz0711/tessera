@@ -1,0 +1,194 @@
+import { CARDS, type Card, type DevCardType, type GameEvent, type PartialHand, type ProgressCardType, type Track } from '@/engine/types';
+import type { PlayerView } from '@/engine/view';
+import { TERRAIN_COLORS } from './palette';
+
+/** A log line: text pieces with inline player names and card chips. */
+export type Part = string | { player: number } | { card: Card; n: number };
+
+export const DEV_NAMES: Record<DevCardType, string> = {
+  knight: 'Knight',
+  victoryPoint: 'Victory Point',
+  roadBuilding: 'Road Building',
+  yearOfPlenty: 'Year of Plenty',
+  monopoly: 'Monopoly',
+};
+
+export const PROGRESS_NAMES: Record<ProgressCardType, string> = {
+  alchemist: 'Alchemist',
+  crane: 'Crane',
+  engineer: 'Engineer',
+  inventor: 'Inventor',
+  irrigation: 'Irrigation',
+  medicine: 'Medicine',
+  mining: 'Mining',
+  printer: 'Printer',
+  roadBuilding: 'Road Building',
+  smith: 'Smith',
+  bishop: 'Bishop',
+  constitution: 'Constitution',
+  deserter: 'Deserter',
+  diplomat: 'Diplomat',
+  intrigue: 'Intrigue',
+  saboteur: 'Saboteur',
+  spy: 'Spy',
+  warlord: 'Warlord',
+  wedding: 'Wedding',
+  commercialHarbor: 'Commercial Harbor',
+  masterMerchant: 'Master Merchant',
+  merchant: 'Merchant',
+  merchantFleet: 'Merchant Fleet',
+  resourceMonopoly: 'Resource Monopoly',
+  tradeMonopoly: 'Trade Monopoly',
+};
+
+export const TRACK_NAMES: Record<Track, string> = { trade: 'Trade', politics: 'Politics', science: 'Science' };
+
+export function cardParts(h: PartialHand): Part[] {
+  const out: Part[] = [];
+  for (const c of CARDS) if ((h[c] ?? 0) > 0) out.push({ card: c, n: h[c]! });
+  return out.length ? out : ['nothing'];
+}
+
+function count(h: PartialHand): number {
+  return CARDS.reduce((n, c) => n + (h[c] ?? 0), 0);
+}
+
+const PIECE: Record<string, string> = { road: 'a road', settlement: 'a settlement', city: 'a city', wall: 'a city wall' };
+
+/** Describes an event for the game log; returns one or more lines (or none). */
+export function describe(ev: GameEvent, view: PlayerView): Part[][] {
+  const P = (seat: number): Part => ({ player: seat });
+  const s = ev.secret as Record<string, unknown> | undefined;
+  switch (ev.type) {
+    case 'gameStarted':
+      return [['The game has begun.']];
+    case 'turnStarted':
+      return [];
+    case 'diceRolled': {
+      const total = ev.dice.red + ev.dice.yellow;
+      const extra = ev.dice.event ? ` · ${ev.dice.event === 'ship' ? 'barbarians advance' : `${TRACK_NAMES[ev.dice.event]} gate`}` : '';
+      return [[P(ev.seat), ` rolled ${total} (${ev.dice.red}+${ev.dice.yellow})${extra}`]];
+    }
+    case 'produced':
+      return ev.gains.flatMap((g, seat) => (count(g) ? [[P(seat), ' got ', ...cardParts(g)]] : []));
+    case 'shortage':
+      return [[`The bank ran out of ${ev.card} — nobody gets it.`]];
+    case 'built':
+      return [[P(ev.seat), ev.free ? ' placed ' : ' built ', PIECE[ev.piece] ?? ev.piece]];
+    case 'robberMoved': {
+      const hex = view.board.hexes[ev.hex];
+      return [[P(ev.seat), ` moved the robber to ${TERRAIN_COLORS[hex.terrain].label.toLowerCase()}${hex.token ? ` (${hex.token})` : ''}`]];
+    }
+    case 'stole':
+      return [[P(ev.seat), ' stole ', ...(s?.card ? [{ card: s.card as Card, n: 1 }] : ['a card']), ' from ', P(ev.victim)]];
+    case 'discarded':
+      return [[P(ev.seat), ' discarded ', ...cardParts(ev.cards)]];
+    case 'devBought':
+      return [[P(ev.seat), ' bought a development card', ...(s?.card ? [` (${DEV_NAMES[s.card as DevCardType]})`] : [])]];
+    case 'devPlayed':
+      return [[P(ev.seat), ` played ${DEV_NAMES[ev.card]}`]];
+    case 'monopoly':
+      return [[P(ev.seat), ` claimed every `, { card: ev.card, n: ev.total }]];
+    case 'received':
+      return [[P(ev.seat), ' received ', ...cardParts(ev.cards)]];
+    case 'bankTrade':
+      return [[P(ev.seat), ' traded ', ...cardParts(ev.give), ' → ', ...cardParts(ev.get), ' with the bank']];
+    case 'trade':
+      return [[P(ev.seat), ' gave ', ...cardParts(ev.give), ' to ', P(ev.partner), ' for ', ...cardParts(ev.get)]];
+    case 'tradeOffered':
+      return [];
+    case 'longestRoad':
+      return [ev.seat === null ? ['Nobody holds the Longest Road now.'] : [P(ev.seat), ` took the Longest Road (${ev.length})`]];
+    case 'largestArmy':
+      return [ev.seat === null ? ['Nobody holds the Largest Army.'] : [P(ev.seat), ` took the Largest Army (${ev.knights} knights)`]];
+    case 'gameOver':
+      return [[P(ev.winner), ' wins the game! 🏆']];
+    case 'barbarianAdvanced':
+      return [[`The barbarian ship sails closer (${ev.position}/7).`]];
+    case 'barbarianAttack':
+      return [
+        [
+          ev.won
+            ? `The barbarians attacked with ${ev.strength} and were repelled by ${ev.defense} knights' strength!`
+            : `The barbarians (${ev.strength}) overwhelmed the island's knights (${ev.defense})!`,
+        ],
+      ];
+    case 'cityLost':
+      return [[P(ev.seat), ' lost a city to the barbarians']];
+    case 'defenderAwarded':
+      return [[P(ev.seat), ' is the Defender of the island (+1 VP)']];
+    case 'progressDrawn':
+      return [[P(ev.seat), ` drew a ${TRACK_NAMES[ev.track]} progress card`, ...(s?.card ? [` (${PROGRESS_NAMES[s.card as ProgressCardType]})`] : [])]];
+    case 'progressPlayed':
+      return [[P(ev.seat), ` played ${PROGRESS_NAMES[ev.card]}`]];
+    case 'progressDiscarded':
+      return [[P(ev.seat), ` discarded a ${TRACK_NAMES[ev.track]} progress card`]];
+    case 'knightBuilt':
+      return [[P(ev.seat), ' recruited a knight']];
+    case 'knightActivated':
+      return [[P(ev.seat), ' activated a knight']];
+    case 'knightPromoted':
+      return [[P(ev.seat), ` promoted a knight to ${['', 'basic', 'strong', 'mighty'][ev.level]}`]];
+    case 'knightMoved':
+      return [[P(ev.seat), ' moved a knight']];
+    case 'knightDisplaced':
+      return [[P(ev.seat), ' displaced a knight of ', P(ev.victim)]];
+    case 'knightRemoved':
+      return [[P(ev.seat), ' lost a knight']];
+    case 'improved':
+      return [[P(ev.seat), ` improved ${TRACK_NAMES[ev.track]} to level ${ev.level}`]];
+    case 'metropolis':
+      return [[P(ev.seat), ` founded the ${TRACK_NAMES[ev.track]} metropolis`, ...(ev.from !== null ? [' (taken from ', P(ev.from), ')'] : [])]];
+    case 'merchantPlaced':
+      return [[P(ev.seat), ' placed the merchant']];
+    case 'roadRemoved':
+      return [[P(ev.seat), ' removed a road of ', P(ev.owner)]];
+    case 'tokensSwapped':
+      return [[P(ev.seat), ' swapped two number tokens']];
+  }
+}
+
+export function playerName(view: PlayerView, seat: number): string {
+  return seat === view.viewer ? 'You' : view.players[seat]?.name ?? '?';
+}
+
+/** One-line description of what the table is waiting for. */
+export function statusLine(view: PlayerView): { text: string; mine: boolean } {
+  const me = view.viewer;
+  const name = (seat: number) => (seat === me ? 'You' : view.players[seat].name);
+  if (view.phase === 'ended') return { text: view.winner !== null ? `${name(view.winner)} won the game!` : 'Game over', mine: false };
+  if (view.phase === 'setup' && view.setup) {
+    const seat = view.setup.order[view.setup.index];
+    const second = view.setup.index >= view.players.length;
+    const what = view.setup.placing === 'road' ? 'a road' : second ? (view.mode === 'ck' ? 'a city' : 'a second settlement') : 'a settlement';
+    return seat === me ? { text: `Place ${what}`, mine: true } : { text: `${name(seat)} is placing ${what}…`, mine: false };
+  }
+  const mine = view.pending.find((p) => p.seat === me);
+  if (mine) {
+    const texts: Record<string, string> = {
+      discard: `Discard ${'count' in mine ? mine.count : ''} cards`,
+      robber: 'Move the robber — pick a hex',
+      freeRoads: `Place ${'count' in mine ? mine.count : ''} free road${'count' in mine && mine.count === 1 ? '' : 's'}`,
+      loseCity: 'The barbarians won — choose a city to lose',
+      relocateKnight: 'Move your displaced knight',
+      rewardDeck: 'Choose a progress card deck',
+      aqueduct: 'Aqueduct: choose a resource',
+      discardProgress: 'Discard a progress card (max 4)',
+      giveCards: 'Choose cards to give',
+      commercialHarbor: 'Commercial Harbor: give a commodity',
+      deserterRemove: 'Choose a knight to desert',
+      deserterPlace: 'Place the deserted knight',
+      spy: 'Spy: take a progress card',
+      masterMerchant: 'Master Merchant: take 2 cards',
+      placeMetropolis: 'Place your metropolis on a city',
+    };
+    return { text: texts[mine.kind] ?? 'Your decision', mine: true };
+  }
+  if (view.pending.length) {
+    const seats = [...new Set(view.pending.map((p) => p.seat))];
+    return { text: `Waiting for ${seats.map(name).join(', ')}…`, mine: false };
+  }
+  const seat = view.turn.seat;
+  if (seat === me) return { text: view.turn.rolled ? 'Your turn — build, trade or end turn' : 'Your turn — roll the dice', mine: true };
+  return { text: `${name(seat)}'s turn`, mine: false };
+}

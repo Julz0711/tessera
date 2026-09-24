@@ -17,6 +17,7 @@ import { COLOR_ORDER, isPlayerColor } from '@/shared/colors';
 import { randomKnight, sanitizeKnight, type KnightCustomization } from '@/shared/knight';
 import {
   DEFAULT_ROOM_SETTINGS,
+  ERR_NEEDS_PROFILE,
   TURN_TIMER_OPTIONS,
   type ChatMessage,
   type JoinProfile,
@@ -131,7 +132,7 @@ export class Room {
     } else {
       const wantsSeat = !opts.spectate && this.status === 'lobby' && this.seats.length < this.settings.maxPlayers;
       if (wantsSeat) {
-        if (!opts.profile) throw new UserError('Choose a name and color first');
+        if (!opts.profile) throw new UserError(ERR_NEEDS_PROFILE);
         const newSeat: Seat = {
           playerId: randomUUID(),
           identityKey: key,

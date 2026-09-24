@@ -1,12 +1,246 @@
 @import 'tailwindcss';
 
+/* ── Design tokens ─────────────────────────────────────────────────────────
+   Night sea + warm paper game components. Terrain/resource palette is shared
+   with the 3D and 2D boards (see src/client/palette.ts). */
+@theme {
+  --font-display: var(--font-fraunces), 'Iowan Old Style', Georgia, serif;
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+
+  --color-sea-950: #061419;
+  --color-sea-900: #0a2029;
+  --color-sea-800: #0f2f3b;
+  --color-sea-700: #16455550;
+  --color-sea-600: #1d5a6b;
+  --color-sea-500: #2a7d8e;
+  --color-sea-300: #7fb9bf;
+  --color-foam: #d4ece6;
+
+  --color-paper: #f6eddb;
+  --color-paper-2: #ecdfc4;
+  --color-paper-3: #dccaa6;
+  --color-ink: #1f1a14;
+  --color-ink-soft: #5a4f40;
+  --color-ink-faint: #8c7e69;
+
+  --color-amber: #f2b33d;
+  --color-amber-deep: #b97b12;
+  --color-terracotta: #cf6440;
+  --color-moss: #5e8c46;
+  --color-danger: #c2412d;
+
+  --color-brick: #c4673f;
+  --color-lumber: #2f6b3f;
+  --color-wool: #9ccf6c;
+  --color-grain: #e9c35a;
+  --color-ore: #8d909b;
+  --color-paper-card: #d8c7a0;
+  --color-cloth: #b98ad6;
+  --color-coin: #d9a441;
+
+  --radius-card: 14px;
+  --shadow-token: 0 3px 0 0 #1f1a14;
+  --shadow-float: 0 18px 40px -12px rgb(0 0 0 / 0.55);
+
+  --animate-rise: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-pop: pop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  --animate-pulse-ring: pulse-ring 1.4s ease-out infinite;
+  --animate-bob: bob 3s ease-in-out infinite;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: scale(0.85);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes pulse-ring {
+    0% {
+      box-shadow: 0 0 0 0 rgb(242 179 61 / 0.7);
+    }
+    100% {
+      box-shadow: 0 0 0 14px rgb(242 179 61 / 0);
+    }
+  }
+  @keyframes bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
+}
+
 :root {
-  --bg: #0f1b24;
-  --fg: #f4ecdc;
+  color-scheme: dark;
 }
 
 html,
 body {
-  background: var(--bg);
-  color: var(--fg);
+  background: var(--color-sea-950);
+  color: var(--color-paper);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+/* Subtle paper grain for cards (inline SVG noise, no network request). */
+@utility grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.28 0 0 0 0 0.18 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@layer components {
+  /* A printed game component: cream card, ink rule, soft drop. */
+  .paper {
+    @apply grain rounded-[var(--radius-card)] border-2 border-ink bg-paper text-ink;
+    box-shadow:
+      0 3px 0 0 var(--color-ink),
+      var(--shadow-float);
+  }
+  .paper-flat {
+    @apply grain rounded-[var(--radius-card)] border-2 border-ink bg-paper text-ink;
+  }
+  .glass {
+    @apply rounded-[var(--radius-card)] border border-white/10 bg-sea-900/80 backdrop-blur-md;
+  }
+  .label {
+    @apply text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft;
+  }
+  .label-light {
+    @apply text-[11px] font-bold uppercase tracking-[0.14em] text-foam/70;
+  }
+  .display {
+    font-family: var(--font-display);
+    font-variation-settings:
+      'SOFT' 100,
+      'WONK' 0;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Component classes live in the components layer so Tailwind utilities (utilities layer)
+   can still override them, e.g. `btn sm:hidden` or `btn gap-0.5`. */
+@layer components {
+/* Chunky punch-out button (token). Variants set --btn-bg / --btn-fg. */
+.btn {
+  --btn-bg: var(--color-paper);
+  --btn-fg: var(--color-ink);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 2px solid var(--color-ink);
+  border-radius: 12px;
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  box-shadow: 0 3px 0 0 var(--color-ink);
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease,
+    filter 0.15s ease;
+  user-select: none;
+}
+.btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 0 var(--color-ink);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 0 var(--color-ink);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn:focus-visible {
+  outline: 3px solid var(--color-amber);
+  outline-offset: 2px;
+}
+.btn-primary {
+  --btn-bg: var(--color-amber);
+}
+.btn-dark {
+  --btn-bg: var(--color-sea-800);
+  --btn-fg: var(--color-paper);
+  border-color: #000;
+  box-shadow: 0 3px 0 0 #000;
+}
+.btn-danger {
+  --btn-bg: var(--color-terracotta);
+  --btn-fg: #fff8ef;
+}
+.btn-ghost {
+  --btn-bg: transparent;
+  --btn-fg: inherit;
+  border-color: transparent;
+  box-shadow: none;
+}
+.btn-ghost:hover:not(:disabled) {
+  box-shadow: none;
+  background: rgb(0 0 0 / 0.06);
+}
+
+.input {
+  width: 100%;
+  border: 2px solid var(--color-ink);
+  border-radius: 10px;
+  background: #fffaf0;
+  color: var(--color-ink);
+  padding: 0.6rem 0.8rem;
+  font-weight: 600;
+  outline: none;
+  transition: box-shadow 0.15s;
+}
+.input:focus {
+  box-shadow: 0 0 0 3px rgb(242 179 61 / 0.6);
+}
+
+/* Flat sea behind the 2D board (radial depth + faint wave lines). */
+.sea-2d {
+  background-color: #1c5f73;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='30'%3E%3Cpath d='M0 15q15-10 30 0t30 0' stroke='%23ffffff' stroke-opacity='0.07' stroke-width='3' fill='none'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 50% 45%, #3e97ad 0%, #2c7d93 45%, #1c5f73 100%);
+}
+
+/* Scrollbars that match the paper UI. */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(0 0 0 / 0.25) transparent;
+}
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

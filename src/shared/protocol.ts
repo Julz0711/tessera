@@ -32,6 +32,9 @@ export const DEFAULT_ROOM_SETTINGS: RoomSettings = {
 
 export const TURN_TIMER_OPTIONS = [0, 60, 90, 120, 180] as const;
 
+/** Returned by room:join when the caller must pick a name/color before taking a seat. */
+export const ERR_NEEDS_PROFILE = 'Choose a name and color first';
+
 export interface JoinProfile {
   name: string;
   color: PlayerColor;
