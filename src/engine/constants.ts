@@ -1,0 +1,127 @@
+import type {
+  Commodity,
+  DevCardType,
+  EventFace,
+  HarborKind,
+  KnightLevel,
+  Mode,
+  PartialHand,
+  ProgressCardType,
+  Resource,
+  Terrain,
+  Track,
+} from './types';
+
+export const COSTS = {
+  road: { brick: 1, lumber: 1 },
+  settlement: { brick: 1, lumber: 1, wool: 1, grain: 1 },
+  city: { grain: 2, ore: 3 },
+  devCard: { wool: 1, grain: 1, ore: 1 },
+  knight: { wool: 1, ore: 1 },
+  promote: { wool: 1, ore: 1 },
+  activate: { grain: 1 },
+  wall: { brick: 2 },
+  medicineCity: { grain: 1, ore: 2 },
+} as const satisfies Record<string, PartialHand>;
+
+export const PIECE_LIMITS = { road: 15, settlement: 5, city: 4, wall: 3 } as const;
+/** C&K: each player owns two knights of each level. */
+export const KNIGHTS_PER_LEVEL: Record<KnightLevel, number> = { 1: 2, 2: 2, 3: 2 };
+
+export const TERRAIN_COUNTS: Record<Terrain, number> = {
+  forest: 4,
+  hills: 3,
+  pasture: 4,
+  fields: 4,
+  mountains: 3,
+  desert: 1,
+};
+
+export const NUMBER_TOKENS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
+
+export const HARBOR_KINDS: HarborKind[] = ['any', 'any', 'any', 'any', 'brick', 'lumber', 'wool', 'grain', 'ore'];
+/** Harbor positions as indices into the clockwise-ordered coast edges (30 on the standard board). */
+export const HARBOR_COAST_SLOTS = [0, 3, 6, 10, 13, 16, 20, 23, 26];
+
+export const TERRAIN_RESOURCE: Record<Terrain, Resource | null> = {
+  forest: 'lumber',
+  hills: 'brick',
+  pasture: 'wool',
+  fields: 'grain',
+  mountains: 'ore',
+  desert: null,
+};
+
+export const TERRAIN_COMMODITY: Partial<Record<Terrain, Commodity>> = {
+  forest: 'paper',
+  pasture: 'cloth',
+  mountains: 'coin',
+};
+
+export const BANK_PER_RESOURCE = 19;
+export const BANK_PER_COMMODITY = 12;
+
+export const DEV_DECK: Record<DevCardType, number> = {
+  knight: 14,
+  victoryPoint: 5,
+  roadBuilding: 2,
+  yearOfPlenty: 2,
+  monopoly: 2,
+};
+
+export const TRACK_COMMODITY: Record<Track, Commodity> = { trade: 'cloth', politics: 'coin', science: 'paper' };
+
+export const PROGRESS_DECKS: Record<Track, [ProgressCardType, number][]> = {
+  science: [
+    ['alchemist', 2],
+    ['crane', 2],
+    ['engineer', 1],
+    ['inventor', 2],
+    ['irrigation', 2],
+    ['medicine', 2],
+    ['mining', 2],
+    ['printer', 1],
+    ['roadBuilding', 2],
+    ['smith', 2],
+  ],
+  politics: [
+    ['bishop', 2],
+    ['constitution', 1],
+    ['deserter', 2],
+    ['diplomat', 2],
+    ['intrigue', 2],
+    ['saboteur', 2],
+    ['spy', 3],
+    ['warlord', 2],
+    ['wedding', 2],
+  ],
+  trade: [
+    ['commercialHarbor', 2],
+    ['masterMerchant', 2],
+    ['merchant', 6],
+    ['merchantFleet', 2],
+    ['resourceMonopoly', 4],
+    ['tradeMonopoly', 2],
+  ],
+};
+
+/** Progress cards that are worth 1 VP and are revealed immediately. */
+export const VP_PROGRESS: ProgressCardType[] = ['printer', 'constitution'];
+
+export const MAX_PROGRESS_IN_HAND = 4;
+export const MAX_IMPROVEMENT = 5;
+/** Improvement level from which the level-3 ability (and metropolis race at 4) applies. */
+export const ABILITY_LEVEL = 3;
+export const METROPOLIS_LEVEL = 4;
+
+export const BARBARIAN_DISTANCE = 7;
+export const EVENT_DIE: EventFace[] = ['ship', 'ship', 'ship', 'trade', 'politics', 'science'];
+
+/** Probability "pips" of each number token (ways to roll it out of 36). */
+export const PIPS: Record<number, number> = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1 };
+
+export const DEFAULT_VP: Record<Mode, number> = { classic: 10, ck: 13 };
+export const LONGEST_ROAD_MIN = 5;
+export const LARGEST_ARMY_MIN = 3;
+export const MAX_OPEN_TRADES = 6;
+export const LOG_LIMIT = 250;
