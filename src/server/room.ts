@@ -14,7 +14,7 @@ import {
   type PlayerColor,
 } from '@/engine';
 import { COLOR_ORDER, isPlayerColor } from '@/shared/colors';
-import { randomKnight, sanitizeKnight, type KnightCustomization } from '@/shared/knight';
+import { DEFAULT_KNIGHT, sanitizeKnight, type KnightCustomization } from '@/shared/knight';
 import {
   DEFAULT_ROOM_SETTINGS,
   ERR_NEEDS_PROFILE,
@@ -288,7 +288,7 @@ export class Room {
       isGuest: false,
       name,
       color: this.freeColor(),
-      knight: randomKnight(),
+      knight: DEFAULT_KNIGHT,
       sockets: new Set(),
       lastSeen: this.now(),
       left: false,

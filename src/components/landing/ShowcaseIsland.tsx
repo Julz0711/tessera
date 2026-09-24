@@ -5,7 +5,7 @@ import { botAction } from '@/bots';
 import { applyAction, createGame, viewFor } from '@/engine';
 import { NO_TARGETS, type BoardScene } from '@/components/board/types';
 import { BoardView } from '@/components/board/BoardView';
-import { randomKnight } from '@/shared/knight';
+import { DEFAULT_KNIGHT } from '@/shared/knight';
 
 /** A random island with bot-placed starting pieces, for the landing page backdrop. */
 function demoScene(seed: number): BoardScene {
@@ -30,7 +30,7 @@ function demoScene(seed: number): BoardScene {
     knights: s.knights,
     merchant: null,
     colors: s.players.map((p) => p.color),
-    styles: s.players.map(() => randomKnight()),
+    styles: s.players.map(() => DEFAULT_KNIGHT),
     myColor: null,
     highlightToken: null,
   };

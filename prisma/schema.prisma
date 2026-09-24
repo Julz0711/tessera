@@ -107,6 +107,16 @@ model GuestSession {
   @@map("guest_sessions")
 }
 
+// Knight face portraits (small raster images, content-addressed by sha-256).
+model FaceImage {
+  id        String   @id
+  mime      String
+  data      Bytes
+  createdAt DateTime @default(now())
+
+  @@map("face_images")
+}
+
 // ── Games ───────────────────────────────────────────────────────────────────
 
 model Room {

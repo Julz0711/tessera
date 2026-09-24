@@ -14,6 +14,7 @@ import { useUi } from '@/client/ui';
 import { BoardView } from '@/components/board/BoardView';
 import { ChatPanel } from '@/components/room/ChatPanel';
 import { BankPanel } from './BankPanel';
+import { BankStrip } from './BankStrip';
 import { DevPanel } from './DevPanel';
 import { Dock } from './Dock';
 import { GameOver } from './GameOver';
@@ -188,6 +189,7 @@ export function GameScreen() {
 
       {/* players + offers: right column on desktop */}
       <div className="absolute right-2 top-16 z-10 hidden max-h-[calc(100dvh-220px)] w-72 flex-col gap-2 lg:flex">
+        <BankStrip view={view} />
         <PlayersPanel view={view} room={room} />
         <OffersTray view={view} className="w-full" />
       </div>

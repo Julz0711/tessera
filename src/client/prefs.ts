@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import type { PlayerColor } from '@/engine/types';
 import { isPlayerColor } from '@/shared/colors';
-import { DEFAULT_KNIGHT, randomKnight, sanitizeKnight, type KnightCustomization } from '@/shared/knight';
+import { DEFAULT_KNIGHT, sanitizeKnight, type KnightCustomization } from '@/shared/knight';
 
 /** Per-browser preferences (localStorage). Profiles override the identity defaults when signed in. */
 export interface Prefs {
@@ -30,7 +30,7 @@ function read(): Prefs {
   const base = defaults();
   try {
     const raw = typeof window !== 'undefined' ? window.localStorage.getItem(KEY) : null;
-    if (!raw) return { ...base, knight: typeof window !== 'undefined' ? randomKnight() : base.knight };
+    if (!raw) return base;
     const p = JSON.parse(raw) as Partial<Prefs>;
     return {
       name: typeof p.name === 'string' ? p.name.slice(0, 20) : base.name,

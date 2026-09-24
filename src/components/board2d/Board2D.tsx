@@ -157,7 +157,10 @@ export default function Board2D({ scene, targets, onVertex, onEdge, onHex }: Boa
     >
       {/* The sea itself is painted by the container (.sea-2d) so it spans the whole screen. */}
 
-      {/* beach & tiles */}
+      {/* foam, beach & tiles */}
+      {scene.board.hexes.map((h) => (
+        <polygon key={`f${h.id}`} points={hexPoints(topo, h.id, 1.26)} fill="#cdeef2" opacity="0.45" />
+      ))}
       {scene.board.hexes.map((h) => (
         <polygon key={`b${h.id}`} points={hexPoints(topo, h.id, 1.12)} fill="#e6d3a3" />
       ))}
@@ -196,19 +199,42 @@ export default function Board2D({ scene, targets, onVertex, onEdge, onHex }: Boa
         const dx = e.x - land.x;
         const dy = e.y - land.y;
         const len = Math.hypot(dx, dy) || 1;
-        const px = (e.x + (dx / len) * 0.58) * S;
-        const py = (e.y + (dy / len) * 0.58) * S;
-        const ring = hb.kind === 'any' ? '#f6eddb' : CARD_COLORS[hb.kind].bg;
+        const px = (e.x + (dx / len) * 0.66) * S;
+        const py = (e.y + (dy / len) * 0.66) * S;
+        const label = hb.kind === 'any' ? '3:1 harbor — any resource' : `2:1 harbor — ${CARD_COLORS[hb.kind].label}`;
         return (
-          <g key={`hb${hb.edge}`}>
+          <g key={`hb${hb.edge}`} pointerEvents="none">
+            <title>{label}</title>
+            {/* wooden piers from both corners */}
             {[e.a, e.b].map((v) => (
-              <line key={v} x1={topo.vertices[v].x * S} y1={topo.vertices[v].y * S} x2={px} y2={py} stroke="#8a6139" strokeWidth="7" strokeLinecap="round" />
+              <line
+                key={v}
+                x1={topo.vertices[v].x * S}
+                y1={topo.vertices[v].y * S}
+                x2={px}
+                y2={py + 10}
+                stroke="#9c6f42"
+                strokeWidth="8"
+                strokeDasharray="5 3"
+                strokeLinecap="butt"
+              />
             ))}
-            <circle cx={px} cy={py} r="25" fill={ring} stroke="#1f1a14" strokeWidth="3" />
-            <circle cx={px} cy={py} r="18" fill="#f6eddb" />
-            <text x={px} y={py + 6} textAnchor="middle" className="display" fontSize="17" fontWeight="800" fill="#1f1a14">
-              {hb.kind === 'any' ? '3:1' : '2:1'}
-            </text>
+            {/* a little ship: hull, mast and a sail showing the rate */}
+            <g transform={`translate(${px} ${py}) scale(1.35)`}>
+              <path d="M-24 8h48l-9 13h-30Z" fill="#8a6139" stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
+              <rect x="-1.5" y="-38" width="3" height="47" fill="#5a3d22" />
+              <path d="M-19-34h36q-4 16 0 34h-36q4-18 0-34Z" fill="#f6eddb" stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
+              {hb.kind === 'any' ? (
+                <text y="-20" textAnchor="middle" fontSize="14" fontWeight="900" fill="#1f1a14">
+                  ?
+                </text>
+              ) : (
+                <circle cy="-24" r="6.5" fill={CARD_COLORS[hb.kind].bg} stroke="#1f1a14" strokeWidth="1.5" />
+              )}
+              <text y="-5" textAnchor="middle" className="display" fontSize="13" fontWeight="900" fill="#1f1a14">
+                {hb.kind === 'any' ? '3:1' : '2:1'}
+              </text>
+            </g>
           </g>
         );
       })}

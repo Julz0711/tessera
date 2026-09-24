@@ -25,26 +25,9 @@ export function mat(color: string, opts: { rough?: number; metal?: number; opaci
   return m;
 }
 
-/** Shared geometries (created once, reused by every tile/piece). */
+/** Shared geometries for pieces and targets (terrain props live in terrain.tsx). */
 export const GEO = {
   hexTile: new THREE.CylinderGeometry(0.965, 1.0, 0.26, 6, 1),
-  hexBeach: new THREE.CylinderGeometry(1.06, 1.12, 0.2, 6, 1),
-  treeCone: new THREE.ConeGeometry(0.16, 0.38, 6),
-  treeConeSmall: new THREE.ConeGeometry(0.12, 0.26, 6),
-  trunk: new THREE.CylinderGeometry(0.03, 0.04, 0.12, 5),
-  mound: new THREE.IcosahedronGeometry(0.22, 0),
-  brick: new THREE.BoxGeometry(0.12, 0.05, 0.06),
-  tuft: new THREE.ConeGeometry(0.035, 0.1, 4),
-  sheepBody: new THREE.IcosahedronGeometry(0.085, 0),
-  sheepHead: new THREE.BoxGeometry(0.05, 0.05, 0.06),
-  wheat: new THREE.ConeGeometry(0.035, 0.2, 4),
-  bale: new THREE.CylinderGeometry(0.06, 0.06, 0.09, 7),
-  peak: new THREE.ConeGeometry(0.34, 0.7, 5),
-  snow: new THREE.ConeGeometry(0.14, 0.22, 5),
-  rock: new THREE.DodecahedronGeometry(0.09, 0),
-  dune: new THREE.SphereGeometry(0.28, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2),
-  cactus: new THREE.CylinderGeometry(0.035, 0.04, 0.26, 6),
-  cactusArm: new THREE.CylinderGeometry(0.025, 0.025, 0.1, 6),
   tokenDisc: new THREE.CylinderGeometry(0.33, 0.34, 0.06, 20),
   tokenFace: new THREE.CircleGeometry(0.31, 28),
   road: new THREE.BoxGeometry(0.62, 0.09, 0.13),

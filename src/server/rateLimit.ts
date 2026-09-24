@@ -34,6 +34,7 @@ export class RateLimiter {
 
 export const limits = {
   guestCreate: new RateLimiter(20, 1 / 30),
+  faceUpload: new RateLimiter(8, 1 / 20),
   roomCreate: new RateLimiter(10, 1 / 60),
   roomJoin: new RateLimiter(20, 0.5),
   action: new RateLimiter(25, 12),

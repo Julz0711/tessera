@@ -30,6 +30,7 @@ function ActionButton({
   cost,
   primary,
   hint,
+  left,
 }: {
   label: string;
   icon: React.ReactNode;
@@ -39,6 +40,8 @@ function ActionButton({
   cost?: PartialHand;
   primary?: boolean;
   hint?: string;
+  /** Pieces left in the player's supply. */
+  left?: number;
 }) {
   return (
     <button
@@ -54,6 +57,11 @@ function ActionButton({
     >
       {icon}
       <span className="leading-none">{label}</span>
+      {left !== undefined && (
+        <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full border-2 border-ink bg-paper px-1 text-[10px] font-black leading-none text-ink" title={`${left} left`}>
+          {left}
+        </span>
+      )}
       {cost && (
         <span className="pointer-events-none absolute -top-9 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border-2 border-ink bg-paper px-2 py-1 group-hover:block">
           <CardList cards={cost} />
@@ -155,7 +163,15 @@ export function Dock({ view }: { view: PlayerView }) {
         {myTurn && !view.turn.rolled && free ? (
           <ActionButton label="Roll (R)" icon={<Dices size={22} />} onClick={() => api.act({ type: 'rollDice' })} primary hint="Roll the dice (R)" />
         ) : null}
-        <ActionButton label="Road" icon={<RoadGlyph size={20} />} onClick={() => ui.setMode(ui.mode === 'road' ? null : 'road')} active={ui.mode === 'road'} disabled={!roadOk} cost={COSTS.road} />
+        <ActionButton
+          label="Road"
+          icon={<RoadGlyph size={20} />}
+          onClick={() => ui.setMode(ui.mode === 'road' ? null : 'road')}
+          active={ui.mode === 'road'}
+          disabled={!roadOk}
+          cost={COSTS.road}
+          left={left.roads}
+        />
         <ActionButton
           label="Settle"
           icon={<SettlementGlyph size={20} />}
@@ -163,8 +179,17 @@ export function Dock({ view }: { view: PlayerView }) {
           active={ui.mode === 'settlement'}
           disabled={!settlementOk}
           cost={COSTS.settlement}
+          left={left.settlements}
         />
-        <ActionButton label="City" icon={<CityGlyph size={20} />} onClick={() => ui.setMode(ui.mode === 'city' ? null : 'city')} active={ui.mode === 'city'} disabled={!cityOk} cost={COSTS.city} />
+        <ActionButton
+          label="City"
+          icon={<CityGlyph size={20} />}
+          onClick={() => ui.setMode(ui.mode === 'city' ? null : 'city')}
+          active={ui.mode === 'city'}
+          disabled={!cityOk}
+          cost={COSTS.city}
+          left={left.cities}
+        />
         {view.mode === 'classic' && (
           <ActionButton label="Buy card" icon={<Sparkles size={20} />} onClick={() => api.act({ type: 'buyDevCard' })} disabled={!devOk} cost={COSTS.devCard} />
         )}

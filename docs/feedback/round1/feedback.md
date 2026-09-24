@@ -7,5 +7,6 @@ First session feedback:
    4. wood: looks nice, could be dencer
    5. brick: also goes out of bounds, but still cute
    6. dessert: great
-   7. i attached some references for each type that you could implement. keep in m,ind to leave a gap for the number pad.
+   7. i attached some references for each type that you could implement. keep in m,ind to leave a gap for the number pad. -> E:\Coding\colonist\docs\feedback\round1\maxresdefault.jpg
 2. the knight customization was wrongly interpretated. i dont need all thos options, rather a basic figure, where users can upload images to give it a face. if not, it stays the basic knight
+3. i attached some images of colonist.io's ui as reference and inspiration. take what you need.

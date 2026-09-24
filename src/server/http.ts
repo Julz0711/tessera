@@ -1,7 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { PlayerColor } from '@/engine';
 import { isPlayerColor } from '@/shared/colors';
-import { sanitizeKnight } from '@/shared/knight';
+import { isFaceId, sanitizeKnight } from '@/shared/knight';
+import { FACE_MAX_BYTES, FaceError, loadFace, storeFace } from './faces';
 import type { SessionInfo } from '@/shared/protocol';
 import { dbEnabled, getDb } from './db';
 import { GUEST_TTL_DAYS, newGuestId, resolveIdentity, setGuestCookie, type ServerIdentity } from './identity';
@@ -81,6 +82,58 @@ async function ensureGuest(req: IncomingMessage, res: ServerResponse): Promise<v
   json(res, 200, await sessionInfo(identity));
 }
 
+/** Reads a request body, refusing anything larger than `limit` bytes. */
+function readBody(req: IncomingMessage, limit: number): Promise<Buffer | null> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    req.on('data', (chunk: Buffer) => {
+      size += chunk.length;
+      if (size > limit) {
+        resolve(null);
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
+async function uploadFace(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  if (!originAllowed(req)) return json(res, 403, { error: 'Bad origin' });
+  const identity = await resolveIdentity(req.headers.cookie);
+  if (!identity) return json(res, 401, { error: 'Start a session first' });
+  if (!limits.faceUpload.take(identity.key)) return json(res, 429, { error: 'Too many uploads — try again in a minute' });
+  const body = await readBody(req, FACE_MAX_BYTES);
+  if (!body) return json(res, 413, { error: 'Image is too large (max 64 KB after resizing)' });
+  try {
+    json(res, 200, { id: await storeFace(body) });
+  } catch (err) {
+    if (err instanceof FaceError) return json(res, 400, { error: err.message });
+    throw err;
+  }
+}
+
+async function serveFace(res: ServerResponse, id: string): Promise<void> {
+  const face = isFaceId(id) ? await loadFace(id) : null;
+  if (!face) {
+    res.writeHead(404, { 'content-type': 'text/plain' });
+    res.end('Not found');
+    return;
+  }
+  res.writeHead(200, {
+    'content-type': face.mime,
+    'content-length': face.data.length,
+    'cache-control': 'public, max-age=31536000, immutable',
+    'x-content-type-options': 'nosniff',
+    'content-security-policy': "default-src 'none'",
+    'cross-origin-resource-policy': 'same-origin',
+  });
+  res.end(face.data);
+}
+
 /**
  * Plain HTTP endpoints owned by the game server (same module graph as the socket server).
  * Returns true when the request was handled here; otherwise Next.js handles it.
@@ -89,6 +142,14 @@ export async function handleHttp(req: IncomingMessage, res: ServerResponse): Pro
   const path = (req.url ?? '/').split('?')[0];
   if (path === '/api/health') {
     json(res, 200, { ok: true });
+    return true;
+  }
+  if (path === '/api/face' && req.method === 'POST') {
+    await uploadFace(req, res);
+    return true;
+  }
+  if (path.startsWith('/api/face/') && req.method === 'GET') {
+    await serveFace(res, path.slice('/api/face/'.length));
     return true;
   }
   if (path === '/api/session' && req.method === 'GET') {
