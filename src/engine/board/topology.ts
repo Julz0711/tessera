@@ -91,18 +91,23 @@ export const STANDARD_HEX_COORDS: HexCoord[] = (() => {
 })();
 
 const cache = new Map<string, Topology>();
+/** Fast path: the same hex array object (e.g. one game state) maps straight to its topology. */
+const byArray = new WeakMap<readonly HexCoord[], Topology>();
 
 export function topologyKey(coords: readonly HexCoord[]): string {
   return coords.map((c) => `${c.q},${c.r}`).join(';');
 }
 
 export function getTopology(coords: readonly HexCoord[]): Topology {
+  let topo = byArray.get(coords);
+  if (topo) return topo;
   const key = topologyKey(coords);
-  let topo = cache.get(key);
+  topo = cache.get(key);
   if (!topo) {
     topo = buildTopology(coords);
     cache.set(key, topo);
   }
+  byArray.set(coords, topo);
   return topo;
 }
 

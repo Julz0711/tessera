@@ -60,7 +60,8 @@ export function viewFor(state: GameState, viewer: number | null): PlayerView {
   return {
     ...structuredClone(rest),
     players,
-    log: log.map((ev) => structuredClone(redactEvent(ev, viewer, reveal))),
+    // Events are immutable once emitted; only redacted ones become new objects.
+    log: log.map((ev) => redactEvent(ev, viewer, reveal)),
     pending: pending.map((p) => structuredClone(redactPrompt(p, viewer))),
     viewer,
     devDeckCount: devDeck.length,

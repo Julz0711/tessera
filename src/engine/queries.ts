@@ -186,12 +186,18 @@ export function bankRatio(s: Q, seat: number, card: Card): number {
 
 // ── Robber ──────────────────────────────────────────────────────────────────
 
+/** Card count that works on full states and on redacted views (which carry `handCount`). */
+export function cardCount(p: Q['players'][number]): number {
+  const counted = (p as { handCount?: number }).handCount;
+  return typeof counted === 'number' ? counted : handTotal(p.hand);
+}
+
 export function robberVictims(s: Q, seat: number, hex: number): number[] {
   const t = topo(s);
   const out = new Set<number>();
   for (const v of t.hexes[hex].vertices) {
     const b = s.buildings[v];
-    if (b && b.owner !== seat && handTotal(s.players[b.owner].hand) > 0) out.add(b.owner);
+    if (b && b.owner !== seat && cardCount(s.players[b.owner]) > 0) out.add(b.owner);
   }
   return [...out].sort((a, b) => a - b);
 }

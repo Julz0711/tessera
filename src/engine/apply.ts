@@ -38,7 +38,9 @@ export function applyAction(state: GameState, seat: number, action: Action): App
   if (!action || typeof action !== 'object' || typeof (action as { type?: unknown }).type !== 'string') {
     return { ok: false, error: 'Invalid action' };
   }
-  const s = structuredClone(state);
+  // Events are immutable once emitted, so the log is copied shallowly (it is the bulk of the state).
+  const { log, ...rest } = state;
+  const s: GameState = { ...structuredClone(rest), log: log.slice() };
   const ctx = makeCtx(s, seat);
   try {
     assertRule(Number.isInteger(seat) && seat >= 0 && seat < s.players.length, 'Unknown player');
