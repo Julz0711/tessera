@@ -100,7 +100,8 @@ export function Dock({ view }: { view: PlayerView }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.closest('input, textarea')) return;
+      const el = e.target as Element | null;
+      if (el && typeof el.closest === 'function' && el.closest('input, textarea, select, [contenteditable="true"]')) return;
       if (e.key === 'Escape') ui.reset();
       if (me === null || view.phase !== 'play' || view.turn.seat !== me || view.pending.length) return;
       if (e.key.toLowerCase() === 'r' && !view.turn.rolled) void api.act({ type: 'rollDice' });
