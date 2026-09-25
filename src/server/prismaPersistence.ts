@@ -7,6 +7,7 @@ import { sanitizeKnight } from '@/shared/knight';
 import type { JoinProfile, RoomSettings } from '@/shared/protocol';
 import type { Db } from './db';
 import type { Persistence, PersistGame, PersistRoom, PersistSeat } from './persistence';
+import { START_RATING, placesFrom, ratingChanges } from './rating';
 
 const GUEST_TTL_MS = 30 * 86400_000;
 
@@ -157,6 +158,23 @@ export function createPrismaPersistence(db: Db): DurablePersistence {
             });
           } else if (refs.guestSessionId) {
             await db.guestSession.update({ where: { id: refs.guestSessionId }, data: inc });
+          }
+        }
+
+        // Rating: signed-in players only, and only when at least two of them played.
+        const places = placesFrom(vps, winner);
+        const rated = game.seats
+          .map((s, seat) => ({ seat, playerId: s.playerId, userId: s.isBot ? null : identityRefs(s.identityKey).userId }))
+          .filter((r): r is { seat: number; playerId: string; userId: string } => !!r.userId);
+        if (rated.length >= 2) {
+          const profiles = await db.profile.findMany({ where: { userId: { in: rated.map((r) => r.userId) } } });
+          const byUser = new Map(profiles.map((p) => [p.userId, p]));
+          const deltas = ratingChanges(
+            rated.map((r) => ({ rating: byUser.get(r.userId)?.rating ?? START_RATING, games: byUser.get(r.userId)?.ratedGames ?? 0, place: places[r.seat] })),
+          );
+          for (const [i, r] of rated.entries()) {
+            await db.profile.update({ where: { userId: r.userId }, data: { rating: { increment: deltas[i] }, ratedGames: { increment: 1 } } });
+            await db.player.update({ where: { id: r.playerId }, data: { ratingDelta: deltas[i] } });
           }
         }
       });

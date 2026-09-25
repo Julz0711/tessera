@@ -112,6 +112,8 @@ export interface ServerToClientEvents {
   'game:state': (update: GameUpdate) => void;
   'chat:message': (message: ChatMessage) => void;
   'chat:history': (messages: ChatMessage[]) => void;
+  /** A friend invites you to their room. */
+  'friend:invite': (invite: { from: string; roomCode: string }) => void;
   /** A player's quick reaction (not kept in the chat). */
   'room:reaction': (r: { playerId: string; reaction: ReactionId; at: number }) => void;
   'room:closed': (reason: string) => void;
@@ -136,6 +138,8 @@ export interface GameSummary {
   won: boolean;
   rank: number | null;
   finalVp: number | null;
+  /** Rating change from this game (rated games only). */
+  ratingDelta: number | null;
   players: { name: string; color: PlayerColor; vp: number | null; isBot: boolean; isYou: boolean; won: boolean }[];
 }
 
@@ -146,6 +150,8 @@ export interface ProfileData {
   favoriteMode: Mode | null;
   providers: string[];
   history: GameSummary[];
+  /** Signed-in players: rating and leaderboard place (null place until the first rated game). */
+  rating: { rating: number; ratedGames: number; place: number | null } | null;
 }
 
 export interface ProfileUpdate {
@@ -165,4 +171,49 @@ export interface SessionInfo {
   stats: { gamesPlayed: number; gamesWon: number } | null;
   auth: { google: boolean; discord: boolean };
   persistence: boolean;
+}
+
+// ── Friends & leaderboard ───────────────────────────────────────────────────
+
+export type FriendStatus = 'offline' | 'online' | 'lobby' | 'playing';
+
+/** Another player as friends and the leaderboard see them. `code` is their public friend code. */
+export interface PlayerCard {
+  code: string;
+  name: string;
+  color: PlayerColor;
+  knight: KnightCustomization;
+  avatarUrl: string | null;
+  rating: number;
+  ratedGames: number;
+}
+
+export interface FriendInfo extends PlayerCard {
+  status: FriendStatus;
+  /** Their room (friends only), so you can join them. */
+  roomCode: string | null;
+}
+
+export interface FriendsData {
+  /** False without a database or when not signed in: friends need an account. */
+  enabled: boolean;
+  myCode: string | null;
+  friends: FriendInfo[];
+  incoming: PlayerCard[];
+  outgoing: PlayerCard[];
+  /** Signed-in players from your recent games who aren't friends yet. */
+  recent: PlayerCard[];
+}
+
+export interface LeaderboardEntry extends PlayerCard {
+  place: number;
+  gamesWon: number;
+  isYou: boolean;
+}
+
+export interface LeaderboardData {
+  enabled: boolean;
+  entries: LeaderboardEntry[];
+  /** Your own row when you're rated but not in the top list. */
+  you: LeaderboardEntry | null;
 }

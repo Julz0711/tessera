@@ -14,18 +14,20 @@ datasource db {
 // ── Identity (Auth.js core tables) ──────────────────────────────────────────
 
 model User {
-  id             String         @id @default(cuid())
-  name           String?
-  email          String?        @unique
-  emailVerified  DateTime?
-  image          String?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  accounts       Account[]
-  sessions       Session[]
-  profile        Profile?
-  players        Player[]
-  migratedGuests GuestSession[]
+  id              String         @id @default(cuid())
+  name            String?
+  email           String?        @unique
+  emailVerified   DateTime?
+  image           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  accounts        Account[]
+  sessions        Session[]
+  profile         Profile?
+  players         Player[]
+  migratedGuests  GuestSession[]
+  friendsAsked    Friendship[]   @relation("FriendRequester")
+  friendsAnswered Friendship[]   @relation("FriendAddressee")
 
   @@map("users")
 }
@@ -81,11 +83,33 @@ model Profile {
   preferences Json?
   gamesPlayed Int      @default(0)
   gamesWon    Int      @default(0)
+  // Elo-style rating from games with at least two signed-in players (see src/server/rating.ts).
+  rating      Int      @default(1000)
+  ratedGames  Int      @default(0)
+  // Public handle for adding friends (never the user id).
+  friendCode  String?  @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([rating])
   @@map("profiles")
+}
+
+// A friend request (pending) or friendship (accepted), stored once per pair.
+model Friendship {
+  id          String   @id @default(cuid())
+  requesterId String
+  addresseeId String
+  status      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  requester   User     @relation("FriendRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee   User     @relation("FriendAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId])
+  @@map("friendships")
 }
 
 model GuestSession {
@@ -167,6 +191,7 @@ model Player {
   finalVp             Int?
   rank                Int?
   won                 Boolean       @default(false)
+  ratingDelta         Int?
   game                Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
   user                User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   guestSession        GuestSession? @relation(fields: [guestSessionId], references: [id], onDelete: SetNull)

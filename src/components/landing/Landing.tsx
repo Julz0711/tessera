@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, LogIn } from 'lucide-react';
+import { ArrowRight, LogIn, Trophy } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -72,10 +72,15 @@ export function Landing() {
           <Logomark size={30} />
           <span className="display text-lg font-black tracking-wide text-paper">{APP_WORDMARK}</span>
         </div>
-        <Link href="/profile" className="btn btn-dark px-3 py-1.5 text-sm">
-          <KnightBadge knight={knight} color={color} size={24} />
-          <span className="max-w-28 truncate">{name}</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/leaderboard" className="btn btn-dark h-9 w-9 p-0" title="Leaderboard" aria-label="Leaderboard">
+            <Trophy size={17} />
+          </Link>
+          <Link href="/profile" className="btn btn-dark px-3 py-1.5 text-sm">
+            <KnightBadge knight={knight} color={color} size={24} />
+            <span className="max-w-28 truncate">{name}</span>
+          </Link>
+        </div>
       </header>
 
       <section className="relative z-10 flex min-h-[calc(100dvh-72px)] flex-col justify-center px-5 pb-16 sm:px-10 md:max-w-160">

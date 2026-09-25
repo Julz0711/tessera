@@ -11,6 +11,7 @@ import type { ProfileData } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { DEFAULT_KNIGHT } from '@/shared/knight';
 import { KnightBadge } from '@/components/knight/KnightBadge';
+import { FriendsPanel } from '@/components/social/FriendsPanel';
 import { DiscordMark, GoogleMark } from '@/components/ui/Glyphs';
 import { Logomark } from '@/components/ui/Logomark';
 import { Modal } from '@/components/ui/Modal';
@@ -109,10 +110,24 @@ export function ProfilePage() {
                 <Stat label="Games won" value={stats.gamesWon} />
                 <Stat label="Win rate" value={`${winRate}%`} />
                 <Stat label="Favorite mode" value={data.favoriteMode === 'ck' ? 'C&K' : data.favoriteMode === 'classic' ? 'Classic' : '—'} />
+                {data.rating && (
+                  <Stat
+                    label="Rating"
+                    value={
+                      <span className="flex items-baseline gap-2">
+                        {data.rating.place && <span className="text-sm font-bold text-ink-faint">#{data.rating.place}</span>}
+                        {data.rating.rating}
+                      </span>
+                    }
+                  />
+                )}
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link href="/settings" className="btn px-4 py-2">
                   <Pencil size={16} /> Edit profile
+                </Link>
+                <Link href="/leaderboard" className="btn px-4 py-2">
+                  <Trophy size={16} /> Leaderboard
                 </Link>
                 {user ? (
                   <button type="button" className="btn btn-ghost px-4 py-2" onClick={() => void signOut()}>
@@ -138,6 +153,13 @@ export function ProfilePage() {
           </section>
         )}
 
+        {data && user && (
+          <section className="paper grid gap-3 p-5 sm:p-7">
+            <h2 className="display text-2xl font-black">Friends</h2>
+            <FriendsPanel />
+          </section>
+        )}
+
         {data && (
           <section className="grid gap-3">
             <h2 className="display text-2xl font-black text-paper">Game history</h2>
@@ -154,7 +176,15 @@ export function ProfilePage() {
                       {g.mode === 'ck' ? <Crown size={10} /> : <Swords size={10} />} {g.mode === 'ck' ? 'C&K' : 'Classic'}
                     </span>
                   </div>
-                  <p className="text-xs text-ink-faint">{new Date(g.endedAt ?? g.startedAt).toLocaleString()}</p>
+                  <p className="text-xs text-ink-faint">
+                    {new Date(g.endedAt ?? g.startedAt).toLocaleString()}
+                    {g.ratingDelta !== null && (
+                      <span className={`ml-2 font-black ${g.ratingDelta >= 0 ? 'text-moss' : 'text-danger'}`}>
+                        {g.ratingDelta >= 0 ? '+' : ''}
+                        {g.ratingDelta} rating
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {g.players.map((p, i) => (

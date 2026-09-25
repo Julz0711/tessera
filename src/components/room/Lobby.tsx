@@ -14,6 +14,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Logomark } from '@/components/ui/Logomark';
 import { ProfileFields, type ProfileDraft } from '@/components/profile/ProfileFields';
 import { ChatPanel } from './ChatPanel';
+import { FriendsPanel } from '@/components/social/FriendsPanel';
 import { MapPreview } from './MapPreview';
 
 export function formatCode(code: string): string {
@@ -249,6 +250,7 @@ export function Lobby({ room }: { room: RoomDTO }) {
   const me = room.seats.find((s) => s.isYou);
   const host = room.you.isHost;
   const empty = Math.max(0, room.settings.maxPlayers - room.seats.length);
+  const signedIn = useGame((s) => s.session?.kind === 'user' && s.session.persistence);
 
   const leave = async () => {
     await api.leaveRoom();
@@ -324,6 +326,12 @@ export function Lobby({ room }: { room: RoomDTO }) {
             <p className="rounded-xl bg-paper-2 px-4 py-3 text-center text-sm font-bold text-ink-soft">Waiting for the host to start…</p>
           )}
           {!me && room.you.isSpectator && <p className="text-center text-xs text-ink-faint">You are watching this game.</p>}
+          {signedIn && (
+            <div className="grid gap-2 border-t-2 border-ink/10 pt-4">
+              <span className="label">Invite friends</span>
+              <FriendsPanel mode="invite" roomCode={room.code} />
+            </div>
+          )}
         </aside>
       </div>
 

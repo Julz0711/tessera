@@ -3,6 +3,7 @@ import { Figtree, Fraunces } from 'next/font/google';
 import { APP_DESCRIPTION, APP_NAME } from '@/config/app';
 import { Toasts } from '@/components/ui/Toasts';
 import { PrefsLoader } from '@/components/ui/PrefsLoader';
+import { SocialLayer } from '@/components/social/SocialLayer';
 import './globals.css';
 
 const fraunces = Fraunces({
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <Toasts />
         <PrefsLoader />
+        <SocialLayer />
       </body>
     </html>
   );

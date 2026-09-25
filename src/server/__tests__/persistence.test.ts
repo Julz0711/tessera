@@ -117,4 +117,68 @@ describe.skipIf(!url)('prisma persistence', async () => {
     expect(restored!.seats.map((s) => s.playerId)).toEqual(g.seats.map((s) => s.playerId));
     expect(restored!.seats[0].identityKey).toBe(g.seats[0].identityKey);
   });
+
+  it('rates games between signed-in players, and only those', async () => {
+    const a = await db.user.create({ data: { name: 'Ann' } });
+    const b = await db.user.create({ data: { name: 'Bob' } });
+    const g = setup([`u:${a.id}`, `u:${b.id}`]);
+    persistence.roomCreated(g.room);
+    persistence.gameStarted({ gameId: g.gameId, room: g.room, seats: g.seats, state: g.state });
+    const final = play(g, 20_000);
+    persistence.gameEnded({ gameId: g.gameId, room: g.room, seats: g.seats, state: final });
+    await persistence.flush();
+
+    const [pa, pb] = await Promise.all([db.profile.findUnique({ where: { userId: a.id } }), db.profile.findUnique({ where: { userId: b.id } })]);
+    expect(pa?.ratedGames).toBe(1);
+    expect(pb?.ratedGames).toBe(1);
+    // Two equal newcomers: one goes up, the other down by as much (unless a bot won and they tied).
+    expect(pa!.rating + pb!.rating).toBe(2000);
+    const players = await db.player.findMany({ where: { gameId: g.gameId, userId: { not: null } } });
+    expect(players.every((p) => p.ratingDelta !== null)).toBe(true);
+
+    // A lone signed-in player against bots isn't rated.
+    const solo = setup([`u:${a.id}`]);
+    persistence.roomCreated(solo.room);
+    persistence.gameStarted({ gameId: solo.gameId, room: solo.room, seats: solo.seats, state: solo.state });
+    const soloFinal = play(solo, 20_000);
+    persistence.gameEnded({ gameId: solo.gameId, room: solo.room, seats: solo.seats, state: soloFinal });
+    await persistence.flush();
+    expect((await db.profile.findUnique({ where: { userId: a.id } }))?.ratedGames).toBe(1);
+  });
+
+  it('handles friend requests, recent players, invites and the leaderboard', async () => {
+    const social = await import('../social');
+    const me = await db.user.create({ data: { name: 'Me' } });
+    const you = await db.user.create({ data: { name: 'You' } });
+    const meId = { kind: 'user' as const, id: me.id, key: `u:${me.id}` } as never;
+    const youId = { kind: 'user' as const, id: you.id, key: `u:${you.id}` } as never;
+
+    const mine = await social.friendsFor(meId);
+    const yours = await social.friendsFor(youId);
+    expect(mine.enabled).toBe(true);
+    expect(mine.myCode).toMatch(/^[A-Z2-9]{8}$/);
+
+    await expect(social.requestFriend(meId, mine.myCode)).rejects.toThrow(/own code/);
+    await expect(social.requestFriend(meId, 'ZZZZZZZZ')).rejects.toThrow();
+    await social.requestFriend(meId, yours.myCode);
+    expect((await social.friendsFor(meId)).outgoing.map((c) => c.code)).toEqual([yours.myCode]);
+    expect((await social.friendsFor(youId)).incoming.map((c) => c.code)).toEqual([mine.myCode]);
+
+    // Asking back accepts.
+    await social.requestFriend(youId, mine.myCode);
+    const friends = await social.friendsFor(meId);
+    expect(friends.friends.map((f) => f.code)).toEqual([yours.myCode]);
+    expect(friends.friends[0].status).toBe('offline');
+    await expect(social.inviteFriend(meId, yours.myCode)).rejects.toThrow(/room/);
+
+    await social.removeFriend(youId, mine.myCode);
+    expect((await social.friendsFor(meId)).friends).toHaveLength(0);
+
+    // Guests can't use friends; the leaderboard only lists rated players.
+    expect((await social.friendsFor({ kind: 'guest', id: 'x', key: 'g:x' } as never)).enabled).toBe(false);
+    const board = await social.leaderboard(meId);
+    expect(board.enabled).toBe(true);
+    expect(board.entries.every((e) => e.ratedGames > 0)).toBe(true);
+    expect(board.entries.map((e) => e.place)).toEqual(board.entries.map((_, i) => i + 1));
+  });
 });

@@ -1,7 +1,7 @@
 import type { Mode, PlayerColor } from '@/engine/types';
 import { isPlayerColor } from '@/shared/colors';
 import { sanitizeKnight } from '@/shared/knight';
-import type { GameSummary, ProfilePreferences, ProfileUpdate } from '@/shared/protocol';
+import type { GameSummary, ProfileData, ProfilePreferences, ProfileUpdate } from '@/shared/protocol';
 import { sanitizeName } from '@/shared/text';
 import { getDb } from './db';
 import type { ServerIdentity } from './identity';
@@ -37,6 +37,7 @@ export async function historyFor(identity: ServerIdentity, take = 25): Promise<G
     won: me.won,
     rank: me.rank,
     finalVp: me.finalVp,
+    ratingDelta: me.ratingDelta,
     players: me.game.players.map((p) => ({
       name: p.displayName,
       color: (isPlayerColor(p.color) ? p.color : 'red') as PlayerColor,
@@ -46,6 +47,15 @@ export async function historyFor(identity: ServerIdentity, take = 25): Promise<G
       won: p.won,
     })),
   }));
+}
+
+export async function ratingFor(identity: ServerIdentity): Promise<ProfileData['rating']> {
+  const db = getDb();
+  if (!db || identity.kind !== 'user') return null;
+  const p = await db.profile.findUnique({ where: { userId: identity.id }, select: { rating: true, ratedGames: true } });
+  if (!p) return { rating: 1000, ratedGames: 0, place: null };
+  const place = p.ratedGames > 0 ? (await db.profile.count({ where: { ratedGames: { gt: 0 }, rating: { gt: p.rating } } })) + 1 : null;
+  return { rating: p.rating, ratedGames: p.ratedGames, place };
 }
 
 export async function linkedProviders(identity: ServerIdentity): Promise<string[]> {

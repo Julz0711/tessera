@@ -43,4 +43,5 @@ export const limits = {
   // Two in a row, then one every 3 s.
   reaction: new RateLimiter(2, 1 / 3),
   lobby: new RateLimiter(20, 2),
+  friends: new RateLimiter(20, 0.5),
 };

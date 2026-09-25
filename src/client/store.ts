@@ -47,6 +47,8 @@ export interface GameStore {
   reactions: Record<string, { reaction: ReactionId; at: number }>;
   /** When the viewer last reacted, for the picker's cooldown. */
   lastReactionAt: number;
+  /** Room invites from friends, newest last. */
+  invites: { from: string; roomCode: string; at: number }[];
 }
 
 const initial: GameStore = {
@@ -64,6 +66,7 @@ const initial: GameStore = {
   toasts: [],
   reactions: {},
   lastReactionAt: 0,
+  invites: [],
 };
 
 export const useGame = create<GameStore>(() => ({ ...initial }));
@@ -113,6 +116,10 @@ function wire(s: ClientSocket): void {
   s.on('chat:message', (m) => {
     useGame.setState((st) => ({ chat: [...st.chat.slice(-149), m], unread: st.unread + 1 }));
     if (!m.system) play('chat');
+  });
+  s.on('friend:invite', (inv) => {
+    useGame.setState((st) => ({ invites: [...st.invites.filter((i) => i.roomCode !== inv.roomCode).slice(-2), { ...inv, at: Date.now() }] }));
+    play('offer');
   });
   s.on('room:reaction', (r) => {
     // Stamped with the local clock so the bubble's lifetime doesn't depend on server clock skew.

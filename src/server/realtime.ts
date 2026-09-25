@@ -9,6 +9,7 @@ import { limits } from './rateLimit';
 import { UserError, type Room, type RoomIO } from './room';
 import { RoomManager } from './rooms';
 import { isReactionId } from '@/shared/reactions';
+import { setPresenceSource } from './presence';
 
 export interface SocketData {
   identity: ServerIdentity;
@@ -104,7 +105,36 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
     }
   });
 
+  // Presence: which identities have a socket open, and in which room.
+  const socketsOf = new Map<string, Set<string>>();
+  setPresenceSource({
+    lookup(key) {
+      const ids = socketsOf.get(key);
+      if (!ids?.size) return { status: 'offline', roomCode: null };
+      for (const id of ids) {
+        const code = io.sockets.sockets.get(id)?.data.roomCode;
+        const room = code ? manager.get(code) : undefined;
+        if (room) return { status: room.status === 'playing' ? 'playing' : 'lobby', roomCode: room.code };
+      }
+      return { status: 'online', roomCode: null };
+    },
+    invite(key, invite) {
+      const ids = socketsOf.get(key);
+      if (!ids?.size) return false;
+      for (const id of ids) io.sockets.sockets.get(id)?.emit('friend:invite', invite);
+      return true;
+    },
+  });
+
   io.on('connection', (socket: GameSocket) => {
+    const key = socket.data.identity.key;
+    socketsOf.set(key, (socketsOf.get(key) ?? new Set()).add(socket.id));
+    socket.on('disconnect', () => {
+      const ids = socketsOf.get(key);
+      ids?.delete(socket.id);
+      if (ids && !ids.size) socketsOf.delete(key);
+    });
+
     const currentRoom = (): Room => {
       const room = socket.data.roomCode ? manager.get(socket.data.roomCode) : undefined;
       if (!room) throw new UserError('You are not in a room');
