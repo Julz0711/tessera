@@ -4,7 +4,8 @@ import { Landmark } from 'lucide-react';
 import { COMMODITIES, RESOURCES } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { CARD_COLORS } from '@/client/palette';
-import { CARD_GLYPH, DevCardGlyph } from '@/components/ui/Glyphs';
+import { DevCardGlyph } from '@/components/ui/Glyphs';
+import { MiniArt } from './cardArt';
 
 /** What's left in the bank (and the development deck), like a card tray on the table. */
 export function BankStrip({ view }: { view: PlayerView }) {
@@ -13,7 +14,6 @@ export function BankStrip({ view }: { view: PlayerView }) {
     <div className="paper-flat flex items-center gap-1.5 px-2 py-1.5" title="Cards left in the bank">
       <Landmark size={18} className="mx-0.5 shrink-0 text-ink-soft" aria-label="Bank" />
       {cards.map((c) => {
-        const Glyph = CARD_GLYPH[c];
         const col = CARD_COLORS[c];
         const low = view.bank[c] <= 3;
         return (
@@ -23,7 +23,7 @@ export function BankStrip({ view }: { view: PlayerView }) {
             style={{ background: col.bg, color: col.ink }}
             title={`${col.label}: ${view.bank[c]} left`}
           >
-            <Glyph size={13} strokeWidth={2.2} />
+            <MiniArt card={c} size={17} />
             <span className={`text-[11px] font-black tabular ${low ? 'underline decoration-2' : ''}`}>{view.bank[c]}</span>
           </span>
         );

@@ -1,5 +1,4 @@
 import type { SVGProps } from 'react';
-import type { Card } from '@/engine/types';
 
 type P = SVGProps<SVGSVGElement> & { size?: number };
 
@@ -15,100 +14,6 @@ const base = (size = 20, props: P) => ({
   'aria-hidden': true,
   ...props,
 });
-
-export function BrickGlyph({ size, ...p }: P) {
-  return (
-    <svg {...base(size, p)}>
-      <rect x="3" y="5" width="8" height="4.5" rx="0.8" />
-      <rect x="13" y="5" width="8" height="4.5" rx="0.8" />
-      <rect x="7.5" y="10.8" width="9" height="4.5" rx="0.8" />
-      <rect x="3" y="16.5" width="8" height="4.5" rx="0.8" />
-      <rect x="13" y="16.5" width="8" height="4.5" rx="0.8" />
-    </svg>
-  );
-}
-
-export function LumberGlyph({ size, ...p }: P) {
-  return (
-    <svg {...base(size, p)}>
-      <path d="M5 9h13" />
-      <path d="M5 15h13" />
-      <ellipse cx="5" cy="12" rx="2" ry="3" />
-      <ellipse cx="18" cy="12" rx="2" ry="3" />
-      <circle cx="18" cy="12" r="0.8" fill="currentColor" />
-      <path d="M9 7.5 7.5 5M13 7.5l1.5-2.5" />
-    </svg>
-  );
-}
-
-export function WoolGlyph({ size, ...p }: P) {
-  return (
-    <svg {...base(size, p)}>
-      <path d="M6.5 16.5c-2 0-3.5-1.4-3.5-3.2 0-1.6 1.2-2.9 2.8-3.2C6.2 8.2 7.9 7 9.8 7c1.2 0 2.3.5 3 1.3.6-.4 1.3-.6 2.1-.6 2 0 3.6 1.5 3.7 3.4 1.5.4 2.4 1.6 2.4 3 0 1.9-1.6 3.4-3.6 3.4Z" />
-      <path d="M8 16.5V20M16 16.5V20" />
-    </svg>
-  );
-}
-
-export function GrainGlyph({ size, ...p }: P) {
-  return (
-    <svg {...base(size, p)}>
-      <path d="M12 21V6" />
-      <path d="M12 8c-2-.4-3.2-1.8-3.3-3.8 2 .3 3.2 1.6 3.3 3.8Zm0 0c2-.4 3.2-1.8 3.3-3.8-2 .3-3.2 1.6-3.3 3.8Z" />
-      <path d="M12 12.5c-2-.4-3.2-1.8-3.3-3.8 2 .3 3.2 1.6 3.3 3.8Zm0 0c2-.4 3.2-1.8 3.3-3.8-2 .3-3.2 1.6-3.3 3.8Z" />
-      <path d="M12 17c-2-.4-3.2-1.8-3.3-3.8 2 .3 3.2 1.6 3.3 3.8Zm0 0c2-.4 3.2-1.8 3.3-3.8-2 .3-3.2 1.6-3.3 3.8Z" />
-    </svg>
-  );
-}
-
-export function OreGlyph({ size, ...p }: P) {
-  return (
-    <svg {...base(size, p)}>
-      <path d="m3 18 4.5-8 3.5 3 3-7 7 12Z" />
-      <path d="m7.5 10 1.5 3.5M14 6l.8 5.5" />
-    </svg>
-  );
-}
-
-export function PaperGlyph({ size, ...p }: P) {
-  return (
-    <svg {...base(size, p)}>
-      <path d="M7 4h11a2 2 0 0 1 0 4H9" />
-      <path d="M7 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8" />
-      <path d="M9 11h6M9 14h6M9 17h4" />
-    </svg>
-  );
-}
-
-export function ClothGlyph({ size, ...p }: P) {
-  return (
-    <svg {...base(size, p)}>
-      <path d="M4 7c3-2 5 2 8 0s5 2 8 0v10c-3 2-5-2-8 0s-5-2-8 0Z" />
-      <path d="M4 12c3-2 5 2 8 0s5 2 8 0" />
-    </svg>
-  );
-}
-
-export function CoinGlyph({ size, ...p }: P) {
-  return (
-    <svg {...base(size, p)}>
-      <circle cx="12" cy="12" r="8" />
-      <circle cx="12" cy="12" r="4.5" />
-      <path d="M12 9.5v5" />
-    </svg>
-  );
-}
-
-export const CARD_GLYPH: Record<Card, (p: P) => React.ReactElement> = {
-  brick: BrickGlyph,
-  lumber: LumberGlyph,
-  wool: WoolGlyph,
-  grain: GrainGlyph,
-  ore: OreGlyph,
-  paper: PaperGlyph,
-  cloth: ClothGlyph,
-  coin: CoinGlyph,
-};
 
 export function RoadGlyph({ size, ...p }: P) {
   return (
