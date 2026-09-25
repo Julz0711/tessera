@@ -99,7 +99,8 @@ function wire(s: ClientSocket): void {
     }
     useGame.setState({ conn: 'reconnecting' });
   });
-  s.on('room:state', (room) => useGame.setState({ room }));
+  // Back in the lobby, the finished game's view goes away.
+  s.on('room:state', (room) => useGame.setState(room.status === 'lobby' ? { room, view: null } : { room }));
   s.on('game:state', ({ view, events }) => useGame.setState((st) => ({ view, events, updateId: st.updateId + 1 })));
   s.on('chat:history', (chat) => useGame.setState({ chat }));
   s.on('chat:message', (m) => {
@@ -184,6 +185,7 @@ export const api = {
   removeSeat: (playerId: string) => request((s, ack) => s.emit('room:removeSeat', playerId, ack)).then(report),
   start: () => request((s, ack) => s.emit('room:start', ack)).then(report),
   rematch: () => request((s, ack) => s.emit('room:rematch', ack)).then(report),
+  backToLobby: () => request((s, ack) => s.emit('room:toLobby', ack)).then(report),
   act: (action: Action) => request((s, ack) => s.emit('game:action', action, ack)).then(report),
   chat: (text: string) => request((s, ack) => s.emit('chat:send', text, ack)).then(report),
 };

@@ -173,8 +173,14 @@ describe('realtime server', () => {
     expect(final.winner).not.toBeNull();
     expect(hostRoom!.status).toBe('finished');
 
-    // Rematch starts a fresh game in the same room.
-    expect((await call((ack) => host.emit('room:rematch', ack))).ok).toBe(true);
+    // Only the host decides what comes next.
+    expect((await call((ack) => guest2.emit('room:toLobby', ack))).ok).toBe(false);
+
+    // Back to the lobby, then start again from there.
+    expect((await call((ack) => host.emit('room:toLobby', ack))).ok).toBe(true);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(hostRoom!.status).toBe('lobby');
+    expect((await call((ack) => host.emit('room:start', ack))).ok).toBe(true);
     await new Promise((r) => setTimeout(r, 50));
     expect(hostRoom!.status).toBe('playing');
     expect(hostRoom!.gameNumber).toBe(2);

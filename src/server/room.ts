@@ -369,6 +369,20 @@ export class Room {
     this.startGame();
   }
 
+  /** After a game: everyone goes back to the lobby, where the host can change settings and seats. */
+  backToLobby(socketId: string): void {
+    this.requireHost(socketId);
+    if (this.status !== 'finished') throw new UserError('The game is not over yet');
+    this.seats = this.seats.filter((s) => s.isBot || !s.left);
+    this.stopTicker();
+    this.game = null;
+    this.gameId = null;
+    this.status = 'lobby';
+    this.deps.persistence.roomStatus(this.persistRoom());
+    this.system('Back in the lobby.');
+    this.broadcastRoom();
+  }
+
   private startGame(): void {
     if (this.seats.length < 2) throw new UserError('Add at least one more player or bot');
     if (this.settings.mode === 'ck' && !CK_READY) throw new UserError('Cities & Knights is coming soon');

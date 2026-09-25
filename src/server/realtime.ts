@@ -199,6 +199,13 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
       }),
     );
 
+    socket.on('room:toLobby', (ack) =>
+      reply(ack, () => {
+        lobbyLimit();
+        currentRoom().backToLobby(socket.id);
+      }),
+    );
+
     socket.on('game:action', (action: Action, ack) =>
       reply(ack, () => {
         if (!limits.action.take(socket.id)) throw new UserError('Slow down a little');

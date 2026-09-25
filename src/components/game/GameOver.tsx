@@ -1,6 +1,6 @@
 'use client';
 
-import { Crown, Home, RotateCcw } from 'lucide-react';
+import { Crown, Home, RotateCcw, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, type ReactNode } from 'react';
 import { handTotal, PIPS } from '@/engine';
@@ -256,11 +256,16 @@ export function GameOver({ view, room, onClose }: { view: PlayerView; room: Room
             <Home size={16} /> Home
           </button>
           {room.you.isHost ? (
-            <button type="button" className="btn btn-primary px-5 py-2" onClick={() => api.rematch()}>
-              <RotateCcw size={16} /> Rematch
-            </button>
+            <>
+              <button type="button" className="btn px-4 py-2" onClick={() => api.backToLobby()} title="Change settings or players, then start again">
+                <Users size={16} /> Back to lobby
+              </button>
+              <button type="button" className="btn btn-primary px-5 py-2" onClick={() => api.rematch()} title="Same players and settings, new board">
+                <RotateCcw size={16} /> Rematch
+              </button>
+            </>
           ) : (
-            <span className="self-center text-sm font-bold text-ink-soft">The host can start a rematch.</span>
+            <span className="self-center text-sm font-bold text-ink-soft">Waiting for the host: rematch or back to the lobby.</span>
           )}
         </div>
       </Modal>

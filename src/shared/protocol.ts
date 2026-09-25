@@ -94,6 +94,7 @@ export interface ClientToServerEvents {
   'room:removeSeat': (playerId: string, ack: Ack) => void;
   'room:start': (ack: Ack) => void;
   'room:rematch': (ack: Ack) => void;
+  'room:toLobby': (ack: Ack) => void;
   'game:action': (action: Action, ack: Ack) => void;
   'chat:send': (text: string, ack: Ack) => void;
 }
