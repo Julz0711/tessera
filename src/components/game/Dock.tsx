@@ -1,7 +1,7 @@
 'use client';
 
-import { ArrowLeftRight, BrickWall, Dices, Eye, Hammer, Hourglass, Landmark, Sparkles } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { ArrowLeftRight, BrickWall, Eye, Hammer, Hourglass, Landmark, Sparkles } from 'lucide-react';
+import { useEffect } from 'react';
 import {
   COSTS,
   hasCards,
@@ -19,7 +19,6 @@ import { api } from '@/client/store';
 import { buildMode, useUi } from '@/client/ui';
 import { CityGlyph, KnightGlyph, RoadGlyph, SettlementGlyph } from '@/components/ui/Glyphs';
 import { CardList } from './cards';
-import { Die, EventDie } from './Dice';
 import { Hand } from './Hand';
 
 function ActionButton({
@@ -30,6 +29,7 @@ function ActionButton({
   active,
   cost,
   primary,
+  danger,
   hint,
   left,
 }: {
@@ -40,6 +40,7 @@ function ActionButton({
   active?: boolean;
   cost?: PartialHand;
   primary?: boolean;
+  danger?: boolean;
   hint?: string;
   /** Pieces left in the player's supply. */
   left?: number;
@@ -54,7 +55,7 @@ function ActionButton({
       disabled={disabled}
       aria-pressed={active}
       title={hint ?? label}
-      className={`btn group relative flex-col gap-0.5 px-2.5 py-1.5 text-[11px] sm:min-w-16 ${primary ? 'btn-primary' : active ? 'btn-primary' : ''}`}
+      className={`btn group relative flex-col gap-0.5 px-2.5 py-1.5 text-[11px] sm:min-w-16 ${primary ? 'btn-primary' : active ? 'btn-primary' : danger ? 'btn-danger' : ''}`}
     >
       {icon}
       <span className="leading-none">{label}</span>
@@ -69,27 +70,6 @@ function ActionButton({
         </span>
       )}
     </button>
-  );
-}
-
-function lastRoll(view: PlayerView) {
-  for (let i = view.log.length - 1; i >= 0; i--) {
-    const ev = view.log[i];
-    if (ev.type === 'diceRolled') return { dice: ev.dice, key: ev.seq };
-  }
-  return null;
-}
-
-export function DiceTray({ view, size = 44 }: { view: PlayerView; size?: number }) {
-  const roll = useMemo(() => lastRoll(view), [view]);
-  if (!roll) return null;
-  const ck = view.mode === 'ck';
-  return (
-    <div className="flex items-center gap-1.5" aria-label={`Last roll: ${roll.dice.red + roll.dice.yellow}`} title={`Last roll: ${roll.dice.red + roll.dice.yellow}`}>
-      <Die size={size} value={roll.dice.red} rollKey={roll.key} bg={ck ? '#d9483b' : '#f6eddb'} pip={ck ? '#fff7f0' : '#1f1a14'} />
-      <Die size={size} value={roll.dice.yellow} rollKey={roll.key + 1} bg={ck ? '#f2c14e' : '#f6eddb'} />
-      {roll.dice.event && <EventDie face={roll.dice.event} size={size} />}
-    </div>
   );
 }
 
@@ -138,12 +118,6 @@ export function Dock({ view }: { view: PlayerView }) {
 
       {/* actions */}
       <div className="glass flex flex-wrap items-center justify-center gap-1.5 p-1.5 sm:gap-2 sm:p-2">
-        <div className="px-1">
-          <DiceTray view={view} size={34} />
-        </div>
-        {myTurn && !view.turn.rolled && free ? (
-          <ActionButton label="Roll (R)" icon={<Dices size={22} />} onClick={() => api.act({ type: 'rollDice' })} primary hint="Roll the dice (R)" />
-        ) : null}
         <ActionButton
           label="Road"
           icon={<RoadGlyph size={20} />}
@@ -207,6 +181,7 @@ export function Dock({ view }: { view: PlayerView }) {
           }}
           disabled={!canBuild}
           hint="End your turn (E)"
+          danger
         />
       </div>
     </div>
