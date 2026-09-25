@@ -53,7 +53,7 @@ export function createPrismaPersistence(db: Db): DurablePersistence {
     });
   };
 
-  const ensureGuest = (guestId: string, profile?: { name: string; color: string; knight: unknown }) =>
+  const upsertGuest = (guestId: string, profile?: { name: string; color: string; knight: unknown }) =>
     db.guestSession.upsert({
       where: { id: guestId },
       create: {
@@ -65,6 +65,20 @@ export function createPrismaPersistence(db: Db): DurablePersistence {
       },
       update: profile ? { displayName: profile.name, color: profile.color, knight: json(profile.knight), lastSeenAt: new Date() } : {},
     });
+
+  /**
+   * Upsert isn't atomic: a room's queue and the guest's own queue can both create the same new
+   * guest at once, and the loser gets a unique violation. The row exists by then, so one retry
+   * takes the update path.
+   */
+  const ensureGuest = async (guestId: string, profile?: { name: string; color: string; knight: unknown }) => {
+    try {
+      return await upsertGuest(guestId, profile);
+    } catch (err) {
+      if ((err as { code?: string }).code !== 'P2002') throw err;
+      return upsertGuest(guestId, profile);
+    }
+  };
 
   return {
     enabled: true,

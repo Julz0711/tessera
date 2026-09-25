@@ -74,6 +74,22 @@ describe.skipIf(!url)('prisma persistence', async () => {
     expect(guest?.gamesWon).toBe(final.winner === 0 ? 1 : 0);
   });
 
+  it('records a game even when a new guest is saved at the same moment', async () => {
+    // Joining (rememberProfile) and starting the game both create the guest row, on different queues.
+    for (let i = 0; i < 40; i++) {
+      const guestId = randomUUID();
+      const g = setup([`g:${guestId}`]);
+      persistence.roomCreated(g.room);
+      await persistence.flush();
+      persistence.gameStarted({ gameId: g.gameId, room: g.room, seats: g.seats, state: g.state });
+      // Land the guest's own save while the game start is between creating the game and its players.
+      await new Promise((r) => setTimeout(r, i % 4));
+      persistence.rememberProfile(`g:${guestId}`, { name: 'Racer', color: 'red', knight: DEFAULT_KNIGHT });
+      await persistence.flush();
+      expect(await db.player.count({ where: { gameId: g.gameId } })).toBe(g.seats.length);
+    }
+  });
+
   it('migrates a guest to a profile exactly once', async () => {
     const { migrateGuestToUser, ensureProfile } = await import('../migrateGuest');
     const guestId = randomUUID();
