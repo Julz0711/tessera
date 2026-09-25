@@ -14,6 +14,7 @@ import {
 } from './constants';
 import { emptyHand } from './hand';
 import { normalizeSeed, shuffle } from './rng';
+import { newStats, recordStats } from './stats';
 import {
   COMMODITIES,
   RESOURCES,
@@ -71,6 +72,7 @@ export function emit(ctx: Ctx, body: GameEventBody, secret?: { data: Record<stri
   ctx.events.push(ev);
   ctx.s.log.push(ev);
   if (ctx.s.log.length > LOG_LIMIT) ctx.s.log.splice(0, ctx.s.log.length - LOG_LIMIT);
+  recordStats(ctx.s, ev);
 }
 
 export function nextId(s: GameState): number {
@@ -176,6 +178,7 @@ export function createGame(opts: CreateGameOptions): GameState {
     seq: 0,
     nextId: idCounter,
     rng: rng.rng,
+    stats: newStats(n),
   };
   const ctx = makeCtx(s, -1);
   emit(ctx, { type: 'gameStarted' });

@@ -295,6 +295,38 @@ export type GameEventBody =
 export type GameEvent = EventBase & GameEventBody;
 export type GameEventType = GameEventBody['type'];
 
+// ── Stats ───────────────────────────────────────────────────────────────────
+/**
+ * Running totals accumulated as the game plays, for the end-of-game stats screen. The event log is
+ * capped (`LOG_LIMIT`), so these can't be rebuilt from it afterwards. Public information only: never
+ * the stolen card's identity or which development card was bought/played in secret.
+ */
+export interface GameStats {
+  /** Dice roll counts by total; indices 0 and 1 are unused, 2–12 hold the counts. */
+  dice: number[];
+  /** Resources/commodities gained from hex production, per seat (`produced` events). */
+  produced: Hand[];
+  /** Cards gained from any other public source, per seat: discovery, gold, monopoly, year of
+   *  plenty, aqueduct, master merchant, etc. (`received`/`monopoly` events). Count only. */
+  otherGain: number[];
+  /** Cards taken from another player via the robber/pirate, per seat (thief side of `stole`). */
+  stolen: number[];
+  /** Cards lost to another player's steal, per seat (victim side of `stole`). */
+  lost: number[];
+  /** Cards discarded on a 7, per seat. */
+  discarded: number[];
+  /** Completed bank trades, per seat. */
+  bankTrades: number[];
+  /** Completed player-to-player trades (and forced gifts), per seat; counted for both sides. */
+  playerTrades: number[];
+  /** Classic development cards bought, per seat. */
+  devBought: number[];
+  /** Classic knight cards played, per seat. */
+  knightsPlayed: number[];
+  /** Cities & Knights progress cards played, per seat. */
+  progressPlayed: number[];
+}
+
 // ── Whole game ──────────────────────────────────────────────────────────────
 export interface GameState {
   v: 1;
@@ -332,6 +364,8 @@ export interface GameState {
   nextId: number;
   /** Seeded PRNG state — server-only, never sent to clients. */
   rng: number;
+  /** Running totals for the end-of-game stats screen; see `GameStats`. */
+  stats: GameStats;
 }
 
 // ── Actions ─────────────────────────────────────────────────────────────────
