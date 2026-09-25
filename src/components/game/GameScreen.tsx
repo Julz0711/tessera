@@ -252,8 +252,12 @@ export function GameScreen() {
             <DiceBox view={view} />
           </div>
         </div>
-        <div className="pointer-events-auto flex justify-center">
-          <Dock view={view} />
+        {/* Only the dock itself takes clicks: this row spans the screen and would otherwise cover
+            the dice box on wide screens. */}
+        <div className="flex justify-center">
+          <div className="pointer-events-auto max-w-full">
+            <Dock view={view} />
+          </div>
         </div>
       </div>
 
