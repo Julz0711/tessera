@@ -13,6 +13,14 @@ export const DEV_NAMES: Record<DevCardType, string> = {
   monopoly: 'Monopoly',
 };
 
+export const DEV_TEXT: Record<DevCardType, string> = {
+  knight: 'Move the robber and steal a card. Three knights earn the Largest Army.',
+  victoryPoint: 'Worth 1 victory point. Counted automatically — keep it secret!',
+  roadBuilding: 'Place two roads for free.',
+  yearOfPlenty: 'Take any two resources from the bank.',
+  monopoly: 'Name a resource — every other player gives you all of theirs.',
+};
+
 export const PROGRESS_NAMES: Record<ProgressCardType, string> = {
   alchemist: 'Alchemist',
   crane: 'Crane',

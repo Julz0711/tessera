@@ -20,8 +20,8 @@ import { BarbarianTrack } from './ck/BarbarianTrack';
 import { CkPromptDialog, PickBanner } from './ck/CkPrompts';
 import { ImprovementsPanel } from './ck/ImprovementsPanel';
 import { KnightMenu } from './ck/KnightMenu';
-import { ProgressPanel } from './ck/ProgressPanel';
-import { DevPanel } from './DevPanel';
+import { ProgressCardDialog } from './ck/ProgressCardDialog';
+import { DevCardDialog } from './DevCardDialog';
 import { Dock } from './Dock';
 import { GameOver } from './GameOver';
 import { LogPanel } from './LogPanel';
@@ -142,11 +142,16 @@ export function GameScreen() {
     return () => clearTimeout(t);
   }, [updateId, events]);
 
-  // Leaving your turn (or a new prompt) cancels any build mode.
+  // A new turn cancels any build mode or panel; a card being read stays open (bots move fast).
+  useEffect(() => {
+    ui.cancelModes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view?.turn.n, view?.turn.seat]);
+  // A new prompt needs attention, so it closes everything, open cards included.
   useEffect(() => {
     ui.reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view?.turn.n, view?.turn.seat, view?.pending.length, view?.phase]);
+  }, [view?.pending.length, view?.phase]);
 
   useEffect(() => {
     if (view?.phase === 'ended') setShowResults(true);
@@ -214,21 +219,25 @@ export function GameScreen() {
           leading={view.mode === 'ck' ? <div className="w-52 shrink-0"><BarbarianTrack view={view} /></div> : undefined}
         />
       </div>
-      <div className="absolute bottom-57 right-2 z-20 lg:hidden">
-        <OffersTray view={view} className="w-[min(420px,92vw)]" />
-      </div>
-
       {/* log & chat */}
       <div className="absolute bottom-2 left-2 z-20 hidden w-80 md:block">
         <SidePanel view={view} unread={unread} />
       </div>
-      <div className="absolute bottom-57 left-2 z-20 md:hidden">
-        <MobileSide view={view} unread={unread} />
-      </div>
 
-      {/* dock */}
-      <div className="absolute inset-x-0 bottom-2 z-20 flex justify-center px-2 md:left-85 lg:left-0">
-        <Dock view={view} />
+      {/* dock; on smaller screens the log/chat buttons and trade offers ride just above it, however
+          tall the dock gets (C&K's action bar wraps to three rows on phones) */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-2 z-20 flex flex-col gap-2 px-2 md:left-85 lg:left-0">
+        <div className="flex flex-wrap-reverse items-end gap-2 lg:hidden">
+          <div className="pointer-events-auto md:hidden">
+            <MobileSide view={view} unread={unread} />
+          </div>
+          <div className="pointer-events-auto ml-auto">
+            <OffersTray view={view} className="w-[min(420px,92vw)]" />
+          </div>
+        </div>
+        <div className="pointer-events-auto flex justify-center">
+          <Dock view={view} />
+        </div>
       </div>
 
       {/* dialogs */}
@@ -236,11 +245,11 @@ export function GameScreen() {
       {ui.robber !== null && <VictimDialog view={view} hex={ui.robber.hex} chaseFrom={ui.robber.chaseFrom} />}
       {myPrompt && <CkPromptDialog view={view} prompt={myPrompt} />}
       {ui.panel === 'improve' && me !== null && <ImprovementsPanel view={view} />}
-      {ui.panel === 'progress' && me !== null && <ProgressPanel view={view} />}
+      {ui.card?.kind === 'progress' && me !== null && <ProgressCardDialog key={ui.card.id} view={view} id={ui.card.id} />}
+      {ui.card?.kind === 'dev' && me !== null && <DevCardDialog key={ui.card.type} view={view} type={ui.card.type} />}
       {ui.knightMenu !== null && me !== null && <KnightMenu view={view} vertex={ui.knightMenu} />}
       {ui.panel === 'trade' && me !== null && <TradePanel view={view} />}
       {ui.panel === 'bank' && me !== null && <BankPanel view={view} />}
-      {ui.panel === 'dev' && me !== null && <DevPanel view={view} />}
       {view.phase === 'ended' && showResults && <GameOver view={view} room={room} onClose={() => setShowResults(false)} />}
       {view.phase === 'ended' && !showResults && (
         <button type="button" className="btn btn-primary absolute bottom-40 left-1/2 z-30 -translate-x-1/2 px-5 py-2.5" onClick={() => setShowResults(true)}>

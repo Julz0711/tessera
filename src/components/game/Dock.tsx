@@ -1,11 +1,9 @@
 'use client';
 
-import { ArrowLeftRight, BrickWall, Dices, Eye, Hammer, Hourglass, Landmark, ScrollText, Sparkles } from 'lucide-react';
+import { ArrowLeftRight, BrickWall, Dices, Eye, Hammer, Hourglass, Landmark, Sparkles } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import {
-  COMMODITIES,
   COSTS,
-  RESOURCES,
   hasCards,
   legalCitySpots,
   legalKnightSpots,
@@ -19,9 +17,10 @@ import type { PlayerView } from '@/engine/view';
 import { play } from '@/client/sound';
 import { api } from '@/client/store';
 import { buildMode, useUi } from '@/client/ui';
-import { CityGlyph, DevCardGlyph, KnightGlyph, RoadGlyph, SettlementGlyph } from '@/components/ui/Glyphs';
-import { CardList, ResourceCard } from './cards';
+import { CityGlyph, KnightGlyph, RoadGlyph, SettlementGlyph } from '@/components/ui/Glyphs';
+import { CardList } from './cards';
 import { Die, EventDie } from './Dice';
+import { Hand } from './Hand';
 
 function ActionButton({
   label,
@@ -133,35 +132,9 @@ export function Dock({ view }: { view: PlayerView }) {
   const devOk = canBuild && !ck && view.devDeckCount > 0 && has(COSTS.devCard);
   const knightOk = canBuild && ck && left.knights[1] > 0 && has(COSTS.knight) && legalKnightSpots(view, me).length > 0;
   const wallOk = canBuild && ck && has(COSTS.wall) && wallSpots(view, me).length > 0;
-  const cards = ck ? [...RESOURCES, ...COMMODITIES] : RESOURCES;
-  const devCount = ck ? p.progress.length : p.devCards.length;
-
   return (
     <div className="flex flex-col items-center gap-2">
-      {/* hand — the inner row is only as wide as its cards, so it centres when it fits and
-          scrolls from the first card when it doesn't. */}
-      <div className="max-w-full overflow-x-auto scroll-thin">
-      <div className="mx-auto flex w-max items-end gap-1.5 px-3 pb-1 pt-3 sm:gap-2">
-        {cards.map((c) => (
-          <ResourceCard key={c} card={c} count={p.hand[c]} />
-        ))}
-        <button
-          type="button"
-          onClick={() => ui.setPanel(ck ? 'progress' : 'dev')}
-          className="relative ml-1 flex h-18 w-13 shrink-0 flex-col items-center justify-center rounded-lg border-2 border-ink bg-sea-600 text-paper transition hover:-translate-y-1 sm:h-20 sm:w-14"
-          style={{ boxShadow: '0 3px 0 0 #1f1a14' }}
-          title={ck ? 'Progress cards' : 'Development cards'}
-        >
-          {ck ? <ScrollText size={24} /> : <DevCardGlyph size={24} />}
-          <span className="mt-0.5 text-[9px] font-black uppercase tracking-wider">{ck ? 'Progress' : 'Dev'}</span>
-          {devCount > 0 && (
-            <span className="absolute -right-2 -top-2 grid h-6 min-w-6 place-items-center rounded-full border-2 border-ink bg-amber px-1 text-xs font-black text-ink">
-              {devCount}
-            </span>
-          )}
-        </button>
-      </div>
-      </div>
+      <Hand view={view} />
 
       {/* actions */}
       <div className="glass flex flex-wrap items-center justify-center gap-1.5 p-1.5 sm:gap-2 sm:p-2">
