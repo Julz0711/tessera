@@ -3,6 +3,7 @@
 import { OrbitControls } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { MOUSE } from 'three';
 import type * as THREE from 'three';
 import { STANDARD_HEX_COORDS, getTopology, type Topology } from '@/engine/board/topology';
 import { SEA } from '@/client/palette';
@@ -28,6 +29,20 @@ function boardFrame(topo: Topology): { cx: number; cz: number; extent: number } 
 }
 
 const STANDARD_EXTENT = boardFrame(getTopology(STANDARD_HEX_COORDS)).extent;
+
+/** Keeps a panned camera over the island: pulls the orbit target back (camera and all) past `radius`. */
+function keepOverIsland(controls: { target: THREE.Vector3; object: THREE.Camera }, radius: number): void {
+  const t = controls.target;
+  const dz = t.z - GAME_TARGET_Z;
+  const d = Math.hypot(t.x, dz);
+  if (d <= radius) return;
+  const k = radius / d;
+  const x = t.x * k;
+  const z = GAME_TARGET_Z + dz * k;
+  controls.object.position.x += x - t.x;
+  controls.object.position.z += z - t.z;
+  t.set(x, t.y, z);
+}
 
 /** Waits for the display font so canvas textures (tokens, harbors) use it. */
 function useFontReady(): boolean {
@@ -205,7 +220,10 @@ export default function Board3D({ scene, targets, onVertex, onEdge, onHex, showc
           {island}
           <OrbitControls
             makeDefault
-            enablePan={false}
+            // Pan with the middle or right button (or Ctrl/Shift + drag, two fingers on touch), across the table.
+            mouseButtons={{ LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.PAN }}
+            screenSpacePanning={false}
+            onChange={(e) => e && keepOverIsland(e.target, frame.extent * 0.8)}
             enableDamping
             dampingFactor={0.08}
             minDistance={6}

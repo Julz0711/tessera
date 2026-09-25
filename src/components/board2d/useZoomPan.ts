@@ -101,7 +101,9 @@ export function useZoomPan(bounds: ZoomBounds, enabled: boolean) {
 
   function onPointerDown(e: ReactPointerEvent<SVGSVGElement>) {
     if (!enabled) return;
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    // Left or middle button; the middle one pans without the browser's autoscroll.
+    if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 1) return;
+    if (e.button === 1) e.preventDefault();
     const svg = svgRef.current;
     const ctm = svg?.getScreenCTM();
     if (!svg || !ctm) return;
