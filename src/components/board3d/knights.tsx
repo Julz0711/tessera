@@ -9,6 +9,7 @@ import { PLAYER_COLORS } from '@/shared/colors';
 import { DEFAULT_KNIGHT, KNIGHT_STEEL, faceUrl, type KnightCustomization } from '@/shared/knight';
 import type { BoardScene } from '@/components/board/types';
 import { mat } from './materials';
+import { useAppear } from './pieces';
 import { TILE_TOP } from './terrain';
 
 const faceCache = new Map<string, THREE.Texture>();
@@ -119,6 +120,24 @@ export function KnightModel({
   );
 }
 
+/** A knight on the board: pops in when recruited; active knights stand ready with a gentle bob. */
+function BoardKnight({ x, z, active, children }: { x: number; z: number; active: boolean; children: React.ReactNode }) {
+  const ref = useAppear();
+  const bob = useRef<THREE.Group>(null);
+  const phase = useMemo(() => Math.random() * Math.PI * 2, []);
+  useFrame((state) => {
+    if (!bob.current) return;
+    bob.current.position.y = active ? Math.abs(Math.sin(state.clock.elapsedTime * 2.2 + phase)) * 0.05 : 0;
+  });
+  return (
+    <group ref={ref} position={[x, TILE_TOP, z]} scale={0.001}>
+      <group scale={0.62}>
+        <group ref={bob}>{children}</group>
+      </group>
+    </group>
+  );
+}
+
 /** C&K knights standing on intersections. */
 export function KnightPieces({ scene, topo }: { scene: BoardScene; topo: Topology }) {
   return (
@@ -127,9 +146,9 @@ export function KnightPieces({ scene, topo }: { scene: BoardScene; topo: Topolog
         if (!k) return null;
         const p = topo.vertices[v];
         return (
-          <group key={`k${v}`} position={[p.x, TILE_TOP, p.y]} scale={0.62}>
+          <BoardKnight key={`k${k.id}`} x={p.x} z={p.y} active={k.active}>
             <KnightModel knight={scene.styles[k.owner] ?? undefined} color={scene.colors[k.owner]} level={k.level} active={k.active} />
-          </group>
+          </BoardKnight>
         );
       })}
     </group>

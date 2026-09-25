@@ -2,9 +2,9 @@
 
 import { MessageSquare, ScrollText, Trophy } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CARDS, type Card, type DevCardType, type GameEvent, type PartialHand } from '@/engine';
+import { CARDS, type Card, type DevCardType, type GameEvent, type PartialHand, type ProgressCardType } from '@/engine';
 import type { PlayerView } from '@/engine/view';
-import { DEV_NAMES } from '@/client/describe';
+import { DEV_NAMES, PROGRESS_NAMES } from '@/client/describe';
 import { CARD_COLORS } from '@/client/palette';
 import { usePrefs } from '@/client/prefs';
 import { play } from '@/client/sound';
@@ -88,6 +88,31 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
           break;
         case 'gameOver':
           play('win');
+          break;
+        case 'barbarianAttack':
+          play('robber');
+          toast(
+            ev.won
+              ? `The barbarians attacked (${ev.strength}) — the knights (${ev.defense}) held the island!`
+              : `The barbarians (${ev.strength}) overran the knights (${ev.defense})!`,
+            ev.won ? 'good' : 'error',
+          );
+          break;
+        case 'cityLost':
+          if (ev.seat === me) toast('The barbarians razed one of your cities', 'error');
+          break;
+        case 'defenderAwarded':
+          toast(`${ev.seat === me ? 'You are' : `${name(ev.seat)} is`} the Defender of the island (+1 VP)`, 'good');
+          break;
+        case 'progressDrawn':
+          if (ev.seat === me && secret?.card) toast(`New progress card: ${PROGRESS_NAMES[secret.card as ProgressCardType]}`);
+          break;
+        case 'metropolis':
+          toast(`${ev.seat === me ? 'You' : name(ev.seat)} founded a metropolis`, ev.seat === me ? 'good' : 'info');
+          play('build');
+          break;
+        case 'knightDisplaced':
+          if (ev.victim === me) toast(`${name(ev.seat)} displaced one of your knights`, 'error');
           break;
       }
     }

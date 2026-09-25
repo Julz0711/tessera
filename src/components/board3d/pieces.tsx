@@ -36,24 +36,37 @@ export function NumberToken({ n, x, z, lit }: { n: number; x: number; z: number;
   );
 }
 
+/** Pops a freshly placed piece into view (ease-out-back scale). Ghost previews appear instantly. */
+export function useAppear(instant = false) {
+  const ref = useRef<THREE.Group>(null);
+  const progress = useRef(instant ? 1 : 0);
+  useFrame((_, dt) => {
+    const g = ref.current;
+    if (!g || progress.current >= 1) return;
+    progress.current = Math.min(1, progress.current + dt * 3.5);
+    const k = progress.current - 1;
+    const eased = 1 + 2.70158 * k * k * k + 1.70158 * k * k;
+    g.scale.setScalar(Math.max(0.001, eased));
+  });
+  return ref;
+}
+
 export function Road({ x, z, angle, color, ghost = false }: { x: number; z: number; angle: number; color: PlayerColor; ghost?: boolean }) {
   const c = PLAYER_COLORS[color];
+  const ref = useAppear(ghost);
   return (
-    <mesh
-      geometry={GEO.road}
-      material={mat(c.hex, ghost ? { opacity: 0.55 } : {})}
-      position={[x, TILE_TOP + 0.06, z]}
-      rotation={[0, -angle, 0]}
-      castShadow={!ghost}
-    />
+    <group ref={ref} position={[x, TILE_TOP + 0.06, z]} rotation={[0, -angle, 0]} scale={ghost ? 1 : 0.001}>
+      <mesh geometry={GEO.road} material={mat(c.hex, ghost ? { opacity: 0.55 } : {})} castShadow={!ghost} />
+    </group>
   );
 }
 
 export function Settlement({ x, z, color, ghost = false }: { x: number; z: number; color: PlayerColor; ghost?: boolean }) {
   const c = PLAYER_COLORS[color];
   const o = ghost ? { opacity: 0.55 } : {};
+  const ref = useAppear(ghost);
   return (
-    <group position={[x, TILE_TOP, z]}>
+    <group ref={ref} position={[x, TILE_TOP, z]} scale={ghost ? 1 : 0.001}>
       <mesh geometry={GEO.houseBody} material={mat(c.hex, o)} position={[0, 0.09, 0]} castShadow={!ghost} />
       <mesh geometry={GEO.houseRoof} material={mat(c.dark, o)} position={[0, 0.26, 0]} rotation={[0, Math.PI / 4, 0]} castShadow={!ghost} />
     </group>
@@ -63,8 +76,9 @@ export function Settlement({ x, z, color, ghost = false }: { x: number; z: numbe
 export function City({ x, z, color, ghost = false }: { x: number; z: number; color: PlayerColor; ghost?: boolean }) {
   const c = PLAYER_COLORS[color];
   const o = ghost ? { opacity: 0.55 } : {};
+  const ref = useAppear(ghost);
   return (
-    <group position={[x, TILE_TOP, z]}>
+    <group ref={ref} position={[x, TILE_TOP, z]} scale={ghost ? 1 : 0.001}>
       <mesh geometry={GEO.cityBase} material={mat(c.hex, o)} position={[0.04, 0.09, 0.02]} castShadow={!ghost} />
       <mesh geometry={GEO.cityTower} material={mat(c.hex, o)} position={[-0.1, 0.17, -0.02]} castShadow={!ghost} />
       <mesh geometry={GEO.cityRoof} material={mat(c.dark, o)} position={[-0.1, 0.42, -0.02]} rotation={[0, Math.PI / 4, 0]} castShadow={!ghost} />
