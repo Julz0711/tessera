@@ -1,7 +1,7 @@
 'use client';
 
 /** Tiny synthesized sound effects (WebAudio) — no audio files to download. */
-export type Sfx = 'click' | 'dice' | 'build' | 'gain' | 'turn' | 'chat' | 'robber' | 'win' | 'error' | 'trade';
+export type Sfx = 'click' | 'dice' | 'build' | 'gain' | 'turn' | 'chat' | 'robber' | 'win' | 'error' | 'trade' | 'reaction';
 
 let ctx: AudioContext | null = null;
 let volume = 0.6;
@@ -87,6 +87,9 @@ export function play(sfx: Sfx): void {
       break;
     case 'win':
       [523, 659, 784, 1046, 1318].forEach((f, i) => tone(c, f, t + i * 0.11, 0.5, 'triangle', 0.18));
+      break;
+    case 'reaction':
+      tone(c, 700, t, 0.08, 'sine', 0.1, 1100);
       break;
     case 'error':
       tone(c, 200, t, 0.12, 'square', 0.06, 150);

@@ -4,12 +4,27 @@ import { Send } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { api, clearUnread, useGame } from '@/client/store';
 import { PLAYER_COLORS } from '@/shared/colors';
+import { CHAT_COOLDOWN_MS } from '@/shared/reactions';
 import { CHAT_MAX } from '@/shared/text';
+
+/** True until `until` (epoch ms) has passed. */
+function useCooldown(until: number): boolean {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (until <= Date.now()) return;
+    const t = setTimeout(() => setNow(Date.now()), until - Date.now() + 20);
+    return () => clearTimeout(t);
+  }, [until, now]);
+  return until > now;
+}
 
 export function ChatPanel({ className = '', dark = false, autoFocus = false }: { className?: string; dark?: boolean; autoFocus?: boolean }) {
   const chat = useGame((s) => s.chat);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  // A short pause between messages keeps the chat readable (the server has its own limit too).
+  const [sentAt, setSentAt] = useState(0);
+  const cooling = useCooldown(sentAt + CHAT_COOLDOWN_MS);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -20,11 +35,14 @@ export function ChatPanel({ className = '', dark = false, autoFocus = false }: {
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
     const t = text.trim();
-    if (!t || sending) return;
+    if (!t || sending || cooling) return;
     setSending(true);
     const r = await api.chat(t);
     setSending(false);
-    if (r.ok) setText('');
+    if (r.ok) {
+      setText('');
+      setSentAt(Date.now());
+    }
   };
 
   return (
@@ -63,8 +81,16 @@ export function ChatPanel({ className = '', dark = false, autoFocus = false }: {
               : 'input min-w-0 flex-1 py-2 text-sm'
           }
         />
-        <button type="submit" className={`btn ${dark ? 'btn-primary' : 'btn-dark'} px-3`} disabled={!text.trim() || sending} aria-label="Send">
+        <button
+          type="submit"
+          className={`btn ${dark ? 'btn-primary' : 'btn-dark'} relative overflow-hidden px-3`}
+          disabled={!text.trim() || sending || cooling}
+          aria-label="Send"
+        >
           <Send size={16} />
+          {cooling && (
+            <span key={sentAt} className="absolute inset-x-0 bottom-0 h-1 origin-left animate-cooldown bg-ink/50" style={{ animationDuration: `${CHAT_COOLDOWN_MS}ms` }} />
+          )}
         </button>
       </form>
     </div>

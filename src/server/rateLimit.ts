@@ -38,6 +38,9 @@ export const limits = {
   roomCreate: new RateLimiter(10, 1 / 60),
   roomJoin: new RateLimiter(20, 0.5),
   action: new RateLimiter(25, 12),
-  chat: new RateLimiter(5, 0.5),
+  // A short burst, then about one message every 2.5 s.
+  chat: new RateLimiter(4, 0.4),
+  // Two in a row, then one every 3 s.
+  reaction: new RateLimiter(2, 1 / 3),
   lobby: new RateLimiter(20, 2),
 };

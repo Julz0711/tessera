@@ -7,6 +7,7 @@ import { TRACK_STYLE } from '@/client/progressText';
 import type { RoomDTO } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
+import { ReactionBubble } from './Reactions';
 
 function Stat({ icon, value, title }: { icon: React.ReactNode; value: React.ReactNode; title: string }) {
   return (
@@ -106,6 +107,7 @@ export function PlayersPanel({
             <div className="relative">
               {seatInfo ? <KnightBadge knight={seatInfo.knight} color={p.color} size={compact ? 38 : 44} /> : <div className="h-11 w-11 rounded-full" style={{ background: c.hex }} />}
               {isTurn && <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 animate-ping rounded-full bg-amber" />}
+              <ReactionBubble playerId={p.id} side={compact ? 'below' : 'left'} />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1">

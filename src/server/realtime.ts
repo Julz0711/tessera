@@ -8,6 +8,7 @@ import type { DurablePersistence } from './prismaPersistence';
 import { limits } from './rateLimit';
 import { UserError, type Room, type RoomIO } from './room';
 import { RoomManager } from './rooms';
+import { isReactionId } from '@/shared/reactions';
 
 export interface SocketData {
   identity: ServerIdentity;
@@ -217,6 +218,14 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
       reply(ack, () => {
         if (!limits.chat.take(socket.data.identity.key)) throw new UserError('You are sending messages too quickly');
         currentRoom().say(socket.id, text);
+      }),
+    );
+
+    socket.on('room:react', (reaction, ack) =>
+      reply(ack, () => {
+        if (!isReactionId(reaction)) throw new UserError('Unknown reaction');
+        if (!limits.reaction.take(socket.data.identity.key)) throw new UserError('Easy there, wait a moment');
+        currentRoom().react(socket.id, reaction);
       }),
     );
 

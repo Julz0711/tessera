@@ -224,4 +224,28 @@ describe('realtime server', () => {
     expect((await call((ack) => host.emit('room:start', ack))).ok).toBe(true);
     host.close();
   });
+
+  it('flashes quick reactions to the table, rate-limited, and blocks repeated chat', async () => {
+    const a = client(await guestCookie());
+    const b = client(await guestCookie());
+    const created = await call<{ code: string }>((ack) => a.emit('room:create', { profile: profile('Ria', 'red') }, ack));
+    const code = (created as { code: string }).code;
+    expect((await call((ack) => b.emit('room:join', { code, profile: profile('Bo', 'blue') }, ack))).ok).toBe(true);
+
+    const seen: string[] = [];
+    b.on('room:reaction', (r) => seen.push(r.reaction));
+    expect((await call((ack) => a.emit('room:react', 'thumbs', ack))).ok).toBe(true);
+    expect((await call((ack) => a.emit('room:react', 'gg', ack))).ok).toBe(true);
+    // Two in a row, then a pause.
+    expect((await call((ack) => a.emit('room:react', 'laugh', ack))).ok).toBe(false);
+    expect((await call((ack) => b.emit('room:react', 'nope' as never, ack))).ok).toBe(false);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(seen).toEqual(['thumbs', 'gg']);
+
+    expect((await call((ack) => a.emit('chat:send', 'hello', ack))).ok).toBe(true);
+    expect((await call((ack) => a.emit('chat:send', 'hello', ack))).ok).toBe(false);
+    expect((await call((ack) => a.emit('chat:send', 'hello again', ack))).ok).toBe(true);
+    a.close();
+    b.close();
+  });
 });

@@ -10,6 +10,7 @@ import { api, toast, useGame } from '@/client/store';
 import type { PlayerView } from '@/engine/view';
 import type { RoomDTO } from '@/shared/protocol';
 import { formatCode } from '@/components/room/Lobby';
+import { ReactionPicker } from './Reactions';
 
 function useCountdown(deadline: number | null): number | null {
   const [now, setNow] = useState(() => Date.now());
@@ -143,6 +144,7 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
       </div>
 
       <div className="pointer-events-auto flex items-center gap-2">
+        {room.you.seat !== null && <ReactionPicker />}
         {seconds !== null && (
           <span className={`glass flex h-10 items-center gap-1.5 px-3 font-black tabular ${seconds <= 10 ? 'text-terracotta' : 'text-paper'}`} title="Time left">
             <Clock size={16} /> {seconds}s

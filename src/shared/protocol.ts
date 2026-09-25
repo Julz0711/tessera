@@ -2,6 +2,7 @@
 import type { Action, GameEvent, MapId, Mode, PlayerColor } from '@/engine/types';
 import type { PlayerView } from '@/engine/view';
 import type { KnightCustomization } from './knight';
+import type { ReactionId } from './reactions';
 
 /** The PRD's conceptual identity: the game never cares whether a player is a guest. */
 export interface PlayerIdentity {
@@ -97,6 +98,7 @@ export interface ClientToServerEvents {
   'room:toLobby': (ack: Ack) => void;
   'game:action': (action: Action, ack: Ack) => void;
   'chat:send': (text: string, ack: Ack) => void;
+  'room:react': (reaction: ReactionId, ack: Ack) => void;
 }
 
 export interface GameUpdate {
@@ -110,6 +112,8 @@ export interface ServerToClientEvents {
   'game:state': (update: GameUpdate) => void;
   'chat:message': (message: ChatMessage) => void;
   'chat:history': (messages: ChatMessage[]) => void;
+  /** A player's quick reaction (not kept in the chat). */
+  'room:reaction': (r: { playerId: string; reaction: ReactionId; at: number }) => void;
   'room:closed': (reason: string) => void;
   'session:replaced': () => void;
 }

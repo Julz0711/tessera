@@ -14,6 +14,7 @@ import type {
   ServerToClientEvents,
   SessionInfo,
 } from '@/shared/protocol';
+import type { ReactionId } from '@/shared/reactions';
 import { ensureSession } from './session';
 import { play } from './sound';
 
@@ -42,6 +43,10 @@ export interface GameStore {
   unread: number;
   notice: string | null;
   toasts: Toast[];
+  /** Latest quick reaction per player id (bubbles fade on their own). */
+  reactions: Record<string, { reaction: ReactionId; at: number }>;
+  /** When the viewer last reacted, for the picker's cooldown. */
+  lastReactionAt: number;
 }
 
 const initial: GameStore = {
@@ -57,6 +62,8 @@ const initial: GameStore = {
   unread: 0,
   notice: null,
   toasts: [],
+  reactions: {},
+  lastReactionAt: 0,
 };
 
 export const useGame = create<GameStore>(() => ({ ...initial }));
@@ -106,6 +113,11 @@ function wire(s: ClientSocket): void {
   s.on('chat:message', (m) => {
     useGame.setState((st) => ({ chat: [...st.chat.slice(-149), m], unread: st.unread + 1 }));
     if (!m.system) play('chat');
+  });
+  s.on('room:reaction', (r) => {
+    // Stamped with the local clock so the bubble's lifetime doesn't depend on server clock skew.
+    useGame.setState((st) => ({ reactions: { ...st.reactions, [r.playerId]: { reaction: r.reaction, at: Date.now() } } }));
+    play('reaction');
   });
   s.on('room:closed', (reason) => useGame.setState({ notice: reason, room: null, view: null, code: null }));
   s.on('session:replaced', () =>
@@ -188,6 +200,10 @@ export const api = {
   backToLobby: () => request((s, ack) => s.emit('room:toLobby', ack)).then(report),
   act: (action: Action) => request((s, ack) => s.emit('game:action', action, ack)).then(report),
   chat: (text: string) => request((s, ack) => s.emit('chat:send', text, ack)).then(report),
+  react(reaction: ReactionId) {
+    useGame.setState({ lastReactionAt: Date.now() });
+    return request((s, ack) => s.emit('room:react', reaction, ack)).then(report);
+  },
 };
 
 function report<T extends AckResult>(r: T): T {

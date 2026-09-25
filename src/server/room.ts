@@ -32,6 +32,7 @@ import { BOT_NAMES } from './botNames';
 import type { ServerIdentity } from './identity';
 import type { Persistence } from './persistence';
 import type { RestoredRoom } from './prismaPersistence';
+import type { ReactionId } from '@/shared/reactions';
 
 /** Errors whose message is safe to show the user. */
 export class UserError extends Error {}
@@ -558,6 +559,10 @@ export class Room {
     const text = sanitizeChat(raw);
     if (!text) return;
     const seat = this.seats.find((s) => s.identityKey === key);
+    // The same message again within a few seconds is spam, not conversation.
+    const sender = seat?.playerId ?? null;
+    const last = [...this.chat].reverse().find((m) => !m.system && m.playerId === sender);
+    if (last && last.text === text && this.now() - last.at < 10_000) throw new UserError('You just said that');
     const spectator = this.spectators.get(socketId);
     this.pushChat({
       id: randomUUID(),
@@ -567,6 +572,15 @@ export class Room {
       color: seat?.color,
       text,
     });
+  }
+
+  /** A seated player's quick reaction, flashed to everyone (not kept in the chat). */
+  react(socketId: string, reaction: ReactionId): void {
+    const key = this.sockets.get(socketId);
+    const seat = key ? this.seats.find((s) => s.identityKey === key) : undefined;
+    if (!seat) throw new UserError('Only players can react');
+    const msg = { playerId: seat.playerId, reaction, at: this.now() };
+    for (const sid of this.sockets.keys()) this.deps.io.send(sid, 'room:reaction', msg);
   }
 
   private system(text: string): void {
