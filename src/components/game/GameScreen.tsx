@@ -241,7 +241,7 @@ export function GameScreen() {
 
       {/* trade offers: top-left, clear of the side column (below the players strip on smaller screens) */}
       <div className="absolute left-2 top-45 z-20 lg:top-16">
-        <OffersTray view={view} className="w-[min(330px,calc(100vw-16px))]" />
+        <OffersTray view={view} className="w-max min-w-[min(330px,calc(100vw-16px))] max-w-[calc(100vw-16px)]" />
       </div>
 
       {/* dock; on smaller screens the log/chat buttons and dice/roll ride just above it,
