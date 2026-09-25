@@ -6,7 +6,7 @@ import './src/server/loadEnv';
 import { createServer } from 'node:http';
 import next from 'next';
 import { APP_NAME } from './src/config/app';
-import { getDb } from './src/server/db';
+import { checkDatabase, disableDb, getDb } from './src/server/db';
 import { handleHttp } from './src/server/http';
 import { createPrismaPersistence } from './src/server/prismaPersistence';
 import { findFreePort } from './src/server/port';
@@ -35,9 +35,22 @@ const server = createServer((req, res) => {
     });
 });
 
-const db = getDb();
+// A configured database must answer (and have our tables); otherwise play continues in memory.
+let db = getDb();
+if (db) {
+  const check = await checkDatabase(db);
+  if (check.status !== 'ok') {
+    await disableDb();
+    db = null;
+    console.warn(
+      check.status === 'no-schema'
+        ? '> Database reachable but not set up — run `npm run db:push`. Running without persistence for now.'
+        : `> Database not reachable${check.detail ? ` (${check.detail})` : ''} — start it with \`npm run db:local\` or fix DATABASE_URL. Running without persistence for now.`,
+    );
+  }
+}
 if (db) console.log('> Persistence: PostgreSQL (profiles, history and game recovery enabled)');
-else console.log('> Persistence: off (no DATABASE_URL) — games live in memory; sign-in is disabled');
+else if (!process.env.DATABASE_URL) console.log('> Persistence: off (no DATABASE_URL) — games live in memory; sign-in is disabled');
 const realtime = attachRealtime(server, { persistence: db ? createPrismaPersistence(db) : undefined });
 
 // Socket.IO handles its own upgrade requests; everything else (e.g. Next.js HMR) goes to Next.
