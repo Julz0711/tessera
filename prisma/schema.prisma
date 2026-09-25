@@ -80,6 +80,8 @@ model Profile {
   avatarUrl   String?
   color       String?
   knight      Json?
+  // Chosen frame and title (see src/shared/cosmetics.ts).
+  cosmetics   Json?
   preferences Json?
   gamesPlayed Int      @default(0)
   gamesWon    Int      @default(0)
@@ -117,6 +119,7 @@ model GuestSession {
   displayName      String?
   color            String?
   knight           Json?
+  cosmetics        Json?
   gamesPlayed      Int       @default(0)
   gamesWon         Int       @default(0)
   createdAt        DateTime  @default(now())

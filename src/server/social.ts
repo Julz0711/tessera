@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { isPlayerColor } from '@/shared/colors';
+import { clampCosmetics } from '@/shared/cosmetics';
 import { sanitizeKnight } from '@/shared/knight';
 import type { FriendInfo, FriendsData, LeaderboardData, LeaderboardEntry, PlayerCard } from '@/shared/protocol';
 import { getDb } from './db';
@@ -52,10 +53,12 @@ const cardSelect = {
   displayName: true,
   color: true,
   knight: true,
+  cosmetics: true,
   avatarUrl: true,
   rating: true,
   ratedGames: true,
   gamesWon: true,
+  gamesPlayed: true,
   friendCode: true,
   user: { select: { image: true } },
 } as const;
@@ -65,10 +68,12 @@ type CardRow = {
   displayName: string;
   color: string | null;
   knight: unknown;
+  cosmetics: unknown;
   avatarUrl: string | null;
   rating: number;
   ratedGames: number;
   gamesWon: number;
+  gamesPlayed: number;
   friendCode: string | null;
   user: { image: string | null };
 };
@@ -87,6 +92,8 @@ function toCard(r: CardRow): PlayerCard {
     color: isPlayerColor(r.color) ? r.color : 'red',
     knight: sanitizeKnight(r.knight),
     avatarUrl: r.avatarUrl ?? r.user.image ?? null,
+    // Stored cosmetics were checked when saved; re-clamp in case the rules changed since.
+    cosmetics: clampCosmetics(r.cosmetics, { gamesPlayed: r.gamesPlayed, gamesWon: r.gamesWon, rating: r.ratedGames > 0 ? r.rating : null }),
     rating: r.rating,
     ratedGames: r.ratedGames,
   };

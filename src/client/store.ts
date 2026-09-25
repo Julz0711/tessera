@@ -15,6 +15,7 @@ import type {
   SessionInfo,
 } from '@/shared/protocol';
 import type { ReactionId } from '@/shared/reactions';
+import { usePrefs } from './prefs';
 import { ensureSession } from './session';
 import { play } from './sound';
 
@@ -182,13 +183,18 @@ function request<T extends object = object>(
     .catch((err: Error) => ({ ok: false as const, error: err.message }));
 }
 
+/** Adds this browser's frame/title; the server swaps in the saved ones for profiles that have them. */
+const withCosmetics = (profile: JoinProfile): JoinProfile => ({ cosmetics: usePrefs.getState().cosmetics, ...profile });
+
 export const api = {
   async createRoom(profile: JoinProfile, settings?: Partial<RoomSettings>) {
+    profile = withCosmetics(profile);
     const r = await request<{ code: string }>((s, ack) => s.emit('room:create', { profile, settings }, ack));
     if (r.ok) useGame.setState({ code: r.code, notice: null, view: null, events: [], chat: [] });
     return r;
   },
   async joinRoom(code: string, profile?: JoinProfile, spectate?: boolean) {
+    if (profile) profile = withCosmetics(profile);
     const r = await request<{ room: RoomDTO }>((s, ack) => s.emit('room:join', { code, profile, spectate }, ack));
     if (r.ok) useGame.setState({ code: r.room.code, room: r.room, notice: null });
     return r;

@@ -9,6 +9,7 @@ import { api } from '@/client/store';
 import type { RoomDTO } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
+import { Framed, TitleTag } from '@/components/profile/Cosmetics';
 import { Modal } from '@/components/ui/Modal';
 
 function breakdown(view: PlayerView, seat: number): [string, number][] {
@@ -223,10 +224,15 @@ export function GameOver({ view, room, onClose }: { view: PlayerView; room: Room
               return (
                 <li key={seat} className={`paper-flat flex items-center gap-3 p-2.5 ${seat === winner ? 'ring-4 ring-amber' : ''}`} style={{ boxShadow: `inset 6px 0 0 ${c.hex}` }}>
                   <span className="display w-6 text-center text-2xl font-black text-ink-faint">{rank + 1}</span>
-                  {room.seats[seat] && <KnightBadge knight={room.seats[seat].knight} color={p.color} size={46} />}
+                  {room.seats[seat] && (
+                    <Framed frame={room.seats[seat].cosmetics.frame} size={50}>
+                      {(s) => <KnightBadge knight={room.seats[seat].knight} color={p.color} size={s} />}
+                    </Framed>
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 font-extrabold">
                       {p.name} {seat === winner && <Crown size={16} className="text-amber-deep" />}
+                      <TitleTag title={room.seats[seat]?.cosmetics.title} />
                     </div>
                     <div className="flex flex-wrap gap-x-3 text-xs font-semibold text-ink-soft">
                       {breakdown(view, seat).map(([label, n]) => (

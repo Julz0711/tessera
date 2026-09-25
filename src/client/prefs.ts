@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import type { PlayerColor } from '@/engine/types';
 import { isPlayerColor } from '@/shared/colors';
+import { DEFAULT_COSMETICS, sanitizeCosmetics, type Cosmetics } from '@/shared/cosmetics';
 import { DEFAULT_KNIGHT, sanitizeKnight, type KnightCustomization } from '@/shared/knight';
 
 /** Per-browser preferences (localStorage). Profiles override the identity defaults when signed in. */
@@ -10,6 +11,8 @@ export interface Prefs {
   name: string;
   color: PlayerColor;
   knight: KnightCustomization;
+  /** Frame and title (the server only honours unlocked ones; signed-in profiles keep their own). */
+  cosmetics: Cosmetics;
   view: '3d' | '2d';
   graphics: 'high' | 'low';
   volume: number;
@@ -32,6 +35,7 @@ const defaults = (): Prefs => ({
   name: '',
   color: 'red',
   knight: DEFAULT_KNIGHT,
+  cosmetics: DEFAULT_COSMETICS,
   view: '3d',
   graphics: 'high',
   volume: 0.6,
@@ -52,6 +56,7 @@ function read(): Prefs {
       name: typeof p.name === 'string' ? p.name.slice(0, 20) : base.name,
       color: isPlayerColor(p.color) ? p.color : base.color,
       knight: sanitizeKnight(p.knight),
+      cosmetics: sanitizeCosmetics(p.cosmetics),
       view: p.view === '2d' ? '2d' : '3d',
       graphics: p.graphics === 'low' ? 'low' : 'high',
       volume: typeof p.volume === 'number' ? Math.min(1, Math.max(0, p.volume)) : base.volume,
@@ -80,8 +85,8 @@ export const usePrefs = create<PrefsStore>((set, get) => ({
   set(patch) {
     set(patch);
     try {
-      const { name, color, knight, view, graphics, volume, buildHints, confirmBuilds, boardScale } = { ...get(), ...patch };
-      window.localStorage.setItem(KEY, JSON.stringify({ name, color, knight, view, graphics, volume, buildHints, confirmBuilds, boardScale }));
+      const { name, color, knight, cosmetics, view, graphics, volume, buildHints, confirmBuilds, boardScale } = { ...get(), ...patch };
+      window.localStorage.setItem(KEY, JSON.stringify({ name, color, knight, cosmetics, view, graphics, volume, buildHints, confirmBuilds, boardScale }));
     } catch {
       // Storage unavailable (private mode) — preferences just won't persist.
     }

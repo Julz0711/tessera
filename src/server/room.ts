@@ -15,6 +15,7 @@ import {
   type PlayerColor,
 } from '@/engine';
 import { COLOR_ORDER, isPlayerColor } from '@/shared/colors';
+import { DEFAULT_COSMETICS, sanitizeCosmetics, type Cosmetics } from '@/shared/cosmetics';
 import { DEFAULT_KNIGHT, sanitizeKnight, type KnightCustomization } from '@/shared/knight';
 import {
   DEFAULT_ROOM_SETTINGS,
@@ -61,6 +62,7 @@ interface Seat {
   name: string;
   color: PlayerColor;
   knight: KnightCustomization;
+  cosmetics: Cosmetics;
   avatarUrl?: string;
   sockets: Set<string>;
   lastSeen: number;
@@ -125,6 +127,7 @@ export class Room {
       name: s.name,
       color: s.color as PlayerColor,
       knight: sanitizeKnight(s.knight),
+      cosmetics: DEFAULT_COSMETICS,
       sockets: new Set<string>(),
       lastSeen: room.now(),
       left: false,
@@ -176,6 +179,7 @@ export class Room {
           name: sanitizeName(opts.profile.name),
           color: this.freeColor(opts.profile.color),
           knight: sanitizeKnight(opts.profile.knight),
+          cosmetics: sanitizeCosmetics(opts.profile.cosmetics),
           avatarUrl: identity.avatarUrl ?? undefined,
           sockets: new Set([socketId]),
           lastSeen: this.now(),
@@ -316,6 +320,8 @@ export class Room {
       seat.color = patch.color;
     }
     if (patch.knight !== undefined) seat.knight = sanitizeKnight(patch.knight);
+    // Already limited to what the player has unlocked by the socket layer.
+    if (patch.cosmetics !== undefined) seat.cosmetics = sanitizeCosmetics(patch.cosmetics);
   }
 
   addBot(socketId: string): void {
@@ -332,6 +338,7 @@ export class Room {
       name,
       color: this.freeColor(),
       knight: DEFAULT_KNIGHT,
+      cosmetics: DEFAULT_COSMETICS,
       sockets: new Set(),
       lastSeen: this.now(),
       left: false,
@@ -607,6 +614,7 @@ export class Room {
         name: s.name,
         color: s.color,
         knight: s.knight,
+        cosmetics: s.cosmetics,
         avatarUrl: s.avatarUrl,
         isBot: s.isBot,
         isGuest: s.isGuest,

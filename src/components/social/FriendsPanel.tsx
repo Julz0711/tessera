@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { fetchFriends, formatFriendCode, friendAction, type FriendAction } from '@/client/social';
 import { toast } from '@/client/store';
 import type { FriendInfo, FriendsData, PlayerCard } from '@/shared/protocol';
-import { KnightBadge } from '@/components/knight/KnightBadge';
+import { PlayerPortrait, TitleTag } from '@/components/profile/Cosmetics';
 
 const STATUS: Record<FriendInfo['status'], { label: string; dot: string }> = {
   lobby: { label: 'In a lobby', dot: 'bg-amber' },
@@ -18,14 +18,12 @@ const STATUS: Record<FriendInfo['status'], { label: string; dot: string }> = {
 function Person({ card, sub, children }: { card: PlayerCard; sub?: React.ReactNode; children?: React.ReactNode }) {
   return (
     <li className="flex items-center gap-2.5 rounded-xl bg-paper-2/70 p-1.5 pr-2">
-      {card.avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={card.avatarUrl} alt="" className="h-9 w-9 rounded-full border-2 border-ink object-cover" referrerPolicy="no-referrer" />
-      ) : (
-        <KnightBadge knight={card.knight} color={card.color} size={36} />
-      )}
+      <PlayerPortrait knight={card.knight} color={card.color} avatarUrl={card.avatarUrl} frame={card.cosmetics.frame} size={40} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-extrabold leading-tight">{card.name}</p>
+        <p className="flex items-center gap-1.5 truncate text-sm font-extrabold leading-tight">
+          <span className="truncate">{card.name}</span>
+          <TitleTag title={card.cosmetics.title} className="shrink-0" />
+        </p>
         <p className="truncate text-xs font-semibold text-ink-faint">{sub ?? `${card.rating} rating`}</p>
       </div>
       <div className="flex shrink-0 items-center gap-1">{children}</div>

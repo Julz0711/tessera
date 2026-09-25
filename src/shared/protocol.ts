@@ -1,6 +1,7 @@
 /** Typed Socket.IO protocol shared by client and server. */
 import type { Action, GameEvent, MapId, Mode, PlayerColor } from '@/engine/types';
 import type { PlayerView } from '@/engine/view';
+import type { Cosmetics, UnlockStats } from './cosmetics';
 import type { KnightCustomization } from './knight';
 import type { ReactionId } from './reactions';
 
@@ -42,6 +43,8 @@ export interface JoinProfile {
   name: string;
   color: PlayerColor;
   knight: KnightCustomization;
+  /** Frame and title; the server keeps only what this player has unlocked. */
+  cosmetics?: Cosmetics;
 }
 
 export interface SeatDTO {
@@ -50,6 +53,7 @@ export interface SeatDTO {
   name: string;
   color: PlayerColor;
   knight: KnightCustomization;
+  cosmetics: Cosmetics;
   avatarUrl?: string;
   isBot: boolean;
   isGuest: boolean;
@@ -158,6 +162,7 @@ export interface ProfileUpdate {
   displayName?: string;
   color?: PlayerColor;
   knight?: KnightCustomization;
+  cosmetics?: Cosmetics;
   preferences?: ProfilePreferences;
 }
 
@@ -169,6 +174,9 @@ export interface SessionInfo {
   color: PlayerColor | null;
   knight: KnightCustomization | null;
   stats: { gamesPlayed: number; gamesWon: number } | null;
+  /** Chosen frame/title, and what counts towards unlocking more (null without a database). */
+  cosmetics: Cosmetics | null;
+  unlocks: UnlockStats | null;
   auth: { google: boolean; discord: boolean };
   persistence: boolean;
 }
@@ -184,6 +192,7 @@ export interface PlayerCard {
   color: PlayerColor;
   knight: KnightCustomization;
   avatarUrl: string | null;
+  cosmetics: Cosmetics;
   rating: number;
   ratedGames: number;
 }

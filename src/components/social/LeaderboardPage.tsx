@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { fetchLeaderboard } from '@/client/social';
 import type { LeaderboardData, LeaderboardEntry } from '@/shared/protocol';
-import { KnightBadge } from '@/components/knight/KnightBadge';
+import { PlayerPortrait, TitleTag } from '@/components/profile/Cosmetics';
 import { Logomark } from '@/components/ui/Logomark';
 
 const MEDAL = ['#f2c14e', '#c9ced6', '#c98a55'];
@@ -16,15 +16,11 @@ function Row({ e }: { e: LeaderboardEntry }) {
       <span className="grid w-8 shrink-0 place-items-center">
         {e.place <= 3 ? <Medal size={22} style={{ color: MEDAL[e.place - 1] }} fill={MEDAL[e.place - 1]} strokeWidth={1.5} /> : <span className="display text-lg font-black tabular text-ink-soft">{e.place}</span>}
       </span>
-      {e.avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={e.avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-full border-2 border-ink object-cover" referrerPolicy="no-referrer" />
-      ) : (
-        <KnightBadge knight={e.knight} color={e.color} size={36} />
-      )}
-      <span className="min-w-0 flex-1 truncate font-extrabold">
-        {e.name}
-        {e.isYou && <span className="ml-1.5 text-xs font-bold text-ink-faint">(you)</span>}
+      <PlayerPortrait knight={e.knight} color={e.color} avatarUrl={e.avatarUrl} frame={e.cosmetics.frame} size={42} />
+      <span className="flex min-w-0 flex-1 items-center gap-1.5 font-extrabold">
+        <span className="truncate">{e.name}</span>
+        {e.isYou && <span className="text-xs font-bold text-ink-faint">(you)</span>}
+        <TitleTag title={e.cosmetics.title} className="hidden shrink-0 sm:inline-flex" />
       </span>
       <span className="hidden w-20 text-right text-sm font-semibold text-ink-soft sm:block">{e.ratedGames} {e.ratedGames === 1 ? 'game' : 'games'}</span>
       <span className="hidden w-16 text-right text-sm font-semibold text-ink-soft sm:block">{e.gamesWon} {e.gamesWon === 1 ? 'win' : 'wins'}</span>

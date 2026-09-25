@@ -1,8 +1,10 @@
 import type { Mode, PlayerColor } from '@/engine/types';
 import { isPlayerColor } from '@/shared/colors';
+import { clampCosmetics } from '@/shared/cosmetics';
 import { sanitizeKnight } from '@/shared/knight';
 import type { GameSummary, ProfileData, ProfilePreferences, ProfileUpdate } from '@/shared/protocol';
 import { sanitizeName } from '@/shared/text';
+import { cosmeticStateFor } from './cosmetics';
 import { getDb } from './db';
 import type { ServerIdentity } from './identity';
 
@@ -80,6 +82,7 @@ export async function updateProfile(identity: ServerIdentity, input: unknown): P
   if (typeof src.displayName === 'string') data.displayName = sanitizeName(src.displayName);
   if (src.color !== undefined && isPlayerColor(src.color)) data.color = src.color;
   if (src.knight !== undefined) data.knight = sanitizeKnight(src.knight);
+  if (src.cosmetics !== undefined) data.cosmetics = clampCosmetics(src.cosmetics, (await cosmeticStateFor(identity)).unlocks);
   if (identity.kind === 'user') {
     if (src.preferences !== undefined) {
       const current = await preferencesFor(identity);

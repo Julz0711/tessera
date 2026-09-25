@@ -181,4 +181,25 @@ describe.skipIf(!url)('prisma persistence', async () => {
     expect(board.entries.every((e) => e.ratedGames > 0)).toBe(true);
     expect(board.entries.map((e) => e.place)).toEqual(board.entries.map((_, i) => i + 1));
   });
+
+  it('only keeps cosmetics a player has unlocked', async () => {
+    const { updateProfile } = await import('../profileApi');
+    const { cosmeticStateFor, seatCosmetics } = await import('../cosmetics');
+    const u = await db.user.create({ data: { name: 'Fancy' } });
+    const id = { kind: 'user' as const, id: u.id, key: `u:${u.id}` } as never;
+
+    // A new player can't claim a gold laurel or a rating title, but free ones stick.
+    await updateProfile(id, { cosmetics: { frame: 'gold', title: 'legend' } });
+    expect((await cosmeticStateFor(id)).chosen).toEqual({ frame: 'none', title: null });
+    await updateProfile(id, { cosmetics: { frame: 'wood', title: 'trader' } });
+    expect((await cosmeticStateFor(id)).chosen).toEqual({ frame: 'wood', title: 'trader' });
+
+    // Winning unlocks more; the saved choice beats whatever a browser sends.
+    await db.profile.update({ where: { userId: u.id }, data: { gamesPlayed: 20, gamesWon: 16 } });
+    await updateProfile(id, { cosmetics: { frame: 'gold', title: 'duke' } });
+    const state = await cosmeticStateFor(id);
+    expect(state.chosen).toEqual({ frame: 'gold', title: 'duke' });
+    expect(seatCosmetics({ frame: 'ruby', title: null }, state)).toEqual({ frame: 'gold', title: 'duke' });
+    expect(seatCosmetics({ frame: 'ruby', title: 'baron' }, { ...state, chosen: null })).toEqual({ frame: 'none', title: 'baron' });
+  });
 });

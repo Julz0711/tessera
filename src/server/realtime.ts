@@ -10,11 +10,15 @@ import { UserError, type Room, type RoomIO } from './room';
 import { RoomManager } from './rooms';
 import { isReactionId } from '@/shared/reactions';
 import { setPresenceSource } from './presence';
+import { cosmeticStateFor, seatCosmetics } from './cosmetics';
+import { NO_UNLOCKS } from '@/shared/cosmetics';
 
 export interface SocketData {
   identity: ServerIdentity;
   ip: string;
   roomCode: string | null;
+  /** Cosmetics state, refreshed whenever the socket creates or joins a room. */
+  cosmetics: Awaited<ReturnType<typeof cosmeticStateFor>>;
 }
 
 export type IO = Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
@@ -98,6 +102,7 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
       socket.data.identity = identity;
       socket.data.ip = clientIp({ headers: socket.handshake.headers, address: socket.handshake.address });
       socket.data.roomCode = null;
+      socket.data.cosmetics = { unlocks: NO_UNLOCKS, chosen: null };
       next();
     } catch (err) {
       console.error('[io] identity error', err);
@@ -149,24 +154,36 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
       if (!limits.lobby.take(socket.id)) throw new UserError('Slow down a little');
     };
 
+    /** Limits a profile's frame/title to what this player has unlocked (re-read from storage). */
+    const withCosmetics = async <P extends Partial<JoinProfile> | undefined>(profile: P): Promise<P> => {
+      socket.data.cosmetics = await cosmeticStateFor(socket.data.identity);
+      if (!profile || typeof profile !== 'object') return profile;
+      return { ...profile, cosmetics: seatCosmetics(profile.cosmetics, socket.data.cosmetics) };
+    };
+
     const remember = (profile: JoinProfile | undefined) => {
       if (profile && opts.persistence && 'rememberProfile' in opts.persistence) {
         (opts.persistence as DurablePersistence).rememberProfile(socket.data.identity.key, profile);
       }
     };
 
-    socket.on('room:create', (p: { profile: JoinProfile; settings?: Partial<RoomSettings> }, ack) =>
+    socket.on('room:create', async (p: { profile: JoinProfile; settings?: Partial<RoomSettings> }, ack) => {
+      if (!limits.roomCreate.take(socket.data.ip)) {
+        return reply(ack, () => {
+          throw new UserError('Too many rooms created — try again in a minute');
+        });
+      }
+      const profile = p && typeof p === 'object' && p.profile && typeof p.profile === 'object' ? await withCosmetics(p.profile) : null;
       reply(ack, () => {
-        if (!limits.roomCreate.take(socket.data.ip)) throw new UserError('Too many rooms created — try again in a minute');
-        if (!p || typeof p !== 'object' || !p.profile) throw new UserError('Choose a name first');
+        if (!profile) throw new UserError('Choose a name first');
         leaveCurrent();
         const room = manager.create(socket.data.identity, p.settings);
-        room.join(socket.id, socket.data.identity, { profile: p.profile });
+        room.join(socket.id, socket.data.identity, { profile });
         socket.data.roomCode = room.code;
-        remember(p.profile);
+        remember(profile);
         return { code: room.code };
-      }),
-    );
+      });
+    });
 
     socket.on('room:join', async (p: { code: string; profile?: JoinProfile; spectate?: boolean }, ack) => {
       if (!limits.roomJoin.take(socket.data.ip)) {
@@ -176,12 +193,13 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
       }
       // Not in memory? It may be a running game from before a server restart.
       const room = manager.get(p?.code) ?? (await manager.restore(p?.code));
+      const profile = await withCosmetics(p?.profile);
       reply(ack, () => {
         if (!room) throw new UserError("That room doesn't exist (or has ended)");
         if (socket.data.roomCode && socket.data.roomCode !== room.code) leaveCurrent();
-        const dto = room.join(socket.id, socket.data.identity, { profile: p.profile, spectate: !!p.spectate });
+        const dto = room.join(socket.id, socket.data.identity, { profile, spectate: !!p.spectate });
         socket.data.roomCode = room.code;
-        remember(p.profile);
+        remember(profile);
         return { room: dto };
       });
     });
@@ -198,7 +216,10 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
     socket.on('room:profile', (p, ack) =>
       reply(ack, () => {
         lobbyLimit();
-        currentRoom().updateProfile(socket.id, p ?? {});
+        const patch = { ...(p && typeof p === 'object' ? p : {}) };
+        // Only frames/titles already checked at join; a lobby edit can't claim new ones.
+        if (patch.cosmetics !== undefined) patch.cosmetics = seatCosmetics(patch.cosmetics, { ...socket.data.cosmetics, chosen: null });
+        currentRoom().updateProfile(socket.id, patch);
       }),
     );
 

@@ -10,7 +10,7 @@ import { ensureSession } from '@/client/session';
 import type { ProfileData } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { DEFAULT_KNIGHT } from '@/shared/knight';
-import { KnightBadge } from '@/components/knight/KnightBadge';
+import { PlayerPortrait, TitleTag } from './Cosmetics';
 import { FriendsPanel } from '@/components/social/FriendsPanel';
 import { DiscordMark, GoogleMark } from '@/components/ui/Glyphs';
 import { Logomark } from '@/components/ui/Logomark';
@@ -73,6 +73,7 @@ export function ProfilePage() {
   const name = s?.displayName || prefs.name || 'Guest';
   const color = s?.color ?? prefs.color;
   const knight = s?.knight ?? prefs.knight ?? DEFAULT_KNIGHT;
+  const cosmetics = s?.cosmetics ?? prefs.cosmetics;
   const stats = s?.stats ?? { gamesPlayed: 0, gamesWon: 0 };
   const winRate = stats.gamesPlayed ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100) : 0;
 
@@ -92,14 +93,10 @@ export function ProfilePage() {
           <section className="paper animate-rise grid gap-6 p-5 sm:grid-cols-[1fr_auto] sm:p-7">
             <div className="grid content-start gap-4">
               <div className="flex items-center gap-4">
-                {user && s?.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={s.avatarUrl} alt="" className="h-20 w-20 rounded-2xl border-2 border-ink object-cover" referrerPolicy="no-referrer" />
-                ) : (
-                  <KnightBadge knight={knight} color={color} size={84} />
-                )}
+                <PlayerPortrait knight={knight} color={color} avatarUrl={user ? s?.avatarUrl : null} frame={cosmetics.frame} size={92} />
                 <div className="min-w-0">
                   <h1 className="display truncate text-4xl font-black">{name}</h1>
+                  <TitleTag title={cosmetics.title} className="mb-1" />
                   <p className="text-sm font-bold text-ink-faint">
                     {user ? `Signed in with ${data.providers.map((p) => p[0].toUpperCase() + p.slice(1)).join(' & ') || 'your account'}` : 'Guest'}
                   </p>

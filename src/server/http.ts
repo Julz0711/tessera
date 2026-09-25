@@ -6,6 +6,7 @@ import { discordConfigured, googleConfigured, handleAuth } from './auth';
 import { FACE_MAX_BYTES, FaceError, loadFace, storeFace } from './faces';
 import type { ProfileData, SessionInfo } from '@/shared/protocol';
 import { favoriteMode, historyFor, linkedProviders, preferencesFor, ratingFor, sanitizePreferences, updateProfile } from './profileApi';
+import { cosmeticStateFor } from './cosmetics';
 import { dbEnabled, getDb } from './db';
 import { GUEST_TTL_DAYS, newGuestId, resolveIdentity, setGuestCookie, type ServerIdentity } from './identity';
 import { limits } from './rateLimit';
@@ -31,11 +32,16 @@ async function sessionInfo(identity: ServerIdentity | null): Promise<SessionInfo
     color: null,
     knight: null,
     stats: null,
+    cosmetics: null,
+    unlocks: null,
     auth: authProviders(),
     persistence: dbEnabled(),
   };
   const db = getDb();
   if (!identity || !db) return base;
+  const cos = await cosmeticStateFor(identity);
+  base.cosmetics = cos.chosen;
+  base.unlocks = cos.unlocks;
   try {
     if (identity.kind === 'user') {
       const profile = await db.profile.findUnique({ where: { userId: identity.id } });

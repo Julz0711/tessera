@@ -7,6 +7,8 @@ import { TRACK_STYLE } from '@/client/progressText';
 import type { RoomDTO } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
+import { Framed } from '@/components/profile/Cosmetics';
+import { titleInfo } from '@/shared/cosmetics';
 import { ReactionBubble } from './Reactions';
 
 function Stat({ icon, value, title }: { icon: React.ReactNode; value: React.ReactNode; title: string }) {
@@ -105,13 +107,19 @@ export function PlayersPanel({
             style={{ boxShadow: `inset 5px 0 0 ${c.hex}` }}
           >
             <div className="relative" data-seat-anchor={seat}>
-              {seatInfo ? <KnightBadge knight={seatInfo.knight} color={p.color} size={compact ? 38 : 44} /> : <div className="h-11 w-11 rounded-full" style={{ background: c.hex }} />}
+              {seatInfo ? (
+                <Framed frame={seatInfo.cosmetics.frame} size={compact ? 40 : 48}>
+                  {(s) => <KnightBadge knight={seatInfo.knight} color={p.color} size={s} />}
+                </Framed>
+              ) : (
+                <div className="h-11 w-11 rounded-full" style={{ background: c.hex }} />
+              )}
               {isTurn && <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 animate-ping rounded-full bg-amber" />}
               <ReactionBubble playerId={p.id} side={compact ? 'below' : 'left'} />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1">
-                <span className="truncate font-extrabold leading-tight">
+                <span className="truncate font-extrabold leading-tight" title={seatInfo?.cosmetics.title ? titleInfo(seatInfo.cosmetics.title).name : undefined}>
                   {p.name}
                   {seat === view.viewer && <span className="ml-1 text-xs font-bold text-ink-faint">(you)</span>}
                 </span>

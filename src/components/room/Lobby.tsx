@@ -10,6 +10,7 @@ import type { MapId, PlayerColor } from '@/engine/types';
 import { TURN_TIMER_OPTIONS, type RoomDTO, type RoomSettings, type SeatDTO } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
+import { Framed, TitleTag } from '@/components/profile/Cosmetics';
 import { Modal } from '@/components/ui/Modal';
 import { Logomark } from '@/components/ui/Logomark';
 import { ProfileFields, type ProfileDraft } from '@/components/profile/ProfileFields';
@@ -70,12 +71,15 @@ function SeatCard({ seat, canRemove, onEdit }: { seat: SeatDTO; canRemove: boole
   const c = PLAYER_COLORS[seat.color];
   return (
     <li className="paper-flat animate-pop flex items-center gap-3 p-2.5 pr-3" style={{ boxShadow: `inset 6px 0 0 ${c.hex}` }}>
-      <KnightBadge knight={seat.knight} color={seat.color} size={54} />
+      <Framed frame={seat.cosmetics.frame} size={58}>
+        {(s) => <KnightBadge knight={seat.knight} color={seat.color} size={s} />}
+      </Framed>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className="truncate text-lg font-extrabold">{seat.name}</span>
           {seat.isHost && <Crown size={16} className="shrink-0 text-amber-deep" aria-label="Host" />}
           {seat.isYou && <span className="rounded bg-ink px-1.5 text-[10px] font-black uppercase tracking-wider text-paper">You</span>}
+          <TitleTag title={seat.cosmetics.title} className="shrink-0" />
         </div>
         <div className="flex items-center gap-2 text-xs font-semibold text-ink-faint">
           {seat.isBot ? (
