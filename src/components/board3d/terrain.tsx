@@ -26,8 +26,10 @@ const TG = {
   // hills
   mound: new THREE.IcosahedronGeometry(0.16, 0),
   brick: new THREE.BoxGeometry(0.07, 0.033, 0.035),
-  kiln: new THREE.BoxGeometry(0.15, 0.12, 0.14),
-  chimney: new THREE.BoxGeometry(0.045, 0.12, 0.045),
+  // beehive clay kiln (a dome, so it can't be mistaken for a player's settlement)
+  kilnDome: new THREE.SphereGeometry(0.09, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2),
+  kilnMouth: new THREE.BoxGeometry(0.05, 0.045, 0.025),
+  kilnFlue: new THREE.CylinderGeometry(0.017, 0.022, 0.05, 6),
   pit: new THREE.CylinderGeometry(0.13, 0.11, 0.02, 8),
   // pasture
   tuft: new THREE.ConeGeometry(0.03, 0.09, 4),
@@ -42,10 +44,10 @@ const TG = {
   cranePost: new THREE.BoxGeometry(0.018, 0.2, 0.018),
   craneBeam: new THREE.BoxGeometry(0.2, 0.018, 0.018),
   bucket: new THREE.CylinderGeometry(0.025, 0.02, 0.035, 6),
-  barn: new THREE.BoxGeometry(0.15, 0.11, 0.13),
-  // Triangular prism lying along X with its apex up: a gable roof.
-  roof: new THREE.CylinderGeometry(0.085, 0.085, 0.17, 3).rotateX(-Math.PI / 2).rotateY(Math.PI / 2),
-  door: new THREE.BoxGeometry(0.05, 0.07, 0.005),
+  // straw: a conical haystack and round bales lying on their side (axis along X)
+  haystackBase: new THREE.CylinderGeometry(0.11, 0.115, 0.06, 8),
+  haystackTop: new THREE.ConeGeometry(0.113, 0.16, 8),
+  bale: new THREE.CylinderGeometry(0.055, 0.055, 0.085, 8).rotateZ(Math.PI / 2),
   // mountains
   peak: new THREE.ConeGeometry(0.21, 0.36, 5),
   snow: new THREE.ConeGeometry(0.09, 0.13, 5),
@@ -133,8 +135,10 @@ function propsFor(terrain: Terrain, seed: number): Prop[] {
       const corners = rand() > 0.5 ? [0, 2, 4] : [1, 3, 5];
       const [ka, ma, sa] = corners.map((k) => CORNERS[k]);
       const [kx, kz] = polar(ka, 0.6);
-      out.push({ geo: 'kiln', color: '#9c4a2b', p: [kx, y + 0.06, kz], r: [0, -ka, 0] });
-      out.push({ geo: 'chimney', color: '#7a3a22', p: [kx + Math.cos(ka) * 0.03, y + 0.17, kz + Math.sin(ka) * 0.03] });
+      const [mdx, mdz] = polar(ka, 0.085);
+      out.push({ geo: 'kilnDome', color: '#b86a3f', p: [kx, y, kz] });
+      out.push({ geo: 'kilnMouth', color: '#3b2216', p: [kx - mdx, y + 0.022, kz - mdz], r: [0, -ka + Math.PI / 2, 0] });
+      out.push({ geo: 'kilnFlue', color: '#9a5332', p: [kx, y + 0.1, kz] });
       const [mx, mz] = polar(ma, 0.62);
       out.push({ geo: 'mound', color: '#c46b41', p: [mx, y + 0.02, mz], s: [1, 0.45, 1], r: [0, rand() * 3, 0] });
       const [m2x, m2z] = polar(ma + 0.55, 0.62);
@@ -185,7 +189,7 @@ function propsFor(terrain: Terrain, seed: number): Prop[] {
       break;
     }
     case 'fields': {
-      // Three ploughed wheat plots around the token, and a little barn.
+      // Three ploughed wheat plots around the token, with straw in the gaps between them.
       const offset = rand() * Math.PI * 2;
       const golds = ['#f0cf6a', '#e5bd4c', '#f5d97e'];
       for (let k = 0; k < 3; k++) {
@@ -198,13 +202,21 @@ function propsFor(terrain: Terrain, seed: number): Prop[] {
           out.push({ geo: 'wheatRow', color: golds[(row + k) % golds.length], p: [px + dx, y + 0.055, pz + dz], r: [0, rot, 0] });
         }
       }
-      const ba = offset + Math.PI / 3;
-      const [bx, bz] = polar(ba, 0.6);
-      const brot = -ba + Math.PI / 2;
-      out.push({ geo: 'barn', color: '#b5452f', p: [bx, y + 0.055, bz], r: [0, brot, 0] });
-      out.push({ geo: 'roof', color: '#6e3a24', p: [bx, y + 0.152, bz], r: [0, brot, 0] });
-      const [ddx, ddz] = polar(ba, 0.066);
-      out.push({ geo: 'door', color: '#f2ead8', p: [bx - ddx, y + 0.045, bz - ddz], r: [0, brot, 0] });
+      // Gap 1: a conical haystack.
+      const [hx, hz] = polar(offset + Math.PI / 3, 0.6);
+      out.push({ geo: 'haystackBase', color: '#c99b3c', p: [hx, y + 0.03, hz] });
+      out.push({ geo: 'haystackTop', color: '#dcb04c', p: [hx, y + 0.14, hz], r: [0, rand() * 3, 0] });
+      // Gaps 2 and 3: round bales lying in the stubble.
+      for (const [gap, count] of [
+        [Math.PI, 2],
+        [(5 * Math.PI) / 3, 1],
+      ] as const) {
+        const a = offset + gap;
+        for (let i = 0; i < count; i++) {
+          const [bx, bz] = polar(a + (i - (count - 1) / 2) * 0.26, 0.6);
+          out.push({ geo: 'bale', color: i % 2 ? '#d6ab45' : '#e2bb58', p: [bx, y + 0.055, bz], r: [0, -a + rand() * 0.6, 0] });
+        }
+      }
       break;
     }
     case 'mountains': {
