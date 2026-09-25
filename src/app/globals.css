@@ -34,9 +34,9 @@
   --color-wool: #9ccf6c;
   --color-grain: #e9c35a;
   --color-ore: #8d909b;
-  --color-paper-card: #d8c7a0;
-  --color-cloth: #b98ad6;
-  --color-coin: #d9a441;
+  --color-paper-card: #2f6f62;
+  --color-cloth: #8ed8b8;
+  --color-coin: #c9ced6;
 
   --radius-card: 14px;
   --shadow-token: 0 3px 0 0 #1f1a14;
@@ -226,6 +226,37 @@ body {
 .btn-ghost:hover:not(:disabled) {
   box-shadow: none;
   background: rgb(0 0 0 / 0.06);
+}
+
+/* Chunky slider to match the buttons: an inset paper track and an amber token thumb. */
+.range {
+  appearance: none;
+  height: 10px;
+  border: 2px solid var(--color-ink);
+  border-radius: 999px;
+  background: var(--color-paper-3);
+  cursor: pointer;
+}
+.range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-ink);
+  border-radius: 999px;
+  background: var(--color-amber);
+  box-shadow: 0 2px 0 0 var(--color-ink);
+}
+.range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-ink);
+  border-radius: 999px;
+  background: var(--color-amber);
+  box-shadow: 0 2px 0 0 var(--color-ink);
+}
+.range:focus-visible {
+  outline: 3px solid var(--color-amber);
+  outline-offset: 3px;
 }
 
 .input {

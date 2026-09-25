@@ -30,9 +30,9 @@ import {
   UserMinus,
   VenetianMask,
 } from 'lucide-react';
-import type { Card, DevCardType, PartialHand, ProgressCard, ProgressCardType } from '@/engine/types';
+import { COMMODITIES, type Card, type DevCardType, type PartialHand, type ProgressCard, type ProgressCardType } from '@/engine/types';
 import { DEV_NAMES, DEV_TEXT, PROGRESS_NAMES } from '@/client/describe';
-import { CARD_COLORS } from '@/client/palette';
+import { CARD_COLORS, shade } from '@/client/palette';
 import { PROGRESS_TEXT, TRACK_STYLE } from '@/client/progressText';
 import { CARD_GLYPH, KnightGlyph, RoadGlyph } from '@/components/ui/Glyphs';
 
@@ -136,7 +136,34 @@ function CardName({ size, children }: { size: CardSize; children: React.ReactNod
   );
 }
 
-/** A resource or commodity card. */
+const svgTile = (w: number, h: number, body: string) =>
+  `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'>${body}</svg>`)}")`;
+
+/** A faint printed pattern per card, drawn in the card's ink color: a hint of the material. */
+const CARD_PATTERN: Record<Card, (ink: string) => string> = {
+  brick: (c) => svgTile(18, 12, `<path d='M0 .5h18M0 6.5h18M4.5 .5v6M13.5 6.5v6' stroke='${c}' fill='none'/>`),
+  lumber: (c) => svgTile(12, 24, `<path d='M3 0q3 6 0 12t0 12M9 0q-2.5 7 0 12t0 12' stroke='${c}' fill='none'/>`),
+  wool: (c) => svgTile(12, 12, `<circle cx='3' cy='3' r='1.8' fill='${c}'/><circle cx='9' cy='9' r='1.8' fill='${c}'/>`),
+  grain: (c) => svgTile(8, 8, `<path d='M-1 9L9 -1M-3 3L3 -3M5 11L11 5' stroke='${c}'/>`),
+  ore: (c) => svgTile(14, 12, `<path d='M0 12L7 1l7 11' stroke='${c}' fill='none'/>`),
+  paper: (c) => svgTile(10, 7, `<path d='M0 6.5h10' stroke='${c}'/>`),
+  cloth: (c) => svgTile(8, 8, `<path d='M0 0l8 8M8 0L0 8' stroke='${c}'/>`),
+  coin: (c) => svgTile(14, 14, `<circle cx='7' cy='7' r='4' stroke='${c}' fill='none'/>`),
+};
+
+/** Card face: lit from the top-left, a shade deeper at the bottom. */
+const cardBackground = (bg: string) => `linear-gradient(155deg, ${shade(bg, 0.28)} 0%, ${bg} 48%, ${shade(bg, -0.22)} 100%)`;
+
+const MEDALLION: Record<CardSize, { box: number; glyph: number }> = {
+  sm: { box: 28, glyph: 17 },
+  md: { box: 34, glyph: 21 },
+  lg: { box: 66, glyph: 40 },
+};
+
+/**
+ * A resource or commodity card: a gradient face with a material pattern, the icon in a cream
+ * medallion, and the name along the bottom. Small cards (trade window, pickers) leave the name off.
+ */
 export function ResourceCard({
   card,
   count,
@@ -144,6 +171,7 @@ export function ResourceCard({
   onClick,
   selected,
   dim,
+  label = size !== 'sm',
 }: {
   card: Card;
   /** Shown as a badge when above 0; a picker passes 0 for a plain card. */
@@ -152,13 +180,50 @@ export function ResourceCard({
   onClick?: () => void;
   selected?: boolean;
   dim?: boolean;
+  label?: boolean;
 }) {
   const c = CARD_COLORS[card];
   const Glyph = CARD_GLYPH[card];
+  const m = MEDALLION[size];
+  const commodity = (COMMODITIES as readonly Card[]).includes(card);
   return (
-    <CardShell bg={c.bg} ink={c.ink} size={size} title={count > 0 ? `${c.label}: ${count}` : c.label} onClick={onClick} selected={selected} dim={dim} badge={count}>
-      <Glyph size={GLYPH_SIZE[size]} strokeWidth={2} />
-      <span className="mt-0.5 text-[9px] font-black uppercase tracking-wider opacity-80">{c.label}</span>
+    <CardShell
+      bg={cardBackground(c.bg)}
+      ink={c.ink}
+      size={size}
+      title={count > 0 ? `${c.label}: ${count}` : c.label}
+      onClick={onClick}
+      selected={selected}
+      dim={dim}
+      badge={count}
+    >
+      <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[6px] opacity-[0.16]" style={{ backgroundImage: CARD_PATTERN[card](c.ink) }} />
+      {/* commodities carry a little corner ribbon so they read apart from resources at a glance */}
+      {commodity && (
+        <span aria-hidden className="pointer-events-none absolute left-0 top-0 h-3 w-3 overflow-hidden rounded-tl-[6px]">
+          <span className="absolute -left-1.5 -top-1.5 h-3 w-3 rotate-45" style={{ background: c.ink, opacity: 0.55 }} />
+        </span>
+      )}
+      <span
+        className={`relative grid place-items-center rounded-full border-2 ${label ? '-mt-2' : ''}`}
+        style={{
+          width: m.box,
+          height: m.box,
+          background: 'radial-gradient(circle at 35% 30%, #fffdf6 0%, #f6eddb 60%, #e3d3b0 100%)',
+          borderColor: c.deep,
+          color: c.deep,
+          boxShadow: `0 1.5px 0 0 ${shade(c.bg, -0.45)}`,
+        }}
+      >
+        <Glyph size={m.glyph} strokeWidth={2.2} />
+      </span>
+      {label && (
+        <span
+          className={`absolute inset-x-0 text-center font-black uppercase leading-none ${size === 'lg' ? 'bottom-2.5 text-xs tracking-[0.14em]' : 'bottom-1.5 text-[7px] tracking-[0.12em]'}`}
+        >
+          {c.label}
+        </span>
+      )}
     </CardShell>
   );
 }
@@ -175,7 +240,7 @@ export function CardStack({ card, count, onClick }: { card: Card; count: number;
           key={i}
           aria-hidden
           className={`absolute top-0 rounded-lg border-2 border-ink shadow-token ${CARD_BOX.md}`}
-          style={{ left: i * step, background: c.bg, filter: `brightness(${0.78 + i * 0.05})` }}
+          style={{ left: i * step, background: cardBackground(c.bg), filter: `brightness(${0.78 + i * 0.05})` }}
         />
       ))}
       <ResourceCard card={card} count={count} onClick={onClick} />
