@@ -182,9 +182,14 @@ export function GameScreen() {
         <OffersTray view={view} className="w-full" />
       </div>
       <div className="absolute inset-x-2 top-26 z-10 lg:hidden">
-        <PlayersPanel view={view} room={room} compact />
+        <PlayersPanel
+          view={view}
+          room={room}
+          compact
+          leading={view.mode === 'ck' ? <div className="w-52 shrink-0"><BarbarianTrack view={view} /></div> : undefined}
+        />
       </div>
-      <div className="absolute bottom-43 right-2 z-20 lg:hidden">
+      <div className="absolute bottom-57 right-2 z-20 lg:hidden">
         <OffersTray view={view} className="w-[min(420px,92vw)]" />
       </div>
 
@@ -192,7 +197,7 @@ export function GameScreen() {
       <div className="absolute bottom-2 left-2 z-20 hidden w-80 md:block">
         <SidePanel view={view} unread={unread} />
       </div>
-      <div className="absolute bottom-41 left-2 z-20 md:hidden">
+      <div className="absolute bottom-57 left-2 z-20 md:hidden">
         <MobileSide view={view} unread={unread} />
       </div>
 

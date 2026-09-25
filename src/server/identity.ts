@@ -76,7 +76,9 @@ export function setGuestCookie(req: IncomingMessage, res: ServerResponse, guestI
     'SameSite=Lax',
     `Max-Age=${GUEST_TTL_DAYS * 86400}`,
   ];
-  if (isSecureRequest(req) || process.env.NODE_ENV === 'production') parts.push('Secure');
+  // Secure whenever the page itself is served over HTTPS (directly or via a TLS-terminating proxy);
+  // plain-http local runs keep working.
+  if (isSecureRequest(req)) parts.push('Secure');
   const prev = res.getHeader('Set-Cookie');
   const list = Array.isArray(prev) ? prev : prev ? [String(prev)] : [];
   res.setHeader('Set-Cookie', [...list, parts.join('; ')]);

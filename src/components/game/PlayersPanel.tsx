@@ -15,10 +15,22 @@ function Stat({ icon, value, title }: { icon: React.ReactNode; value: React.Reac
   );
 }
 
-export function PlayersPanel({ view, room, compact = false }: { view: PlayerView; room: RoomDTO | null; compact?: boolean }) {
+export function PlayersPanel({
+  view,
+  room,
+  compact = false,
+  leading,
+}: {
+  view: PlayerView;
+  room: RoomDTO | null;
+  compact?: boolean;
+  /** Extra tile shown before the players (e.g. the barbarian track on phones). */
+  leading?: React.ReactNode;
+}) {
   const actors = new Set(view.phase === 'setup' && view.setup ? [view.setup.order[view.setup.index]] : view.pending.length ? view.pending.map((p) => p.seat) : [view.turn.seat]);
   return (
     <ol className={compact ? 'scroll-thin flex gap-2 overflow-x-auto pb-1' : 'grid gap-2'}>
+      {leading && <li className="flex shrink-0">{leading}</li>}
       {view.players.map((p, seat) => {
         const c = PLAYER_COLORS[p.color];
         const seatInfo = room?.seats[seat];

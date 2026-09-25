@@ -138,8 +138,10 @@ export function Dock({ view }: { view: PlayerView }) {
 
   return (
     <div className="flex flex-col items-center gap-2">
-      {/* hand */}
-      <div className="flex max-w-full items-end gap-1.5 overflow-x-auto px-3 pb-1 pt-3 scroll-thin sm:gap-2">
+      {/* hand — the inner row is only as wide as its cards, so it centres when it fits and
+          scrolls from the first card when it doesn't. */}
+      <div className="max-w-full overflow-x-auto scroll-thin">
+      <div className="mx-auto flex w-max items-end gap-1.5 px-3 pb-1 pt-3 sm:gap-2">
         {cards.map((c) => (
           <ResourceCard key={c} card={c} count={p.hand[c]} />
         ))}
@@ -158,6 +160,7 @@ export function Dock({ view }: { view: PlayerView }) {
             </span>
           )}
         </button>
+      </div>
       </div>
 
       {/* actions */}
