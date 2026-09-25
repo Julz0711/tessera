@@ -1,12 +1,12 @@
 'use client';
 
 import { MessageSquare, ScrollText, Trophy } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CARDS, type Card, type DevCardType, type GameEvent, type PartialHand, type ProgressCardType } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { DEV_NAMES, PROGRESS_NAMES } from '@/client/describe';
 import { CARD_COLORS } from '@/client/palette';
-import { usePrefs } from '@/client/prefs';
+import { BOARD_SCALE, usePrefs } from '@/client/prefs';
 import { play } from '@/client/sound';
 import { api, toast, useGame } from '@/client/store';
 import { computeTargets, handlePick } from '@/client/interaction';
@@ -31,6 +31,9 @@ import { PlayersPanel } from './PlayersPanel';
 import { DiscardDialog, FreeRoadsBanner, GoldDialog, VictimDialog } from './Prompts';
 import { TopBar } from './TopBar';
 import { OffersTray } from './TradePanel';
+import { cardList, fly, type Place } from '@/client/fx';
+import { TERRAIN_COMMODITY, TERRAIN_RESOURCE } from '@/engine/constants';
+import { FlyLayer } from './FlyLayer';
 
 function cardsText(h: PartialHand): string {
   return CARDS.filter((c) => (h[c] ?? 0) > 0)
@@ -51,18 +54,31 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
           play('dice');
           break;
         case 'produced':
+          {
+            // Each card flies from a tile that produced it (on the 2D board) to its new owner.
+            const total = view.turn.dice ? view.turn.dice.red + view.turn.dice.yellow : null;
+            const source = (c: Card): Place => {
+              const hex = view.board.hexes.find(
+                (h) => h.token === total && h.id !== view.robber && !h.fog && (TERRAIN_RESOURCE[h.terrain] === c || TERRAIN_COMMODITY[h.terrain] === c),
+              );
+              return hex ? { hex: hex.id } : 'board';
+            };
+            ev.gains.forEach((g, seat) => g && cardList(g).forEach((c, i) => fly(source(c), { seat }, [c], me, 250 + seat * 60 + i * 90)));
+          }
           if (me !== null && ev.gains[me] && Object.keys(ev.gains[me]).length) {
             play('gain');
             toast(`+ ${cardsText(ev.gains[me])}`, 'good');
           }
           break;
         case 'built':
-          play('build');
+          play(ev.piece === 'wall' ? 'wall' : ev.piece);
           break;
         case 'robberMoved':
           play('robber');
           break;
         case 'stole':
+          play(ev.victim === me ? 'stolen' : 'steal');
+          fly({ seat: ev.victim }, { seat: ev.seat }, [(secret?.card as Card | undefined) ?? null], me);
           if (ev.victim === me) toast(`${name(ev.seat)} stole ${secret?.card ? CARD_COLORS[secret.card as Card].label.toLowerCase() : 'a card'} from you`, 'error');
           else if (ev.seat === me && secret?.card) toast(`You stole ${CARD_COLORS[secret.card as Card].label.toLowerCase()} from ${name(ev.victim)}`, 'good');
           break;
@@ -73,26 +89,56 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
           }
           break;
         case 'trade':
+          play('trade');
+          fly({ seat: ev.seat }, { seat: ev.partner }, cardList(ev.give), me);
+          fly({ seat: ev.partner }, { seat: ev.seat }, cardList(ev.get), me, 150);
+          break;
         case 'bankTrade':
           play('trade');
+          fly({ seat: ev.seat }, 'bank', cardList(ev.give), me);
+          fly('bank', { seat: ev.seat }, cardList(ev.get), me, 450);
           break;
+        case 'received':
+          fly('bank', { seat: ev.seat }, cardList(ev.cards), me);
+          break;
+        case 'discarded':
+          fly({ seat: ev.seat }, 'bank', cardList(ev.cards), me);
+          break;
+        case 'monopoly': {
+          const others = view.players.map((_, i) => i).filter((i) => i !== ev.seat);
+          const n = Math.min(ev.total, 6);
+          for (let i = 0; i < n; i++) fly({ seat: others[i % others.length] }, { seat: ev.seat }, [ev.card], me, i * 90);
+          break;
+        }
         case 'tradeOffered':
-          if (me !== null && ev.seat !== me) play('chat');
+          if (me !== null && ev.seat !== me && view.trades.some((t) => t.id === ev.id && t.to.includes(me))) play('offer');
           break;
         case 'devBought':
+          if (ev.seat === me) play('card');
+          fly('bank', { seat: ev.seat }, [null], me);
           if (ev.seat === me && secret?.card) toast(`You bought: ${DEV_NAMES[secret.card as DevCardType]}`);
           break;
+        case 'devPlayed':
+        case 'progressPlayed':
+          play('card');
+          break;
         case 'longestRoad':
+          if (ev.seat !== null) play(ev.seat === me ? 'award' : 'card');
           if (ev.seat !== null) toast(`${ev.seat === me ? 'You' : name(ev.seat)} took the Longest Road`);
           break;
         case 'largestArmy':
+          if (ev.seat !== null) play(ev.seat === me ? 'award' : 'card');
           if (ev.seat !== null) toast(`${ev.seat === me ? 'You' : name(ev.seat)} took the Largest Army`);
           break;
         case 'gameOver':
-          play('win');
+          play(me === null || ev.winner === me ? 'win' : 'lose');
+          break;
+        case 'barbarianAdvanced':
+          play('barbarianStep');
           break;
         case 'barbarianAttack':
-          play('robber');
+          play('barbarianAttack');
+          if (ev.won) setTimeout(() => play('repelled'), 1300);
           toast(
             ev.won
               ? `The barbarians attacked (${ev.strength}) — the knights (${ev.defense}) held the island!`
@@ -101,17 +147,30 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
           );
           break;
         case 'cityLost':
+          if (ev.seat === me) play('stolen');
           if (ev.seat === me) toast('The barbarians razed one of your cities', 'error');
           break;
         case 'defenderAwarded':
+          if (ev.seat === me) play('award');
           toast(`${ev.seat === me ? 'You are' : `${name(ev.seat)} is`} the Defender of the island (+1 VP)`, 'good');
           break;
         case 'progressDrawn':
+          if (ev.seat === me) play('card');
           if (ev.seat === me && secret?.card) toast(`New progress card: ${PROGRESS_NAMES[secret.card as ProgressCardType]}`);
           break;
         case 'metropolis':
           toast(`${ev.seat === me ? 'You' : name(ev.seat)} founded a metropolis`, ev.seat === me ? 'good' : 'info');
-          play('build');
+          play(ev.seat === me ? 'metropolis' : 'award');
+          break;
+        case 'improved':
+          if (ev.seat === me) play('improve');
+          break;
+        case 'knightBuilt':
+          play('knight');
+          break;
+        case 'knightPromoted':
+        case 'knightActivated':
+          if (ev.seat === me) play('knightUp');
           break;
         case 'knightDisplaced':
           if (ev.victim === me) toast(`${name(ev.seat)} displaced one of your knights`, 'error');
@@ -120,6 +179,26 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [updateId]);
+}
+
+/** A chime when a new decision lands on you (discard, pick gold, move a knight…), and soft sounds for panels. */
+function useUiSounds(view: PlayerView | null) {
+  const me = view?.viewer ?? null;
+  const prompts = me === null || !view ? '' : view.pending.filter((p) => p.seat === me).map((p) => p.kind).join(',');
+  const previous = useRef('');
+  useEffect(() => {
+    const before = new Set(previous.current.split(',').filter(Boolean));
+    if (prompts.split(',').some((k) => k && !before.has(k))) play('alert');
+    previous.current = prompts;
+  }, [prompts]);
+
+  const panel = useUi((s) => s.panel ?? s.card?.kind ?? null);
+  const opened = useRef(panel);
+  useEffect(() => {
+    if (panel === opened.current) return;
+    play(panel ? 'open' : 'close');
+    opened.current = panel;
+  }, [panel]);
 }
 
 export function GameScreen() {
@@ -134,6 +213,7 @@ export function GameScreen() {
   const [showResults, setShowResults] = useState(true);
 
   useEventFeedback(view, events, updateId);
+  useUiSounds(view);
 
   // Light up the rolled number for a few seconds.
   useEffect(() => {
@@ -178,10 +258,11 @@ export function GameScreen() {
     <div className={`fixed inset-0 overflow-hidden ${prefs.view === '2d' ? 'sea-2d' : 'bg-sea-900'}`}>
       {/* The 3D canvas fills the screen (the camera frames the island above the dock); the flat
           2D board is fitted into the space the panels leave free. */}
-      <div className={prefs.view === '2d' ? 'absolute inset-x-2 bottom-80 top-37.5 lg:bottom-42 lg:left-2 lg:right-75 lg:top-16' : 'absolute inset-0'}>
+      <div className={prefs.view === '2d' ? 'absolute inset-x-2 bottom-80 top-37.5 lg:bottom-42 lg:left-2 lg:right-75 lg:top-16' : 'absolute inset-0'} data-board-anchor>
         <BoardView
           mode={prefs.view}
           quality={prefs.graphics}
+          pieceScale={BOARD_SCALE[prefs.boardScale]}
           scene={scene}
           targets={targets}
           popup={ui.armed && view ? <BuildPopup view={view} armed={ui.armed} /> : null}
@@ -240,7 +321,7 @@ export function GameScreen() {
 
       {/* trade offers: top-left, clear of the side column (below the players strip on smaller screens) */}
       <div className="absolute left-2 top-45 z-20 lg:top-16">
-        <OffersTray view={view} className="w-[min(400px,calc(100vw-16px))]" />
+        <OffersTray view={view} className="w-max min-w-[min(330px,calc(100vw-16px))] max-w-[calc(100vw-16px)]" />
       </div>
 
       {/* dock; on smaller screens the log/chat buttons and dice/roll ride just above it,
@@ -262,6 +343,8 @@ export function GameScreen() {
           </div>
         </div>
       </div>
+
+      <FlyLayer />
 
       {/* dialogs */}
       {myPrompt?.kind === 'discard' && <DiscardDialog view={view} prompt={myPrompt} />}

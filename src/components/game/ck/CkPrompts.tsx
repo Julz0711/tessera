@@ -41,7 +41,8 @@ export function CkPromptDialog({ view, prompt }: { view: PlayerView; prompt: Pro
       );
     case 'aqueduct':
       return (
-        <Modal open dismissable={false} title="Aqueduct">
+        // A quick pick: the board and your hand stay in full view behind it.
+        <Modal open dismissable={false} dim={false} title="Aqueduct">
           <p className="mb-3 text-sm text-ink-soft">The roll gave you nothing — take one resource of your choice.</p>
           <div className="flex flex-wrap justify-center gap-2">
             {RESOURCES.map((r) => (

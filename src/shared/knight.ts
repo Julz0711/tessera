@@ -11,12 +11,27 @@
  * `face` in the same JSON field — no separate column — so they default to centred/1 wherever a
  * knight was saved before this existed, and look exactly as before.
  */
-export interface KnightCustomization {
+export interface KnightLook {
   face: string | null;
   faceX?: number;
   faceY?: number;
   faceZoom?: number;
 }
+
+/**
+ * C&K knights come in three levels (basic, strong, mighty) and each can have its own look. The
+ * top-level fields are knight 1 (basic); `strong` and `mighty` are knights 2 and 3. A missing
+ * `strong`/`mighty` wears knight 1's look, so knights saved before this existed look the same.
+ */
+export interface KnightCustomization extends KnightLook {
+  strong?: KnightLook;
+  mighty?: KnightLook;
+}
+
+export type KnightSlot = 1 | 2 | 3;
+export const KNIGHT_SLOTS: KnightSlot[] = [1, 2, 3];
+export const KNIGHT_SLOT_NAMES: Record<KnightSlot, string> = { 1: 'Basic', 2: 'Strong', 3: 'Mighty' };
+const SLOT_KEY = { 2: 'strong', 3: 'mighty' } as const;
 
 export const DEFAULT_KNIGHT: KnightCustomization = { face: null };
 
@@ -36,10 +51,8 @@ function clampedNumber(value: unknown, min: number, max: number): number | undef
   return typeof value === 'number' && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : undefined;
 }
 
-/** Coerces untrusted input (from clients or the DB) into a valid customization. */
-export function sanitizeKnight(input: unknown): KnightCustomization {
-  const src = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
-  const out: KnightCustomization = { face: isFaceId(src.face) ? src.face : null };
+function sanitizeLook(src: Record<string, unknown>): KnightLook {
+  const out: KnightLook = { face: isFaceId(src.face) ? src.face : null };
   const faceX = clampedNumber(src.faceX, -FACE_OFFSET_RANGE, FACE_OFFSET_RANGE);
   const faceY = clampedNumber(src.faceY, -FACE_OFFSET_RANGE, FACE_OFFSET_RANGE);
   const faceZoom = clampedNumber(src.faceZoom, FACE_ZOOM_MIN, FACE_ZOOM_MAX);
@@ -49,8 +62,52 @@ export function sanitizeKnight(input: unknown): KnightCustomization {
   return out;
 }
 
+const asRecord = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : null);
+
+/** Coerces untrusted input (from clients or the DB) into a valid customization. */
+export function sanitizeKnight(input: unknown): KnightCustomization {
+  const src = asRecord(input) ?? {};
+  const out: KnightCustomization = sanitizeLook(src);
+  const strong = asRecord(src.strong);
+  const mighty = asRecord(src.mighty);
+  if (strong) out.strong = sanitizeLook(strong);
+  if (mighty) out.mighty = sanitizeLook(mighty);
+  return out;
+}
+
+/** Whether knight 2/3 has a look of its own (rather than wearing knight 1's). */
+export function hasOwnLook(knight: KnightCustomization, slot: KnightSlot): boolean {
+  return slot === 1 || knight[SLOT_KEY[slot]] !== undefined;
+}
+
+/** The look of one knight level (knights 2 and 3 fall back to knight 1). */
+export function knightLook(knight: KnightCustomization, slot: KnightSlot): KnightLook {
+  const own = slot === 1 ? undefined : knight[SLOT_KEY[slot]];
+  const src = own ?? knight;
+  const out: KnightLook = { face: src.face };
+  if (src.faceX !== undefined) out.faceX = src.faceX;
+  if (src.faceY !== undefined) out.faceY = src.faceY;
+  if (src.faceZoom !== undefined) out.faceZoom = src.faceZoom;
+  return out;
+}
+
+/** Sets one knight level's look; `null` for knight 2/3 goes back to wearing knight 1's. */
+export function withKnightLook(knight: KnightCustomization, slot: KnightSlot, look: KnightLook | null): KnightCustomization {
+  if (slot === 1) {
+    const { strong, mighty } = knight;
+    const next: KnightCustomization = { ...(look ?? { face: null }) };
+    if (strong) next.strong = strong;
+    if (mighty) next.mighty = mighty;
+    return next;
+  }
+  const next = { ...knight };
+  if (look) next[SLOT_KEY[slot]] = look;
+  else delete next[SLOT_KEY[slot]];
+  return next;
+}
+
 /** Normalized framing (defaults filled in) for anything that draws the face photo. */
-export function faceFrame(knight: KnightCustomization): { x: number; y: number; zoom: number } {
+export function faceFrame(knight: KnightLook): { x: number; y: number; zoom: number } {
   return { x: knight.faceX ?? 0, y: knight.faceY ?? 0, zoom: knight.faceZoom ?? 1 };
 }
 

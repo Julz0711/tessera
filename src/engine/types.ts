@@ -53,8 +53,13 @@ export interface Board {
 
 // ── Modes & settings ────────────────────────────────────────────────────────
 export type Mode = 'classic' | 'ck';
-/** Board layout: the standard island, the larger 5–6 player island, or the fog-covered Black Forest. */
-export type MapId = 'standard' | 'large' | 'blackForest';
+/**
+ * Board layout: the standard island, the larger 5–6 player island, the fog-covered Black Forest,
+ * or one of the land-only variants (Gold Rush, Heartlake, Long Isle).
+ */
+export type MapId = 'standard' | 'large' | 'blackForest' | 'goldRush' | 'heartlake' | 'longIsle';
+export const MAP_IDS: readonly MapId[] = ['standard', 'large', 'blackForest', 'goldRush', 'heartlake', 'longIsle'];
+export const isMapId = (v: unknown): v is MapId => typeof v === 'string' && (MAP_IDS as readonly string[]).includes(v);
 export type Track = 'trade' | 'politics' | 'science';
 export const TRACKS: readonly Track[] = ['trade', 'politics', 'science'];
 
@@ -135,7 +140,7 @@ export interface ProgressCard {
 }
 
 // ── Players ─────────────────────────────────────────────────────────────────
-export type PlayerColor = 'red' | 'blue' | 'orange' | 'white' | 'green' | 'purple';
+export type PlayerColor = 'red' | 'blue' | 'orange' | 'white' | 'green' | 'purple' | 'teal' | 'pink' | 'brown' | 'black';
 
 export interface PlayerState {
   /** Random per-game player id (never an account or guest id). */

@@ -5,11 +5,14 @@ import { isFaceId, sanitizeKnight } from '@/shared/knight';
 import { discordConfigured, googleConfigured, handleAuth } from './auth';
 import { FACE_MAX_BYTES, FaceError, loadFace, storeFace } from './faces';
 import type { ProfileData, SessionInfo } from '@/shared/protocol';
-import { favoriteMode, historyFor, linkedProviders, preferencesFor, sanitizePreferences, updateProfile } from './profileApi';
+import { favoriteMode, historyFor, linkedProviders, preferencesFor, ratingFor, sanitizePreferences, updateProfile } from './profileApi';
+import { cosmeticStateFor } from './cosmetics';
 import { dbEnabled, getDb } from './db';
 import { GUEST_TTL_DAYS, newGuestId, resolveIdentity, setGuestCookie, type ServerIdentity } from './identity';
 import { limits } from './rateLimit';
 import { clientIp, originAllowed } from './realtime';
+import { UserError } from './room';
+import { acceptFriend, friendsFor, inviteFriend, leaderboard, removeFriend, requestFriend } from './social';
 
 function json(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
@@ -29,11 +32,16 @@ async function sessionInfo(identity: ServerIdentity | null): Promise<SessionInfo
     color: null,
     knight: null,
     stats: null,
+    cosmetics: null,
+    unlocks: null,
     auth: authProviders(),
     persistence: dbEnabled(),
   };
   const db = getDb();
   if (!identity || !db) return base;
+  const cos = await cosmeticStateFor(identity);
+  base.cosmetics = cos.chosen;
+  base.unlocks = cos.unlocks;
   try {
     if (identity.kind === 'user') {
       const profile = await db.profile.findUnique({ where: { userId: identity.id } });
@@ -139,6 +147,33 @@ async function serveFace(res: ServerResponse, id: string): Promise<void> {
   res.end(face.data);
 }
 
+/** GET: your friends, requests and recent players. POST {action, code}: request / accept / remove / invite. */
+async function friendsRoute(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const identity = await resolveIdentity(req.headers.cookie);
+  if (req.method === 'POST') {
+    if (!originAllowed(req)) return json(res, 403, { error: 'Bad origin' });
+    if (!identity) return json(res, 401, { error: 'No session' });
+    if (!limits.friends.take(identity.key)) return json(res, 429, { error: 'Slow down a little' });
+    const body = await readBody(req, 4 * 1024);
+    let parsed: { action?: unknown; code?: unknown } = {};
+    try {
+      parsed = body ? JSON.parse(body.toString('utf8')) : {};
+    } catch {
+      return json(res, 400, { error: 'Invalid request' });
+    }
+    const actions = { request: requestFriend, accept: acceptFriend, remove: removeFriend, invite: inviteFriend } as const;
+    const act = actions[parsed.action as keyof typeof actions];
+    if (!act) return json(res, 400, { error: 'Invalid request' });
+    try {
+      await act(identity, parsed.code);
+    } catch (err) {
+      if (err instanceof UserError) return json(res, 400, { error: err.message });
+      throw err;
+    }
+  }
+  json(res, 200, await friendsFor(identity));
+}
+
 /**
  * Plain HTTP endpoints owned by the game server (same module graph as the socket server).
  * Returns true when the request was handled here; otherwise Next.js handles it.
@@ -165,6 +200,14 @@ export async function handleHttp(req: IncomingMessage, res: ServerResponse): Pro
     json(res, 200, await sessionInfo(await resolveIdentity(req.headers.cookie)));
     return true;
   }
+  if (path === '/api/leaderboard' && req.method === 'GET') {
+    json(res, 200, await leaderboard(await resolveIdentity(req.headers.cookie)));
+    return true;
+  }
+  if (path === '/api/friends' && (req.method === 'GET' || req.method === 'POST')) {
+    await friendsRoute(req, res);
+    return true;
+  }
   if (path === '/api/profile' && (req.method === 'GET' || req.method === 'PATCH')) {
     const identity = await resolveIdentity(req.headers.cookie);
     if (!identity) {
@@ -189,13 +232,14 @@ export async function handleHttp(req: IncomingMessage, res: ServerResponse): Pro
       }
       await updateProfile(identity, parsed);
     }
-    const [session, history, providers, preferences] = await Promise.all([
+    const [session, history, providers, preferences, rating] = await Promise.all([
       sessionInfo(identity),
       historyFor(identity),
       linkedProviders(identity),
       preferencesFor(identity),
+      ratingFor(identity),
     ]);
-    const data: ProfileData = { session, history, providers, preferences, favoriteMode: favoriteMode(history) };
+    const data: ProfileData = { session, history, providers, preferences, favoriteMode: favoriteMode(history), rating };
     json(res, 200, data);
     return true;
   }

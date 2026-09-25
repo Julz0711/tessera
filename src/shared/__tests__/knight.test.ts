@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_KNIGHT, FACE_OFFSET_RANGE, FACE_ZOOM_MAX, FACE_ZOOM_MIN, faceFrame, sanitizeKnight } from '../knight';
+import {
+  DEFAULT_KNIGHT,
+  FACE_OFFSET_RANGE,
+  FACE_ZOOM_MAX,
+  FACE_ZOOM_MIN,
+  faceFrame,
+  hasOwnLook,
+  knightLook,
+  sanitizeKnight,
+  withKnightLook,
+} from '../knight';
 
 const FACE = 'a'.repeat(64);
+const FACE2 = 'b'.repeat(64);
 
 describe('sanitizeKnight', () => {
   it('defaults missing/junk input to the no-face knight', () => {
@@ -55,5 +66,33 @@ describe('faceFrame', () => {
 
   it('reads through explicit framing', () => {
     expect(faceFrame({ face: FACE, faceX: 0.3, faceY: -0.1, faceZoom: 2.5 })).toEqual({ x: 0.3, y: -0.1, zoom: 2.5 });
+  });
+});
+
+describe('knight levels', () => {
+  it('sanitizes the strong and mighty looks and drops junk', () => {
+    expect(sanitizeKnight({ face: FACE, strong: { face: FACE2, faceZoom: 99 }, mighty: 'x' })).toEqual({
+      face: FACE,
+      strong: { face: FACE2, faceZoom: FACE_ZOOM_MAX },
+    });
+    expect(sanitizeKnight({ face: null, mighty: { face: 'bad' } })).toEqual({ face: null, mighty: { face: null } });
+  });
+
+  it('knights 2 and 3 wear knight 1 until they get their own look', () => {
+    const k = sanitizeKnight({ face: FACE, faceX: 0.1, strong: { face: FACE2 } });
+    expect(knightLook(k, 1)).toEqual({ face: FACE, faceX: 0.1 });
+    expect(knightLook(k, 2)).toEqual({ face: FACE2 });
+    expect(knightLook(k, 3)).toEqual({ face: FACE, faceX: 0.1 });
+    expect(hasOwnLook(k, 2)).toBe(true);
+    expect(hasOwnLook(k, 3)).toBe(false);
+  });
+
+  it('sets and clears one level without touching the others', () => {
+    let k = withKnightLook({ face: FACE }, 3, { face: null });
+    expect(k).toEqual({ face: FACE, mighty: { face: null } });
+    k = withKnightLook(k, 1, { face: FACE2, faceZoom: 2 });
+    expect(k).toEqual({ face: FACE2, faceZoom: 2, mighty: { face: null } });
+    k = withKnightLook(k, 3, null);
+    expect(k).toEqual({ face: FACE2, faceZoom: 2 });
   });
 });

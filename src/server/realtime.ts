@@ -8,11 +8,17 @@ import type { DurablePersistence } from './prismaPersistence';
 import { limits } from './rateLimit';
 import { UserError, type Room, type RoomIO } from './room';
 import { RoomManager } from './rooms';
+import { isReactionId } from '@/shared/reactions';
+import { setPresenceSource } from './presence';
+import { cosmeticStateFor, seatCosmetics } from './cosmetics';
+import { NO_UNLOCKS } from '@/shared/cosmetics';
 
 export interface SocketData {
   identity: ServerIdentity;
   ip: string;
   roomCode: string | null;
+  /** Cosmetics state, refreshed whenever the socket creates or joins a room. */
+  cosmetics: Awaited<ReturnType<typeof cosmeticStateFor>>;
 }
 
 export type IO = Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
@@ -96,6 +102,7 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
       socket.data.identity = identity;
       socket.data.ip = clientIp({ headers: socket.handshake.headers, address: socket.handshake.address });
       socket.data.roomCode = null;
+      socket.data.cosmetics = { unlocks: NO_UNLOCKS, chosen: null };
       next();
     } catch (err) {
       console.error('[io] identity error', err);
@@ -103,7 +110,36 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
     }
   });
 
+  // Presence: which identities have a socket open, and in which room.
+  const socketsOf = new Map<string, Set<string>>();
+  setPresenceSource({
+    lookup(key) {
+      const ids = socketsOf.get(key);
+      if (!ids?.size) return { status: 'offline', roomCode: null };
+      for (const id of ids) {
+        const code = io.sockets.sockets.get(id)?.data.roomCode;
+        const room = code ? manager.get(code) : undefined;
+        if (room) return { status: room.status === 'playing' ? 'playing' : 'lobby', roomCode: room.code };
+      }
+      return { status: 'online', roomCode: null };
+    },
+    invite(key, invite) {
+      const ids = socketsOf.get(key);
+      if (!ids?.size) return false;
+      for (const id of ids) io.sockets.sockets.get(id)?.emit('friend:invite', invite);
+      return true;
+    },
+  });
+
   io.on('connection', (socket: GameSocket) => {
+    const key = socket.data.identity.key;
+    socketsOf.set(key, (socketsOf.get(key) ?? new Set()).add(socket.id));
+    socket.on('disconnect', () => {
+      const ids = socketsOf.get(key);
+      ids?.delete(socket.id);
+      if (ids && !ids.size) socketsOf.delete(key);
+    });
+
     const currentRoom = (): Room => {
       const room = socket.data.roomCode ? manager.get(socket.data.roomCode) : undefined;
       if (!room) throw new UserError('You are not in a room');
@@ -118,24 +154,36 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
       if (!limits.lobby.take(socket.id)) throw new UserError('Slow down a little');
     };
 
+    /** Limits a profile's frame/title to what this player has unlocked (re-read from storage). */
+    const withCosmetics = async <P extends Partial<JoinProfile> | undefined>(profile: P): Promise<P> => {
+      socket.data.cosmetics = await cosmeticStateFor(socket.data.identity);
+      if (!profile || typeof profile !== 'object') return profile;
+      return { ...profile, cosmetics: seatCosmetics(profile.cosmetics, socket.data.cosmetics) };
+    };
+
     const remember = (profile: JoinProfile | undefined) => {
       if (profile && opts.persistence && 'rememberProfile' in opts.persistence) {
         (opts.persistence as DurablePersistence).rememberProfile(socket.data.identity.key, profile);
       }
     };
 
-    socket.on('room:create', (p: { profile: JoinProfile; settings?: Partial<RoomSettings> }, ack) =>
+    socket.on('room:create', async (p: { profile: JoinProfile; settings?: Partial<RoomSettings> }, ack) => {
+      if (!limits.roomCreate.take(socket.data.ip)) {
+        return reply(ack, () => {
+          throw new UserError('Too many rooms created — try again in a minute');
+        });
+      }
+      const profile = p && typeof p === 'object' && p.profile && typeof p.profile === 'object' ? await withCosmetics(p.profile) : null;
       reply(ack, () => {
-        if (!limits.roomCreate.take(socket.data.ip)) throw new UserError('Too many rooms created — try again in a minute');
-        if (!p || typeof p !== 'object' || !p.profile) throw new UserError('Choose a name first');
+        if (!profile) throw new UserError('Choose a name first');
         leaveCurrent();
         const room = manager.create(socket.data.identity, p.settings);
-        room.join(socket.id, socket.data.identity, { profile: p.profile });
+        room.join(socket.id, socket.data.identity, { profile });
         socket.data.roomCode = room.code;
-        remember(p.profile);
+        remember(profile);
         return { code: room.code };
-      }),
-    );
+      });
+    });
 
     socket.on('room:join', async (p: { code: string; profile?: JoinProfile; spectate?: boolean }, ack) => {
       if (!limits.roomJoin.take(socket.data.ip)) {
@@ -145,12 +193,13 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
       }
       // Not in memory? It may be a running game from before a server restart.
       const room = manager.get(p?.code) ?? (await manager.restore(p?.code));
+      const profile = await withCosmetics(p?.profile);
       reply(ack, () => {
         if (!room) throw new UserError("That room doesn't exist (or has ended)");
         if (socket.data.roomCode && socket.data.roomCode !== room.code) leaveCurrent();
-        const dto = room.join(socket.id, socket.data.identity, { profile: p.profile, spectate: !!p.spectate });
+        const dto = room.join(socket.id, socket.data.identity, { profile, spectate: !!p.spectate });
         socket.data.roomCode = room.code;
-        remember(p.profile);
+        remember(profile);
         return { room: dto };
       });
     });
@@ -167,7 +216,10 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
     socket.on('room:profile', (p, ack) =>
       reply(ack, () => {
         lobbyLimit();
-        currentRoom().updateProfile(socket.id, p ?? {});
+        const patch = { ...(p && typeof p === 'object' ? p : {}) };
+        // Only frames/titles already checked at join; a lobby edit can't claim new ones.
+        if (patch.cosmetics !== undefined) patch.cosmetics = seatCosmetics(patch.cosmetics, { ...socket.data.cosmetics, chosen: null });
+        currentRoom().updateProfile(socket.id, patch);
       }),
     );
 
@@ -199,6 +251,13 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
       }),
     );
 
+    socket.on('room:toLobby', (ack) =>
+      reply(ack, () => {
+        lobbyLimit();
+        currentRoom().backToLobby(socket.id);
+      }),
+    );
+
     socket.on('game:action', (action: Action, ack) =>
       reply(ack, () => {
         if (!limits.action.take(socket.id)) throw new UserError('Slow down a little');
@@ -210,6 +269,14 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
       reply(ack, () => {
         if (!limits.chat.take(socket.data.identity.key)) throw new UserError('You are sending messages too quickly');
         currentRoom().say(socket.id, text);
+      }),
+    );
+
+    socket.on('room:react', (reaction, ack) =>
+      reply(ack, () => {
+        if (!isReactionId(reaction)) throw new UserError('Unknown reaction');
+        if (!limits.reaction.take(socket.data.identity.key)) throw new UserError('Easy there, wait a moment');
+        currentRoom().react(socket.id, reaction);
       }),
     );
 

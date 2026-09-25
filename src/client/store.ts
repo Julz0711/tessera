@@ -14,6 +14,8 @@ import type {
   ServerToClientEvents,
   SessionInfo,
 } from '@/shared/protocol';
+import type { ReactionId } from '@/shared/reactions';
+import { usePrefs } from './prefs';
 import { ensureSession } from './session';
 import { play } from './sound';
 
@@ -42,6 +44,12 @@ export interface GameStore {
   unread: number;
   notice: string | null;
   toasts: Toast[];
+  /** Latest quick reaction per player id (bubbles fade on their own). */
+  reactions: Record<string, { reaction: ReactionId; at: number }>;
+  /** When the viewer last reacted, for the picker's cooldown. */
+  lastReactionAt: number;
+  /** Room invites from friends, newest last. */
+  invites: { from: string; roomCode: string; at: number }[];
 }
 
 const initial: GameStore = {
@@ -57,6 +65,9 @@ const initial: GameStore = {
   unread: 0,
   notice: null,
   toasts: [],
+  reactions: {},
+  lastReactionAt: 0,
+  invites: [],
 };
 
 export const useGame = create<GameStore>(() => ({ ...initial }));
@@ -99,12 +110,22 @@ function wire(s: ClientSocket): void {
     }
     useGame.setState({ conn: 'reconnecting' });
   });
-  s.on('room:state', (room) => useGame.setState({ room }));
+  // Back in the lobby, the finished game's view goes away.
+  s.on('room:state', (room) => useGame.setState(room.status === 'lobby' ? { room, view: null } : { room }));
   s.on('game:state', ({ view, events }) => useGame.setState((st) => ({ view, events, updateId: st.updateId + 1 })));
   s.on('chat:history', (chat) => useGame.setState({ chat }));
   s.on('chat:message', (m) => {
     useGame.setState((st) => ({ chat: [...st.chat.slice(-149), m], unread: st.unread + 1 }));
     if (!m.system) play('chat');
+  });
+  s.on('friend:invite', (inv) => {
+    useGame.setState((st) => ({ invites: [...st.invites.filter((i) => i.roomCode !== inv.roomCode).slice(-2), { ...inv, at: Date.now() }] }));
+    play('offer');
+  });
+  s.on('room:reaction', (r) => {
+    // Stamped with the local clock so the bubble's lifetime doesn't depend on server clock skew.
+    useGame.setState((st) => ({ reactions: { ...st.reactions, [r.playerId]: { reaction: r.reaction, at: Date.now() } } }));
+    play('reaction');
   });
   s.on('room:closed', (reason) => useGame.setState({ notice: reason, room: null, view: null, code: null }));
   s.on('session:replaced', () =>
@@ -162,13 +183,18 @@ function request<T extends object = object>(
     .catch((err: Error) => ({ ok: false as const, error: err.message }));
 }
 
+/** Adds this browser's frame/title; the server swaps in the saved ones for profiles that have them. */
+const withCosmetics = (profile: JoinProfile): JoinProfile => ({ cosmetics: usePrefs.getState().cosmetics, ...profile });
+
 export const api = {
   async createRoom(profile: JoinProfile, settings?: Partial<RoomSettings>) {
+    profile = withCosmetics(profile);
     const r = await request<{ code: string }>((s, ack) => s.emit('room:create', { profile, settings }, ack));
     if (r.ok) useGame.setState({ code: r.code, notice: null, view: null, events: [], chat: [] });
     return r;
   },
   async joinRoom(code: string, profile?: JoinProfile, spectate?: boolean) {
+    if (profile) profile = withCosmetics(profile);
     const r = await request<{ room: RoomDTO }>((s, ack) => s.emit('room:join', { code, profile, spectate }, ack));
     if (r.ok) useGame.setState({ code: r.room.code, room: r.room, notice: null });
     return r;
@@ -184,8 +210,13 @@ export const api = {
   removeSeat: (playerId: string) => request((s, ack) => s.emit('room:removeSeat', playerId, ack)).then(report),
   start: () => request((s, ack) => s.emit('room:start', ack)).then(report),
   rematch: () => request((s, ack) => s.emit('room:rematch', ack)).then(report),
+  backToLobby: () => request((s, ack) => s.emit('room:toLobby', ack)).then(report),
   act: (action: Action) => request((s, ack) => s.emit('game:action', action, ack)).then(report),
   chat: (text: string) => request((s, ack) => s.emit('chat:send', text, ack)).then(report),
+  react(reaction: ReactionId) {
+    useGame.setState({ lastReactionAt: Date.now() });
+    return request((s, ack) => s.emit('room:react', reaction, ack)).then(report);
+  },
 };
 
 function report<T extends AckResult>(r: T): T {

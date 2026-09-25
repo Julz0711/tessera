@@ -40,6 +40,7 @@ export async function migrateGuestToUser(guestId: string, userId: string, isNewU
           displayName: isNewUser && guest.displayName ? guest.displayName : undefined,
           color: profile.color ?? guest.color,
           knight: profile.knight ?? guest.knight ?? undefined,
+          cosmetics: profile.cosmetics ?? guest.cosmetics ?? undefined,
         },
       });
     } else {
@@ -49,6 +50,7 @@ export async function migrateGuestToUser(guestId: string, userId: string, isNewU
           displayName: guest.displayName ?? 'Player',
           color: guest.color,
           knight: guest.knight ?? undefined,
+          cosmetics: guest.cosmetics ?? undefined,
           gamesPlayed: guest.gamesPlayed,
           gamesWon: guest.gamesWon,
         },

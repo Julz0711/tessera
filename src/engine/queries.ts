@@ -113,8 +113,8 @@ export function canPlaceSettlement(s: Q, seat: number, v: number, setup = false)
 }
 
 /**
- * Black Forest: the starting settlements stand in the forest, on corners touching only forest (or
- * the lake). The fog, and whatever the first placements revealed, is reached by building out later.
+ * Black Forest: the starting settlements and roads stand in the forest, on corners touching only
+ * forest (or the lake). The fog is reached by building out later.
  */
 function forestCorner(s: Q, v: number): boolean {
   return topo(s).vertices[v].hexes.every((h) => s.board.hexes[h].terrain === 'forest');
@@ -148,7 +148,13 @@ export function legalRoadSpots(s: Q, seat: number): number[] {
 
 export function legalSetupRoads(s: Q): number[] {
   if (!s.setup || s.setup.placing !== 'road' || s.setup.lastVertex === null) return [];
-  return topo(s).vertices[s.setup.lastVertex].edges.filter((e) => s.roads[e] === null);
+  const t = topo(s);
+  const free = t.vertices[s.setup.lastVertex].edges.filter((e) => s.roads[e] === null);
+  if (s.settings.map !== 'blackForest') return free;
+  // Black Forest: the starting road stays in the forest too (it would otherwise run into the fog
+  // and reveal it); only a corner with no forest road left may lead out.
+  const inForest = free.filter((e) => forestCorner(s, t.edges[e].a) && forestCorner(s, t.edges[e].b));
+  return inForest.length ? inForest : free;
 }
 
 export function legalCitySpots(s: Q, seat: number): number[] {

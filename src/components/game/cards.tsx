@@ -3,7 +3,6 @@
 import {
   Anchor,
   Anvil,
-  Award,
   Bomb,
   BrickWall,
   Church,
@@ -11,7 +10,6 @@ import {
   Droplets,
   Eye,
   FlaskConical,
-  Gift,
   HandCoins,
   Handshake,
   Heart,
@@ -30,26 +28,26 @@ import {
   UserMinus,
   VenetianMask,
 } from 'lucide-react';
-import type { Card, DevCardType, PartialHand, ProgressCard, ProgressCardType } from '@/engine/types';
+import { COMMODITIES, type Card, type DevCardType, type PartialHand, type ProgressCard, type ProgressCardType } from '@/engine/types';
 import { DEV_NAMES, DEV_TEXT, PROGRESS_NAMES } from '@/client/describe';
 import { CARD_COLORS } from '@/client/palette';
 import { PROGRESS_TEXT, TRACK_STYLE } from '@/client/progressText';
-import { CARD_GLYPH, KnightGlyph, RoadGlyph } from '@/components/ui/Glyphs';
+import { RoadGlyph } from '@/components/ui/Glyphs';
+import { ArtShapes, FacetBackground, Medallion, MiniArt, mix } from './cardArt';
 
 type Icon = (p: { size?: number; strokeWidth?: number; className?: string }) => React.ReactNode;
 
-/** Small inline chip (log lines, trade summaries). */
+/** Small inline chip (log lines, trade summaries): the card's art on its colour, with a count. */
 export function CardChip({ card, n }: { card: Card; n?: number }) {
   const c = CARD_COLORS[card];
-  const Glyph = CARD_GLYPH[card];
   return (
     <span
-      className="mx-0.5 inline-flex translate-y-0.5 items-center gap-0.5 rounded-md border border-black/30 px-1 text-[11px] font-black leading-4.5"
+      className="mx-0.5 inline-flex translate-y-[3px] items-center gap-px rounded-md border border-black/30 px-0.5 text-[11px] font-black leading-4.5"
       style={{ background: c.bg, color: c.ink }}
       title={c.label}
     >
-      {n !== undefined && n > 1 && <span>{n}</span>}
-      <Glyph size={13} strokeWidth={2.2} />
+      {n !== undefined && n > 1 && <span className="pl-0.5">{n}</span>}
+      <MiniArt card={card} size={17} />
     </span>
   );
 }
@@ -68,18 +66,22 @@ export function CardList({ cards }: { cards: PartialHand }) {
 
 // ── Printed cards ────────────────────────────────────────────────────────────
 
-export type CardSize = 'sm' | 'md' | 'lg';
+export type CardSize = 'xs' | 'sm' | 'md' | 'lg';
 
 const CARD_BOX: Record<CardSize, string> = {
+  xs: 'h-11 w-8',
   sm: 'h-14 w-10',
   md: 'h-18 w-13 sm:h-20 sm:w-14',
   lg: 'h-36 w-26',
 };
-const GLYPH_SIZE: Record<CardSize, number> = { sm: 20, md: 26, lg: 48 };
 
-function CountBadge({ n }: { n: number }) {
+function CountBadge({ n, small }: { n: number; small?: boolean }) {
   return (
-    <span className="absolute -right-2 -top-2 z-10 grid h-6 min-w-6 place-items-center rounded-full border-2 border-ink bg-paper px-1 text-xs font-black text-ink tabular">
+    <span
+      className={`absolute z-10 grid place-items-center rounded-full border-2 border-ink bg-paper font-black text-ink tabular ${
+        small ? '-right-1.5 -top-1.5 h-4.5 min-w-4.5 px-0.5 text-[10px]' : '-right-2 -top-2 h-6 min-w-6 px-1 text-xs'
+      }`}
+    >
       {n}
     </span>
   );
@@ -122,21 +124,43 @@ function CardShell({
       } ${selected ? '-translate-y-2 ring-4 ring-amber' : glow ? 'ring-3 ring-amber' : ''} ${onClick ? 'cursor-pointer hover:-translate-y-1' : ''}`}
       style={{ background: bg, color: ink }}
     >
-      {/* printed inner frame */}
-      <span className="pointer-events-none absolute inset-0.75 rounded-[5px] border border-current opacity-20" />
       {children}
-      {badge !== undefined && badge > 0 && <CountBadge n={badge} />}
+      {badge !== undefined && badge > 0 && <CountBadge n={badge} small={size === 'xs'} />}
     </Tag>
   );
 }
 
-function CardName({ size, children }: { size: CardSize; children: React.ReactNode }) {
+/** The printed face of a resource or commodity card: faceted backdrop, low-poly art, name ribbon. */
+function ResourceFace({ card, label }: { card: Card; label: boolean }) {
+  const c = CARD_COLORS[card];
+  const commodity = (COMMODITIES as readonly Card[]).includes(card);
   return (
-    <span className={`mt-1 px-1 text-center font-extrabold leading-[1.05] ${size === 'lg' ? 'text-sm' : 'text-[8px] sm:text-[8.5px]'}`}>{children}</span>
+    <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[6px]">
+      <svg className="h-full w-full" viewBox="0 0 100 140" preserveAspectRatio="xMidYMid slice">
+        <FacetBackground color={c.bg} seed={card} />
+        {/* commodities are finished goods: a fine inner frame sets them apart from raw resources */}
+        {commodity && <rect x="5" y="5" width="90" height="130" rx="5" fill="none" stroke={mix(c.bg, '#fffaf0', 0.75)} strokeWidth="1.6" />}
+        <g transform={label ? 'translate(-3 6) scale(1.06)' : 'translate(-6 8.4) scale(1.12)'}>
+          <ArtShapes card={card} shadow={mix(c.bg, '#000000', 0.28)} />
+        </g>
+        {label && (
+          <g>
+            <polygon points="7,111 93,111 89,120.5 93,130 7,130 11,120.5" fill={mix(c.bg, '#000000', 0.42)} />
+            <polygon points="11,120.5 89,120.5 93,130 7,130" fill={mix(c.bg, '#000000', 0.52)} />
+            <text x="50" y="125" textAnchor="middle" fontSize="12.5" fontWeight="900" letterSpacing="1.2" fill="#fff7ea">
+              {c.label.toUpperCase()}
+            </text>
+          </g>
+        )}
+      </svg>
+    </span>
   );
 }
 
-/** A resource or commodity card. */
+/**
+ * A resource or commodity card: low-poly art on a faceted face in the card's colour, with the name
+ * on a ribbon. Small cards (trade window, pickers) leave the name off.
+ */
 export function ResourceCard({
   card,
   count,
@@ -144,6 +168,7 @@ export function ResourceCard({
   onClick,
   selected,
   dim,
+  label = size === 'md' || size === 'lg',
 }: {
   card: Card;
   /** Shown as a badge when above 0; a picker passes 0 for a plain card. */
@@ -152,13 +177,21 @@ export function ResourceCard({
   onClick?: () => void;
   selected?: boolean;
   dim?: boolean;
+  label?: boolean;
 }) {
   const c = CARD_COLORS[card];
-  const Glyph = CARD_GLYPH[card];
   return (
-    <CardShell bg={c.bg} ink={c.ink} size={size} title={count > 0 ? `${c.label}: ${count}` : c.label} onClick={onClick} selected={selected} dim={dim} badge={count}>
-      <Glyph size={GLYPH_SIZE[size]} strokeWidth={2} />
-      <span className="mt-0.5 text-[9px] font-black uppercase tracking-wider opacity-80">{c.label}</span>
+    <CardShell
+      bg={c.bg}
+      ink={c.ink}
+      size={size}
+      title={count > 0 ? `${c.label}: ${count}` : c.label}
+      onClick={onClick}
+      selected={selected}
+      dim={dim}
+      badge={count}
+    >
+      <ResourceFace card={card} label={label} />
     </CardShell>
   );
 }
@@ -174,22 +207,39 @@ export function CardStack({ card, count, onClick }: { card: Card; count: number;
         <span
           key={i}
           aria-hidden
-          className={`absolute top-0 rounded-lg border-2 border-ink shadow-token ${CARD_BOX.md}`}
-          style={{ left: i * step, background: c.bg, filter: `brightness(${0.78 + i * 0.05})` }}
-        />
+          className={`absolute top-0 overflow-hidden rounded-lg border-2 border-ink shadow-token ${CARD_BOX.md}`}
+          style={{ left: i * step, background: c.bg, filter: `brightness(${0.8 + i * 0.05})` }}
+        >
+          <svg className="h-full w-full" viewBox="0 0 100 140" preserveAspectRatio="xMidYMid slice">
+            <FacetBackground color={c.bg} seed={card} />
+          </svg>
+        </span>
       ))}
       <ResourceCard card={card} count={count} onClick={onClick} />
     </div>
   );
 }
 
-const DEV_ICON: Record<DevCardType, Icon> = {
-  knight: KnightGlyph,
-  roadBuilding: RoadGlyph,
-  yearOfPlenty: Gift,
-  monopoly: Magnet,
-  victoryPoint: Award,
-};
+/** Name ribbon for development and progress cards (their names can take two lines). */
+function Ribbon({ color, size, children }: { color: string; size: CardSize; children: React.ReactNode }) {
+  return (
+    <span
+      className={`pointer-events-none absolute inset-x-[5%] bottom-[5%] grid place-items-center text-center font-black leading-[1.08] ${
+        size === 'lg' ? 'min-h-8 px-[11%] py-1 text-[11px]' : 'min-h-[17%] px-[9%] py-[3px] text-[7px] sm:text-[7.5px]'
+      }`}
+      style={{
+        background: `linear-gradient(${mix(color, '#000000', 0.4)} 50%, ${mix(color, '#000000', 0.5)} 50%)`,
+        color: '#fff7ea',
+        clipPath: 'polygon(0 0, 100% 0, 94% 50%, 100% 100%, 0 100%, 6% 50%)',
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+/** Development cards share the sea-teal face; each has its own low-poly art. */
+const DEV_BG = '#1d5a6b';
 
 /** A development card (classic), grouped by type with a count. */
 export function DevCardFace({
@@ -208,20 +258,19 @@ export function DevCardFace({
   glow?: boolean;
   onClick?: () => void;
 }) {
-  const Icon = DEV_ICON[type];
-  const vp = type === 'victoryPoint';
   return (
-    <CardShell
-      bg={vp ? '#f2b33d' : '#1d5a6b'}
-      ink={vp ? '#1f1a14' : '#f6eddb'}
-      size={size}
-      title={`${DEV_NAMES[type]} — ${DEV_TEXT[type]}`}
-      onClick={onClick}
-      glow={glow}
-      badge={count}
-    >
-      <Icon size={GLYPH_SIZE[size] - 2} strokeWidth={2} />
-      <CardName size={size}>{DEV_NAMES[type]}</CardName>
+    <CardShell bg={DEV_BG} ink="#f6eddb" size={size} title={`${DEV_NAMES[type]} — ${DEV_TEXT[type]}`} onClick={onClick} glow={glow} badge={count}>
+      <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[6px]">
+        <svg className="h-full w-full" viewBox="0 0 100 140" preserveAspectRatio="xMidYMid slice">
+          <FacetBackground color={DEV_BG} seed={type} />
+          <g transform="translate(-2 1) scale(1.04)">
+            <ArtShapes card={type} shadow={mix(DEV_BG, '#000000', 0.3)} />
+          </g>
+        </svg>
+      </span>
+      <Ribbon color={DEV_BG} size={size}>
+        {DEV_NAMES[type]}
+      </Ribbon>
       {fresh && (
         <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded border-2 border-ink bg-paper px-1 text-[8px] font-black uppercase leading-3 text-ink">
           New
@@ -262,18 +311,31 @@ const PROGRESS_ICON: Record<ProgressCardType, Icon> = {
   tradeMonopoly: Scale,
 };
 
-/** A C&K progress card, in its track's colour with the track's commodity in the corner. */
+/** A C&K progress card: a faceted face in its track's colour, the card's symbol on a hexagon token. */
 export function ProgressCardFace({ card, size = 'md', glow, onClick }: { card: ProgressCard; size?: CardSize; glow?: boolean; onClick?: () => void }) {
   const style = TRACK_STYLE[card.track];
   const Icon = PROGRESS_ICON[card.type];
-  const Mark = CARD_GLYPH[style.commodity];
   return (
-    <CardShell bg={style.color} ink={style.ink} size={size} title={`${PROGRESS_NAMES[card.type]} — ${PROGRESS_TEXT[card.type]}`} onClick={onClick} glow={glow}>
-      <span className={`absolute opacity-60 ${size === 'lg' ? 'left-2 top-2' : 'left-1 top-1'}`}>
-        <Mark size={size === 'lg' ? 16 : 10} strokeWidth={2.4} />
+    <CardShell
+      bg={style.color}
+      ink={style.ink}
+      size={size}
+      title={`${PROGRESS_NAMES[card.type]} — ${PROGRESS_TEXT[card.type]}`}
+      onClick={onClick}
+      glow={glow}
+    >
+      <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[6px]">
+        <svg className="h-full w-full" viewBox="0 0 100 140" preserveAspectRatio="xMidYMid slice">
+          <FacetBackground color={style.color} seed={card.type} />
+          <Medallion cx={50} cy={50} r={31} />
+        </svg>
       </span>
-      <Icon size={GLYPH_SIZE[size] - 2} strokeWidth={2} />
-      <CardName size={size}>{PROGRESS_NAMES[card.type]}</CardName>
+      <span className="pointer-events-none absolute left-1/2 top-[35.7%] -translate-x-1/2 -translate-y-1/2" style={{ color: mix(style.color, '#1f1a14', 0.55) }}>
+        <Icon size={size === 'lg' ? 40 : 20} strokeWidth={2.4} />
+      </span>
+      <Ribbon color={style.color} size={size}>
+        {PROGRESS_NAMES[card.type]}
+      </Ribbon>
     </CardShell>
   );
 }

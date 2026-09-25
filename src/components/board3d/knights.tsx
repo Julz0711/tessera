@@ -6,10 +6,11 @@ import * as THREE from 'three';
 import type { Topology } from '@/engine/board/topology';
 import type { KnightLevel, PlayerColor } from '@/engine/types';
 import { PLAYER_COLORS } from '@/shared/colors';
-import { DEFAULT_KNIGHT, KNIGHT_STEEL, faceFrame, faceUrl, type KnightCustomization } from '@/shared/knight';
+import { DEFAULT_KNIGHT, KNIGHT_STEEL, faceFrame, faceUrl, knightLook, type KnightCustomization } from '@/shared/knight';
 import type { BoardScene } from '@/components/board/types';
 import { mat } from './materials';
 import { useAppear } from './pieces';
+import { usePieceScale } from './pieceScale';
 import { TILE_TOP } from './terrain';
 
 const faceCache = new Map<string, THREE.Texture>();
@@ -145,11 +146,11 @@ function KnightFigure({
 
 /**
  * The basic low-poly knight (~0.6 units tall at scale 1) in the player's color, optionally wearing
- * the player's uploaded face. `level` shows as the number of figures standing together (1, 2 or 3,
+ * the face the player uploaded for that knight level. `level` shows as the number of figures standing together (1, 2 or 3,
  * each a little smaller as the group grows) plus gold studs on the base; an active knight glows.
  */
 export function KnightModel({
-  knight = DEFAULT_KNIGHT,
+  knight: custom = DEFAULT_KNIGHT,
   color,
   level,
   active,
@@ -162,6 +163,8 @@ export function KnightModel({
   shadows?: boolean;
 }) {
   const pc = PLAYER_COLORS[color];
+  // Each level (basic, strong, mighty) can wear its own face.
+  const knight = knightLook(custom, level ?? 1);
   const faceMat = useMemo(
     () => (knight.face ? new THREE.MeshBasicMaterial({ map: faceTexture(knight.face) }) : null),
     [knight.face],
@@ -213,6 +216,7 @@ export function KnightModel({
 /** A knight on the board: pops in when recruited; active knights stand ready with a gentle bob. */
 function BoardKnight({ x, z, active, children }: { x: number; z: number; active: boolean; children: React.ReactNode }) {
   const ref = useAppear();
+  const k = usePieceScale();
   const bob = useRef<THREE.Group>(null);
   const phase = useMemo(() => Math.random() * Math.PI * 2, []);
   useFrame((state) => {
@@ -221,7 +225,7 @@ function BoardKnight({ x, z, active, children }: { x: number; z: number; active:
   });
   return (
     <group ref={ref} position={[x, TILE_TOP, z]} scale={0.001}>
-      <group scale={0.62}>
+      <group scale={0.62 * k}>
         <group ref={bob}>{children}</group>
       </group>
     </group>

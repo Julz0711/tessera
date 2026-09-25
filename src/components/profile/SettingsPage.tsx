@@ -4,16 +4,30 @@ import { ArrowLeft, Box, Check, Grid2x2, Loader2, Volume2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePrefs } from '@/client/prefs';
-import { setVolume } from '@/client/sound';
+import { play, setVolume, type Sfx } from '@/client/sound';
 import { toast } from '@/client/store';
 import type { PlayerColor } from '@/engine/types';
+import { clampCosmetics, DEFAULT_COSMETICS, NO_UNLOCKS, type Cosmetics } from '@/shared/cosmetics';
 import type { KnightCustomization } from '@/shared/knight';
 import type { ProfileData, ProfilePreferences, ProfileUpdate } from '@/shared/protocol';
 import { NAME_MAX, sanitizeName } from '@/shared/text';
 import { ColorPicker } from '@/components/ui/ColorPicker';
 import { KnightCustomizer } from '@/components/knight/KnightCustomizer';
+import { CosmeticsPicker } from './Cosmetics';
 import { Logomark } from '@/components/ui/Logomark';
 import { fetchProfile } from './ProfilePage';
+
+const SOUND_SAMPLES: [string, Sfx][] = [
+  ['Dice', 'dice'],
+  ['City', 'city'],
+  ['Your turn', 'turn'],
+  ['Trade offer', 'offer'],
+  ['Robber', 'robber'],
+  ['Barbarians', 'barbarianAttack'],
+  ['Award', 'award'],
+  ['Metropolis', 'metropolis'],
+  ['Victory', 'win'],
+];
 
 function Section({ title, children, hint }: { title: string; children: React.ReactNode; hint?: string }) {
   return (
@@ -31,6 +45,7 @@ export function SettingsPage() {
   const [name, setName] = useState('');
   const [color, setColor] = useState<PlayerColor>('red');
   const [knight, setKnight] = useState<KnightCustomization>({ face: null });
+  const [cosmetics, setCosmetics] = useState<Cosmetics>(DEFAULT_COSMETICS);
   const [view, setView] = useState<'3d' | '2d'>('3d');
   const [graphics, setGraphics] = useState<'high' | 'low'>('high');
   const [volume, setVol] = useState(0.6);
@@ -49,6 +64,7 @@ export function SettingsPage() {
         setName(s?.displayName || p.name);
         setColor(s?.color ?? p.color);
         setKnight(s?.knight ?? p.knight);
+        setCosmetics(clampCosmetics(s?.cosmetics ?? p.cosmetics, s?.unlocks ?? NO_UNLOCKS));
         setView(pr.view ?? p.view);
         setGraphics(pr.graphics ?? p.graphics);
         setVol(pr.volume ?? p.volume);
@@ -67,10 +83,10 @@ export function SettingsPage() {
       return;
     }
     setBusy(true);
-    prefs.set({ name: clean, color, knight, view, graphics, volume });
+    prefs.set({ name: clean, color, knight, cosmetics, view, graphics, volume });
     setVolume(volume);
     if (data?.session.persistence) {
-      const body: ProfileUpdate = { displayName: clean, color, knight, preferences: { view, graphics, volume, language: 'en', useProviderAvatar } };
+      const body: ProfileUpdate = { displayName: clean, color, knight, cosmetics, preferences: { view, graphics, volume, language: 'en', useProviderAvatar } };
       const res = await fetch('/api/profile', {
         method: 'PATCH',
         credentials: 'same-origin',
@@ -123,11 +139,37 @@ export function SettingsPage() {
               <Section title="Knight">
                 <KnightCustomizer value={knight} color={color} onChange={setKnight} />
               </Section>
+              <Section
+                title="Frame & title"
+                hint={
+                  data?.session.persistence
+                    ? 'Shown next to your name in lobbies, games and on the leaderboard. Play and win to unlock more.'
+                    : 'Play and win to unlock more — progress is only kept when the server has a database.'
+                }
+              >
+                <CosmeticsPicker value={cosmetics} onChange={setCosmetics} stats={data?.session.unlocks ?? NO_UNLOCKS} knight={knight} color={color} />
+              </Section>
               <Section title="Sound">
                 <div className="flex items-center gap-3">
                   <Volume2 size={18} />
                   <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => setVol(Number(e.target.value))} className="flex-1 accent-ink" aria-label="Volume" />
                   <span className="w-10 text-right text-sm font-bold tabular">{Math.round(volume * 100)}%</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="mr-1 text-xs font-bold text-ink-faint">Try:</span>
+                  {SOUND_SAMPLES.map(([label, sfx]) => (
+                    <button
+                      key={sfx}
+                      type="button"
+                      className="btn px-2.5 py-1 text-xs"
+                      onClick={() => {
+                        setVolume(volume);
+                        play(sfx);
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </Section>
               <Section title="Graphics" hint="The 2D board is lighter on older phones and laptops. You can switch any time during a game.">
@@ -146,10 +188,10 @@ export function SettingsPage() {
                   ))}
                 </div>
               </Section>
-              <Section title="Interface size">
+              <Section title="Board size" hint="Size of the pieces, number tokens and harbors on the board.">
                 <div className="flex flex-wrap gap-2">
                   {(['small', 'medium', 'large'] as const).map((s) => (
-                    <button key={s} type="button" className={`btn px-4 py-2 capitalize ${prefs.uiScale === s ? 'btn-primary' : ''}`} onClick={() => prefs.set({ uiScale: s })}>
+                    <button key={s} type="button" className={`btn px-4 py-2 capitalize ${prefs.boardScale === s ? 'btn-primary' : ''}`} onClick={() => prefs.set({ boardScale: s })}>
                       {s}
                     </button>
                   ))}

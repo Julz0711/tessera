@@ -6,14 +6,17 @@ import { useState } from 'react';
 import { FEATURES } from '@/config/features';
 import { usePrefs } from '@/client/prefs';
 import { api, toast, useGame } from '@/client/store';
-import type { MapId, PlayerColor } from '@/engine/types';
+import { MAX_PLAYERS } from '@/engine/constants';
+import { MAP_IDS, type MapId, type PlayerColor } from '@/engine/types';
 import { TURN_TIMER_OPTIONS, type RoomDTO, type RoomSettings, type SeatDTO } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
+import { Framed, TitleTag } from '@/components/profile/Cosmetics';
 import { Modal } from '@/components/ui/Modal';
 import { Logomark } from '@/components/ui/Logomark';
 import { ProfileFields, type ProfileDraft } from '@/components/profile/ProfileFields';
 import { ChatPanel } from './ChatPanel';
+import { FriendsPanel } from '@/components/social/FriendsPanel';
 import { MapPreview } from './MapPreview';
 
 export function formatCode(code: string): string {
@@ -69,12 +72,15 @@ function SeatCard({ seat, canRemove, onEdit }: { seat: SeatDTO; canRemove: boole
   const c = PLAYER_COLORS[seat.color];
   return (
     <li className="paper-flat animate-pop flex items-center gap-3 p-2.5 pr-3" style={{ boxShadow: `inset 6px 0 0 ${c.hex}` }}>
-      <KnightBadge knight={seat.knight} color={seat.color} size={54} />
+      <Framed frame={seat.cosmetics.frame} size={58}>
+        {(s) => <KnightBadge knight={seat.knight} color={seat.color} size={s} />}
+      </Framed>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className="truncate text-lg font-extrabold">{seat.name}</span>
           {seat.isHost && <Crown size={16} className="shrink-0 text-amber-deep" aria-label="Host" />}
           {seat.isYou && <span className="rounded bg-ink px-1.5 text-[10px] font-black uppercase tracking-wider text-paper">You</span>}
+          <TitleTag title={seat.cosmetics.title} className="shrink-0" />
         </div>
         <div className="flex items-center gap-2 text-xs font-semibold text-ink-faint">
           {seat.isBot ? (
@@ -147,8 +153,23 @@ function Segmented<T extends string | number>({
   );
 }
 
-const MAP_OPTIONS: readonly MapId[] = ['standard', 'large', 'blackForest'];
-const MAP_LABELS: Record<MapId, string> = { standard: 'Standard', large: 'Large (5–6)', blackForest: 'Black Forest' };
+const MAP_OPTIONS: readonly MapId[] = MAP_IDS;
+const MAP_LABELS: Record<MapId, string> = {
+  standard: 'Standard',
+  large: 'Large (5–6)',
+  blackForest: 'Black Forest',
+  goldRush: 'Gold Rush',
+  heartlake: 'Heartlake',
+  longIsle: 'Long Isle',
+};
+const MAP_BLURBS: Record<MapId, string> = {
+  standard: 'The classic 19-hex island.',
+  large: 'A bigger island for 5–6 players, with a bigger bank and deck.',
+  blackForest: 'Start inside a ring of forest; the rest of the island is hidden under fog until you explore it.',
+  goldRush: 'Two gold fields pay out any resource you like — never on a 6 or 8, so they’re worth fighting for.',
+  heartlake: 'A ring island around a lake. Three 3:1 harbors line the lake shore, reachable from the middle.',
+  longIsle: 'A long, thin island: more coast, more harbors within reach, and tighter races for the long road.',
+};
 
 function MapSegmented({ value, onChange, disabled }: { value: MapId; onChange: (v: MapId) => void; disabled?: boolean }) {
   return (
@@ -209,12 +230,13 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
       <div className="grid gap-1.5">
         <span className="label">Map</span>
         <MapSegmented value={s.map ?? 'standard'} onChange={(map) => set({ map })} disabled={!host} />
+        <p className="text-xs font-semibold text-ink-soft">{MAP_BLURBS[s.map ?? 'standard']}</p>
       </div>
       <div className="grid gap-1.5">
         <span className="label">Seats</span>
         <Segmented
           value={s.maxPlayers}
-          options={((s.map ?? 'standard') === 'standard' ? [2, 3, 4] : [2, 3, 4, 5, 6]) as readonly number[]}
+          options={Array.from({ length: MAX_PLAYERS[s.map ?? 'standard'] - 1 }, (_, i) => i + 2)}
           onChange={(maxPlayers) => set({ maxPlayers })}
           disabled={!host}
         />
@@ -249,6 +271,7 @@ export function Lobby({ room }: { room: RoomDTO }) {
   const me = room.seats.find((s) => s.isYou);
   const host = room.you.isHost;
   const empty = Math.max(0, room.settings.maxPlayers - room.seats.length);
+  const signedIn = useGame((s) => s.session?.kind === 'user' && s.session.persistence);
 
   const leave = async () => {
     await api.leaveRoom();
@@ -324,6 +347,12 @@ export function Lobby({ room }: { room: RoomDTO }) {
             <p className="rounded-xl bg-paper-2 px-4 py-3 text-center text-sm font-bold text-ink-soft">Waiting for the host to start…</p>
           )}
           {!me && room.you.isSpectator && <p className="text-center text-xs text-ink-faint">You are watching this game.</p>}
+          {signedIn && (
+            <div className="grid gap-2 border-t-2 border-ink/10 pt-4">
+              <span className="label">Invite friends</span>
+              <FriendsPanel mode="invite" roomCode={room.code} />
+            </div>
+          )}
         </aside>
       </div>
 

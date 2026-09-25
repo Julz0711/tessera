@@ -96,7 +96,7 @@ export function harborTexture(kind: HarborKind): THREE.CanvasTexture {
   g.textBaseline = 'middle';
   sturdyText(g, kind === 'any' ? '3:1' : '2:1', 128, kind === 'any' ? 128 : 112, 92);
   if (kind !== 'any') {
-    g.fillStyle = CARD_COLORS[kind].bg === '#e9c35a' ? '#8a6a12' : CARD_COLORS[kind].bg;
+    g.fillStyle = CARD_COLORS[kind].deep;
     sturdyText(g, CARD_COLORS[kind].label.toUpperCase(), 128, 180, 34, 800);
   }
   const tex = finish(c);

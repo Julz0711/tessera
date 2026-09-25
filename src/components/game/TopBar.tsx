@@ -10,6 +10,7 @@ import { api, toast, useGame } from '@/client/store';
 import type { PlayerView } from '@/engine/view';
 import type { RoomDTO } from '@/shared/protocol';
 import { formatCode } from '@/components/room/Lobby';
+import { ReactionPicker } from './Reactions';
 
 function useCountdown(deadline: number | null): number | null {
   const [now, setNow] = useState(() => Date.now());
@@ -78,6 +79,16 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
                 </div>
               )}
               <div className="grid gap-1.5">
+                <span className="label">Board size</span>
+                <div className="grid grid-cols-3 gap-1.5" title="Size of the pieces, number tokens and harbors">
+                  {(['small', 'medium', 'large'] as const).map((sz) => (
+                    <button key={sz} type="button" className={`btn px-1 py-1 text-sm ${prefs.boardScale === sz ? 'btn-primary' : ''}`} onClick={() => prefs.set({ boardScale: sz })}>
+                      {sz === 'small' ? 'S' : sz === 'medium' ? 'M' : 'L'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid gap-1.5">
                 <span className="label">Build hints</span>
                 <div className="grid grid-cols-2 gap-1.5" title="Hovering a spot you can afford to build on previews the piece; click it to build">
                   {([true, false] as const).map((on) => (
@@ -133,6 +144,7 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
       </div>
 
       <div className="pointer-events-auto flex items-center gap-2">
+        {room.you.seat !== null && <ReactionPicker />}
         {seconds !== null && (
           <span className={`glass flex h-10 items-center gap-1.5 px-3 font-black tabular ${seconds <= 10 ? 'text-terracotta' : 'text-paper'}`} title="Time left">
             <Clock size={16} /> {seconds}s

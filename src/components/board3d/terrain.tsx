@@ -1,6 +1,7 @@
 'use client';
 
-import { memo, useMemo } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { memo, useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import type { Hex, Terrain } from '@/engine/types';
 import { FOG, TERRAIN_COLORS } from '@/client/palette';
@@ -313,12 +314,25 @@ const FogClouds = memo(function FogClouds({ seed, shadows }: { seed: number; sha
   );
 });
 
+const RING = new THREE.RingGeometry(0.8, 0.94, 6, 1, Math.PI / 2);
+
+/** A glowing, gently pulsing hexagon outline laid on a tile (a rolled number: gold = pays out, red = robber blocks it). */
+function HexRing({ color }: { color: string }) {
+  const material = useMemo(() => new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85, depthWrite: false }), [color]);
+  useEffect(() => () => material.dispose(), [material]);
+  useFrame((state) => {
+    material.opacity = 0.55 + Math.sin(state.clock.elapsedTime * 6) * 0.3;
+  });
+  return <mesh geometry={RING} material={material} position={[0, 0.136, 0]} rotation={[-Math.PI / 2, 0, 0]} />;
+}
+
 export function HexTile({
   hex,
   x,
   z,
   shadows,
   producing,
+  blocked = false,
   onClick,
 }: {
   hex: Hex;
@@ -326,6 +340,8 @@ export function HexTile({
   z: number;
   shadows: boolean;
   producing: boolean;
+  /** The rolled number is on this tile, but the robber stops it paying out. */
+  blocked?: boolean;
   onClick?: () => void;
 }) {
   const colors = hex.fog ? FOG : TERRAIN_COLORS[hex.terrain];
@@ -350,6 +366,8 @@ export function HexTile({
         }
       />
       {hex.fog ? <FogClouds seed={hex.id + 1} shadows={shadows} /> : <TerrainProps terrain={hex.terrain} seed={hex.id + 1} shadows={shadows} />}
+      {producing && <HexRing color="#f2b33d" />}
+      {blocked && <HexRing color="#d9483b" />}
     </group>
   );
 }

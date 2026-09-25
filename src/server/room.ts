@@ -8,6 +8,7 @@ import {
   applyAction,
   createGame,
   eventsFor,
+  isMapId,
   viewFor,
   type Action,
   type GameEvent,
@@ -15,6 +16,7 @@ import {
   type PlayerColor,
 } from '@/engine';
 import { COLOR_ORDER, isPlayerColor } from '@/shared/colors';
+import { DEFAULT_COSMETICS, sanitizeCosmetics, type Cosmetics } from '@/shared/cosmetics';
 import { DEFAULT_KNIGHT, sanitizeKnight, type KnightCustomization } from '@/shared/knight';
 import {
   DEFAULT_ROOM_SETTINGS,
@@ -32,6 +34,7 @@ import { BOT_NAMES } from './botNames';
 import type { ServerIdentity } from './identity';
 import type { Persistence } from './persistence';
 import type { RestoredRoom } from './prismaPersistence';
+import type { ReactionId } from '@/shared/reactions';
 
 /** Errors whose message is safe to show the user. */
 export class UserError extends Error {}
@@ -60,6 +63,7 @@ interface Seat {
   name: string;
   color: PlayerColor;
   knight: KnightCustomization;
+  cosmetics: Cosmetics;
   avatarUrl?: string;
   sockets: Set<string>;
   lastSeen: number;
@@ -124,6 +128,7 @@ export class Room {
       name: s.name,
       color: s.color as PlayerColor,
       knight: sanitizeKnight(s.knight),
+      cosmetics: DEFAULT_COSMETICS,
       sockets: new Set<string>(),
       lastSeen: room.now(),
       left: false,
@@ -175,6 +180,7 @@ export class Room {
           name: sanitizeName(opts.profile.name),
           color: this.freeColor(opts.profile.color),
           knight: sanitizeKnight(opts.profile.knight),
+          cosmetics: sanitizeCosmetics(opts.profile.cosmetics),
           avatarUrl: identity.avatarUrl ?? undefined,
           sockets: new Set([socketId]),
           lastSeen: this.now(),
@@ -280,7 +286,7 @@ export class Room {
       next.mode = patch.mode;
     }
     next.map ??= 'standard'; // rooms saved before maps existed
-    if (patch.map === 'standard' || patch.map === 'large' || patch.map === 'blackForest') {
+    if (isMapId(patch.map)) {
       const seats = MAX_PLAYERS[patch.map];
       if (this.seats.length > seats) throw new UserError(`That map seats at most ${seats} players`);
       // The big island is for bigger tables: open its extra seats by default.
@@ -315,6 +321,8 @@ export class Room {
       seat.color = patch.color;
     }
     if (patch.knight !== undefined) seat.knight = sanitizeKnight(patch.knight);
+    // Already limited to what the player has unlocked by the socket layer.
+    if (patch.cosmetics !== undefined) seat.cosmetics = sanitizeCosmetics(patch.cosmetics);
   }
 
   addBot(socketId: string): void {
@@ -331,6 +339,7 @@ export class Room {
       name,
       color: this.freeColor(),
       knight: DEFAULT_KNIGHT,
+      cosmetics: DEFAULT_COSMETICS,
       sockets: new Set(),
       lastSeen: this.now(),
       left: false,
@@ -367,6 +376,20 @@ export class Room {
     this.seats = this.seats.filter((s) => s.isBot || !s.left);
     if (this.seats.length < 2) throw new UserError('Not enough players for a rematch');
     this.startGame();
+  }
+
+  /** After a game: everyone goes back to the lobby, where the host can change settings and seats. */
+  backToLobby(socketId: string): void {
+    this.requireHost(socketId);
+    if (this.status !== 'finished') throw new UserError('The game is not over yet');
+    this.seats = this.seats.filter((s) => s.isBot || !s.left);
+    this.stopTicker();
+    this.game = null;
+    this.gameId = null;
+    this.status = 'lobby';
+    this.deps.persistence.roomStatus(this.persistRoom());
+    this.system('Back in the lobby.');
+    this.broadcastRoom();
   }
 
   private startGame(): void {
@@ -544,6 +567,10 @@ export class Room {
     const text = sanitizeChat(raw);
     if (!text) return;
     const seat = this.seats.find((s) => s.identityKey === key);
+    // The same message again within a few seconds is spam, not conversation.
+    const sender = seat?.playerId ?? null;
+    const last = [...this.chat].reverse().find((m) => !m.system && m.playerId === sender);
+    if (last && last.text === text && this.now() - last.at < 10_000) throw new UserError('You just said that');
     const spectator = this.spectators.get(socketId);
     this.pushChat({
       id: randomUUID(),
@@ -553,6 +580,15 @@ export class Room {
       color: seat?.color,
       text,
     });
+  }
+
+  /** A seated player's quick reaction, flashed to everyone (not kept in the chat). */
+  react(socketId: string, reaction: ReactionId): void {
+    const key = this.sockets.get(socketId);
+    const seat = key ? this.seats.find((s) => s.identityKey === key) : undefined;
+    if (!seat) throw new UserError('Only players can react');
+    const msg = { playerId: seat.playerId, reaction, at: this.now() };
+    for (const sid of this.sockets.keys()) this.deps.io.send(sid, 'room:reaction', msg);
   }
 
   private system(text: string): void {
@@ -579,6 +615,7 @@ export class Room {
         name: s.name,
         color: s.color,
         knight: s.knight,
+        cosmetics: s.cosmetics,
         avatarUrl: s.avatarUrl,
         isBot: s.isBot,
         isGuest: s.isGuest,

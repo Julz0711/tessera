@@ -1,7 +1,9 @@
 /** Typed Socket.IO protocol shared by client and server. */
 import type { Action, GameEvent, MapId, Mode, PlayerColor } from '@/engine/types';
 import type { PlayerView } from '@/engine/view';
+import type { Cosmetics, UnlockStats } from './cosmetics';
 import type { KnightCustomization } from './knight';
+import type { ReactionId } from './reactions';
 
 /** The PRD's conceptual identity: the game never cares whether a player is a guest. */
 export interface PlayerIdentity {
@@ -41,6 +43,8 @@ export interface JoinProfile {
   name: string;
   color: PlayerColor;
   knight: KnightCustomization;
+  /** Frame and title; the server keeps only what this player has unlocked. */
+  cosmetics?: Cosmetics;
 }
 
 export interface SeatDTO {
@@ -49,6 +53,7 @@ export interface SeatDTO {
   name: string;
   color: PlayerColor;
   knight: KnightCustomization;
+  cosmetics: Cosmetics;
   avatarUrl?: string;
   isBot: boolean;
   isGuest: boolean;
@@ -94,8 +99,10 @@ export interface ClientToServerEvents {
   'room:removeSeat': (playerId: string, ack: Ack) => void;
   'room:start': (ack: Ack) => void;
   'room:rematch': (ack: Ack) => void;
+  'room:toLobby': (ack: Ack) => void;
   'game:action': (action: Action, ack: Ack) => void;
   'chat:send': (text: string, ack: Ack) => void;
+  'room:react': (reaction: ReactionId, ack: Ack) => void;
 }
 
 export interface GameUpdate {
@@ -109,6 +116,10 @@ export interface ServerToClientEvents {
   'game:state': (update: GameUpdate) => void;
   'chat:message': (message: ChatMessage) => void;
   'chat:history': (messages: ChatMessage[]) => void;
+  /** A friend invites you to their room. */
+  'friend:invite': (invite: { from: string; roomCode: string }) => void;
+  /** A player's quick reaction (not kept in the chat). */
+  'room:reaction': (r: { playerId: string; reaction: ReactionId; at: number }) => void;
   'room:closed': (reason: string) => void;
   'session:replaced': () => void;
 }
@@ -131,6 +142,8 @@ export interface GameSummary {
   won: boolean;
   rank: number | null;
   finalVp: number | null;
+  /** Rating change from this game (rated games only). */
+  ratingDelta: number | null;
   players: { name: string; color: PlayerColor; vp: number | null; isBot: boolean; isYou: boolean; won: boolean }[];
 }
 
@@ -141,12 +154,15 @@ export interface ProfileData {
   favoriteMode: Mode | null;
   providers: string[];
   history: GameSummary[];
+  /** Signed-in players: rating and leaderboard place (null place until the first rated game). */
+  rating: { rating: number; ratedGames: number; place: number | null } | null;
 }
 
 export interface ProfileUpdate {
   displayName?: string;
   color?: PlayerColor;
   knight?: KnightCustomization;
+  cosmetics?: Cosmetics;
   preferences?: ProfilePreferences;
 }
 
@@ -158,6 +174,55 @@ export interface SessionInfo {
   color: PlayerColor | null;
   knight: KnightCustomization | null;
   stats: { gamesPlayed: number; gamesWon: number } | null;
+  /** Chosen frame/title, and what counts towards unlocking more (null without a database). */
+  cosmetics: Cosmetics | null;
+  unlocks: UnlockStats | null;
   auth: { google: boolean; discord: boolean };
   persistence: boolean;
+}
+
+// ── Friends & leaderboard ───────────────────────────────────────────────────
+
+export type FriendStatus = 'offline' | 'online' | 'lobby' | 'playing';
+
+/** Another player as friends and the leaderboard see them. `code` is their public friend code. */
+export interface PlayerCard {
+  code: string;
+  name: string;
+  color: PlayerColor;
+  knight: KnightCustomization;
+  avatarUrl: string | null;
+  cosmetics: Cosmetics;
+  rating: number;
+  ratedGames: number;
+}
+
+export interface FriendInfo extends PlayerCard {
+  status: FriendStatus;
+  /** Their room (friends only), so you can join them. */
+  roomCode: string | null;
+}
+
+export interface FriendsData {
+  /** False without a database or when not signed in: friends need an account. */
+  enabled: boolean;
+  myCode: string | null;
+  friends: FriendInfo[];
+  incoming: PlayerCard[];
+  outgoing: PlayerCard[];
+  /** Signed-in players from your recent games who aren't friends yet. */
+  recent: PlayerCard[];
+}
+
+export interface LeaderboardEntry extends PlayerCard {
+  place: number;
+  gamesWon: number;
+  isYou: boolean;
+}
+
+export interface LeaderboardData {
+  enabled: boolean;
+  entries: LeaderboardEntry[];
+  /** Your own row when you're rated but not in the top list. */
+  you: LeaderboardEntry | null;
 }

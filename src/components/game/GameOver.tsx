@@ -1,6 +1,6 @@
 'use client';
 
-import { Crown, Home, RotateCcw } from 'lucide-react';
+import { Crown, Home, RotateCcw, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, type ReactNode } from 'react';
 import { handTotal, PIPS } from '@/engine';
@@ -9,6 +9,7 @@ import { api } from '@/client/store';
 import type { RoomDTO } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
+import { Framed, TitleTag } from '@/components/profile/Cosmetics';
 import { Modal } from '@/components/ui/Modal';
 
 function breakdown(view: PlayerView, seat: number): [string, number][] {
@@ -223,10 +224,15 @@ export function GameOver({ view, room, onClose }: { view: PlayerView; room: Room
               return (
                 <li key={seat} className={`paper-flat flex items-center gap-3 p-2.5 ${seat === winner ? 'ring-4 ring-amber' : ''}`} style={{ boxShadow: `inset 6px 0 0 ${c.hex}` }}>
                   <span className="display w-6 text-center text-2xl font-black text-ink-faint">{rank + 1}</span>
-                  {room.seats[seat] && <KnightBadge knight={room.seats[seat].knight} color={p.color} size={46} />}
+                  {room.seats[seat] && (
+                    <Framed frame={room.seats[seat].cosmetics.frame} size={50}>
+                      {(s) => <KnightBadge knight={room.seats[seat].knight} color={p.color} size={s} />}
+                    </Framed>
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 font-extrabold">
                       {p.name} {seat === winner && <Crown size={16} className="text-amber-deep" />}
+                      <TitleTag title={room.seats[seat]?.cosmetics.title} />
                     </div>
                     <div className="flex flex-wrap gap-x-3 text-xs font-semibold text-ink-soft">
                       {breakdown(view, seat).map(([label, n]) => (
@@ -256,11 +262,16 @@ export function GameOver({ view, room, onClose }: { view: PlayerView; room: Room
             <Home size={16} /> Home
           </button>
           {room.you.isHost ? (
-            <button type="button" className="btn btn-primary px-5 py-2" onClick={() => api.rematch()}>
-              <RotateCcw size={16} /> Rematch
-            </button>
+            <>
+              <button type="button" className="btn px-4 py-2" onClick={() => api.backToLobby()} title="Change settings or players, then start again">
+                <Users size={16} /> Back to lobby
+              </button>
+              <button type="button" className="btn btn-primary px-5 py-2" onClick={() => api.rematch()} title="Same players and settings, new board">
+                <RotateCcw size={16} /> Rematch
+              </button>
+            </>
           ) : (
-            <span className="self-center text-sm font-bold text-ink-soft">The host can start a rematch.</span>
+            <span className="self-center text-sm font-bold text-ink-soft">Waiting for the host: rematch or back to the lobby.</span>
           )}
         </div>
       </Modal>

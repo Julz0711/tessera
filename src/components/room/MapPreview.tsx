@@ -2,7 +2,9 @@
 
 import {
   BLACK_FOREST_HEX_COORDS,
+  HEARTLAKE_HEX_COORDS,
   LARGE_HEX_COORDS,
+  LONG_ISLE_HEX_COORDS,
   STANDARD_HEX_COORDS,
   getTopology,
   type HexCoord,
@@ -18,7 +20,13 @@ const COORDS: Record<MapId, readonly HexCoord[]> = {
   standard: STANDARD_HEX_COORDS,
   large: LARGE_HEX_COORDS,
   blackForest: BLACK_FOREST_HEX_COORDS,
+  goldRush: STANDARD_HEX_COORDS,
+  heartlake: HEARTLAKE_HEX_COORDS,
+  longIsle: LONG_ISLE_HEX_COORDS,
 };
+
+/** Gold Rush preview: two of the standard island's hexes shine gold. */
+const GOLD_PREVIEW_HEXES = new Set([3, 15]);
 
 /** Cycled deterministically by hex index — a pleasant mix of terrain without generating a random board. */
 const TERRAIN_CYCLE: Terrain[] = ['forest', 'fields', 'pasture', 'mountains', 'hills'];
@@ -43,11 +51,12 @@ function hexPoints(topo: Topology, hexId: number, scale = 0.94): string {
  * or, on Black Forest, the floating centre island.
  */
 function centerHexId(topo: Topology): number {
-  let best = 0;
+  let best = -1;
   let bestDist = Infinity;
   for (const h of topo.hexes) {
     const d = h.x * h.x + h.y * h.y;
-    if (d < bestDist) {
+    // Only a hex actually at the middle counts; Heartlake has a lake there instead.
+    if (d < bestDist && d < 0.1) {
       bestDist = d;
       best = h.id;
     }
@@ -76,7 +85,7 @@ function blackForestSwatch(hex: TopoHex, isCenter: boolean): Swatch {
 export function MapPreview({ map, size = 64, className }: { map: MapId; size?: number; className?: string }) {
   const topo = getTopology(COORDS[map]);
   const centerId = centerHexId(topo);
-  const center = topo.hexes[centerId];
+  const center = topo.hexes[centerId] ?? { x: 0, y: 0 };
 
   const xs = topo.vertices.map((v) => v.x * S);
   const ys = topo.vertices.map((v) => v.y * S);
@@ -93,7 +102,9 @@ export function MapPreview({ map, size = 64, className }: { map: MapId; size?: n
       ? Math.min(...topo.hexes.filter((hx) => hx.id !== centerId).map((hx) => Math.hypot(hx.x - center.x, hx.y - center.y))) *
         S *
         0.55
-      : 0;
+      : map === 'heartlake'
+        ? S * 0.85
+        : 0;
 
   return (
     <svg
@@ -108,7 +119,12 @@ export function MapPreview({ map, size = 64, className }: { map: MapId; size?: n
       {lakeRadius > 0 && <circle cx={center.x * S} cy={center.y * S} r={lakeRadius} fill={SEA.shallow} opacity={0.55} />}
       {topo.hexes.map((hx) => {
         const isCenter = hx.id === centerId;
-        const swatch = map === 'blackForest' ? blackForestSwatch(hx, isCenter) : standardSwatch(hx.id, isCenter);
+        const swatch =
+          map === 'blackForest'
+            ? blackForestSwatch(hx, isCenter)
+            : map === 'goldRush' && GOLD_PREVIEW_HEXES.has(hx.id)
+              ? TERRAIN_COLORS.gold
+              : standardSwatch(hx.id, isCenter || (map === 'heartlake' && hx.id === 9));
         return (
           <polygon
             key={hx.id}

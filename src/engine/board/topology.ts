@@ -118,6 +118,21 @@ export const BLACK_FOREST_HEX_COORDS: HexCoord[] = (() => {
   return out;
 })();
 
+/** Heartlake: the standard island with its centre hex flooded — a ring of 18 hexes around a lake. */
+export const HEARTLAKE_HEX_COORDS: HexCoord[] = STANDARD_HEX_COORDS.filter((c) => c.q !== 0 || c.r !== 0);
+
+/** Long Isle: three long rows of 6-7-6 hexes, centred on the origin. */
+export const LONG_ISLE_HEX_COORDS: HexCoord[] = (() => {
+  const rows: [r: number, q0: number, q1: number][] = [
+    [-1, -2, 3],
+    [0, -3, 3],
+    [1, -3, 2],
+  ];
+  const out: HexCoord[] = [];
+  for (const [r, q0, q1] of rows) for (let q = q0; q <= q1; q++) out.push({ q, r });
+  return out;
+})();
+
 const cache = new Map<string, Topology>();
 /** Fast path: the same hex array object (e.g. one game state) maps straight to its topology. */
 const byArray = new WeakMap<readonly HexCoord[], Topology>();
