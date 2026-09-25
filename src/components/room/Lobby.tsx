@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { FEATURES } from '@/config/features';
 import { usePrefs } from '@/client/prefs';
 import { api, toast, useGame } from '@/client/store';
-import type { PlayerColor } from '@/engine/types';
+import type { MapId, PlayerColor } from '@/engine/types';
 import { TURN_TIMER_OPTIONS, type RoomDTO, type RoomSettings, type SeatDTO } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
@@ -14,6 +14,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Logomark } from '@/components/ui/Logomark';
 import { ProfileFields, type ProfileDraft } from '@/components/profile/ProfileFields';
 import { ChatPanel } from './ChatPanel';
+import { MapPreview } from './MapPreview';
 
 export function formatCode(code: string): string {
   return `${code.slice(0, 4)}-${code.slice(4)}`;
@@ -146,6 +147,31 @@ function Segmented<T extends string | number>({
   );
 }
 
+const MAP_OPTIONS: readonly MapId[] = ['standard', 'large', 'blackForest'];
+const MAP_LABELS: Record<MapId, string> = { standard: 'Standard', large: 'Large (5–6)', blackForest: 'Black Forest' };
+
+function MapSegmented({ value, onChange, disabled }: { value: MapId; onChange: (v: MapId) => void; disabled?: boolean }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {MAP_OPTIONS.map((o) => (
+        <button
+          key={o}
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange(o)}
+          aria-pressed={value === o}
+          className={`flex flex-col items-center gap-1 rounded-lg border-2 px-3 py-1.5 text-sm font-bold transition disabled:cursor-default ${
+            value === o ? 'border-ink bg-ink text-paper' : 'border-ink/20 bg-white/40 enabled:hover:border-ink/60'
+          } ${disabled && value !== o ? 'opacity-40' : ''}`}
+        >
+          <MapPreview map={o} size={64} />
+          {MAP_LABELS[o]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function Toggle({ checked, onChange, disabled, label }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean; label: string }) {
   return (
     <label className={`flex items-center justify-between gap-3 ${disabled ? '' : 'cursor-pointer'}`}>
@@ -182,13 +208,7 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
       </div>
       <div className="grid gap-1.5">
         <span className="label">Map</span>
-        <Segmented
-          value={s.map ?? 'standard'}
-          options={['standard', 'large', 'blackForest'] as const}
-          format={(m) => ({ standard: 'Standard', large: 'Large (5–6)', blackForest: 'Black Forest' })[m]}
-          onChange={(map) => set({ map })}
-          disabled={!host}
-        />
+        <MapSegmented value={s.map ?? 'standard'} onChange={(map) => set({ map })} disabled={!host} />
       </div>
       <div className="grid gap-1.5">
         <span className="label">Seats</span>
