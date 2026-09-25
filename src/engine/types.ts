@@ -135,7 +135,7 @@ export interface ProgressCard {
 }
 
 // ── Players ─────────────────────────────────────────────────────────────────
-export type PlayerColor = 'red' | 'blue' | 'orange' | 'white' | 'green' | 'purple';
+export type PlayerColor = 'red' | 'blue' | 'orange' | 'white' | 'green' | 'purple' | 'teal' | 'pink' | 'brown' | 'black';
 
 export interface PlayerState {
   /** Random per-game player id (never an account or guest id). */

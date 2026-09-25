@@ -78,6 +78,16 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
                 </div>
               )}
               <div className="grid gap-1.5">
+                <span className="label">Board size</span>
+                <div className="grid grid-cols-3 gap-1.5" title="Size of the pieces, number tokens and harbors">
+                  {(['small', 'medium', 'large'] as const).map((sz) => (
+                    <button key={sz} type="button" className={`btn px-1 py-1 text-sm ${prefs.boardScale === sz ? 'btn-primary' : ''}`} onClick={() => prefs.set({ boardScale: sz })}>
+                      {sz === 'small' ? 'S' : sz === 'medium' ? 'M' : 'L'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid gap-1.5">
                 <span className="label">Build hints</span>
                 <div className="grid grid-cols-2 gap-1.5" title="Hovering a spot you can afford to build on previews the piece; click it to build">
                   {([true, false] as const).map((on) => (

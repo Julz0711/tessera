@@ -6,7 +6,7 @@ import { CARDS, type Card, type DevCardType, type GameEvent, type PartialHand, t
 import type { PlayerView } from '@/engine/view';
 import { DEV_NAMES, PROGRESS_NAMES } from '@/client/describe';
 import { CARD_COLORS } from '@/client/palette';
-import { usePrefs } from '@/client/prefs';
+import { BOARD_SCALE, usePrefs } from '@/client/prefs';
 import { play } from '@/client/sound';
 import { api, toast, useGame } from '@/client/store';
 import { computeTargets, handlePick } from '@/client/interaction';
@@ -182,6 +182,7 @@ export function GameScreen() {
         <BoardView
           mode={prefs.view}
           quality={prefs.graphics}
+          pieceScale={BOARD_SCALE[prefs.boardScale]}
           scene={scene}
           targets={targets}
           popup={ui.armed && view ? <BuildPopup view={view} armed={ui.armed} /> : null}

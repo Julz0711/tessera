@@ -175,10 +175,16 @@ function HintRing({ x, y, r, filled, hover }: { x: number; y: number; r: number;
   );
 }
 
-function HousePath({ x, y, color, ghost }: { x: number; y: number; color: PlayerColor; ghost?: boolean }) {
+/** Scales a piece drawn around (x, y) by `k` (the "Board size" setting) without moving it. */
+function grow(x: number, y: number, k: number): string | undefined {
+  return k === 1 ? undefined : `translate(${x} ${y}) scale(${k}) translate(${-x} ${-y})`;
+}
+
+function HousePath({ x, y, color, ghost, k = 1 }: { x: number; y: number; color: PlayerColor; ghost?: boolean; k?: number }) {
   const c = PLAYER_COLORS[color];
   return (
     <path
+      transform={grow(x, y, k)}
       d={`M${x - 17} ${y + 14}v-17l17-14 17 14v17Z`}
       fill={c.hex}
       stroke={c.dark}
@@ -189,10 +195,11 @@ function HousePath({ x, y, color, ghost }: { x: number; y: number; color: Player
   );
 }
 
-function CityPath({ x, y, color, ghost }: { x: number; y: number; color: PlayerColor; ghost?: boolean }) {
+function CityPath({ x, y, color, ghost, k = 1 }: { x: number; y: number; color: PlayerColor; ghost?: boolean; k?: number }) {
   const c = PLAYER_COLORS[color];
   return (
     <path
+      transform={grow(x, y, k)}
       d={`M${x - 26} ${y + 17}v-18l12-9 12 9v-18h9v-8h8v8h9v36Z`}
       fill={c.hex}
       stroke={c.dark}
@@ -203,7 +210,8 @@ function CityPath({ x, y, color, ghost }: { x: number; y: number; color: PlayerC
   );
 }
 
-export default function Board2D({ scene, targets, popup, onBackground, onVertex, onEdge, onHex, interactive }: BoardProps) {
+export default function Board2D({ scene, targets, popup, onBackground, onVertex, onEdge, onHex, interactive, pieceScale = 1 }: BoardProps) {
+  const ps = pieceScale;
   const topo = getTopology(scene.board.hexes);
   const [hover, setHover] = useState<string | null>(null);
   const bounds = useMemo(() => {
@@ -329,7 +337,7 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
                 />
               ))}
               {/* a little ship: hull, mast and a sail showing the rate */}
-              <g transform={`translate(${px} ${py}) scale(1.35)`}>
+              <g transform={`translate(${px} ${py}) scale(${1.35 * ps})`}>
                 <path d="M-24 8h48l-9 13h-30Z" fill="#8a6139" stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
                 <rect x="-1.5" y="-38" width="3" height="47" fill="#5a3d22" />
                 <path d="M-19-34h36q-4 16 0 34h-36q4-18 0-34Z" fill="#f6eddb" stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
@@ -356,7 +364,7 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
           const lit = scene.highlightToken === h.token && h.id !== scene.robber;
           const pips = PIPS[h.token];
           return (
-            <g key={`t${h.id}`} pointerEvents="none">
+            <g key={`t${h.id}`} pointerEvents="none" transform={grow(t.x * S, t.y * S, ps)}>
               <circle cx={t.x * S} cy={t.y * S} r="29" fill={lit ? '#f2b33d' : '#f6eddb'} stroke="#1f1a14" strokeWidth="3" />
               <text x={t.x * S} y={t.y * S + 7} textAnchor="middle" className="display" fontSize="27" fontWeight="800" fill={red ? '#c2412d' : '#1f1a14'}>
                 {h.token}
@@ -382,8 +390,8 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
           const y2 = (b.y + (a.y - b.y) * k) * S;
           return (
             <g key={`r${eid}`} pointerEvents="none">
-              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.dark} strokeWidth="20" strokeLinecap="round" />
-              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.hex} strokeWidth="12" strokeLinecap="round" />
+              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.dark} strokeWidth={20 * ps} strokeLinecap="round" />
+              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.hex} strokeWidth={12 * ps} strokeLinecap="round" />
             </g>
           );
         })}
@@ -394,7 +402,7 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
           const p = topo.vertices[v];
           const color = scene.colors[b.owner];
           return b.city ? (
-            <g key={`c${v}`} pointerEvents="none">
+            <g key={`c${v}`} pointerEvents="none" transform={grow(p.x * S, p.y * S, ps)}>
               <CityPath x={p.x * S} y={p.y * S} color={color} />
               {b.wall && (
                 <g>
@@ -408,7 +416,7 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
               {b.metropolis && <circle cx={p.x * S + 21} cy={p.y * S - 26} r="9" fill="#f2c14e" stroke="#1f1a14" strokeWidth="2.5" />}
             </g>
           ) : (
-            <HousePath key={`s${v}`} x={p.x * S} y={p.y * S} color={color} />
+            <HousePath key={`s${v}`} x={p.x * S} y={p.y * S} color={color} k={ps} />
           );
         })}
 
@@ -418,7 +426,7 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
           const p = topo.vertices[v];
           const c = PLAYER_COLORS[scene.colors[k.owner]];
           return (
-            <g key={`k${v}`} pointerEvents="none">
+            <g key={`k${v}`} pointerEvents="none" transform={grow(p.x * S, p.y * S, ps)}>
               <circle cx={p.x * S} cy={p.y * S} r="23" fill={k.active ? '#f2b33d' : '#2d2c33'} stroke="#1f1a14" strokeWidth={k.active ? 4.5 : 3} />
               <path
                 d={`M${p.x * S - 13} ${p.y * S - 12}h26v9c0 9-5 14-13 17-8-2.5-13-8-13-17Z`}
@@ -449,7 +457,7 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
             const x = t.x * S - 44;
             const y = t.y * S - 8;
             return (
-              <g pointerEvents="none">
+              <g pointerEvents="none" transform={grow(x, y, ps)}>
                 <title>Merchant</title>
                 <path d={`M${x - 11} ${y + 14}c0-12 4-20 11-20s11 8 11 20Z`} fill={c.hex} stroke={c.dark} strokeWidth="2.5" />
                 <circle cx={x} cy={y - 11} r="6.5" fill="#e8c9a5" stroke="#1f1a14" strokeWidth="1.5" />
@@ -464,7 +472,7 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
           const x = t.x * S;
           const y = t.y * S + 46;
           return (
-            <g pointerEvents="none">
+            <g pointerEvents="none" transform={grow(x, y, ps)}>
               <ellipse cx={x} cy={y + 16} rx="15" ry="5" fill="#000" opacity="0.25" />
               <path d={`M${x - 12} ${y + 16}c0-14 5-24 12-24s12 10 12 24Z`} fill="#2d2c33" />
               <circle cx={x} cy={y - 12} r="8" fill="#3a3942" />
@@ -499,7 +507,7 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
                 <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth="26" />
                 {targets.hint ? (
                   // Build hints only show on hover: a preview of the road.
-                  isHover && myColor && <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={PLAYER_COLORS[myColor].hex} strokeWidth="11" strokeLinecap="round" opacity="0.7" />
+                  isHover && myColor && <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={PLAYER_COLORS[myColor].hex} strokeWidth={11 * ps} strokeLinecap="round" opacity="0.7" />
                 ) : (
                   <>
                     {/* dark underlay so the amber reads on light tiles */}
@@ -539,8 +547,8 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
                 onMouseLeave={() => setHover(null)}
               >
                 <circle cx={p.x * S} cy={p.y * S} r="22" fill="transparent" />
-                {isHover && myColor && kind === 'settlement' && <HousePath x={p.x * S} y={p.y * S} color={myColor} ghost />}
-                {isHover && myColor && kind === 'city' && <CityPath x={p.x * S} y={p.y * S} color={myColor} ghost />}
+                {isHover && myColor && kind === 'settlement' && <HousePath x={p.x * S} y={p.y * S} color={myColor} ghost k={ps} />}
+                {isHover && myColor && kind === 'city' && <CityPath x={p.x * S} y={p.y * S} color={myColor} ghost k={ps} />}
                 {kind === 'knightAction' ? (
                   <circle cx={p.x * S} cy={p.y * S} r="21" fill="none" stroke={isHover ? '#f2b33d' : '#f6eddb'} strokeOpacity={isHover ? 1 : 0.6} strokeWidth="3" strokeDasharray="5 4" />
                 ) : targets.hint ? (
@@ -576,7 +584,7 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
                   x2={(b.x + (a.x - b.x) * k) * S}
                   y2={(b.y + (a.y - b.y) * k) * S}
                   stroke={PLAYER_COLORS[myColor].hex}
-                  strokeWidth="11"
+                  strokeWidth={11 * ps}
                   strokeLinecap="round"
                   opacity="0.7"
                   pointerEvents="none"
@@ -587,9 +595,9 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
             return (
               <g pointerEvents="none">
                 {armed.what === 'settlement' ? (
-                  <HousePath x={p.x * S} y={p.y * S} color={myColor} ghost />
+                  <HousePath x={p.x * S} y={p.y * S} color={myColor} ghost k={ps} />
                 ) : armed.what === 'city' ? (
-                  <CityPath x={p.x * S} y={p.y * S} color={myColor} ghost />
+                  <CityPath x={p.x * S} y={p.y * S} color={myColor} ghost k={ps} />
                 ) : (
                   <HintRing x={p.x * S} y={p.y * S} r={armed.what === 'wall' ? 30 : 16} filled={false} hover />
                 )}

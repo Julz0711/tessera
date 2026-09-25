@@ -68,4 +68,6 @@ export interface BoardProps extends BoardHandlers {
   /** Landing-page mode: slow orbit, no controls. */
   showcase?: boolean;
   quality?: 'high' | 'low';
+  /** Size multiplier for the pieces, number tokens and harbors (the "Board size" setting). */
+  pieceScale?: number;
 }

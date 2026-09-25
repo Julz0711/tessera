@@ -10,6 +10,7 @@ export function Modal({
   children,
   wide = false,
   dismissable = true,
+  dim = true,
 }: {
   open: boolean;
   onClose?: () => void;
@@ -17,6 +18,8 @@ export function Modal({
   children: React.ReactNode;
   wide?: boolean;
   dismissable?: boolean;
+  /** Darken and blur the screen behind the dialog. */
+  dim?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -31,7 +34,7 @@ export function Modal({
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-sea-950/60 p-3 backdrop-blur-[2px]"
+      className={`fixed inset-0 z-50 grid place-items-center p-3 ${dim ? 'bg-sea-950/60 backdrop-blur-[2px]' : ''}`}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && dismissable) onClose?.();
       }}

@@ -146,10 +146,10 @@ export function SettingsPage() {
                   ))}
                 </div>
               </Section>
-              <Section title="Interface size">
+              <Section title="Board size" hint="Size of the pieces, number tokens and harbors on the board.">
                 <div className="flex flex-wrap gap-2">
                   {(['small', 'medium', 'large'] as const).map((s) => (
-                    <button key={s} type="button" className={`btn px-4 py-2 capitalize ${prefs.uiScale === s ? 'btn-primary' : ''}`} onClick={() => prefs.set({ uiScale: s })}>
+                    <button key={s} type="button" className={`btn px-4 py-2 capitalize ${prefs.boardScale === s ? 'btn-primary' : ''}`} onClick={() => prefs.set({ boardScale: s })}>
                       {s}
                     </button>
                   ))}

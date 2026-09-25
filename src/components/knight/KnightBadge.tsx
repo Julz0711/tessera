@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import type { PlayerColor } from '@/engine/types';
 import { PLAYER_COLORS } from '@/shared/colors';
-import { KNIGHT_STEEL, faceFrame, faceUrl, type KnightCustomization } from '@/shared/knight';
+import { KNIGHT_STEEL, faceFrame, faceUrl, type KnightLook } from '@/shared/knight';
 
 /**
  * Portrait of the player's knight: one basic knight in the player's color. If the player uploaded
@@ -13,7 +13,7 @@ export function KnightBadge({
   size = 56,
   ring = true,
 }: {
-  knight: KnightCustomization;
+  knight: KnightLook;
   color: PlayerColor;
   size?: number;
   ring?: boolean;

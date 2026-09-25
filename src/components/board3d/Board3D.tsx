@@ -14,6 +14,7 @@ import { HexTile } from './terrain';
 import { Ocean } from './ocean';
 import { displayFont, resetTextureCache } from './textures';
 import { KnightPieces } from './knights';
+import { PieceScale } from './pieceScale';
 
 /** Aiming the camera slightly "below" the island centre lifts it above the bottom dock. */
 const GAME_TARGET_Z = 1.3;
@@ -173,7 +174,18 @@ function Island({
   );
 }
 
-export default function Board3D({ scene, targets, popup, onBackground, onVertex, onEdge, onHex, showcase = false, quality = 'high' }: BoardProps) {
+export default function Board3D({
+  scene,
+  targets,
+  popup,
+  onBackground,
+  onVertex,
+  onEdge,
+  onHex,
+  showcase = false,
+  quality = 'high',
+  pieceScale = 1,
+}: BoardProps) {
   const shadows = quality === 'high';
   // Where the last press started: a click away closes the build popup, a drag (orbit/pan) doesn't.
   const pressed = useRef<{ x: number; y: number } | null>(null);
@@ -184,7 +196,9 @@ export default function Board3D({ scene, targets, popup, onBackground, onVertex,
   const island = (
     // Lifted clear of the swells so no water shows in the seams between tiles.
     <group position={[-frame.cx, ISLAND_LIFT, -frame.cz]}>
-      <Island scene={scene} targets={targets} popup={popup} shadows={shadows} onVertex={onVertex} onEdge={onEdge} onHex={onHex} fontsReady={fontsReady} />
+      <PieceScale.Provider value={pieceScale}>
+        <Island scene={scene} targets={targets} popup={popup} shadows={shadows} onVertex={onVertex} onEdge={onEdge} onHex={onHex} fontsReady={fontsReady} />
+      </PieceScale.Provider>
     </group>
   );
   const backdrop = showcase ? '#061419' : SEA.sky;
