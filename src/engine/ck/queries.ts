@@ -167,7 +167,7 @@ export function merchantHexes(s: Q, seat: number): number[] {
 
 /** Tokens the Inventor may swap (not 2, 12, 6 or 8). */
 export function inventorHexes(s: Q): number[] {
-  return s.board.hexes.filter((h) => h.token !== null && ![2, 12, 6, 8].includes(h.token)).map((h) => h.id);
+  return s.board.hexes.filter((h) => h.token !== null && !h.fog && ![2, 12, 6, 8].includes(h.token)).map((h) => h.id);
 }
 
 /**

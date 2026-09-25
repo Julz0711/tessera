@@ -25,7 +25,8 @@ export function isCard(card: unknown): card is Card {
 }
 
 // ── Board ───────────────────────────────────────────────────────────────────
-export type Terrain = 'forest' | 'hills' | 'pasture' | 'fields' | 'mountains' | 'desert';
+/** `gold` (Black Forest) pays out a resource of the owner's choice. */
+export type Terrain = 'forest' | 'hills' | 'pasture' | 'fields' | 'mountains' | 'desert' | 'gold';
 export type HarborKind = 'any' | Resource;
 
 export interface Hex {
@@ -35,6 +36,8 @@ export interface Hex {
   terrain: Terrain;
   /** Number token (2–12) or null for the desert. */
   token: number | null;
+  /** Black Forest: still under fog. Views show fogged hexes as a blank desert until revealed. */
+  fog?: boolean;
 }
 
 export interface Harbor {
@@ -50,11 +53,14 @@ export interface Board {
 
 // ── Modes & settings ────────────────────────────────────────────────────────
 export type Mode = 'classic' | 'ck';
+/** Board layout: the standard island, the larger 5–6 player island, or the fog-covered Black Forest. */
+export type MapId = 'standard' | 'large' | 'blackForest';
 export type Track = 'trade' | 'politics' | 'science';
 export const TRACKS: readonly Track[] = ['trade', 'politics', 'science'];
 
 export interface GameSettings {
   mode: Mode;
+  map: MapId;
   vpToWin: number;
   /** Players holding more than this many cards discard half on a 7 (C&K adds 2 per wall). */
   discardLimit: number;
@@ -201,7 +207,9 @@ export type Prompt =
   | { kind: 'deserterPlace'; seat: number; level: KnightLevel }
   | { kind: 'spy'; seat: number; victim: number; cards: ProgressCard[] }
   | { kind: 'masterMerchant'; seat: number; victim: number; hand: Hand; count: number }
-  | { kind: 'placeMetropolis'; seat: number; track: Track };
+  | { kind: 'placeMetropolis'; seat: number; track: Track }
+  /** Gold (Black Forest): pick `count` resources of your choice. */
+  | { kind: 'goldPick'; seat: number; count: number };
 
 export type PromptKind = Prompt['kind'];
 
@@ -240,6 +248,8 @@ export type GameEventBody =
   | { type: 'diceRolled'; seat: number; dice: Dice }
   | { type: 'produced'; gains: PartialHand[] }
   | { type: 'shortage'; card: Card }
+  /** Fog lifted from these hexes (Black Forest), by `seat`'s road or settlement. */
+  | { type: 'revealed'; seat: number; hexes: { id: number; terrain: Terrain; token: number | null }[] }
   | { type: 'built'; seat: number; piece: 'road' | 'settlement' | 'city' | 'wall'; at: number; free?: boolean }
   | { type: 'robberMoved'; seat: number; hex: number }
   | { type: 'stole'; seat: number; victim: number }
@@ -370,6 +380,7 @@ export type Action =
   | { type: 'relocateKnight'; vertex: number | null }
   | { type: 'chooseDeck'; track: Track }
   | { type: 'aqueduct'; resource: Resource }
+  | { type: 'pickGold'; cards: PartialHand }
   | { type: 'discardProgress'; card: number }
   | { type: 'giveCards'; cards: PartialHand }
   | { type: 'removeKnight'; vertex: number }

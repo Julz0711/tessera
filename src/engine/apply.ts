@@ -1,4 +1,5 @@
 import { applyCkAction, isCkAction, resolveCkPrompt } from './ck/actions';
+import { pickGold } from './rules/fog';
 import { RuleError, assertRule } from './errors';
 import { checkWinner, updateLongestRoad } from './rules/awards';
 import { buildCity, buildRoad, buildSettlement, placeFreeRoad } from './rules/build';
@@ -21,6 +22,7 @@ const PROMPT_ACTIONS: Partial<Record<ActionType, PromptKind[]>> = {
   relocateKnight: ['relocateKnight'],
   chooseDeck: ['rewardDeck'],
   aqueduct: ['aqueduct'],
+  pickGold: ['goldPick'],
   discardProgress: ['discardProgress'],
   giveCards: ['giveCards', 'commercialHarbor'],
   removeKnight: ['deserterRemove'],
@@ -122,6 +124,9 @@ function resolvePrompt(ctx: Ctx, prompt: Prompt, action: Action): void {
     case 'freeRoads':
       if (action.type === 'buildRoad') return placeFreeRoad(ctx, prompt, action.edge);
       if (action.type === 'skipFreeRoads') return removePrompt(ctx, prompt);
+      break;
+    case 'goldPick':
+      if (action.type === 'pickGold') return pickGold(ctx, prompt, action.cards);
       break;
     default:
       return resolveCkPrompt(ctx, prompt, action);

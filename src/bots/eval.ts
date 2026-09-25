@@ -57,6 +57,15 @@ export function vertexScore(view: PlayerView, seat: number, v: number, weights =
   let score = 0;
   for (const h of t.vertices[v].hexes) {
     const hex = view.board.hexes[h];
+    // Black Forest: an undiscovered tile is worth a guess, and gold pays whatever is needed most.
+    if (hex.fog) {
+      score += 2.5;
+      continue;
+    }
+    if (hex.terrain === 'gold' && hex.token) {
+      score += PIPS[hex.token] * 1.3 * (h === view.robber ? 0.5 : 1);
+      continue;
+    }
     const res = TERRAIN_RESOURCE[hex.terrain];
     if (!res || !hex.token) continue;
     const pips = PIPS[hex.token];

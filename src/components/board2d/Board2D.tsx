@@ -5,7 +5,7 @@ import { Maximize2, Minus, Plus } from 'lucide-react';
 import { PIPS } from '@/engine/constants';
 import { getTopology, type Topology } from '@/engine/board/topology';
 import type { PlayerColor, Terrain } from '@/engine/types';
-import { CARD_COLORS, TERRAIN_COLORS } from '@/client/palette';
+import { CARD_COLORS, FOG, TERRAIN_COLORS } from '@/client/palette';
 import { PLAYER_COLORS } from '@/shared/colors';
 import type { BoardProps } from '@/components/board/types';
 import { useZoomPan } from './useZoomPan';
@@ -94,6 +94,24 @@ function TerrainGlyphs({ terrain, cx, cy }: { terrain: Terrain; cx: number; cy: 
           })}
         </g>
       );
+    case 'gold':
+      return (
+        <g>
+          {[0, 1, 4].map((i) => {
+            const { x, y } = at(i);
+            return (
+              <g key={i} fill="#f7d768" stroke="#8a6412" strokeWidth="2.5" strokeLinejoin="round">
+                <path d={`M${x - 17} ${y + 8}l3-10 9-4 7 6-2 8Z`} />
+                <path d={`M${x - 1} ${y + 9}l2-11 10-3 6 8-4 6Z`} />
+              </g>
+            );
+          })}
+          {[2, 3].map((i) => {
+            const { x, y } = at(i);
+            return <path key={i} d={sparkle(x, y, 11)} fill={c.accent} stroke="#8a6412" strokeWidth="1.5" strokeLinejoin="round" />;
+          })}
+        </g>
+      );
     case 'desert':
       return (
         <g fill={c.accent} opacity="0.8">
@@ -105,6 +123,46 @@ function TerrainGlyphs({ terrain, cx, cy }: { terrain: Terrain; cx: number; cy: 
         </g>
       );
   }
+}
+
+/** A four-pointed glint. */
+function sparkle(x: number, y: number, s: number): string {
+  const k = s * 0.28;
+  return `M${x} ${y - s}L${x + k} ${y - k}L${x + s} ${y}L${x + k} ${y + k}L${x} ${y + s}L${x - k} ${y + k}L${x - s} ${y}L${x - k} ${y - k}Z`;
+}
+
+function Cloud({ x, y, s }: { x: number; y: number; s: number }) {
+  const puffs = (
+    <>
+      <ellipse cx="0" cy="6" rx="30" ry="9" />
+      <circle cx="-14" cy="0" r="11" />
+      <circle cx="2" cy="-6" r="15" />
+      <circle cx="17" cy="1" r="10" />
+    </>
+  );
+  // Outline pass first, then the fill over it, so overlapping puffs read as one cloud.
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`}>
+      <g fill={FOG.side} stroke={FOG.side} strokeWidth="5">
+        {puffs}
+      </g>
+      <g fill={FOG.cloud}>{puffs}</g>
+    </g>
+  );
+}
+
+/** Black Forest: an undiscovered tile under drifting cloud. */
+function FogGlyphs({ cx, cy }: { cx: number; cy: number }) {
+  return (
+    <g>
+      <Cloud x={cx - 30} y={cy - 40} s={1} />
+      <Cloud x={cx + 36} y={cy + 6} s={1.1} />
+      <Cloud x={cx - 24} y={cy + 46} s={0.9} />
+      <text x={cx} y={cy + 12} textAnchor="middle" className="display" fontSize="36" fontWeight="900" fill={FOG.side}>
+        ?
+      </text>
+    </g>
+  );
 }
 
 /** Build-hint marker: a cream ring with thin dark edges, legible on every terrain. */
@@ -182,7 +240,7 @@ export default function Board2D({ scene, targets, onVertex, onEdge, onHex, inter
         ))}
         {scene.board.hexes.map((h) => {
           const t = topo.hexes[h.id];
-          const c = TERRAIN_COLORS[h.terrain];
+          const c = h.fog ? FOG : TERRAIN_COLORS[h.terrain];
           const target = hexTargets.has(h.id);
           return (
             <g
@@ -193,7 +251,7 @@ export default function Board2D({ scene, targets, onVertex, onEdge, onHex, inter
               className={target ? 'cursor-pointer' : undefined}
             >
               <polygon points={hexPoints(topo, h.id, 0.97)} fill={c.top} stroke={c.side} strokeWidth="5" strokeLinejoin="round" />
-              <TerrainGlyphs terrain={h.terrain} cx={t.x * S} cy={t.y * S} />
+              {h.fog ? <FogGlyphs cx={t.x * S} cy={t.y * S} /> : <TerrainGlyphs terrain={h.terrain} cx={t.x * S} cy={t.y * S} />}
               {target && (
                 <polygon
                   points={hexPoints(topo, h.id, 0.8)}

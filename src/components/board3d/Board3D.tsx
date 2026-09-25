@@ -4,7 +4,7 @@ import { OrbitControls } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type * as THREE from 'three';
-import { getTopology } from '@/engine/board/topology';
+import { STANDARD_HEX_COORDS, getTopology, type Topology } from '@/engine/board/topology';
 import { SEA } from '@/client/palette';
 import type { BoardProps, BoardScene, BoardTargets } from '@/components/board/types';
 import { City, CityWall, HarborPiece, Merchant, MetropolisTower, NumberToken, Road, Robber, Settlement } from './pieces';
@@ -16,6 +16,18 @@ import { KnightPieces } from './knights';
 
 /** Aiming the camera slightly "below" the island centre lifts it above the bottom dock. */
 const GAME_TARGET_Z = 1.3;
+
+/** Centre of a board and how far its corners reach from there (the large map sits off-centre). */
+function boardFrame(topo: Topology): { cx: number; cz: number; extent: number } {
+  const xs = topo.hexes.map((h) => h.x);
+  const zs = topo.hexes.map((h) => h.y);
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const cz = (Math.min(...zs) + Math.max(...zs)) / 2;
+  const extent = Math.max(...topo.vertices.map((v) => Math.hypot(v.x - cx, v.y - cz)));
+  return { cx, cz, extent };
+}
+
+const STANDARD_EXTENT = boardFrame(getTopology(STANDARD_HEX_COORDS)).extent;
 
 /** Waits for the display font so canvas textures (tokens, harbors) use it. */
 function useFontReady(): boolean {
@@ -41,16 +53,16 @@ function useFontReady(): boolean {
  * Pulls the camera back on narrow/portrait screens so the whole island fits. In showcase mode on
  * wide screens the camera aims left of the island so it sits to the right of the page copy.
  */
-function FitCamera({ showcase }: { showcase: boolean }) {
+function FitCamera({ showcase, scale }: { showcase: boolean; scale: number }) {
   const { camera, size } = useThree();
   useEffect(() => {
     const aspect = size.width / Math.max(1, size.height);
-    const k = aspect < 1 ? 1 + (1 - aspect) * 1.25 : aspect < 1.3 ? 1.08 : 1;
+    const k = (aspect < 1 ? 1 + (1 - aspect) * 1.25 : aspect < 1.3 ? 1.08 : 1) * scale;
     const shift = showcase && aspect > 1.2 ? -Math.min(4.2, (aspect - 1) * 5) : 0;
     const base = showcase ? [0, 8.6, 11] : [0, 12.2, 9.4];
     camera.position.set(base[0] * k + shift, base[1] * k, base[2] * k);
     camera.lookAt(shift, 0, showcase ? 0.3 : GAME_TARGET_Z);
-  }, [camera, size.width, size.height, showcase]);
+  }, [camera, size.width, size.height, showcase, scale]);
   return null;
 }
 
@@ -145,8 +157,13 @@ function Island({
 export default function Board3D({ scene, targets, onVertex, onEdge, onHex, showcase = false, quality = 'high' }: BoardProps) {
   const shadows = quality === 'high';
   const fontsReady = useFontReady();
+  const frame = useMemo(() => boardFrame(getTopology(scene.board.hexes)), [scene.board.hexes]);
+  // Bigger maps pull the camera, fog, shadows and sea shelf out to match.
+  const scale = Math.max(1, frame.extent / STANDARD_EXTENT);
   const island = (
-    <Island scene={scene} targets={targets} shadows={shadows} onVertex={onVertex} onEdge={onEdge} onHex={onHex} fontsReady={fontsReady} />
+    <group position={[-frame.cx, 0, -frame.cz]}>
+      <Island scene={scene} targets={targets} shadows={shadows} onVertex={onVertex} onEdge={onEdge} onHex={onHex} fontsReady={fontsReady} />
+    </group>
   );
   const backdrop = showcase ? '#061419' : SEA.sky;
   return (
@@ -160,7 +177,7 @@ export default function Board3D({ scene, targets, onVertex, onEdge, onHex, showc
       }}
     >
       <color attach="background" args={[backdrop]} />
-      <fog attach="fog" args={[backdrop, showcase ? 14 : 18, showcase ? 34 : 44]} />
+      <fog attach="fog" args={[backdrop, (showcase ? 14 : 18) * scale, (showcase ? 34 : 44) * scale]} />
       <hemisphereLight args={['#e6f3ff', '#1d3b2c', 0.9]} />
       <ambientLight intensity={0.18} />
       <directionalLight
@@ -170,17 +187,17 @@ export default function Board3D({ scene, targets, onVertex, onEdge, onHex, showc
         castShadow={shadows}
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
-        shadow-camera-left={-7}
-        shadow-camera-right={7}
-        shadow-camera-top={7}
-        shadow-camera-bottom={-7}
+        shadow-camera-left={-7 * scale}
+        shadow-camera-right={7 * scale}
+        shadow-camera-top={7 * scale}
+        shadow-camera-bottom={-7 * scale}
         shadow-camera-near={1}
         shadow-camera-far={30}
         shadow-bias={-0.0006}
         shadow-normalBias={0.02}
       />
-      <Ocean />
-      <FitCamera showcase={showcase} />
+      <Ocean shelfRadius={frame.extent + 2} />
+      <FitCamera showcase={showcase} scale={scale} />
       {showcase ? (
         <Spin>{island}</Spin>
       ) : (
@@ -192,7 +209,7 @@ export default function Board3D({ scene, targets, onVertex, onEdge, onHex, showc
             enableDamping
             dampingFactor={0.08}
             minDistance={6}
-            maxDistance={24}
+            maxDistance={24 * scale}
             minPolarAngle={0.12}
             maxPolarAngle={1.2}
             target={[0, 0, GAME_TARGET_Z]}

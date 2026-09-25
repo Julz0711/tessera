@@ -3,6 +3,7 @@ import { botAction } from '@/bots';
 import { seatsToAsk } from '@/bots/simulate';
 import {
   DEFAULT_VP,
+  MAX_PLAYERS,
   actorsFor,
   applyAction,
   createGame,
@@ -278,8 +279,16 @@ export class Room {
       if (patch.mode !== next.mode) next.vpToWin = DEFAULT_VP[patch.mode];
       next.mode = patch.mode;
     }
+    next.map ??= 'standard'; // rooms saved before maps existed
+    if (patch.map === 'standard' || patch.map === 'large' || patch.map === 'blackForest') {
+      const seats = MAX_PLAYERS[patch.map];
+      if (this.seats.length > seats) throw new UserError(`That map seats at most ${seats} players`);
+      // The big island is for bigger tables: open its extra seats by default.
+      if (patch.map !== next.map) next.maxPlayers = patch.map === 'large' ? seats : Math.min(next.maxPlayers, seats);
+      next.map = patch.map;
+    }
     if (Number.isInteger(patch.maxPlayers)) {
-      next.maxPlayers = Math.min(4, Math.max(2, Math.max(patch.maxPlayers!, this.seats.length)));
+      next.maxPlayers = Math.min(MAX_PLAYERS[next.map], Math.max(2, Math.max(patch.maxPlayers!, this.seats.length)));
     }
     if (Number.isInteger(patch.vpToWin)) next.vpToWin = Math.min(20, Math.max(3, patch.vpToWin!));
     if (typeof patch.turnTimer === 'number' && (TURN_TIMER_OPTIONS as readonly number[]).includes(patch.turnTimer)) {
@@ -372,7 +381,7 @@ export class Room {
       seed: randomInt(0, 2 ** 32 - 1),
       mode: this.settings.mode,
       players: this.seats.map((s) => ({ id: s.playerId, name: s.name, color: s.color, isBot: s.isBot })),
-      settings: { vpToWin: this.settings.vpToWin, friendlyRobber: this.settings.friendlyRobber },
+      settings: { vpToWin: this.settings.vpToWin, friendlyRobber: this.settings.friendlyRobber, map: this.settings.map ?? 'standard' },
     });
     this.gameId = randomUUID();
     this.gameNumber++;

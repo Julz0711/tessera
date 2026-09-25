@@ -97,9 +97,31 @@ function resolvePrompt(view: PlayerView, seat: number, prompt: Prompt): Action |
       const road = bestRoad(view, seat);
       return road ? { type: 'buildRoad', edge: road.edge } : { type: 'skipFreeRoads' };
     }
+    case 'goldPick':
+      return { type: 'pickGold', cards: chooseGold(view, seat, prompt.count) };
     default:
       return null;
   }
+}
+
+/** Gold: what the next build is missing first, then the scarcest resources (only what the bank has). */
+export function chooseGold(view: PlayerView, seat: number, count: number): PartialHand {
+  const hand = { ...view.players[seat].hand };
+  const bank = { ...view.bank };
+  const goal = primaryGoal(view, seat);
+  const weights = resourceWeights(view);
+  const out: PartialHand = {};
+  for (let i = 0; i < count; i++) {
+    const r = argmax(
+      RESOURCES.filter((x) => bank[x] > 0),
+      (x) => ((goal?.cost[x] ?? 0) - hand[x]) * 10 + weights[x],
+    );
+    if (!r) break;
+    hand[r]++;
+    bank[r]--;
+    out[r] = (out[r] ?? 0) + 1;
+  }
+  return out;
 }
 
 export function chooseDiscard(view: PlayerView, seat: number, count: number, cards: readonly Card[] = RESOURCES): PartialHand {
@@ -270,6 +292,9 @@ export function bestRoad(view: PlayerView, seat: number): { edge: number; value:
       }
     }
     value = openSpots > 0 ? value * 0.25 : value * 0.6;
+    // Black Forest: each tile the road uncovers pays a card straight away.
+    const uncovered = new Set([edge.a, edge.b].flatMap((w) => t.vertices[w].hexes).filter((h) => view.board.hexes[h].fog));
+    value += 1.5 * uncovered.size;
     // Longest-road pressure.
     const roads = [...view.roads];
     roads[e] = seat;

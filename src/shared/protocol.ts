@@ -1,5 +1,5 @@
 /** Typed Socket.IO protocol shared by client and server. */
-import type { Action, GameEvent, Mode, PlayerColor } from '@/engine/types';
+import type { Action, GameEvent, MapId, Mode, PlayerColor } from '@/engine/types';
 import type { PlayerView } from '@/engine/view';
 import type { KnightCustomization } from './knight';
 
@@ -13,6 +13,7 @@ export interface PlayerIdentity {
 
 export interface RoomSettings {
   mode: Mode;
+  map: MapId;
   maxPlayers: number;
   vpToWin: number;
   /** Seconds per turn; 0 disables the timer. */
@@ -23,6 +24,7 @@ export interface RoomSettings {
 
 export const DEFAULT_ROOM_SETTINGS: RoomSettings = {
   mode: 'classic',
+  map: 'standard',
   maxPlayers: 4,
   vpToWin: 10,
   turnTimer: 0,

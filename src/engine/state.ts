@@ -5,7 +5,11 @@ import {
   BANK_PER_RESOURCE,
   DEFAULT_VP,
   DEV_DECK,
+  LARGE_BANK_PER_COMMODITY,
+  LARGE_BANK_PER_RESOURCE,
+  LARGE_DEV_DECK,
   LOG_LIMIT,
+  MAX_PLAYERS,
   PROGRESS_DECKS,
 } from './constants';
 import { emptyHand } from './hand';
@@ -20,6 +24,7 @@ import {
   type GameSettings,
   type GameState,
   type Hand,
+  type MapId,
   type Mode,
   type PlayerColor,
   type ProgressCard,
@@ -72,23 +77,26 @@ export function nextId(s: GameState): number {
   return s.nextId++;
 }
 
-function fullBank(mode: Mode): Hand {
+function fullBank(mode: Mode, map: MapId): Hand {
   const bank = emptyHand();
-  for (const r of RESOURCES) bank[r] = BANK_PER_RESOURCE;
-  if (mode === 'ck') for (const c of COMMODITIES) bank[c] = BANK_PER_COMMODITY;
+  // The bigger maps (large, Black Forest) use the extension's bigger bank and deck.
+  const big = map !== 'standard';
+  for (const r of RESOURCES) bank[r] = big ? LARGE_BANK_PER_RESOURCE : BANK_PER_RESOURCE;
+  if (mode === 'ck') for (const c of COMMODITIES) bank[c] = big ? LARGE_BANK_PER_COMMODITY : BANK_PER_COMMODITY;
   return bank;
 }
 
 export function createGame(opts: CreateGameOptions): GameState {
   const { mode, players } = opts;
-  if (players.length < 2 || players.length > 4) throw new Error('A game needs 2–4 players');
+  const map: MapId = opts.settings?.map ?? 'standard';
+  if (players.length < 2 || players.length > MAX_PLAYERS[map]) throw new Error(`This map seats 2–${MAX_PLAYERS[map]} players`);
   const rng = { rng: normalizeSeed(opts.seed) };
-  const board = generateBoard(rng);
+  const board = generateBoard(rng, map);
   const topo = getTopology(board.hexes);
 
   const devDeck: DevCardType[] = [];
   if (mode === 'classic') {
-    for (const [type, count] of Object.entries(DEV_DECK) as [DevCardType, number][]) {
+    for (const [type, count] of Object.entries(map === 'standard' ? DEV_DECK : LARGE_DEV_DECK) as [DevCardType, number][]) {
       for (let i = 0; i < count; i++) devDeck.push(type);
     }
     shuffle(rng, devDeck);
@@ -107,6 +115,7 @@ export function createGame(opts: CreateGameOptions): GameState {
 
   const settings: GameSettings = {
     mode,
+    map,
     vpToWin: opts.settings?.vpToWin ?? DEFAULT_VP[mode],
     discardLimit: opts.settings?.discardLimit ?? 7,
     friendlyRobber: opts.settings?.friendlyRobber ?? false,
@@ -134,7 +143,7 @@ export function createGame(opts: CreateGameOptions): GameState {
       defender: 0,
       progressVP: 0,
     })),
-    bank: fullBank(mode),
+    bank: fullBank(mode, map),
     devDeck,
     progressDecks,
     buildings: topo.vertices.map(() => null),

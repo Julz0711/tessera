@@ -3,6 +3,7 @@ import { assertRule } from '../errors';
 import { compactHand, emptyHand } from '../hand';
 import { canPlaceSettlement, legalSetupRoads } from '../queries';
 import { emit, type Ctx } from '../state';
+import { revealAround } from './fog';
 
 function requireSetupTurn(ctx: Ctx, placing: 'settlement' | 'road'): void {
   const setup = ctx.s.setup;
@@ -21,6 +22,7 @@ export function setupSettlement(ctx: Ctx, vertex: number): void {
   const city = s.mode === 'ck' && secondRound;
   s.buildings[vertex] = { owner: ctx.seat, city, wall: false, metropolis: null };
   emit(ctx, { type: 'built', seat: ctx.seat, piece: city ? 'city' : 'settlement', at: vertex, free: true });
+  revealAround(ctx, [vertex]);
 
   if (secondRound) {
     const gain = emptyHand();
@@ -46,6 +48,7 @@ export function setupRoad(ctx: Ctx, edge: number): void {
   assertRule(legalSetupRoads(s).includes(edge), 'The road must touch the settlement you just placed');
   s.roads[edge] = ctx.seat;
   emit(ctx, { type: 'built', seat: ctx.seat, piece: 'road', at: edge, free: true });
+  revealAround(ctx, [ctx.topo.edges[edge].a, ctx.topo.edges[edge].b]);
 
   setup.index++;
   setup.placing = 'settlement';

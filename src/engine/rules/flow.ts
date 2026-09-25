@@ -63,9 +63,18 @@ export function produce(ctx: Ctx): void {
   if (!dice) return;
   const total = dice.red + dice.yellow;
   const demand: Hand[] = s.players.map(() => emptyHand());
+  // Gold (Black Forest): a free pick per settlement, two per city.
+  const goldPicks = s.players.map(() => 0);
 
   for (const hex of s.board.hexes) {
-    if (hex.token !== total || hex.id === s.robber) continue;
+    if (hex.token !== total || hex.id === s.robber || hex.fog) continue;
+    if (hex.terrain === 'gold') {
+      for (const v of ctx.topo.hexes[hex.id].vertices) {
+        const b = s.buildings[v];
+        if (b) goldPicks[b.owner] += b.city ? 2 : 1;
+      }
+      continue;
+    }
     const res = TERRAIN_RESOURCE[hex.terrain];
     if (!res) continue;
     for (const v of ctx.topo.hexes[hex.id].vertices) {
@@ -98,12 +107,15 @@ export function produce(ctx: Ctx): void {
     }
   });
   if (gains.some((g) => handTotal(g) > 0)) emit(ctx, { type: 'produced', gains: gains.map(compactHand) });
+  goldPicks.forEach((count, seat) => {
+    if (count) s.pending.push({ kind: 'goldPick', seat, count });
+  });
 
   // C&K Aqueduct: players with Science ≥ 3 who got nothing from a production roll pick a resource.
   if (s.mode === 'ck') {
     const prompts: Prompt[] = [];
     s.players.forEach((p, seat) => {
-      if (p.improvements.science >= ABILITY_LEVEL && handTotal(gains[seat]) === 0) prompts.push({ kind: 'aqueduct', seat });
+      if (p.improvements.science >= ABILITY_LEVEL && handTotal(gains[seat]) === 0 && !goldPicks[seat]) prompts.push({ kind: 'aqueduct', seat });
     });
     s.pending.push(...prompts);
   }

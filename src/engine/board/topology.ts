@@ -90,6 +90,34 @@ export const STANDARD_HEX_COORDS: HexCoord[] = (() => {
   return out;
 })();
 
+/** The 5–6 player island: rows of 3-4-5-6-5-4-3 hexes, centred half a hex left of the origin. */
+export const LARGE_HEX_COORDS: HexCoord[] = (() => {
+  const rows: [r: number, q0: number, q1: number][] = [
+    [-3, 0, 2],
+    [-2, -1, 2],
+    [-1, -2, 2],
+    [0, -3, 2],
+    [1, -3, 1],
+    [2, -3, 0],
+    [3, -3, -1],
+  ];
+  const out: HexCoord[] = [];
+  for (const [r, q0, q1] of rows) for (let q = q0; q <= q1; q++) out.push({ q, r });
+  return out;
+})();
+
+/** Black Forest: a centre island, a lake (ring 1, left out) and three rings of land (rings 2–4). */
+export const BLACK_FOREST_HEX_COORDS: HexCoord[] = (() => {
+  const out: HexCoord[] = [];
+  for (let r = -4; r <= 4; r++) {
+    for (let q = -4; q <= 4; q++) {
+      const ring = Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r));
+      if (ring <= 4 && ring !== 1) out.push({ q, r });
+    }
+  }
+  return out;
+})();
+
 const cache = new Map<string, Topology>();
 /** Fast path: the same hex array object (e.g. one game state) maps straight to its topology. */
 const byArray = new WeakMap<readonly HexCoord[], Topology>();

@@ -8,7 +8,7 @@ import { SEA } from '@/client/palette';
  * Faceted low-poly sea; a lighter shelf shows through around the island. The swells are baked in
  * once and never move: shimmering facets under the board distract from the game.
  */
-export function Ocean() {
+export function Ocean({ shelfRadius = 6.4 }: { /** Radius of the lighter shallows around the island. */ shelfRadius?: number }) {
   const geo = useMemo(() => {
     const g = new THREE.PlaneGeometry(46, 46, 46, 46);
     g.rotateX(-Math.PI / 2);
@@ -42,7 +42,7 @@ export function Ocean() {
     <group>
       <mesh geometry={geo} material={water} receiveShadow />
       <mesh material={shelf} position={[0, -0.16, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[6.4, 12]} />
+        <circleGeometry args={[shelfRadius, 12]} />
       </mesh>
       <mesh material={floor} position={[0, -0.6, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[30, 12]} />

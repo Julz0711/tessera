@@ -10,6 +10,39 @@ import { PLAYER_COLORS } from '@/shared/colors';
 import { Modal } from '@/components/ui/Modal';
 import { CardPicker } from './cards';
 
+/** Gold (Black Forest): any resources from the bank, one per settlement (two per city) on the field. */
+export function GoldDialog({ view, prompt }: { view: PlayerView; prompt: Extract<Prompt, { kind: 'goldPick' }> }) {
+  const [sel, setSel] = useState<PartialHand>({});
+  const [busy, setBusy] = useState(false);
+  const total = handTotal(sel);
+  const need = Math.min(prompt.count, RESOURCES.reduce((n, r) => n + view.bank[r], 0));
+  return (
+    <Modal open dismissable={false} title="Gold!">
+      <p className="mb-4 text-sm text-ink-soft">
+        Choose {need} resource{need === 1 ? '' : 's'} from the bank.
+      </p>
+      <CardPicker cards={RESOURCES} value={sel} onChange={setSel} max={view.bank} limitTotal={need} />
+      <div className="mt-5 flex items-center justify-between">
+        <span className="text-sm font-bold text-ink-soft">
+          {total}/{need} chosen
+        </span>
+        <button
+          type="button"
+          className="btn btn-primary px-5 py-2"
+          disabled={total !== need || busy}
+          onClick={async () => {
+            setBusy(true);
+            await api.act({ type: 'pickGold', cards: sel });
+            setBusy(false);
+          }}
+        >
+          Take
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 export function DiscardDialog({ view, prompt }: { view: PlayerView; prompt: Extract<Prompt, { kind: 'discard' }> }) {
   const me = view.viewer!;
   const hand = view.players[me].hand;

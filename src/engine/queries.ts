@@ -214,7 +214,8 @@ export function hexNeighbours(s: Q, seat: number, hex: number): number[] {
 }
 
 export function robberTargets(s: Q, seat: number, publicVP: (seat: number) => number): number[] {
-  const all = s.board.hexes.map((h) => h.id).filter((id) => id !== s.robber);
+  // Fogged hexes (Black Forest) can't be targeted until they're discovered.
+  const all = s.board.hexes.filter((h) => h.id !== s.robber && !h.fog).map((h) => h.id);
   if (!s.settings.friendlyRobber) return all;
   const friendly = all.filter((hex) => hexNeighbours(s, seat, hex).every((o) => publicVP(o) > 2));
   return friendly.length ? friendly : all;

@@ -5,6 +5,7 @@ import {
   viewFor,
   type Action,
   type GameState,
+  type MapId,
   type Mode,
   type PlayerColor,
 } from '@/engine';
@@ -16,7 +17,7 @@ export interface SimulationResult {
   error?: string;
 }
 
-const COLORS: PlayerColor[] = ['red', 'blue', 'orange', 'white'];
+const COLORS: PlayerColor[] = ['red', 'blue', 'orange', 'white', 'green', 'purple'];
 
 /** Seats that may act right now: owed decisions plus pending trade responses. */
 export function seatsToAsk(s: GameState): number[] {
@@ -30,10 +31,11 @@ export function seatsToAsk(s: GameState): number[] {
 }
 
 /** Plays a full bot-only game; stops at the first rejected action (a bot or engine bug). */
-export function simulateGame(seed: number, players: number, mode: Mode = 'classic', maxActions = 6000): SimulationResult {
+export function simulateGame(seed: number, players: number, mode: Mode = 'classic', maxActions = 6000, map: MapId = 'standard'): SimulationResult {
   let s = createGame({
     seed,
     mode,
+    settings: { map },
     players: Array.from({ length: players }, (_, i) => ({ id: `bot${i}`, name: `Bot ${i + 1}`, color: COLORS[i], isBot: true })),
   });
   let actions = 0;

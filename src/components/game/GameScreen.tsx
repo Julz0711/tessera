@@ -27,7 +27,7 @@ import { Dock } from './Dock';
 import { GameOver } from './GameOver';
 import { LogPanel } from './LogPanel';
 import { PlayersPanel } from './PlayersPanel';
-import { DiscardDialog, FreeRoadsBanner, VictimDialog } from './Prompts';
+import { DiscardDialog, FreeRoadsBanner, GoldDialog, VictimDialog } from './Prompts';
 import { TopBar } from './TopBar';
 import { OffersTray, TradePanel } from './TradePanel';
 
@@ -263,6 +263,7 @@ export function GameScreen() {
 
       {/* dialogs */}
       {myPrompt?.kind === 'discard' && <DiscardDialog view={view} prompt={myPrompt} />}
+      {myPrompt?.kind === 'goldPick' && <GoldDialog view={view} prompt={myPrompt} />}
       {ui.robber !== null && <VictimDialog view={view} hex={ui.robber.hex} chaseFrom={ui.robber.chaseFrom} />}
       {myPrompt && <CkPromptDialog view={view} prompt={myPrompt} />}
       {ui.panel === 'improve' && me !== null && <ImprovementsPanel view={view} />}

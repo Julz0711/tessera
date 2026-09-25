@@ -8,7 +8,10 @@ export const TERRAIN_COLORS: Record<Terrain, { top: string; side: string; accent
   fields: { top: '#e7c35c', side: '#a8862f', accent: '#f5dc86', label: 'Fields' },
   mountains: { top: '#8f939c', side: '#5d616a', accent: '#eef1f4', label: 'Mountains' },
   desert: { top: '#e2cc97', side: '#a99264', accent: '#c7ad72', label: 'Desert' },
+  gold: { top: '#d69a24', side: '#8a5f12', accent: '#fff0a6', label: 'Gold' },
 };
+
+export const FOG = { top: '#d9dde2', side: '#9aa1aa', cloud: '#f4f6f8' };
 
 export const SEA = { shallow: '#3e97ad', deep: '#1c5f73', foam: '#d4ece6', sky: '#0b2530' };
 

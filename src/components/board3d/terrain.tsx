@@ -3,7 +3,7 @@
 import { memo, useMemo } from 'react';
 import * as THREE from 'three';
 import type { Hex, Terrain } from '@/engine/types';
-import { TERRAIN_COLORS } from '@/client/palette';
+import { FOG, TERRAIN_COLORS } from '@/client/palette';
 import { mat } from './materials';
 
 /** Height of the playable tile surface. */
@@ -57,6 +57,10 @@ const TG = {
   cactus: new THREE.CylinderGeometry(0.03, 0.035, 0.22, 6),
   cactusArm: new THREE.CylinderGeometry(0.022, 0.022, 0.08, 6),
   stone: new THREE.DodecahedronGeometry(0.06, 0),
+  // gold (Black Forest)
+  nugget: new THREE.IcosahedronGeometry(0.045, 0),
+  // fog (Black Forest)
+  cloud: new THREE.IcosahedronGeometry(0.2, 1),
 };
 
 type GeoKey = keyof typeof TG;
@@ -67,6 +71,8 @@ interface Prop {
   p: [number, number, number];
   r?: [number, number, number];
   s?: [number, number, number] | number;
+  /** Shiny (gold nuggets). */
+  metal?: boolean;
 }
 
 function seeded(seed: number) {
@@ -232,6 +238,23 @@ function propsFor(terrain: Terrain, seed: number): Prop[] {
       for (const [x, z] of spread(rand, 4, 0.5, EDGE - 0.08)) out.push({ geo: 'rock', color: pick(['#9a9ea6', '#80848d']), p: [x, y + 0.03, z], r: [rand(), rand(), 0] });
       break;
     }
+    case 'gold': {
+      // Clusters of nuggets glinting between a few rocks.
+      for (const [x, z] of spread(rand, 3, 0.52, EDGE - 0.14)) {
+        for (let k = 0; k < 4; k++) {
+          out.push({
+            geo: 'nugget',
+            color: k % 2 ? '#f7cf4a' : '#e0a21a',
+            metal: true,
+            p: [x + (rand() - 0.5) * 0.14, y + 0.03 + (k === 3 ? 0.04 : 0), z + (rand() - 0.5) * 0.14],
+            r: [rand() * 3, rand() * 3, 0],
+            s: 0.8 + rand() * 0.6,
+          });
+        }
+      }
+      for (const [x, z] of spread(rand, 3, 0.55, EDGE - 0.08)) out.push({ geo: 'rock', color: '#8a7a5c', p: [x, y + 0.03, z], r: [rand(), rand(), 0] });
+      break;
+    }
     case 'desert': {
       for (const [x, z] of spread(rand, 3, 0.3, 0.52)) {
         const s = 0.75 + rand() * 0.4;
@@ -252,7 +275,39 @@ export const TerrainProps = memo(function TerrainProps({ terrain, seed, shadows 
   return (
     <group>
       {props.map((p, i) => (
-        <mesh key={i} geometry={TG[p.geo]} material={mat(p.color)} position={p.p} rotation={p.r ?? [0, 0, 0]} scale={p.s ?? 1} castShadow={shadows} />
+        <mesh
+          key={i}
+          geometry={TG[p.geo]}
+          material={mat(p.color, p.metal ? { metal: 0.7, rough: 0.28 } : {})}
+          position={p.p}
+          rotation={p.r ?? [0, 0, 0]}
+          scale={p.s ?? 1}
+          castShadow={shadows}
+        />
+      ))}
+    </group>
+  );
+});
+
+/** Black Forest: an undiscovered tile, blanketed in low cloud. */
+const FogClouds = memo(function FogClouds({ seed, shadows }: { seed: number; shadows: boolean }) {
+  const puffs = useMemo(() => {
+    const rand = seeded(seed * 4801 + 17);
+    return Array.from({ length: 7 }, (_, i) => {
+      const a = (i / 6) * Math.PI * 2 + rand() * 0.6;
+      const r = i === 0 ? 0 : 0.42 + rand() * 0.24;
+      const size = 0.9 + rand() * 0.55;
+      return {
+        p: [Math.cos(a) * r, TILE_TOP + 0.1 + rand() * 0.08, Math.sin(a) * r] as [number, number, number],
+        s: [size * 1.25, size * 0.6, size] as [number, number, number],
+        color: rand() > 0.5 ? FOG.cloud : '#e3e7ec',
+      };
+    });
+  }, [seed]);
+  return (
+    <group>
+      {puffs.map((c, i) => (
+        <mesh key={i} geometry={TG.cloud} material={mat(c.color, { rough: 1 })} position={c.p} scale={c.s} castShadow={shadows} />
       ))}
     </group>
   );
@@ -273,7 +328,7 @@ export function HexTile({
   producing: boolean;
   onClick?: () => void;
 }) {
-  const colors = TERRAIN_COLORS[hex.terrain];
+  const colors = hex.fog ? FOG : TERRAIN_COLORS[hex.terrain];
   const top = useMemo(() => [mat(colors.side), mat(colors.top), mat(colors.side)], [colors]);
   return (
     <group position={[x, producing ? 0.06 : 0, z]}>
@@ -294,7 +349,7 @@ export function HexTile({
             : undefined
         }
       />
-      <TerrainProps terrain={hex.terrain} seed={hex.id + 1} shadows={shadows} />
+      {hex.fog ? <FogClouds seed={hex.id + 1} shadows={shadows} /> : <TerrainProps terrain={hex.terrain} seed={hex.id + 1} shadows={shadows} />}
     </group>
   );
 }

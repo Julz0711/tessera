@@ -19,3 +19,34 @@ describe('classic bot self-play', () => {
     expect(avg).toBeLessThan(160);
   });
 });
+
+describe('large map self-play', () => {
+  it('finishes 5–6 player games on the large map in both modes', () => {
+    for (let i = 0; i < 8; i++) {
+      const players = 5 + (i % 2);
+      const mode = i % 4 < 2 ? 'classic' : 'ck';
+      const seed = 5000 + i * 31;
+      const result = simulateGame(seed, players, mode, 12000, 'large');
+      if (result.error) throw new Error(`seed ${seed} (${players}p ${mode}): ${result.error}`);
+      expect(result.state.phase).toBe('ended');
+      expect(result.state.board.hexes).toHaveLength(30);
+      expect(result.state.players).toHaveLength(players);
+    }
+  });
+});
+
+describe('Black Forest self-play', () => {
+  it('finishes games in both modes, discovering fog tiles along the way', () => {
+    let revealed = 0;
+    for (let i = 0; i < 6; i++) {
+      const players = 3 + (i % 2);
+      const mode = i < 3 ? 'classic' : 'ck';
+      const seed = 9000 + i * 43;
+      const result = simulateGame(seed, players, mode, 12000, 'blackForest');
+      if (result.error) throw new Error(`seed ${seed} (${players}p ${mode}): ${result.error}`);
+      expect(result.state.phase).toBe('ended');
+      revealed += 30 - result.state.board.hexes.filter((h) => h.fog).length;
+    }
+    expect(revealed).toBeGreaterThan(0);
+  });
+});

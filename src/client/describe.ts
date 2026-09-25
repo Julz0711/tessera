@@ -97,8 +97,12 @@ export function describe(ev: GameEvent, view: PlayerView): Part[][] {
       return [[P(ev.seat), ` played ${DEV_NAMES[ev.card]}`]];
     case 'monopoly':
       return [[P(ev.seat), ` claimed every `, { card: ev.card, n: ev.total }]];
-    case 'received':
-      return [[P(ev.seat), ' received ', ...cardParts(ev.cards)]];
+    case 'received': {
+      const verb = ev.reason === 'gold' ? ' struck gold: ' : ev.reason === 'discovery' ? ' found ' : ' received ';
+      return [[P(ev.seat), verb, ...cardParts(ev.cards)]];
+    }
+    case 'revealed':
+      return [[P(ev.seat), ' discovered ', ev.hexes.map((h) => `${TERRAIN_COLORS[h.terrain].label}${h.token ? ` (${h.token})` : ''}`).join(', ')]];
     case 'bankTrade':
       return [[P(ev.seat), ' traded ', ...cardParts(ev.give), ' → ', ...cardParts(ev.get), ' with the bank']];
     case 'trade':
@@ -165,12 +169,7 @@ export function statusLine(view: PlayerView): { text: string; mine: boolean } {
   const me = view.viewer;
   const name = (seat: number) => (seat === me ? 'You' : view.players[seat].name);
   if (view.phase === 'ended') return { text: view.winner !== null ? `${name(view.winner)} won the game!` : 'Game over', mine: false };
-  if (view.phase === 'setup' && view.setup) {
-    const seat = view.setup.order[view.setup.index];
-    const second = view.setup.index >= view.players.length;
-    const what = view.setup.placing === 'road' ? 'a road' : second ? (view.mode === 'ck' ? 'a city' : 'a second settlement') : 'a settlement';
-    return seat === me ? { text: `Place ${what}`, mine: true } : { text: `${name(seat)} is placing ${what}…`, mine: false };
-  }
+  // Prompts (e.g. a gold pick from a setup discovery) come before everything else, setup included.
   const mine = view.pending.find((p) => p.seat === me);
   if (mine) {
     const texts: Record<string, string> = {
@@ -181,6 +180,7 @@ export function statusLine(view: PlayerView): { text: string; mine: boolean } {
       relocateKnight: 'Move your displaced knight',
       rewardDeck: 'Choose a progress card deck',
       aqueduct: 'Aqueduct: choose a resource',
+      goldPick: `Gold! Choose ${'count' in mine ? mine.count : ''} resource${'count' in mine && mine.count === 1 ? '' : 's'}`,
       discardProgress: 'Discard a progress card (max 4)',
       giveCards: 'Choose cards to give',
       commercialHarbor: 'Commercial Harbor: give a commodity',
@@ -195,6 +195,12 @@ export function statusLine(view: PlayerView): { text: string; mine: boolean } {
   if (view.pending.length) {
     const seats = [...new Set(view.pending.map((p) => p.seat))];
     return { text: `Waiting for ${seats.map(name).join(', ')}…`, mine: false };
+  }
+  if (view.phase === 'setup' && view.setup) {
+    const seat = view.setup.order[view.setup.index];
+    const second = view.setup.index >= view.players.length;
+    const what = view.setup.placing === 'road' ? 'a road' : second ? (view.mode === 'ck' ? 'a city' : 'a second settlement') : 'a settlement';
+    return seat === me ? { text: `Place ${what}`, mine: true } : { text: `${name(seat)} is placing ${what}…`, mine: false };
   }
   const seat = view.turn.seat;
   if (seat === me) return { text: view.turn.rolled ? 'Your turn — build, trade or end turn' : 'Your turn — roll the dice', mine: true };

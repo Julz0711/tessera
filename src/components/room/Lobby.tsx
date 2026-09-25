@@ -181,8 +181,23 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
         />
       </div>
       <div className="grid gap-1.5">
+        <span className="label">Map</span>
+        <Segmented
+          value={s.map ?? 'standard'}
+          options={['standard', 'large', 'blackForest'] as const}
+          format={(m) => ({ standard: 'Standard', large: 'Large (5–6)', blackForest: 'Black Forest' })[m]}
+          onChange={(map) => set({ map })}
+          disabled={!host}
+        />
+      </div>
+      <div className="grid gap-1.5">
         <span className="label">Seats</span>
-        <Segmented value={s.maxPlayers} options={[2, 3, 4] as const} onChange={(maxPlayers) => set({ maxPlayers })} disabled={!host} />
+        <Segmented
+          value={s.maxPlayers}
+          options={((s.map ?? 'standard') === 'standard' ? [2, 3, 4] : [2, 3, 4, 5, 6]) as readonly number[]}
+          onChange={(maxPlayers) => set({ maxPlayers })}
+          disabled={!host}
+        />
       </div>
       <div className="grid gap-1.5">
         <span className="label">Points to win</span>

@@ -57,8 +57,17 @@ export function viewFor(state: GameState, viewer: number | null): PlayerView {
     };
   });
   const { devDeck, progressDecks, rng: _rng, players: _players, log, pending, ...rest } = state;
+  const visible = structuredClone(rest);
+  // Black Forest: what lies under the fog stays secret (a blank tile) until someone discovers it;
+  // once the game is over the whole map is shown.
+  visible.board.hexes = visible.board.hexes.map((h) => {
+    if (!h.fog) return h;
+    if (!reveal) return { id: h.id, q: h.q, r: h.r, terrain: 'desert', token: null, fog: true };
+    const { fog: _fog, ...lifted } = h;
+    return lifted;
+  });
   return {
-    ...structuredClone(rest),
+    ...visible,
     players,
     // Events are immutable once emitted; only redacted ones become new objects.
     log: log.map((ev) => redactEvent(ev, viewer, reveal)),

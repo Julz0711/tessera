@@ -55,6 +55,7 @@ import {
   setupMove,
   shouldAcceptTrade,
   type BotOptions,
+  chooseGold,
 } from './classic';
 import { bankTradeToward, deficit, resourceWeights, vertexScore } from './eval';
 
@@ -151,6 +152,8 @@ function resolvePrompt(view: PlayerView, seat: number, prompt: Prompt): Action |
     }
     case 'rewardDeck':
       return { type: 'chooseDeck', track: argmax([...TRACKS], (t) => me.improvements[t] + (t === 'science' ? 0.5 : 0))! };
+    case 'goldPick':
+      return { type: 'pickGold', cards: chooseGold(view, seat, prompt.count) };
     case 'aqueduct': {
       const goal = primaryGoal(view, seat);
       const weights = resourceWeights(view);

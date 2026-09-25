@@ -108,7 +108,8 @@ export function computeTargets(view: PlayerView | null, mode: UiMode, hints = fa
 
   if (view.phase === 'setup') {
     const setup = view.setup;
-    if (!setup || setup.order[setup.index] !== me) return NO_TARGETS;
+    // A pending prompt (a gold pick from a discovery) must be settled before placing on.
+    if (!setup || setup.order[setup.index] !== me || view.pending.length) return NO_TARGETS;
     return setup.placing === 'settlement'
       ? { ...NO_TARGETS, kind: 'settlement', vertices: legalSettlementSpots(view, me, true) }
       : { ...NO_TARGETS, kind: 'road', edges: legalSetupRoads(view) };

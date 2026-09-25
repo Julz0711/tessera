@@ -19,3 +19,21 @@ Round 2:
 3. the number fields on 3d board are sometimes too thin, due too rendering. it may need to be bolder
 4. the roll and dice can be split from the bottom ui. i also would prefer it on the right. end turn could be red.
 5. chat and log should also be in the top right. colonist.io has a nice layout that we could take as inspo
+
+Round 3:
+
+6. 2D Board needs zoom & pan
+7. city walls need to be clearer visible
+8. QOL: click on cards to open quick trade menu (like in colonist.io)
+9. QOL: Preview opportunities on the map. e.g. if resources for road, add a circle for quick interaction. (like on colonist.io) ![](image-2.png)![alt text](image-1.png)
+10. Add Map Selection.
+11. Default Random Map
+12. Bigger Random Map for more players
+13. Black Forrest from colonist (Custom Mode from Colonist.io) ![alt text](image-3.png); quirks: all forrest at the start, hidden fog of war tiles. optional mode (toggle) with total of 2 gold tiles. gold tiles grants the player to choose the resources they want. its always a 6 or 8. partially revealed: ![alt text](image-4.png)
+14. is this already planned: a stats screen at the end with dice distribution, total cards and more?
+15. 3D view needs stronger indication of stronger knights. maybe add a second (and 3rd with the commodity upgrade)? ther knights and on 2d the mark can also be bigger. also the settlements, cities and roasd can be bigger on 2d
+
+Round 4:
+
+1. placing quickly on the board should have a confirmation. so no accidental clicks can cause a build of a roasd or similar.
+2. still no paning. maybe with ctrl + click? oder middle mouse?ideally middle mouse

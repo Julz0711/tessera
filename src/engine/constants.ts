@@ -4,6 +4,7 @@ import type {
   EventFace,
   HarborKind,
   KnightLevel,
+  MapId,
   Mode,
   PartialHand,
   ProgressCardType,
@@ -35,6 +36,7 @@ export const TERRAIN_COUNTS: Record<Terrain, number> = {
   fields: 4,
   mountains: 3,
   desert: 1,
+  gold: 0,
 };
 
 export const NUMBER_TOKENS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
@@ -50,6 +52,7 @@ export const TERRAIN_RESOURCE: Record<Terrain, Resource | null> = {
   fields: 'grain',
   mountains: 'ore',
   desert: null,
+  gold: null,
 };
 
 export const TERRAIN_COMMODITY: Partial<Record<Terrain, Commodity>> = {
@@ -57,6 +60,25 @@ export const TERRAIN_COMMODITY: Partial<Record<Terrain, Commodity>> = {
   pasture: 'cloth',
   mountains: 'coin',
 };
+
+/** The 5–6 player extension: 30 hexes, two deserts, 28 numbers, 11 harbors, a bigger bank and deck. */
+export const LARGE_TERRAIN_COUNTS: Record<Terrain, number> = { forest: 6, hills: 5, pasture: 6, fields: 6, mountains: 5, desert: 2, gold: 0 };
+
+/**
+ * Black Forest: a desert island in a lake, ringed by 24 visible forests; 30 tiles beyond lie under
+ * fog: the other resources plus two gold fields, whose number is always a 6 or an 8.
+ */
+export const BLACK_FOREST_TOKENS = [2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 8, 8, 9, 9, 9, 10, 10, 10, 11, 11, 11, 12];
+export const BLACK_FOREST_FOG: Partial<Record<Terrain, number>> = { hills: 7, pasture: 7, fields: 7, mountains: 7, gold: 2 };
+export const BLACK_FOREST_FOG_TOKENS = [2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 8, 8, 8, 9, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12];
+export const LARGE_NUMBER_TOKENS = [2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 8, 8, 8, 9, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12];
+export const LARGE_HARBOR_KINDS: HarborKind[] = ['any', 'any', 'any', 'any', 'any', 'brick', 'lumber', 'wool', 'wool', 'grain', 'ore'];
+export const LARGE_BANK_PER_RESOURCE = 24;
+export const LARGE_BANK_PER_COMMODITY = 16;
+export const LARGE_DEV_DECK: Record<DevCardType, number> = { knight: 20, victoryPoint: 5, roadBuilding: 3, yearOfPlenty: 3, monopoly: 3 };
+
+/** Seats each map has room for. */
+export const MAX_PLAYERS: Record<MapId, number> = { standard: 4, large: 6, blackForest: 6 };
 
 export const BANK_PER_RESOURCE = 19;
 export const BANK_PER_COMMODITY = 12;
