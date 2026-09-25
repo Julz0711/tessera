@@ -81,6 +81,7 @@ function DealButton({
   disabled,
   ok,
   primary,
+  danger,
   tint,
   status,
 }: {
@@ -90,6 +91,8 @@ function DealButton({
   disabled?: boolean;
   ok?: boolean;
   primary?: boolean;
+  /** Red: backing out (withdraw, decline, close). */
+  danger?: boolean;
   /** A player's colour (per-player answers on your own offer). */
   tint?: string;
   /** Only shows a state (a player's answer): looks like a button, isn't greyed out, doesn't click. */
@@ -98,7 +101,7 @@ function DealButton({
   return (
     <button
       type="button"
-      className={`btn relative h-9 w-9 rounded-[10px] p-0 ${primary ? 'btn-primary' : ''} ${status ? 'pointer-events-none' : ''}`}
+      className={`btn relative h-9 w-9 rounded-[10px] p-0 ${primary ? 'btn-primary' : danger ? 'btn-danger' : ''} ${status ? 'pointer-events-none' : ''}`}
       style={tint ? ({ '--btn-bg': `color-mix(in srgb, ${tint} 45%, var(--color-paper))` } as React.CSSProperties) : undefined}
       disabled={disabled}
       tabIndex={status ? -1 : undefined}
@@ -200,7 +203,7 @@ function OfferCard({ view, offer }: { view: PlayerView; offer: TradeOffer }) {
               );
             })}
             <span className="mx-0.5 h-6 w-px bg-ink/15" />
-            <DealButton label="Withdraw the offer" icon={<X size={17} strokeWidth={3} />} onClick={() => api.act({ type: 'cancelTrade', id: offer.id })} />
+            <DealButton label="Withdraw the offer" danger icon={<X size={17} strokeWidth={3} />} onClick={() => api.act({ type: 'cancelTrade', id: offer.id })} />
           </>
         }
       >
@@ -226,7 +229,7 @@ function OfferCard({ view, offer }: { view: PlayerView; offer: TradeOffer }) {
             ))}
           </span>
           <DealButton label="Counter-offer" icon={<Pencil size={14} />} onClick={() => openTrade(offer.want, offer.give)} />
-          <DealButton label="Decline" icon={<X size={17} strokeWidth={3} />} disabled={myAnswer === 'no'} onClick={() => api.act({ type: 'respondTrade', id: offer.id, accept: false })} />
+          <DealButton label="Decline" danger icon={<X size={17} strokeWidth={3} />} disabled={myAnswer === 'no'} onClick={() => api.act({ type: 'respondTrade', id: offer.id, accept: false })} />
           <DealButton
             label={canAfford ? (myAnswer === 'yes' ? 'Accepted' : 'Accept') : "You don't have those cards"}
             icon={<Check size={17} strokeWidth={3} />}
@@ -327,7 +330,7 @@ export function TradePanel({ view }: { view: PlayerView }) {
               />
             )}
             <DealButton label={isActive ? 'Offer to players' : 'Send counter-offer'} icon={<ArrowLeftRight size={16} />} onClick={send} disabled={!ready} ok={ready} primary />
-            <DealButton label="Close (Esc)" icon={<X size={17} strokeWidth={3} />} onClick={() => ui.setPanel(null)} />
+            <DealButton label="Close (Esc)" danger icon={<X size={17} strokeWidth={3} />} onClick={() => ui.setPanel(null)} />
           </>
         }
       >
