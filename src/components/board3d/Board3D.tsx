@@ -179,7 +179,7 @@ export default function Board3D({ scene, targets, onVertex, onEdge, onHex, showc
         shadow-bias={-0.0006}
         shadow-normalBias={0.02}
       />
-      <Ocean animate={quality === 'high'} />
+      <Ocean />
       <FitCamera showcase={showcase} />
       {showcase ? (
         <Spin>{island}</Spin>
