@@ -2,7 +2,7 @@
 
 import { OrbitControls } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { MOUSE } from 'three';
 import type * as THREE from 'three';
 import { STANDARD_HEX_COORDS, getTopology, type Topology } from '@/engine/board/topology';
@@ -17,6 +17,8 @@ import { KnightPieces } from './knights';
 
 /** Aiming the camera slightly "below" the island centre lifts it above the bottom dock. */
 const GAME_TARGET_Z = 1.3;
+/** The sea's swells peak at y≈0.02 and the seams between tiles bottom out at y≈0.01. */
+const ISLAND_LIFT = 0.08;
 
 /** Centre of a board and how far its corners reach from there (the large map sits off-centre). */
 function boardFrame(topo: Topology): { cx: number; cz: number; extent: number } {
@@ -92,6 +94,7 @@ function Spin({ children }: { children: React.ReactNode }) {
 function Island({
   scene,
   targets,
+  popup,
   shadows,
   onVertex,
   onEdge,
@@ -100,6 +103,7 @@ function Island({
 }: {
   scene: BoardScene;
   targets: BoardTargets;
+  popup?: ReactNode;
   shadows: boolean;
   onVertex?: (id: number) => void;
   onEdge?: (id: number) => void;
@@ -164,20 +168,23 @@ function Island({
       )}
       <KnightPieces scene={scene} topo={topo} />
       <Robber x={robberHex.x} z={robberHex.y + 0.46} />
-      <Targets targets={targets} topo={topo} color={scene.myColor} onVertex={onVertex} onEdge={onEdge} onHex={onHex} />
+      <Targets targets={targets} topo={topo} color={scene.myColor} popup={popup} onVertex={onVertex} onEdge={onEdge} onHex={onHex} />
     </group>
   );
 }
 
-export default function Board3D({ scene, targets, onVertex, onEdge, onHex, showcase = false, quality = 'high' }: BoardProps) {
+export default function Board3D({ scene, targets, popup, onBackground, onVertex, onEdge, onHex, showcase = false, quality = 'high' }: BoardProps) {
   const shadows = quality === 'high';
+  // Where the last press started: a click away closes the build popup, a drag (orbit/pan) doesn't.
+  const pressed = useRef<{ x: number; y: number } | null>(null);
   const fontsReady = useFontReady();
   const frame = useMemo(() => boardFrame(getTopology(scene.board.hexes)), [scene.board.hexes]);
   // Bigger maps pull the camera, fog, shadows and sea shelf out to match.
   const scale = Math.max(1, frame.extent / STANDARD_EXTENT);
   const island = (
-    <group position={[-frame.cx, 0, -frame.cz]}>
-      <Island scene={scene} targets={targets} shadows={shadows} onVertex={onVertex} onEdge={onEdge} onHex={onHex} fontsReady={fontsReady} />
+    // Lifted clear of the swells so no water shows in the seams between tiles.
+    <group position={[-frame.cx, ISLAND_LIFT, -frame.cz]}>
+      <Island scene={scene} targets={targets} popup={popup} shadows={shadows} onVertex={onVertex} onEdge={onEdge} onHex={onHex} fontsReady={fontsReady} />
     </group>
   );
   const backdrop = showcase ? '#061419' : SEA.sky;
@@ -187,8 +194,13 @@ export default function Board3D({ scene, targets, onVertex, onEdge, onHex, showc
       dpr={[1, quality === 'high' ? 2 : 1.25]}
       camera={{ position: [0, 11, 8.5], fov: 38, near: 0.1, far: 120 }}
       gl={{ antialias: true, powerPreference: 'high-performance' }}
-      onPointerMissed={() => {
+      onPointerDown={(e) => {
+        pressed.current = { x: e.clientX, y: e.clientY };
+      }}
+      onPointerMissed={(e) => {
         document.body.style.cursor = '';
+        const p = pressed.current;
+        if (onBackground && p && Math.hypot(e.clientX - p.x, e.clientY - p.y) < 6) onBackground();
       }}
     >
       <color attach="background" args={[backdrop]} />

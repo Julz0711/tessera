@@ -1,7 +1,8 @@
 'use client';
 
+import { Html } from '@react-three/drei';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import type * as THREE from 'three';
 import type { Topology } from '@/engine/board/topology';
 import type { PlayerColor } from '@/engine/types';
@@ -35,8 +36,8 @@ function click(e: ThreeEvent<MouseEvent>, fn: () => void) {
   fn();
 }
 
-/** Build hints are offered, not asked for: still and cream (legible on every terrain), where a pick pulses amber. */
-const hintMat = (hover: boolean) => mat(hover ? '#fff3cf' : '#f6eddb', { opacity: hover ? 1 : 0.9, emissive: '#f6eddb' });
+/** Build hints only show on hover: a ghost of the piece, or a cream ring (legible on every terrain). */
+const hintMat = mat('#fff3cf', { opacity: 1, emissive: '#f6eddb' });
 
 function VertexTarget({
   x,
@@ -58,25 +59,25 @@ function VertexTarget({
   const [hover, setHover] = useState(false);
   const pulse = usePulse(id);
   const subtle = kind === 'knightAction';
-  const lift = kind === 'city' ? 0.5 : kind === 'knightAction' ? 0.06 : 0.36;
+  const ghost = kind === 'settlement' || kind === 'city';
+  const lift = kind === 'city' ? 0.5 : kind === 'knightAction' || kind === 'wall' ? 0.06 : 0.36;
+  const quiet = hint && !subtle;
   return (
     <group>
       {hover && color && kind === 'settlement' && <Settlement x={x} z={z} color={color} ghost />}
       {hover && color && kind === 'city' && <City x={x} z={z} color={color} ghost />}
-      <mesh
-        ref={hint && !subtle ? undefined : pulse}
-        geometry={GEO.targetRing}
-        material={
-          subtle
-            ? mat(hover ? '#fff3cf' : '#f6eddb', { opacity: hover ? 0.9 : 0.45 })
-            : hint
-              ? hintMat(hover)
-              : mat(hover ? '#fff3cf' : AMBER, { emissive: AMBER })
-        }
-        position={[x, TILE_TOP + lift, z]}
-        rotation={[Math.PI / 2, 0, 0]}
-        scale={subtle ? 1.5 : 1}
-      />
+      {(!quiet || (hover && !ghost)) && (
+        <mesh
+          ref={quiet ? undefined : pulse}
+          geometry={GEO.targetRing}
+          material={
+            subtle ? mat(hover ? '#fff3cf' : '#f6eddb', { opacity: hover ? 0.9 : 0.45 }) : quiet ? hintMat : mat(hover ? '#fff3cf' : AMBER, { emissive: AMBER })
+          }
+          position={[x, TILE_TOP + lift, z]}
+          rotation={[Math.PI / 2, 0, 0]}
+          scale={subtle || kind === 'wall' ? 1.5 : 1}
+        />
+      )}
       <mesh
         geometry={GEO.targetHit}
         position={[x, TILE_TOP + 0.2, z]}
@@ -111,10 +112,7 @@ function EdgeTarget({
   return (
     <group>
       {hover && color && <Road x={x} z={z} angle={angle} color={color} ghost />}
-      {hint ? (
-        // A small ring on the edge's midpoint, like colonist's road hints.
-        <mesh geometry={GEO.targetRing} material={hintMat(hover)} position={[x, TILE_TOP + 0.1, z]} rotation={[Math.PI / 2, 0, 0]} scale={0.7} />
-      ) : (
+      {hint ? null : (
         <mesh
           ref={bar}
           geometry={GEO.road}
@@ -156,10 +154,40 @@ function HexTarget({ x, z, id, onPick }: { x: number; z: number; id: number; onP
   );
 }
 
+/** The spot whose build popup is open: its ghost stays, with the popup above it. */
+function ArmedSpot({ armed, topo, color, popup }: { armed: NonNullable<BoardTargets['armed']>; topo: Topology; color: PlayerColor | null; popup?: ReactNode }) {
+  const p = armed.target === 'edge' ? topo.edges[armed.at] : topo.vertices[armed.at];
+  const x = p.x;
+  const z = p.y;
+  return (
+    <group>
+      {color && armed.what === 'road' && <Road x={x} z={z} angle={topo.edges[armed.at].angle} color={color} ghost />}
+      {color && armed.what === 'settlement' && <Settlement x={x} z={z} color={color} ghost />}
+      {color && armed.what === 'city' && <City x={x} z={z} color={color} ghost />}
+      {(armed.what === 'knight' || armed.what === 'wall') && (
+        <mesh geometry={GEO.targetRing} material={hintMat} position={[x, TILE_TOP + 0.06, z]} rotation={[Math.PI / 2, 0, 0]} scale={1.5} />
+      )}
+      {popup && (
+        <Html position={[x, TILE_TOP + 0.45, z]} zIndexRange={[30, 0]} style={{ pointerEvents: 'none' }}>
+          {/* Clicks on the popup mustn't reach the board (they'd count as a click away). */}
+          <div
+            style={{ transform: 'translate(-50%, calc(-100% - 10px))', pointerEvents: 'auto' }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {popup}
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+}
+
 export function Targets({
   targets,
   topo,
   color,
+  popup,
   onVertex,
   onEdge,
   onHex,
@@ -167,6 +195,7 @@ export function Targets({
   targets: BoardTargets;
   topo: Topology;
   color: PlayerColor | null;
+  popup?: ReactNode;
   onVertex?: (id: number) => void;
   onEdge?: (id: number) => void;
   onHex?: (id: number) => void;
@@ -191,6 +220,7 @@ export function Targets({
           <EdgeTarget key={`e${id}`} id={id} x={topo.edges[id].x} z={topo.edges[id].y} angle={topo.edges[id].angle} hint={targets.hint} color={color} onPick={onEdge} />
         ))}
       {onHex && targets.hexes.map((id) => <HexTarget key={`h${id}`} id={id} x={topo.hexes[id].x} z={topo.hexes[id].y} onPick={onHex} />)}
+      {targets.armed && <ArmedSpot armed={targets.armed} topo={topo} color={color} popup={popup} />}
     </group>
   );
 }

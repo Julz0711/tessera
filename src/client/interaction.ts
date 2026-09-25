@@ -31,7 +31,7 @@ import type { PlayerView } from '@/engine/view';
 import { NO_TARGETS, type BoardTargets, type TargetKind } from '@/components/board/types';
 import { usePrefs } from './prefs';
 import { api } from './store';
-import { useUi, type UiMode } from './ui';
+import { useUi, type Armed, type BuildOption, type BuildWhat, type UiMode } from './ui';
 
 export interface PickSpec {
   target: 'vertex' | 'hex' | 'edge';
@@ -88,23 +88,32 @@ function ownKnights(view: PlayerView): number[] {
   return out;
 }
 
-/** Roads, settlements and cities the viewer can afford and place right now. */
-function affordableSpots(view: PlayerView, me: number): { roads: number[]; settlements: number[]; cities: number[] } {
+/** Pieces the viewer can afford and place right now, by spot. */
+function affordableSpots(view: PlayerView, me: number): Record<'roads' | 'settlements' | 'cities' | 'knights' | 'walls', number[]> {
   const hand = view.players[me].hand;
   const left = piecesLeft(view, me);
+  const ck = view.mode === 'ck';
   return {
     roads: left.roads > 0 && hasCards(hand, COSTS.road) ? legalRoadSpots(view, me) : [],
     settlements: left.settlements > 0 && hasCards(hand, COSTS.settlement) ? legalSettlementSpots(view, me) : [],
     cities: left.cities > 0 && hasCards(hand, COSTS.city) ? legalCitySpots(view, me) : [],
+    knights: ck && left.knights[1] > 0 && hasCards(hand, COSTS.knight) ? legalKnightSpots(view, me) : [],
+    walls: ck && left.walls > 0 && hasCards(hand, COSTS.wall) ? wallSpots(view, me) : [],
   };
 }
 
 /**
- * @param hints Offer affordable build spots when nothing is selected (colonist-style): a click
- *   builds there (after a confirming second click, unless that's turned off) without picking
- *   Road/Settle/City first.
+ * @param hints Offer affordable build spots when nothing is selected (colonist-style): they show
+ *   on hover, and a click opens the build popup there without picking Road/Settle/City first.
+ * @param armed The spot whose build popup is open; it keeps a ghost of the piece.
  */
-export function computeTargets(view: PlayerView | null, mode: UiMode, hints = false): BoardTargets {
+export function computeTargets(view: PlayerView | null, mode: UiMode, hints = false, armed: Armed | null = null): BoardTargets {
+  const targets = baseTargets(view, mode, hints);
+  if (!armed || targets === NO_TARGETS) return targets;
+  return { ...targets, armed: { target: armed.target, at: armed.at, what: armed.options[0].what } };
+}
+
+function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): BoardTargets {
   if (!view || view.viewer === null || view.phase === 'ended') return NO_TARGETS;
   const me = view.viewer;
 
@@ -157,10 +166,6 @@ export function computeTargets(view: PlayerView | null, mode: UiMode, hints = fa
         return { ...NO_TARGETS, kind: 'wall', vertices: wallSpots(view, me) };
     }
   }
-  if (mode?.t === 'confirm') {
-    // Only the armed spot stays lit, pulsing like a normal pick, until it's confirmed or cancelled.
-    return mode.what === 'road' ? { ...NO_TARGETS, kind: 'road', edges: [mode.at] } : { ...NO_TARGETS, kind: mode.what, vertices: [mode.at] };
-  }
   if (mode?.t === 'knightMove') {
     const { moves, displaces } = knightMoveTargets(view, me, mode.from);
     return { ...NO_TARGETS, kind: 'knightDestination', vertices: [...moves, ...displaces], selectedVertex: mode.from };
@@ -183,13 +188,15 @@ export function computeTargets(view: PlayerView | null, mode: UiMode, hints = fa
   // Cities & Knights: your knights are clickable for their action menu.
   const knights = view.mode === 'ck' ? ownKnights(view) : [];
   if (!hints) return knights.length ? { ...NO_TARGETS, kind: 'knightAction', vertices: knights } : NO_TARGETS;
-  // Knights and walls stay behind their buttons: their spots overlap settlement spots.
   const spots = affordableSpots(view, me);
   const vertexKinds: Partial<Record<number, TargetKind>> = {};
+  for (const v of spots.knights) vertexKinds[v] = 'knight';
+  // A corner that takes a settlement or a knight previews the settlement; the popup offers both.
   for (const v of spots.settlements) vertexKinds[v] = 'settlement';
   for (const v of spots.cities) vertexKinds[v] = 'city';
+  for (const v of spots.walls) vertexKinds[v] = 'wall';
   for (const v of knights) vertexKinds[v] = 'knightAction';
-  const vertices = [...spots.settlements, ...spots.cities, ...knights];
+  const vertices = Object.keys(vertexKinds).map(Number);
   if (!vertices.length && !spots.roads.length) return NO_TARGETS;
   return { kind: spots.roads.length ? 'road' : 'settlement', vertices, edges: spots.roads, hexes: [], vertexKinds, hint: true };
 }
@@ -206,14 +213,17 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
   if (me === null) return;
 
   if (view.phase === 'setup') {
-    return send(target === 'vertex' ? { type: 'buildSettlement', vertex: id } : { type: 'buildRoad', edge: id });
+    if (target === 'edge') return arm('edge', id, [{ what: 'road', action: { type: 'buildRoad', edge: id }, cost: null }], false);
+    // Cities & Knights: the second placement is a city.
+    const city = view.mode === 'ck' && (view.setup?.index ?? 0) >= view.players.length;
+    return arm('vertex', id, [{ what: city ? 'city' : 'settlement', action: { type: 'buildSettlement', vertex: id }, cost: null }], false);
   }
 
   const prompt = view.pending.find((p) => p.seat === me);
   if (prompt) {
     switch (prompt.kind) {
       case 'freeRoads':
-        return send({ type: 'buildRoad', edge: id });
+        return arm('edge', id, [{ what: 'road', action: { type: 'buildRoad', edge: id }, cost: null }], false);
       case 'robber': {
         const victims = robberVictims(view, me, id);
         if (prompt.reason !== 'bishop' && victims.length > 1) return ui.setRobber({ hex: id, chaseFrom: null });
@@ -236,20 +246,7 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
 
   const mode = ui.mode;
   const done = () => useUi.getState().setMode(null);
-  if (mode?.t === 'build') {
-    switch (mode.what) {
-      case 'road':
-        return send({ type: 'buildRoad', edge: id }, done);
-      case 'settlement':
-        return send({ type: 'buildSettlement', vertex: id }, done);
-      case 'city':
-        return send({ type: 'buildCity', vertex: id }, done);
-      case 'knight':
-        return send({ type: 'buildKnight', vertex: id }, done);
-      case 'wall':
-        return send({ type: 'buildWall', vertex: id }, done);
-    }
-  }
+  if (mode?.t === 'build') return arm(target === 'edge' ? 'edge' : 'vertex', id, [buildOption(mode.what, id)], true);
   if (mode?.t === 'knightMove') return send({ type: 'moveKnight', from: mode.from, to: id }, done);
   if (mode?.t === 'knightChase') {
     const victims = robberVictims(view, me, id);
@@ -263,24 +260,59 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
     if (picked.length >= spec.need) return send({ type: 'playProgress', card: mode.card, params: progressParams(mode.cardType, picked) }, done);
     return ui.setMode({ ...mode, picked });
   }
-  if (mode?.t === 'confirm') return confirmBuild();
   if (target === 'vertex' && view.knights[id]?.owner === me) return ui.setKnightMenu(id);
-  // Build hints: the spot itself says what gets built; unless turned off, a first click only arms it.
-  const b = target === 'vertex' ? view.buildings[id] : null;
-  const what = target === 'edge' ? 'road' : target === 'vertex' && !b ? 'settlement' : b && b.owner === me && !b.city ? 'city' : null;
-  if (!what) return;
-  if (!usePrefs.getState().confirmBuilds) return send(hintBuild(what, id));
-  ui.setMode({ t: 'confirm', what, at: id });
+  // Build hints: offer whatever the spot can take.
+  const spots = affordableSpots(view, me);
+  if (target === 'edge') return spots.roads.includes(id) ? arm('edge', id, [buildOption('road', id)], false) : undefined;
+  if (target !== 'vertex') return;
+  const offers = [
+    ['settlement', spots.settlements],
+    ['knight', spots.knights],
+    ['city', spots.cities],
+    ['wall', spots.walls],
+  ] as const;
+  const options = offers.flatMap(([what, at]) => (at.includes(id) ? [buildOption(what, id)] : []));
+  if (options.length) return arm('vertex', id, options, false);
 }
 
-function hintBuild(what: 'road' | 'settlement' | 'city', at: number): Action {
-  if (what === 'road') return { type: 'buildRoad', edge: at };
-  return what === 'settlement' ? { type: 'buildSettlement', vertex: at } : { type: 'buildCity', vertex: at };
+function buildOption(what: BuildWhat, at: number): BuildOption {
+  const action: Action =
+    what === 'road'
+      ? { type: 'buildRoad', edge: at }
+      : what === 'settlement'
+        ? { type: 'buildSettlement', vertex: at }
+        : what === 'city'
+          ? { type: 'buildCity', vertex: at }
+          : what === 'knight'
+            ? { type: 'buildKnight', vertex: at }
+            : { type: 'buildWall', vertex: at };
+  return { what, action, cost: COSTS[what] };
 }
 
-/** Builds the armed build-hint spot (second click, the Build button or Enter). */
-export async function confirmBuild(): Promise<void> {
-  const mode = useUi.getState().mode;
-  if (mode?.t !== 'confirm') return;
-  return send(hintBuild(mode.what, mode.at), () => useUi.getState().setMode(null));
+/**
+ * Opens the build popup on a spot. A second click on the open spot builds its only option; with
+ * confirmation turned off, a single option is built straight away.
+ */
+function arm(target: 'vertex' | 'edge', at: number, options: BuildOption[], endsMode: boolean): Promise<void> | void {
+  const ui = useUi.getState();
+  const armed: Armed = { target, at, options, endsMode };
+  const again = ui.armed?.target === target && ui.armed.at === at;
+  if (options.length === 1 && (again || !usePrefs.getState().confirmBuilds)) return build(armed, 0);
+  ui.arm(armed);
+}
+
+/** Builds option `i` of the open build popup (its buttons, a second click or Enter). */
+export async function confirmBuild(i = 0): Promise<void> {
+  const armed = useUi.getState().armed;
+  if (armed) return build(armed, i);
+}
+
+async function build(armed: Armed, i: number): Promise<void> {
+  const option = armed.options[i];
+  if (!option) return;
+  return send(option.action, () => {
+    const ui = useUi.getState();
+    if (armed.endsMode) ui.setMode(null);
+    else ui.arm(null);
+  });
 }

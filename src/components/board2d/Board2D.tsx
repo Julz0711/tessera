@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Maximize2, Minus, Plus } from 'lucide-react';
 import { PIPS } from '@/engine/constants';
 import { getTopology, type Topology } from '@/engine/board/topology';
@@ -179,10 +179,10 @@ function HousePath({ x, y, color, ghost }: { x: number; y: number; color: Player
   const c = PLAYER_COLORS[color];
   return (
     <path
-      d={`M${x - 13} ${y + 11}v-13l13-11 13 11v13Z`}
+      d={`M${x - 17} ${y + 14}v-17l17-14 17 14v17Z`}
       fill={c.hex}
       stroke={c.dark}
-      strokeWidth="3.5"
+      strokeWidth="4.5"
       strokeLinejoin="round"
       opacity={ghost ? 0.6 : 1}
     />
@@ -193,17 +193,17 @@ function CityPath({ x, y, color, ghost }: { x: number; y: number; color: PlayerC
   const c = PLAYER_COLORS[color];
   return (
     <path
-      d={`M${x - 20} ${y + 13}v-14l9-7 9 7v-14h7v-6h6v6h7v28Z`}
+      d={`M${x - 26} ${y + 17}v-18l12-9 12 9v-18h9v-8h8v8h9v36Z`}
       fill={c.hex}
       stroke={c.dark}
-      strokeWidth="3.5"
+      strokeWidth="4.5"
       strokeLinejoin="round"
       opacity={ghost ? 0.6 : 1}
     />
   );
 }
 
-export default function Board2D({ scene, targets, onVertex, onEdge, onHex, interactive }: BoardProps) {
+export default function Board2D({ scene, targets, popup, onBackground, onVertex, onEdge, onHex, interactive }: BoardProps) {
   const topo = getTopology(scene.board.hexes);
   const [hover, setHover] = useState<string | null>(null);
   const bounds = useMemo(() => {
@@ -218,8 +218,31 @@ export default function Board2D({ scene, targets, onVertex, onEdge, onHex, inter
   const myColor = scene.myColor;
   const { svgRef, viewBox, zoom, minZoom, maxZoom, zoomIn, zoomOut, reset, svgHandlers } = useZoomPan(bounds, !!interactive);
 
+  // The build popup floats above its spot in screen space, so it keeps its size at any zoom.
+  const armed = targets.armed;
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [popupAt, setPopupAt] = useState<{ x: number; y: number } | null>(null);
+  const [resized, setResized] = useState(0);
+  useEffect(() => {
+    const onResize = () => setResized((n) => n + 1);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  const hasPopup = !!popup;
+  useLayoutEffect(() => {
+    const ctm = svgRef.current?.getScreenCTM();
+    const box = wrapRef.current?.getBoundingClientRect();
+    if (!armed || !hasPopup || !ctm || !box) {
+      setPopupAt(null);
+      return;
+    }
+    const spot = armed.target === 'edge' ? topo.edges[armed.at] : topo.vertices[armed.at];
+    const p = new DOMPoint(spot.x * S, spot.y * S).matrixTransform(ctm);
+    setPopupAt({ x: p.x - box.left, y: p.y - box.top });
+  }, [armed, hasPopup, viewBox, topo, resized, svgRef]);
+
   return (
-    <div className="relative h-full w-full">
+    <div ref={wrapRef} className="relative h-full w-full">
       <svg
         ref={svgRef}
         viewBox={viewBox}
@@ -228,6 +251,8 @@ export default function Board2D({ scene, targets, onVertex, onEdge, onHex, inter
         role="img"
         aria-label="Game board"
         {...svgHandlers}
+        // A click that reaches the board itself (no target took it) closes the build popup.
+        onClick={onBackground ? () => onBackground() : undefined}
       >
         {/* The sea itself is painted by the container (.sea-2d) so it spans the whole screen. */}
 
@@ -245,7 +270,14 @@ export default function Board2D({ scene, targets, onVertex, onEdge, onHex, inter
           return (
             <g
               key={`h${h.id}`}
-              onClick={target && onHex ? () => onHex(h.id) : undefined}
+              onClick={
+                target && onHex
+                  ? (ev) => {
+                      ev.stopPropagation();
+                      onHex(h.id);
+                    }
+                  : undefined
+              }
               onMouseEnter={target ? () => setHover(`h${h.id}`) : undefined}
               onMouseLeave={target ? () => setHover(null) : undefined}
               className={target ? 'cursor-pointer' : undefined}
@@ -347,8 +379,8 @@ export default function Board2D({ scene, targets, onVertex, onEdge, onHex, inter
           const y2 = (b.y + (a.y - b.y) * k) * S;
           return (
             <g key={`r${eid}`} pointerEvents="none">
-              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.dark} strokeWidth="15" strokeLinecap="round" />
-              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.hex} strokeWidth="9" strokeLinecap="round" />
+              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.dark} strokeWidth="20" strokeLinecap="round" />
+              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.hex} strokeWidth="12" strokeLinecap="round" />
             </g>
           );
         })}
@@ -364,13 +396,13 @@ export default function Board2D({ scene, targets, onVertex, onEdge, onHex, inter
               {b.wall && (
                 <g>
                   {/* dark outline first so the ring reads on every hex colour, incl. grey mountains */}
-                  <circle cx={p.x * S} cy={p.y * S} r="27" fill="none" stroke="#3a2f22" strokeWidth="9" />
-                  <circle cx={p.x * S} cy={p.y * S} r="27" fill="none" stroke="#e8d9b5" strokeWidth="6" />
+                  <circle cx={p.x * S} cy={p.y * S} r="35" fill="none" stroke="#3a2f22" strokeWidth="9" />
+                  <circle cx={p.x * S} cy={p.y * S} r="35" fill="none" stroke="#e8d9b5" strokeWidth="6" />
                   {/* battlement notches: dark teeth dashed over the light stone ring */}
-                  <circle cx={p.x * S} cy={p.y * S} r="27" fill="none" stroke="#5b4a36" strokeWidth="6" strokeDasharray="8 6" />
+                  <circle cx={p.x * S} cy={p.y * S} r="35" fill="none" stroke="#5b4a36" strokeWidth="6" strokeDasharray="8 6" />
                 </g>
               )}
-              {b.metropolis && <circle cx={p.x * S + 16} cy={p.y * S - 20} r="7" fill="#f2c14e" stroke="#1f1a14" strokeWidth="2" />}
+              {b.metropolis && <circle cx={p.x * S + 21} cy={p.y * S - 26} r="9" fill="#f2c14e" stroke="#1f1a14" strokeWidth="2.5" />}
             </g>
           ) : (
             <HousePath key={`s${v}`} x={p.x * S} y={p.y * S} color={color} />
@@ -384,10 +416,23 @@ export default function Board2D({ scene, targets, onVertex, onEdge, onHex, inter
           const c = PLAYER_COLORS[scene.colors[k.owner]];
           return (
             <g key={`k${v}`} pointerEvents="none">
-              <circle cx={p.x * S} cy={p.y * S} r="17" fill={k.active ? '#f2b33d' : '#2d2c33'} stroke="#1f1a14" strokeWidth="2.5" />
-              <path d={`M${p.x * S - 10} ${p.y * S - 9}h20v7c0 7-4 11-10 13-6-2-10-6-10-13Z`} fill={c.hex} stroke={c.dark} strokeWidth="2" />
+              <circle cx={p.x * S} cy={p.y * S} r="23" fill={k.active ? '#f2b33d' : '#2d2c33'} stroke="#1f1a14" strokeWidth={k.active ? 4.5 : 3} />
+              <path
+                d={`M${p.x * S - 13} ${p.y * S - 12}h26v9c0 9-5 14-13 17-8-2.5-13-8-13-17Z`}
+                fill={c.hex}
+                stroke={c.dark}
+                strokeWidth="2.5"
+              />
               {Array.from({ length: k.level }, (_, i) => (
-                <circle key={i} cx={p.x * S + (i - (k.level - 1) / 2) * 6} cy={p.y * S - 1} r="2.2" fill={c.ink} />
+                <circle
+                  key={i}
+                  cx={p.x * S + (i - (k.level - 1) / 2) * 8}
+                  cy={p.y * S + 2}
+                  r="3"
+                  fill={c.ink}
+                  stroke={c.dark}
+                  strokeWidth="0.75"
+                />
               ))}
             </g>
           );
@@ -438,14 +483,20 @@ export default function Board2D({ scene, targets, onVertex, onEdge, onHex, inter
             const y2 = (b.y + (a.y - b.y) * k) * S;
             const isHover = hover === key;
             return (
-              <g key={key} className="cursor-pointer" onClick={() => onEdge(eid)} onMouseEnter={() => setHover(key)} onMouseLeave={() => setHover(null)}>
+              <g
+                key={key}
+                className="cursor-pointer"
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  onEdge(eid);
+                }}
+                onMouseEnter={() => setHover(key)}
+                onMouseLeave={() => setHover(null)}
+              >
                 <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth="26" />
                 {targets.hint ? (
-                  // Build hints: a quiet dot on the edge's midpoint (like colonist); hovering previews the road.
-                  <>
-                    {isHover && myColor && <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={PLAYER_COLORS[myColor].hex} strokeWidth="11" strokeLinecap="round" opacity="0.7" />}
-                    <HintRing x={e.x * S} y={e.y * S} r={6} filled={!isHover} hover={isHover} />
-                  </>
+                  // Build hints only show on hover: a preview of the road.
+                  isHover && myColor && <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={PLAYER_COLORS[myColor].hex} strokeWidth="11" strokeLinecap="round" opacity="0.7" />
                 ) : (
                   <>
                     {/* dark underlay so the amber reads on light tiles */}
@@ -474,15 +525,24 @@ export default function Board2D({ scene, targets, onVertex, onEdge, onHex, inter
             const isHover = hover === key;
             const kind = targets.vertexKinds?.[vid] ?? targets.kind;
             return (
-              <g key={key} className="cursor-pointer" onClick={() => onVertex(vid)} onMouseEnter={() => setHover(key)} onMouseLeave={() => setHover(null)}>
+              <g
+                key={key}
+                className="cursor-pointer"
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  onVertex(vid);
+                }}
+                onMouseEnter={() => setHover(key)}
+                onMouseLeave={() => setHover(null)}
+              >
                 <circle cx={p.x * S} cy={p.y * S} r="22" fill="transparent" />
                 {isHover && myColor && kind === 'settlement' && <HousePath x={p.x * S} y={p.y * S} color={myColor} ghost />}
                 {isHover && myColor && kind === 'city' && <CityPath x={p.x * S} y={p.y * S} color={myColor} ghost />}
                 {kind === 'knightAction' ? (
                   <circle cx={p.x * S} cy={p.y * S} r="21" fill="none" stroke={isHover ? '#f2b33d' : '#f6eddb'} strokeOpacity={isHover ? 1 : 0.6} strokeWidth="3" strokeDasharray="5 4" />
                 ) : targets.hint ? (
-                  // Offered, not asked for: still, where a pick pulses. City spots ring the settlement.
-                  <HintRing x={p.x * S} y={p.y * S} r={kind === 'city' ? 24 : 10} filled={kind !== 'city' && !isHover} hover={isHover} />
+                  // Build hints only show on hover: the piece itself (above), or a ring for knights and walls.
+                  isHover && (kind === 'knight' || kind === 'wall') && <HintRing x={p.x * S} y={p.y * S} r={kind === 'wall' ? 30 : 16} filled={false} hover />
                 ) : (
                   <g>
                     <circle cx={p.x * S} cy={p.y * S} r="12" fill="none" stroke="#1f1a14" strokeOpacity="0.4" strokeWidth="8">
@@ -496,7 +556,50 @@ export default function Board2D({ scene, targets, onVertex, onEdge, onHex, inter
               </g>
             );
           })}
+
+        {/* the spot whose build popup is open keeps its ghost */}
+        {armed &&
+          myColor &&
+          (() => {
+            if (armed.target === 'edge') {
+              const e = topo.edges[armed.at];
+              const a = topo.vertices[e.a];
+              const b = topo.vertices[e.b];
+              const k = 0.2;
+              return (
+                <line
+                  x1={(a.x + (b.x - a.x) * k) * S}
+                  y1={(a.y + (b.y - a.y) * k) * S}
+                  x2={(b.x + (a.x - b.x) * k) * S}
+                  y2={(b.y + (a.y - b.y) * k) * S}
+                  stroke={PLAYER_COLORS[myColor].hex}
+                  strokeWidth="11"
+                  strokeLinecap="round"
+                  opacity="0.7"
+                  pointerEvents="none"
+                />
+              );
+            }
+            const p = topo.vertices[armed.at];
+            return (
+              <g pointerEvents="none">
+                {armed.what === 'settlement' ? (
+                  <HousePath x={p.x * S} y={p.y * S} color={myColor} ghost />
+                ) : armed.what === 'city' ? (
+                  <CityPath x={p.x * S} y={p.y * S} color={myColor} ghost />
+                ) : (
+                  <HintRing x={p.x * S} y={p.y * S} r={armed.what === 'wall' ? 30 : 16} filled={false} hover />
+                )}
+              </g>
+            );
+          })()}
       </svg>
+      {popup && popupAt && (
+        // Above its spot, or below it near the top edge (where the top bar would cover it).
+        <div className="absolute z-30" style={{ left: popupAt.x, top: popupAt.y, transform: popupAt.y < 140 ? 'translate(-50%, 22px)' : 'translate(-50%, calc(-100% - 16px))' }}>
+          {popup}
+        </div>
+      )}
       {interactive && (
         <div className="absolute bottom-2 left-2 z-10 flex flex-col gap-1.5">
           <button type="button" className="btn btn-dark h-10 w-10 p-0" onClick={zoomIn} disabled={zoom >= maxZoom - 1e-6} aria-label="Zoom in">

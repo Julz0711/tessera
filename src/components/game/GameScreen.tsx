@@ -13,6 +13,7 @@ import { computeTargets, handlePick } from '@/client/interaction';
 import { sceneFromView } from '@/client/targets';
 import { useUi } from '@/client/ui';
 import { BoardView } from '@/components/board/BoardView';
+import { BuildPopup } from './BuildPopup';
 import { ChatPanel } from '@/components/room/ChatPanel';
 import { BankPanel } from './BankPanel';
 import { BankStrip } from './BankStrip';
@@ -160,7 +161,7 @@ export function GameScreen() {
 
   const styles = useMemo(() => room?.seats.map((s) => s.knight) ?? [], [room?.seats]);
   const scene = useMemo(() => (view ? { ...sceneFromView(view, styles), highlightToken: highlight } : null), [view, styles, highlight]);
-  const targets = useMemo(() => computeTargets(view, ui.mode, prefs.buildHints), [view, ui.mode, prefs.buildHints]);
+  const targets = useMemo(() => computeTargets(view, ui.mode, prefs.buildHints, ui.armed), [view, ui.mode, prefs.buildHints, ui.armed]);
 
   const onVertex = useCallback((id: number) => view && void handlePick(view, 'vertex', id), [view]);
   const onEdge = useCallback((id: number) => view && void handlePick(view, 'edge', id), [view]);
@@ -183,6 +184,8 @@ export function GameScreen() {
           quality={prefs.graphics}
           scene={scene}
           targets={targets}
+          popup={ui.armed && view ? <BuildPopup view={view} armed={ui.armed} /> : null}
+          onBackground={ui.armed ? () => ui.arm(null) : undefined}
           interactive
           onVertex={targets.vertices.length ? onVertex : undefined}
           onEdge={targets.edges.length ? onEdge : undefined}
