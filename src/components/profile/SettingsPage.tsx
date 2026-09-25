@@ -4,7 +4,7 @@ import { ArrowLeft, Box, Check, Grid2x2, Loader2, Volume2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePrefs } from '@/client/prefs';
-import { setVolume } from '@/client/sound';
+import { play, setVolume, type Sfx } from '@/client/sound';
 import { toast } from '@/client/store';
 import type { PlayerColor } from '@/engine/types';
 import type { KnightCustomization } from '@/shared/knight';
@@ -14,6 +14,18 @@ import { ColorPicker } from '@/components/ui/ColorPicker';
 import { KnightCustomizer } from '@/components/knight/KnightCustomizer';
 import { Logomark } from '@/components/ui/Logomark';
 import { fetchProfile } from './ProfilePage';
+
+const SOUND_SAMPLES: [string, Sfx][] = [
+  ['Dice', 'dice'],
+  ['City', 'city'],
+  ['Your turn', 'turn'],
+  ['Trade offer', 'offer'],
+  ['Robber', 'robber'],
+  ['Barbarians', 'barbarianAttack'],
+  ['Award', 'award'],
+  ['Metropolis', 'metropolis'],
+  ['Victory', 'win'],
+];
 
 function Section({ title, children, hint }: { title: string; children: React.ReactNode; hint?: string }) {
   return (
@@ -128,6 +140,22 @@ export function SettingsPage() {
                   <Volume2 size={18} />
                   <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => setVol(Number(e.target.value))} className="flex-1 accent-ink" aria-label="Volume" />
                   <span className="w-10 text-right text-sm font-bold tabular">{Math.round(volume * 100)}%</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="mr-1 text-xs font-bold text-ink-faint">Try:</span>
+                  {SOUND_SAMPLES.map(([label, sfx]) => (
+                    <button
+                      key={sfx}
+                      type="button"
+                      className="btn px-2.5 py-1 text-xs"
+                      onClick={() => {
+                        setVolume(volume);
+                        play(sfx);
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </Section>
               <Section title="Graphics" hint="The 2D board is lighter on older phones and laptops. You can switch any time during a game.">

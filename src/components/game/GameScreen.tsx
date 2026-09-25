@@ -1,7 +1,7 @@
 'use client';
 
 import { MessageSquare, ScrollText, Trophy } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CARDS, type Card, type DevCardType, type GameEvent, type PartialHand, type ProgressCardType } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { DEV_NAMES, PROGRESS_NAMES } from '@/client/describe';
@@ -57,12 +57,13 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
           }
           break;
         case 'built':
-          play('build');
+          play(ev.piece === 'wall' ? 'wall' : ev.piece);
           break;
         case 'robberMoved':
           play('robber');
           break;
         case 'stole':
+          play(ev.victim === me ? 'stolen' : 'steal');
           if (ev.victim === me) toast(`${name(ev.seat)} stole ${secret?.card ? CARD_COLORS[secret.card as Card].label.toLowerCase() : 'a card'} from you`, 'error');
           else if (ev.seat === me && secret?.card) toast(`You stole ${CARD_COLORS[secret.card as Card].label.toLowerCase()} from ${name(ev.victim)}`, 'good');
           break;
@@ -77,22 +78,33 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
           play('trade');
           break;
         case 'tradeOffered':
-          if (me !== null && ev.seat !== me) play('chat');
+          if (me !== null && ev.seat !== me && view.trades.some((t) => t.id === ev.id && t.to.includes(me))) play('offer');
           break;
         case 'devBought':
+          if (ev.seat === me) play('card');
           if (ev.seat === me && secret?.card) toast(`You bought: ${DEV_NAMES[secret.card as DevCardType]}`);
           break;
+        case 'devPlayed':
+        case 'progressPlayed':
+          play('card');
+          break;
         case 'longestRoad':
+          if (ev.seat !== null) play(ev.seat === me ? 'award' : 'card');
           if (ev.seat !== null) toast(`${ev.seat === me ? 'You' : name(ev.seat)} took the Longest Road`);
           break;
         case 'largestArmy':
+          if (ev.seat !== null) play(ev.seat === me ? 'award' : 'card');
           if (ev.seat !== null) toast(`${ev.seat === me ? 'You' : name(ev.seat)} took the Largest Army`);
           break;
         case 'gameOver':
-          play('win');
+          play(me === null || ev.winner === me ? 'win' : 'lose');
+          break;
+        case 'barbarianAdvanced':
+          play('barbarianStep');
           break;
         case 'barbarianAttack':
-          play('robber');
+          play('barbarianAttack');
+          if (ev.won) setTimeout(() => play('repelled'), 1300);
           toast(
             ev.won
               ? `The barbarians attacked (${ev.strength}) — the knights (${ev.defense}) held the island!`
@@ -101,17 +113,30 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
           );
           break;
         case 'cityLost':
+          if (ev.seat === me) play('stolen');
           if (ev.seat === me) toast('The barbarians razed one of your cities', 'error');
           break;
         case 'defenderAwarded':
+          if (ev.seat === me) play('award');
           toast(`${ev.seat === me ? 'You are' : `${name(ev.seat)} is`} the Defender of the island (+1 VP)`, 'good');
           break;
         case 'progressDrawn':
+          if (ev.seat === me) play('card');
           if (ev.seat === me && secret?.card) toast(`New progress card: ${PROGRESS_NAMES[secret.card as ProgressCardType]}`);
           break;
         case 'metropolis':
           toast(`${ev.seat === me ? 'You' : name(ev.seat)} founded a metropolis`, ev.seat === me ? 'good' : 'info');
-          play('build');
+          play(ev.seat === me ? 'metropolis' : 'award');
+          break;
+        case 'improved':
+          if (ev.seat === me) play('improve');
+          break;
+        case 'knightBuilt':
+          play('knight');
+          break;
+        case 'knightPromoted':
+        case 'knightActivated':
+          if (ev.seat === me) play('knightUp');
           break;
         case 'knightDisplaced':
           if (ev.victim === me) toast(`${name(ev.seat)} displaced one of your knights`, 'error');
@@ -120,6 +145,26 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [updateId]);
+}
+
+/** A chime when a new decision lands on you (discard, pick gold, move a knight…), and soft sounds for panels. */
+function useUiSounds(view: PlayerView | null) {
+  const me = view?.viewer ?? null;
+  const prompts = me === null || !view ? '' : view.pending.filter((p) => p.seat === me).map((p) => p.kind).join(',');
+  const previous = useRef('');
+  useEffect(() => {
+    const before = new Set(previous.current.split(',').filter(Boolean));
+    if (prompts.split(',').some((k) => k && !before.has(k))) play('alert');
+    previous.current = prompts;
+  }, [prompts]);
+
+  const panel = useUi((s) => s.panel ?? s.card?.kind ?? null);
+  const opened = useRef(panel);
+  useEffect(() => {
+    if (panel === opened.current) return;
+    play(panel ? 'open' : 'close');
+    opened.current = panel;
+  }, [panel]);
 }
 
 export function GameScreen() {
@@ -134,6 +179,7 @@ export function GameScreen() {
   const [showResults, setShowResults] = useState(true);
 
   useEventFeedback(view, events, updateId);
+  useUiSounds(view);
 
   // Light up the rolled number for a few seconds.
   useEffect(() => {
