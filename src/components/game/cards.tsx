@@ -66,17 +66,22 @@ export function CardList({ cards }: { cards: PartialHand }) {
 
 // ── Printed cards ────────────────────────────────────────────────────────────
 
-export type CardSize = 'sm' | 'md' | 'lg';
+export type CardSize = 'xs' | 'sm' | 'md' | 'lg';
 
 const CARD_BOX: Record<CardSize, string> = {
+  xs: 'h-11 w-8',
   sm: 'h-14 w-10',
   md: 'h-18 w-13 sm:h-20 sm:w-14',
   lg: 'h-36 w-26',
 };
 
-function CountBadge({ n }: { n: number }) {
+function CountBadge({ n, small }: { n: number; small?: boolean }) {
   return (
-    <span className="absolute -right-2 -top-2 z-10 grid h-6 min-w-6 place-items-center rounded-full border-2 border-ink bg-paper px-1 text-xs font-black text-ink tabular">
+    <span
+      className={`absolute z-10 grid place-items-center rounded-full border-2 border-ink bg-paper font-black text-ink tabular ${
+        small ? '-right-1.5 -top-1.5 h-4.5 min-w-4.5 px-0.5 text-[10px]' : '-right-2 -top-2 h-6 min-w-6 px-1 text-xs'
+      }`}
+    >
       {n}
     </span>
   );
@@ -120,7 +125,7 @@ function CardShell({
       style={{ background: bg, color: ink }}
     >
       {children}
-      {badge !== undefined && badge > 0 && <CountBadge n={badge} />}
+      {badge !== undefined && badge > 0 && <CountBadge n={badge} small={size === 'xs'} />}
     </Tag>
   );
 }
@@ -163,7 +168,7 @@ export function ResourceCard({
   onClick,
   selected,
   dim,
-  label = size !== 'sm',
+  label = size === 'md' || size === 'lg',
 }: {
   card: Card;
   /** Shown as a badge when above 0; a picker passes 0 for a plain card. */

@@ -21,7 +21,7 @@ function answerOf(offer: TradeOffer, seat: number): Answer {
 }
 
 /** A player's knight, with their answer to an offer as a small badge. */
-function Avatar({ view, seat, size = 38, answer }: { view: PlayerView; seat: number; size?: number; answer?: Answer }) {
+function Avatar({ view, seat, size = 30, answer }: { view: PlayerView; seat: number; size?: number; answer?: Answer }) {
   const knight = useGame((s) => s.room?.seats[seat]?.knight);
   const p = view.players[seat];
   return (
@@ -32,8 +32,8 @@ function Avatar({ view, seat, size = 38, answer }: { view: PlayerView; seat: num
         <span className="block rounded-full border-2 border-ink" style={{ width: size, height: size, background: PLAYER_COLORS[p.color].hex }} />
       )}
       {answer && answer !== 'wait' && (
-        <span className={`absolute -bottom-0.5 -right-0.5 grid h-4.5 w-4.5 place-items-center rounded-full border-2 border-paper text-paper ${answer === 'yes' ? 'bg-moss' : 'bg-danger'}`}>
-          {answer === 'yes' ? <Check size={10} strokeWidth={4} /> : <X size={10} strokeWidth={4} />}
+        <span className={`absolute -bottom-1 -right-1 grid h-4 w-4 place-items-center rounded-full border-2 border-paper text-paper ${answer === 'yes' ? 'bg-moss' : 'bg-danger'}`}>
+          {answer === 'yes' ? <Check size={9} strokeWidth={4} /> : <X size={9} strokeWidth={4} />}
         </span>
       )}
     </span>
@@ -58,20 +58,20 @@ function DealRow({
   const held = CARDS.filter((c) => (cards[c] ?? 0) > 0);
   return (
     // The buttons at the end drop below the cards when a row runs out of room.
-    <div className="flex min-h-17 flex-wrap items-center gap-2 py-1">
-      <div className="flex w-15 shrink-0 items-center gap-0.5">
+    <div className="flex min-h-13 flex-wrap items-center gap-1.5 py-1">
+      <div className="flex w-11 shrink-0 items-center">
         {who}
-        {side === 'want' ? <ArrowDown size={20} strokeWidth={3} className="text-moss" /> : <ArrowUp size={20} strokeWidth={3} className="text-danger" />}
+        {side === 'want' ? <ArrowDown size={15} strokeWidth={3} className="text-moss" /> : <ArrowUp size={15} strokeWidth={3} className="text-danger" />}
       </div>
-      <div className="flex max-w-full shrink-0 flex-wrap items-center gap-2 pt-1.5">
+      <div className="flex max-w-full shrink-0 flex-wrap items-center gap-1.5 pt-1">
         {held.map((c) => (
           // A card arrives from where it came from: up from the hand, down from the picker.
           <span key={c} className={side === 'give' ? 'animate-slide-up' : 'animate-slide-down'}>
-            <ResourceCard card={c} count={cards[c]!} size="sm" onClick={onCard ? () => onCard(c) : undefined} />
+            <ResourceCard card={c} count={cards[c]!} size="xs" onClick={onCard ? () => onCard(c) : undefined} />
           </span>
         ))}
       </div>
-      {end && <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1.5">{end}</div>}
+      {end && <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1">{end}</div>}
     </div>
   );
 }
@@ -101,7 +101,7 @@ function DealButton({
   return (
     <button
       type="button"
-      className={`btn relative h-12 w-12 p-0 ${primary ? 'btn-primary' : ''} ${status ? 'pointer-events-none' : ''}`}
+      className={`btn relative h-9 w-9 rounded-[10px] p-0 ${primary ? 'btn-primary' : ''} ${status ? 'pointer-events-none' : ''}`}
       style={tint ? ({ '--btn-bg': `color-mix(in srgb, ${tint} 45%, var(--color-paper))` } as React.CSSProperties) : undefined}
       disabled={disabled}
       tabIndex={status ? -1 : undefined}
@@ -111,8 +111,8 @@ function DealButton({
     >
       {icon}
       {ok && (
-        <span className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full border-2 border-ink bg-moss text-paper">
-          <Check size={11} strokeWidth={3.5} />
+        <span className="absolute -right-1.5 -top-1.5 grid h-4 w-4 place-items-center rounded-full border-2 border-ink bg-moss text-paper">
+          <Check size={9} strokeWidth={4} />
         </span>
       )}
     </button>
@@ -123,15 +123,15 @@ function DealButton({
 function DealCard({ header, collapsed, onToggle, children, className = '' }: { header: React.ReactNode; collapsed?: boolean; onToggle?: () => void; children: React.ReactNode; className?: string }) {
   return (
     <div className={`paper overflow-hidden p-0 ${className}`}>
-      <div className="relative flex min-h-13 items-center justify-center gap-1.5 bg-paper-2 px-10 py-1.5">
+      <div className="relative flex min-h-10 items-center justify-center gap-1 bg-paper-2 px-9 py-1">
         {header}
         {onToggle && (
-          <button type="button" className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md hover:bg-ink/10" onClick={onToggle} aria-label={collapsed ? 'Show offer' : 'Hide offer'}>
-            {collapsed ? <ChevronDown size={20} strokeWidth={3} /> : <ChevronUp size={20} strokeWidth={3} />}
+          <button type="button" className="absolute right-1.5 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md hover:bg-ink/10" onClick={onToggle} aria-label={collapsed ? 'Show offer' : 'Hide offer'}>
+            {collapsed ? <ChevronDown size={17} strokeWidth={3} /> : <ChevronUp size={17} strokeWidth={3} />}
           </button>
         )}
       </div>
-      {!collapsed && <div className="grid divide-y divide-ink/10 px-2.5">{children}</div>}
+      {!collapsed && <div className="grid divide-y divide-ink/10 px-2">{children}</div>}
     </div>
   );
 }
@@ -171,10 +171,10 @@ function OfferCard({ view, offer }: { view: PlayerView; offer: TradeOffer }) {
         collapsed={collapsed}
         onToggle={() => setCollapsed(!collapsed)}
       >
-        <DealRow side="want" who={<Users size={30} className="text-ink-soft" />} cards={offer.want} />
+        <DealRow side="want" who={<Users size={22} className="text-ink-soft" />} cards={offer.want} />
         <DealRow
           side="give"
-          who={<Avatar view={view} seat={me} size={34} />}
+          who={<Avatar view={view} seat={me} size={26} />}
           cards={offer.give}
           end={
             <>
@@ -185,14 +185,14 @@ function OfferCard({ view, offer }: { view: PlayerView; offer: TradeOffer }) {
                   <DealButton
                     key={s}
                     label={a === 'yes' ? `Trade with ${name}` : a === 'no' ? `${name} declined` : `Waiting for ${name}`}
-                    icon={a === 'yes' ? <Check size={22} strokeWidth={3} /> : a === 'no' ? <X size={22} strokeWidth={3} /> : <Hourglass size={18} />}
+                    icon={a === 'yes' ? <Check size={17} strokeWidth={3} /> : a === 'no' ? <X size={17} strokeWidth={3} /> : <Hourglass size={14} />}
                     tint={PLAYER_COLORS[view.players[s].color].hex}
                     status={a !== 'yes' || !isActive}
                     onClick={() => api.act({ type: 'confirmTrade', id: offer.id, partner: s })}
                   />
                 );
               })}
-              <DealButton label="Withdraw the offer" icon={<X size={22} strokeWidth={3} />} onClick={() => api.act({ type: 'cancelTrade', id: offer.id })} />
+              <DealButton label="Withdraw the offer" icon={<X size={17} strokeWidth={3} />} onClick={() => api.act({ type: 'cancelTrade', id: offer.id })} />
             </>
           }
         />
@@ -206,23 +206,23 @@ function OfferCard({ view, offer }: { view: PlayerView; offer: TradeOffer }) {
     <DealCard header={<Avatar view={view} seat={offer.from} />} collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)}>
       <DealRow
         side="want"
-        who={<Avatar view={view} seat={offer.from} size={34} />}
+        who={<Avatar view={view} seat={offer.from} size={26} />}
         cards={offer.give}
         end={others.map((s) => (
-          <Avatar key={s} view={view} seat={s} size={30} answer={answerOf(offer, s)} />
+          <Avatar key={s} view={view} seat={s} size={24} answer={answerOf(offer, s)} />
         ))}
       />
       <DealRow
         side="give"
-        who={<Avatar view={view} seat={me} size={34} />}
+        who={<Avatar view={view} seat={me} size={26} />}
         cards={offer.want}
         end={
           <>
-            <DealButton label="Counter-offer" icon={<Pencil size={18} />} onClick={() => openTrade(offer.want, offer.give)} />
-            <DealButton label="Decline" icon={<X size={22} strokeWidth={3} />} disabled={myAnswer === 'no'} onClick={() => api.act({ type: 'respondTrade', id: offer.id, accept: false })} />
+            <DealButton label="Counter-offer" icon={<Pencil size={14} />} onClick={() => openTrade(offer.want, offer.give)} />
+            <DealButton label="Decline" icon={<X size={17} strokeWidth={3} />} disabled={myAnswer === 'no'} onClick={() => api.act({ type: 'respondTrade', id: offer.id, accept: false })} />
             <DealButton
               label={canAfford ? (myAnswer === 'yes' ? 'Accepted' : 'Accept') : "You don't have those cards"}
-              icon={<Check size={22} strokeWidth={3} />}
+              icon={<Check size={17} strokeWidth={3} />}
               primary
               ok={myAnswer === 'yes'}
               disabled={!canAfford || myAnswer === 'yes'}
@@ -281,11 +281,11 @@ export function TradePanel({ view }: { view: PlayerView }) {
   };
 
   return (
-    <div className="grid w-[min(560px,calc(100vw-16px))] animate-rise gap-2">
+    <div className="grid w-[min(420px,calc(100vw-16px))] animate-rise gap-1.5">
       {/* everything you can ask for */}
-      <div className="paper flex flex-wrap items-center justify-center gap-2 p-2">
+      <div className="paper flex flex-wrap items-center justify-center gap-1.5 p-1.5">
         {cards.map((c) => (
-          <ResourceCard key={c} card={c} count={0} size="sm" onClick={() => draft.add('want', c)} />
+          <ResourceCard key={c} card={c} count={0} size="xs" onClick={() => draft.add('want', c)} />
         ))}
       </div>
       <DealCard
@@ -306,10 +306,10 @@ export function TradePanel({ view }: { view: PlayerView }) {
           );
         })}
       >
-        <DealRow side="want" who={<Users size={30} className="text-ink-soft" />} cards={want} onCard={(c) => draft.remove('want', c)} />
+        <DealRow side="want" who={<Users size={22} className="text-ink-soft" />} cards={want} onCard={(c) => draft.remove('want', c)} />
         <DealRow
           side="give"
-          who={<Avatar view={view} seat={me} size={34} />}
+          who={<Avatar view={view} seat={me} size={26} />}
           cards={give}
           onCard={(c) => draft.remove('give', c)}
           end={
@@ -317,14 +317,14 @@ export function TradePanel({ view }: { view: PlayerView }) {
               {isActive && (
                 <DealButton
                   label={bank ? `Trade ${bank.ratio * bank.count} for ${bank.count} with the bank (${bank.ratio}:1)` : 'Bank trade: one kind of card at your rate, for one kind'}
-                  icon={<Landmark size={20} />}
+                  icon={<Landmark size={16} />}
                   onClick={tradeBank}
                   disabled={!bank}
                   ok={!!bank}
                 />
               )}
-              <DealButton label={isActive ? 'Offer to players' : 'Send counter-offer'} icon={<ArrowLeftRight size={20} />} onClick={send} disabled={!ready} ok={ready} primary />
-              <DealButton label="Close (Esc)" icon={<X size={22} strokeWidth={3} />} onClick={() => ui.setPanel(null)} />
+              <DealButton label={isActive ? 'Offer to players' : 'Send counter-offer'} icon={<ArrowLeftRight size={16} />} onClick={send} disabled={!ready} ok={ready} primary />
+              <DealButton label="Close (Esc)" icon={<X size={17} strokeWidth={3} />} onClick={() => ui.setPanel(null)} />
             </>
           }
         />
