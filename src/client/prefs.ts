@@ -15,8 +15,10 @@ export interface Prefs {
   volume: number;
   /** Show affordable build spots on the board without picking Road/Settle/City first. */
   buildHints: boolean;
-  /** Ask before building from a build hint, so a stray click can't place a piece. */
+  /** Ask before placing a piece (a popup at the spot), so a stray click can't build anything. */
   confirmBuilds: boolean;
+  /** Root font size preset; scales all rem-based UI. */
+  uiScale: 'small' | 'medium' | 'large';
 }
 
 const KEY = 'prefs.v1';
@@ -30,6 +32,7 @@ const defaults = (): Prefs => ({
   volume: 0.6,
   buildHints: true,
   confirmBuilds: true,
+  uiScale: 'medium',
 });
 
 function read(): Prefs {
@@ -47,6 +50,7 @@ function read(): Prefs {
       volume: typeof p.volume === 'number' ? Math.min(1, Math.max(0, p.volume)) : base.volume,
       buildHints: typeof p.buildHints === 'boolean' ? p.buildHints : base.buildHints,
       confirmBuilds: typeof p.confirmBuilds === 'boolean' ? p.confirmBuilds : base.confirmBuilds,
+      uiScale: p.uiScale === 'small' || p.uiScale === 'large' ? p.uiScale : base.uiScale,
     };
   } catch {
     return base;
@@ -69,8 +73,8 @@ export const usePrefs = create<PrefsStore>((set, get) => ({
   set(patch) {
     set(patch);
     try {
-      const { name, color, knight, view, graphics, volume, buildHints, confirmBuilds } = { ...get(), ...patch };
-      window.localStorage.setItem(KEY, JSON.stringify({ name, color, knight, view, graphics, volume, buildHints, confirmBuilds }));
+      const { name, color, knight, view, graphics, volume, buildHints, confirmBuilds, uiScale } = { ...get(), ...patch };
+      window.localStorage.setItem(KEY, JSON.stringify({ name, color, knight, view, graphics, volume, buildHints, confirmBuilds, uiScale }));
     } catch {
       // Storage unavailable (private mode) — preferences just won't persist.
     }

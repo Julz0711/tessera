@@ -146,6 +146,15 @@ export function SettingsPage() {
                   ))}
                 </div>
               </Section>
+              <Section title="Interface size">
+                <div className="flex flex-wrap gap-2">
+                  {(['small', 'medium', 'large'] as const).map((s) => (
+                    <button key={s} type="button" className={`btn px-4 py-2 capitalize ${prefs.uiScale === s ? 'btn-primary' : ''}`} onClick={() => prefs.set({ uiScale: s })}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </Section>
               <Section title="Language" hint="More languages are planned.">
                 <select className="input max-w-xs" value="en" disabled aria-label="Language">
                   <option value="en">English</option>

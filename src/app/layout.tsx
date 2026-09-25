@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Figtree, Fraunces } from 'next/font/google';
 import { APP_DESCRIPTION, APP_NAME } from '@/config/app';
 import { Toasts } from '@/components/ui/Toasts';
+import { UiScale } from '@/components/ui/UiScale';
 import './globals.css';
 
 const fraunces = Fraunces({
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="antialiased">
         {children}
         <Toasts />
+        <UiScale />
       </body>
     </html>
   );

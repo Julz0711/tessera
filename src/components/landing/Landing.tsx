@@ -1,15 +1,18 @@
 'use client';
 
-import { ArrowRight, Bot, Box, LogIn, Swords, Users } from 'lucide-react';
+import { ArrowRight, LogIn } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { APP_TAGLINE, APP_WORDMARK } from '@/config/app';
-import { fetchSession } from '@/client/session';
+import { APP_WORDMARK } from '@/config/app';
 import { startSignIn } from '@/client/auth';
+import { usePrefs } from '@/client/prefs';
+import { fetchSession } from '@/client/session';
 import type { SessionInfo } from '@/shared/protocol';
+import { DEFAULT_KNIGHT } from '@/shared/knight';
 import { DiscordMark, GoogleMark } from '@/components/ui/Glyphs';
+import { KnightBadge } from '@/components/knight/KnightBadge';
 import { Logomark } from '@/components/ui/Logomark';
 
 const ShowcaseIsland = dynamic(() => import('./ShowcaseIsland'), { ssr: false });
@@ -28,9 +31,12 @@ export function Landing() {
   const [code, setCode] = useState('');
   const [codeError, setCodeError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const prefs = usePrefs();
 
   useEffect(() => {
+    prefs.load();
     fetchSession().then(setSession).catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     if (joining) inputRef.current?.focus();
@@ -48,6 +54,9 @@ export function Landing() {
 
   const signedIn = session?.kind === 'user';
   const authReady = session ? session.auth.google || session.auth.discord : false;
+  const name = session?.displayName || prefs.name || 'Guest';
+  const color = session?.color ?? prefs.color;
+  const knight = session?.knight ?? prefs.knight ?? DEFAULT_KNIGHT;
 
   return (
     <main className="relative min-h-dvh overflow-hidden bg-sea-950">
@@ -63,19 +72,10 @@ export function Landing() {
           <Logomark size={30} />
           <span className="display text-lg font-black tracking-wide text-paper">{APP_WORDMARK}</span>
         </div>
-        {signedIn ? (
-          <Link href="/profile" className="btn btn-dark px-3 py-1.5 text-sm">
-            {session?.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={session.avatarUrl} alt="" className="h-6 w-6 rounded-full border border-black" />
-            ) : null}
-            {session?.displayName ?? 'Profile'}
-          </Link>
-        ) : (
-          <Link href="/profile" className="label-light hover:text-paper">
-            Your stats
-          </Link>
-        )}
+        <Link href="/profile" className="btn btn-dark px-3 py-1.5 text-sm">
+          <KnightBadge knight={knight} color={color} size={24} />
+          <span className="max-w-28 truncate">{name}</span>
+        </Link>
       </header>
 
       <section className="relative z-10 flex min-h-[calc(100dvh-72px)] flex-col justify-center px-5 pb-16 sm:px-10 md:max-w-160">
@@ -85,10 +85,7 @@ export function Landing() {
         >
           {APP_WORDMARK}
         </h1>
-        <p className="animate-rise mt-4 max-w-md text-xl font-semibold text-foam/85 [animation-delay:80ms] sm:text-2xl">{APP_TAGLINE}</p>
-        <p className="animate-rise mt-1 max-w-md text-foam/55 [animation-delay:120ms]">
-          Build, trade and outwit your friends on a low-poly island. Share a link — everyone&apos;s in within a minute.
-        </p>
+        <p className="animate-rise mt-3 text-sm font-bold text-foam/70 [animation-delay:80ms]">No account required.</p>
 
         <div className="animate-rise mt-9 flex flex-wrap items-center gap-3 [animation-delay:160ms]">
           <Link href="/create" className="btn btn-primary px-7 py-3.5 text-lg">
@@ -118,7 +115,6 @@ export function Landing() {
           )}
         </div>
         {codeError && <p className="mt-2 text-sm font-semibold text-terracotta">{codeError}</p>}
-        <p className="animate-rise mt-4 text-sm font-bold text-foam/70 [animation-delay:200ms]">No account required.</p>
 
         {!signedIn && (
           <div className="animate-rise mt-8 max-w-md [animation-delay:240ms]">
@@ -142,21 +138,6 @@ export function Landing() {
             )}
           </div>
         )}
-
-        <ul className="animate-rise mt-12 flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold text-foam/60 [animation-delay:300ms]">
-          <li className="flex items-center gap-2">
-            <Users size={16} /> 2–4 players
-          </li>
-          <li className="flex items-center gap-2">
-            <Bot size={16} /> Bots fill empty seats
-          </li>
-          <li className="flex items-center gap-2">
-            <Swords size={16} /> Classic · Cities &amp; Knights
-          </li>
-          <li className="flex items-center gap-2">
-            <Box size={16} /> 3D or 2D board
-          </li>
-        </ul>
       </section>
     </main>
   );
