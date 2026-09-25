@@ -87,6 +87,18 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
                   ))}
                 </div>
               </div>
+              {prefs.buildHints && (
+                <div className="grid gap-1.5">
+                  <span className="label">Confirm quick builds</span>
+                  <div className="grid grid-cols-2 gap-1.5" title="A hinted spot needs a second click (or Build) before the piece is placed">
+                    {([true, false] as const).map((on) => (
+                      <button key={String(on)} type="button" className={`btn py-1 text-sm ${prefs.confirmBuilds === on ? 'btn-primary' : ''}`} onClick={() => prefs.set({ confirmBuilds: on })}>
+                        {on ? 'On' : 'Off'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="grid gap-1.5">
                 <span className="label">Sound</span>
                 <div className="flex items-center gap-2">

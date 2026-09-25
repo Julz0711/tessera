@@ -29,6 +29,7 @@ import {
 } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { NO_TARGETS, type BoardTargets, type TargetKind } from '@/components/board/types';
+import { usePrefs } from './prefs';
 import { api } from './store';
 import { useUi, type UiMode } from './ui';
 
@@ -100,7 +101,8 @@ function affordableSpots(view: PlayerView, me: number): { roads: number[]; settl
 
 /**
  * @param hints Offer affordable build spots when nothing is selected (colonist-style): a click
- *   builds right away, without picking Road/Settle/City first.
+ *   builds there (after a confirming second click, unless that's turned off) without picking
+ *   Road/Settle/City first.
  */
 export function computeTargets(view: PlayerView | null, mode: UiMode, hints = false): BoardTargets {
   if (!view || view.viewer === null || view.phase === 'ended') return NO_TARGETS;
@@ -154,6 +156,10 @@ export function computeTargets(view: PlayerView | null, mode: UiMode, hints = fa
       case 'wall':
         return { ...NO_TARGETS, kind: 'wall', vertices: wallSpots(view, me) };
     }
+  }
+  if (mode?.t === 'confirm') {
+    // Only the armed spot stays lit, pulsing like a normal pick, until it's confirmed or cancelled.
+    return mode.what === 'road' ? { ...NO_TARGETS, kind: 'road', edges: [mode.at] } : { ...NO_TARGETS, kind: mode.what, vertices: [mode.at] };
   }
   if (mode?.t === 'knightMove') {
     const { moves, displaces } = knightMoveTargets(view, me, mode.from);
@@ -257,12 +263,24 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
     if (picked.length >= spec.need) return send({ type: 'playProgress', card: mode.card, params: progressParams(mode.cardType, picked) }, done);
     return ui.setMode({ ...mode, picked });
   }
+  if (mode?.t === 'confirm') return confirmBuild();
   if (target === 'vertex' && view.knights[id]?.owner === me) return ui.setKnightMenu(id);
-  // Build hints: the spot itself says what gets built.
-  if (target === 'edge') return send({ type: 'buildRoad', edge: id });
-  if (target === 'vertex') {
-    const b = view.buildings[id];
-    if (!b) return send({ type: 'buildSettlement', vertex: id });
-    if (b.owner === me && !b.city) return send({ type: 'buildCity', vertex: id });
-  }
+  // Build hints: the spot itself says what gets built; unless turned off, a first click only arms it.
+  const b = target === 'vertex' ? view.buildings[id] : null;
+  const what = target === 'edge' ? 'road' : target === 'vertex' && !b ? 'settlement' : b && b.owner === me && !b.city ? 'city' : null;
+  if (!what) return;
+  if (!usePrefs.getState().confirmBuilds) return send(hintBuild(what, id));
+  ui.setMode({ t: 'confirm', what, at: id });
+}
+
+function hintBuild(what: 'road' | 'settlement' | 'city', at: number): Action {
+  if (what === 'road') return { type: 'buildRoad', edge: at };
+  return what === 'settlement' ? { type: 'buildSettlement', vertex: at } : { type: 'buildCity', vertex: at };
+}
+
+/** Builds the armed build-hint spot (second click, the Build button or Enter). */
+export async function confirmBuild(): Promise<void> {
+  const mode = useUi.getState().mode;
+  if (mode?.t !== 'confirm') return;
+  return send(hintBuild(mode.what, mode.at), () => useUi.getState().setMode(null));
 }

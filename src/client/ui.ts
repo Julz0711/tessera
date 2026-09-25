@@ -11,7 +11,9 @@ export type UiMode =
   | { t: 'build'; what: BuildWhat }
   | { t: 'knightMove'; from: number }
   | { t: 'knightChase'; from: number }
-  | { t: 'progress'; card: number; cardType: ProgressCardType; picked: number[] };
+  | { t: 'progress'; card: number; cardType: ProgressCardType; picked: number[] }
+  /** A build-hint spot clicked once, waiting for a second click (or Build) to confirm. */
+  | { t: 'confirm'; what: 'road' | 'settlement' | 'city'; at: number };
 
 export type Panel = null | 'trade' | 'bank' | 'improve';
 
@@ -72,5 +74,5 @@ export const useUi = create<UiStore>((set) => ({
 }));
 
 export function buildMode(mode: UiMode): BuildWhat | null {
-  return mode?.t === 'build' ? mode.what : null;
+  return mode?.t === 'build' || mode?.t === 'confirm' ? mode.what : null;
 }

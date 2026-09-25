@@ -15,6 +15,8 @@ export interface Prefs {
   volume: number;
   /** Show affordable build spots on the board without picking Road/Settle/City first. */
   buildHints: boolean;
+  /** Ask before building from a build hint, so a stray click can't place a piece. */
+  confirmBuilds: boolean;
 }
 
 const KEY = 'prefs.v1';
@@ -27,6 +29,7 @@ const defaults = (): Prefs => ({
   graphics: 'high',
   volume: 0.6,
   buildHints: true,
+  confirmBuilds: true,
 });
 
 function read(): Prefs {
@@ -43,6 +46,7 @@ function read(): Prefs {
       graphics: p.graphics === 'low' ? 'low' : 'high',
       volume: typeof p.volume === 'number' ? Math.min(1, Math.max(0, p.volume)) : base.volume,
       buildHints: typeof p.buildHints === 'boolean' ? p.buildHints : base.buildHints,
+      confirmBuilds: typeof p.confirmBuilds === 'boolean' ? p.confirmBuilds : base.confirmBuilds,
     };
   } catch {
     return base;
@@ -65,8 +69,8 @@ export const usePrefs = create<PrefsStore>((set, get) => ({
   set(patch) {
     set(patch);
     try {
-      const { name, color, knight, view, graphics, volume, buildHints } = { ...get(), ...patch };
-      window.localStorage.setItem(KEY, JSON.stringify({ name, color, knight, view, graphics, volume, buildHints }));
+      const { name, color, knight, view, graphics, volume, buildHints, confirmBuilds } = { ...get(), ...patch };
+      window.localStorage.setItem(KEY, JSON.stringify({ name, color, knight, view, graphics, volume, buildHints, confirmBuilds }));
     } catch {
       // Storage unavailable (private mode) — preferences just won't persist.
     }

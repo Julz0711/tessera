@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeftRight, BrickWall, Eye, Hammer, Hourglass, Landmark, Sparkles } from 'lucide-react';
+import { ArrowLeftRight, BrickWall, Check, Eye, Hammer, Hourglass, Landmark, Sparkles, X } from 'lucide-react';
 import { useEffect } from 'react';
 import {
   COSTS,
@@ -14,12 +14,32 @@ import {
   type PartialHand,
 } from '@/engine';
 import type { PlayerView } from '@/engine/view';
+import { confirmBuild } from '@/client/interaction';
 import { play } from '@/client/sound';
 import { api } from '@/client/store';
 import { buildMode, useUi } from '@/client/ui';
 import { CityGlyph, KnightGlyph, RoadGlyph, SettlementGlyph } from '@/components/ui/Glyphs';
 import { CardList } from './cards';
 import { Hand } from './Hand';
+
+const PIECE_NAME = { road: 'a road', settlement: 'a settlement', city: 'a city' } as const;
+
+/** Asks before a build-hint click turns into a piece. */
+function ConfirmBuild({ what }: { what: 'road' | 'settlement' | 'city' }) {
+  const ui = useUi();
+  return (
+    <div className="glass flex items-center gap-2 py-1.5 pl-3.5 pr-1.5 text-sm font-bold text-foam">
+      <span>Build {PIECE_NAME[what]} here?</span>
+      <CardList cards={COSTS[what]} />
+      <button type="button" className="btn btn-primary px-3 py-1 text-sm" onClick={() => void confirmBuild()} title="Build (Enter)">
+        <Check size={16} /> Build
+      </button>
+      <button type="button" className="btn btn-dark h-8 w-8 p-0" onClick={() => ui.setMode(null)} title="Cancel (Esc)" aria-label="Cancel">
+        <X size={16} />
+      </button>
+    </div>
+  );
+}
 
 function ActionButton({
   label,
@@ -82,6 +102,8 @@ export function Dock({ view }: { view: PlayerView }) {
       const el = e.target as Element | null;
       if (el && typeof el.closest === 'function' && el.closest('input, textarea, select, [contenteditable="true"]')) return;
       if (e.key === 'Escape') ui.reset();
+      // Enter confirms an armed build hint (unless a focused button is taking the Enter itself).
+      if (e.key === 'Enter' && ui.mode?.t === 'confirm' && !el?.closest?.('button')) void confirmBuild();
       if (me === null || view.phase !== 'play' || view.turn.seat !== me || view.pending.length) return;
       if (e.key.toLowerCase() === 'r' && !view.turn.rolled) void api.act({ type: 'rollDice' });
       if (e.key.toLowerCase() === 'e' && view.turn.rolled) void api.act({ type: 'endTurn' });
@@ -114,6 +136,7 @@ export function Dock({ view }: { view: PlayerView }) {
   const wallOk = canBuild && ck && has(COSTS.wall) && wallSpots(view, me).length > 0;
   return (
     <div className="flex flex-col items-center gap-2">
+      {ui.mode?.t === 'confirm' && <ConfirmBuild what={ui.mode.what} />}
       <Hand view={view} />
 
       {/* actions */}
