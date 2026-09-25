@@ -78,7 +78,19 @@ export const LARGE_BANK_PER_COMMODITY = 16;
 export const LARGE_DEV_DECK: Record<DevCardType, number> = { knight: 20, victoryPoint: 5, roadBuilding: 3, yearOfPlenty: 3, monopoly: 3 };
 
 /** Seats each map has room for. */
-export const MAX_PLAYERS: Record<MapId, number> = { standard: 4, large: 6, blackForest: 6 };
+export const MAX_PLAYERS: Record<MapId, number> = { standard: 4, large: 6, blackForest: 6, goldRush: 4, heartlake: 4, longIsle: 4 };
+/** Maps that use the 5–6 player extension's bigger bank and development deck. */
+export const BIG_MAPS: ReadonlySet<MapId> = new Set<MapId>(['large', 'blackForest']);
+
+/** Gold Rush: the standard island with two gold fields (never on a 6 or 8) in place of a field and a pasture. */
+export const GOLD_RUSH_TERRAIN_COUNTS: Record<Terrain, number> = { forest: 4, hills: 3, pasture: 3, fields: 3, mountains: 3, desert: 1, gold: 2 };
+
+/** Heartlake: 18 hexes around a lake; one 12 fewer than the standard numbers. */
+export const HEARTLAKE_TERRAIN_COUNTS: Record<Terrain, number> = { forest: 4, hills: 3, pasture: 4, fields: 3, mountains: 3, desert: 1, gold: 0 };
+export const HEARTLAKE_NUMBER_TOKENS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11];
+/** Six harbors on the sea coast; three more 3:1 harbors line the lake shore. */
+export const HEARTLAKE_COAST_HARBORS: HarborKind[] = ['any', 'brick', 'lumber', 'wool', 'grain', 'ore'];
+export const HEARTLAKE_LAKE_HARBORS: HarborKind[] = ['any', 'any', 'any'];
 
 export const BANK_PER_RESOURCE = 19;
 export const BANK_PER_COMMODITY = 12;

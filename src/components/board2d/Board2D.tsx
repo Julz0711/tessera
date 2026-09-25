@@ -7,6 +7,7 @@ import { getTopology, type Topology } from '@/engine/board/topology';
 import type { PlayerColor, Terrain } from '@/engine/types';
 import { CARD_COLORS, FOG, TERRAIN_COLORS } from '@/client/palette';
 import { PLAYER_COLORS } from '@/shared/colors';
+import { harborAnchor } from '@/components/board/harbor';
 import type { BoardProps } from '@/components/board/types';
 import { useZoomPan } from './useZoomPan';
 
@@ -330,12 +331,9 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
         {/* harbors */}
         {scene.board.harbors.map((hb) => {
           const e = topo.edges[hb.edge];
-          const land = topo.hexes[e.hexes[0]];
-          const dx = e.x - land.x;
-          const dy = e.y - land.y;
-          const len = Math.hypot(dx, dy) || 1;
-          const px = (e.x + (dx / len) * 0.66) * S;
-          const py = (e.y + (dy / len) * 0.66) * S;
+          const at = harborAnchor(topo, hb.edge, 0.66);
+          const px = at.x * S;
+          const py = at.y * S;
           const label = hb.kind === 'any' ? '3:1 harbor — any resource' : `2:1 harbor — ${CARD_COLORS[hb.kind].label}`;
           return (
             <g key={`hb${hb.edge}`} pointerEvents="none">

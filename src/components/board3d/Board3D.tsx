@@ -21,14 +21,18 @@ const GAME_TARGET_Z = 1.3;
 /** The sea's swells peak at y≈0.02 and the seams between tiles bottom out at y≈0.01. */
 const ISLAND_LIFT = 0.08;
 
-/** Centre of a board and how far its corners reach from there (the large map sits off-centre). */
-function boardFrame(topo: Topology): { cx: number; cz: number; extent: number } {
+/**
+ * Centre of a board, how far its corners reach from there (the large map sits off-centre) and how
+ * much wider than tall it is (Long Isle).
+ */
+function boardFrame(topo: Topology): { cx: number; cz: number; extent: number; aspect: number } {
   const xs = topo.hexes.map((h) => h.x);
   const zs = topo.hexes.map((h) => h.y);
   const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
   const cz = (Math.min(...zs) + Math.max(...zs)) / 2;
   const extent = Math.max(...topo.vertices.map((v) => Math.hypot(v.x - cx, v.y - cz)));
-  return { cx, cz, extent };
+  const aspect = (Math.max(...xs) - Math.min(...xs) + 2) / (Math.max(...zs) - Math.min(...zs) + 2);
+  return { cx, cz, extent, aspect };
 }
 
 const STANDARD_EXTENT = boardFrame(getTopology(STANDARD_HEX_COORDS)).extent;
@@ -193,8 +197,9 @@ export default function Board3D({
   const pressed = useRef<{ x: number; y: number } | null>(null);
   const fontsReady = useFontReady();
   const frame = useMemo(() => boardFrame(getTopology(scene.board.hexes)), [scene.board.hexes]);
-  // Bigger maps pull the camera, fog, shadows and sea shelf out to match.
-  const scale = Math.max(1, frame.extent / STANDARD_EXTENT);
+  // Bigger maps pull the camera, fog, shadows and sea shelf out to match; a long, wide island a
+  // little further, so its ends stay clear of the side panel.
+  const scale = Math.max(1, frame.extent / STANDARD_EXTENT) * (1 + Math.max(0, frame.aspect - 1.3) * 0.12);
   const island = (
     // Lifted clear of the swells so no water shows in the seams between tiles.
     <group position={[-frame.cx, ISLAND_LIFT, -frame.cz]}>

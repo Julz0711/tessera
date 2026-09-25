@@ -10,6 +10,7 @@ import { GEO, mat } from './materials';
 import { usePieceScale } from './pieceScale';
 import { TILE_TOP } from './terrain';
 import { harborTexture, tokenTexture } from './textures';
+import { harborAnchor } from '../board/harbor';
 
 const tmpQuat = new THREE.Quaternion();
 const tmpEuler = new THREE.Euler();
@@ -202,14 +203,8 @@ export function HarborPiece({ harbor, topo }: { harbor: Harbor; topo: Topology }
     if (label.current) faceCamera(label.current, state.camera);
   });
   const e = topo.edges[harbor.edge];
-  const land = topo.hexes[e.hexes[0]];
-  const dx = e.x - land.x;
-  const dz = e.y - land.y;
-  const len = Math.hypot(dx, dz) || 1;
-  const ox = dx / len;
-  const oz = dz / len;
-  const px = e.x + ox * 0.62;
-  const pz = e.y + oz * 0.62;
+  const at = harborAnchor(topo, harbor.edge, 0.62);
+  const [ox, oz, px, pz] = [at.ox, at.oy, at.x, at.y];
   const planks = [e.a, e.b].map((v) => {
     const vx = topo.vertices[v].x;
     const vz = topo.vertices[v].y;

@@ -1,4 +1,9 @@
 import {
+  GOLD_RUSH_TERRAIN_COUNTS,
+  HEARTLAKE_COAST_HARBORS,
+  HEARTLAKE_LAKE_HARBORS,
+  HEARTLAKE_NUMBER_TOKENS,
+  HEARTLAKE_TERRAIN_COUNTS,
   BLACK_FOREST_FOG,
   BLACK_FOREST_FOG_TOKENS,
   BLACK_FOREST_TOKENS,
@@ -11,8 +16,17 @@ import {
   TERRAIN_COUNTS,
 } from '../constants';
 import { shuffle, type RngHolder } from '../rng';
-import type { Board, HarborKind, Hex, MapId, Terrain } from '../types';
-import { BLACK_FOREST_HEX_COORDS, LARGE_HEX_COORDS, STANDARD_HEX_COORDS, getTopology, type HexCoord, type Topology } from './topology';
+import type { Board, Harbor, HarborKind, Hex, MapId, Terrain } from '../types';
+import {
+  BLACK_FOREST_HEX_COORDS,
+  HEARTLAKE_HEX_COORDS,
+  LARGE_HEX_COORDS,
+  LONG_ISLE_HEX_COORDS,
+  STANDARD_HEX_COORDS,
+  getTopology,
+  type HexCoord,
+  type Topology,
+} from './topology';
 
 interface MapSpec {
   coords: readonly HexCoord[];
@@ -21,12 +35,37 @@ interface MapSpec {
   harbors: readonly HarborKind[];
   /** Harbor positions as indices into the clockwise coast; spread evenly when omitted. */
   slots?: readonly number[];
+  /** Places the harbors itself (for maps with an inland shore). */
+  placeHarbors?: (topo: Topology, rng: RngHolder) => Harbor[];
 }
 
 const MAPS: Record<Exclude<MapId, 'blackForest'>, MapSpec> = {
   standard: { coords: STANDARD_HEX_COORDS, terrains: TERRAIN_COUNTS, tokens: NUMBER_TOKENS, harbors: HARBOR_KINDS, slots: HARBOR_COAST_SLOTS },
   large: { coords: LARGE_HEX_COORDS, terrains: LARGE_TERRAIN_COUNTS, tokens: LARGE_NUMBER_TOKENS, harbors: LARGE_HARBOR_KINDS },
+  goldRush: { coords: STANDARD_HEX_COORDS, terrains: GOLD_RUSH_TERRAIN_COUNTS, tokens: NUMBER_TOKENS, harbors: HARBOR_KINDS, slots: HARBOR_COAST_SLOTS },
+  heartlake: {
+    coords: HEARTLAKE_HEX_COORDS,
+    terrains: HEARTLAKE_TERRAIN_COUNTS,
+    tokens: HEARTLAKE_NUMBER_TOKENS,
+    harbors: [],
+    placeHarbors: heartlakeHarbors,
+  },
+  longIsle: { coords: LONG_ISLE_HEX_COORDS, terrains: TERRAIN_COUNTS, tokens: NUMBER_TOKENS, harbors: HARBOR_KINDS },
 };
+
+/**
+ * Heartlake: six harbors spread around the sea coast, and three 3:1 harbors on every other
+ * lake-facing edge of the inner ring (their corners never touch).
+ */
+function heartlakeHarbors(topo: Topology, rng: RngHolder): Harbor[] {
+  const lake = (e: number) => Math.hypot(topo.edges[e].x, topo.edges[e].y) < 1.5;
+  const sea = topo.coast.filter((e) => !lake(e));
+  const kinds = shuffle(rng, [...HEARTLAKE_COAST_HARBORS]);
+  const outer = spreadHarborEdges({ ...topo, coast: sea }, kinds.length).map((edge, i) => ({ edge, kind: kinds[i] }));
+  const shore = topo.coast.filter(lake); // clockwise, one per inner hex
+  const inner = HEARTLAKE_LAKE_HARBORS.map((kind, i) => ({ edge: shore[i * 2], kind }));
+  return [...outer, ...inner];
+}
 
 /** `k` coast edges spread evenly around the island, nudged so no two harbors share a corner. */
 function spreadHarborEdges(topo: Topology, k: number): number[] {
@@ -49,11 +88,15 @@ function spreadHarborEdges(topo: Topology, k: number): number[] {
 
 const isRed = (t: number | null) => t === 6 || t === 8;
 
-/** No neighbouring 6/8 and, unless `allowEqual`, no neighbouring equal numbers. */
-function tokensValid(topo: Topology, tokens: (number | null)[], allowEqual = false): boolean {
+/**
+ * No neighbouring 6/8 and, unless `allowEqual`, no neighbouring equal numbers. With `terrains`,
+ * gold fields also stay off the 6 and 8 (Gold Rush — they pay out anything, so that'd be too rich).
+ */
+function tokensValid(topo: Topology, tokens: (number | null)[], allowEqual = false, terrains?: Terrain[]): boolean {
   for (const h of topo.hexes) {
     const t = tokens[h.id];
     if (t === null) continue;
+    if (terrains?.[h.id] === 'gold' && isRed(t)) return false;
     for (const n of h.neighbors) {
       const u = tokens[n];
       if (u === null) continue;
@@ -128,7 +171,7 @@ export function generateBoard(rng: RngHolder, map: MapId = 'standard'): Board {
     const bag = shuffle(rng, [...spec.tokens]);
     tokens = topo.hexes.map(() => null);
     landIds.forEach((id, i) => (tokens[id] = bag[i]));
-    if (tokensValid(topo, tokens)) break;
+    if (tokensValid(topo, tokens, false, terrains)) break;
   }
 
   const hexes: Hex[] = topo.hexes.map((h) => ({
@@ -139,9 +182,13 @@ export function generateBoard(rng: RngHolder, map: MapId = 'standard'): Board {
     token: tokens[h.id],
   }));
 
-  const kinds = shuffle(rng, [...spec.harbors]);
-  const edges = spec.slots ? spec.slots.map((slot) => topo.coast[slot]) : spreadHarborEdges(topo, kinds.length);
-  const harbors = edges.map((edge, i) => ({ edge, kind: kinds[i] }));
+  let harbors: Harbor[];
+  if (spec.placeHarbors) harbors = spec.placeHarbors(topo, rng);
+  else {
+    const kinds = shuffle(rng, [...spec.harbors]);
+    const edges = spec.slots ? spec.slots.map((slot) => topo.coast[slot]) : spreadHarborEdges(topo, kinds.length);
+    harbors = edges.map((edge, i) => ({ edge, kind: kinds[i] }));
+  }
 
   return { hexes, harbors };
 }

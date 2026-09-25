@@ -8,6 +8,7 @@ import {
   applyAction,
   createGame,
   eventsFor,
+  isMapId,
   viewFor,
   type Action,
   type GameEvent,
@@ -285,7 +286,7 @@ export class Room {
       next.mode = patch.mode;
     }
     next.map ??= 'standard'; // rooms saved before maps existed
-    if (patch.map === 'standard' || patch.map === 'large' || patch.map === 'blackForest') {
+    if (isMapId(patch.map)) {
       const seats = MAX_PLAYERS[patch.map];
       if (this.seats.length > seats) throw new UserError(`That map seats at most ${seats} players`);
       // The big island is for bigger tables: open its extra seats by default.

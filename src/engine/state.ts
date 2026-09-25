@@ -2,6 +2,7 @@ import { generateBoard } from './board/generate';
 import { getTopology, type Topology } from './board/topology';
 import {
   BANK_PER_COMMODITY,
+  BIG_MAPS,
   BANK_PER_RESOURCE,
   DEFAULT_VP,
   DEV_DECK,
@@ -82,7 +83,7 @@ export function nextId(s: GameState): number {
 function fullBank(mode: Mode, map: MapId): Hand {
   const bank = emptyHand();
   // The bigger maps (large, Black Forest) use the extension's bigger bank and deck.
-  const big = map !== 'standard';
+  const big = BIG_MAPS.has(map);
   for (const r of RESOURCES) bank[r] = big ? LARGE_BANK_PER_RESOURCE : BANK_PER_RESOURCE;
   if (mode === 'ck') for (const c of COMMODITIES) bank[c] = big ? LARGE_BANK_PER_COMMODITY : BANK_PER_COMMODITY;
   return bank;
@@ -98,7 +99,7 @@ export function createGame(opts: CreateGameOptions): GameState {
 
   const devDeck: DevCardType[] = [];
   if (mode === 'classic') {
-    for (const [type, count] of Object.entries(map === 'standard' ? DEV_DECK : LARGE_DEV_DECK) as [DevCardType, number][]) {
+    for (const [type, count] of Object.entries(BIG_MAPS.has(map) ? LARGE_DEV_DECK : DEV_DECK) as [DevCardType, number][]) {
       for (let i = 0; i < count; i++) devDeck.push(type);
     }
     shuffle(rng, devDeck);
