@@ -118,7 +118,8 @@ function Island({
     <group>
       {scene.board.hexes.map((hex) => {
         const t = topo.hexes[hex.id];
-        const producing = scene.highlightToken !== null && hex.token === scene.highlightToken && hex.id !== scene.robber;
+        const rolled = scene.highlightToken !== null && hex.token === scene.highlightToken && !hex.fog;
+        const producing = rolled && hex.id !== scene.robber;
         return (
           <HexTile
             key={hex.id}
@@ -127,6 +128,7 @@ function Island({
             z={t.y}
             shadows={shadows}
             producing={producing}
+            blocked={rolled && hex.id === scene.robber}
             onClick={hexTargetSet.has(hex.id) && onHex ? () => onHex(hex.id) : undefined}
           />
         );

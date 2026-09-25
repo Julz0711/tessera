@@ -34,7 +34,7 @@ export function Hand({ view }: { view: PlayerView }) {
   return (
     // The inner row is only as wide as its cards, so it centres when it fits and scrolls from the
     // first card when it doesn't.
-    <div className="max-w-full overflow-x-auto scroll-thin">
+    <div className="max-w-full overflow-x-auto scroll-thin" data-hand-anchor>
       <div className="mx-auto flex w-max items-end gap-2.5 px-3 pb-2 pt-3 sm:gap-3">
         {held.length === 0 && special === 0 && !trading && (
           <div className="grid h-18 place-items-center rounded-lg border-2 border-dashed border-white/20 px-5 text-xs font-bold text-foam/60 sm:h-20">

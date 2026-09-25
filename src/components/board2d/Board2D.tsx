@@ -292,9 +292,27 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
               onMouseEnter={target ? () => setHover(`h${h.id}`) : undefined}
               onMouseLeave={target ? () => setHover(null) : undefined}
               className={target ? 'cursor-pointer' : undefined}
+              data-hex-anchor={h.id}
             >
               <polygon points={hexPoints(topo, h.id, 0.97)} fill={c.top} stroke={c.side} strokeWidth="5" strokeLinejoin="round" />
               {h.fog ? <FogGlyphs cx={t.x * S} cy={t.y * S} /> : <TerrainGlyphs terrain={h.terrain} cx={t.x * S} cy={t.y * S} />}
+              {/* after a roll: the tiles that pay out glow, the rest of the board steps back */}
+              {scene.highlightToken !== null &&
+                (h.token === scene.highlightToken && !h.fog ? (
+                  <polygon
+                    points={hexPoints(topo, h.id, 0.9)}
+                    fill="none"
+                    stroke={h.id === scene.robber ? '#d9483b' : '#f2b33d'}
+                    strokeWidth="9"
+                    strokeLinejoin="round"
+                    strokeDasharray={h.id === scene.robber ? '16 10' : undefined}
+                    pointerEvents="none"
+                  >
+                    <animate attributeName="stroke-opacity" values="1;0.45;1" dur="0.9s" repeatCount="indefinite" />
+                  </polygon>
+                ) : (
+                  <polygon points={hexPoints(topo, h.id, 0.97)} fill="#0b2530" opacity="0.28" pointerEvents="none" />
+                ))}
               {target && (
                 <polygon
                   points={hexPoints(topo, h.id, 0.8)}

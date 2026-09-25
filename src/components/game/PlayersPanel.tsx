@@ -104,7 +104,7 @@ export function PlayersPanel({
             }`}
             style={{ boxShadow: `inset 5px 0 0 ${c.hex}` }}
           >
-            <div className="relative">
+            <div className="relative" data-seat-anchor={seat}>
               {seatInfo ? <KnightBadge knight={seatInfo.knight} color={p.color} size={compact ? 38 : 44} /> : <div className="h-11 w-11 rounded-full" style={{ background: c.hex }} />}
               {isTurn && <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 animate-ping rounded-full bg-amber" />}
               <ReactionBubble playerId={p.id} side={compact ? 'below' : 'left'} />

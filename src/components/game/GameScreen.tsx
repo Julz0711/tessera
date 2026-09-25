@@ -31,6 +31,9 @@ import { PlayersPanel } from './PlayersPanel';
 import { DiscardDialog, FreeRoadsBanner, GoldDialog, VictimDialog } from './Prompts';
 import { TopBar } from './TopBar';
 import { OffersTray } from './TradePanel';
+import { cardList, fly, type Place } from '@/client/fx';
+import { TERRAIN_COMMODITY, TERRAIN_RESOURCE } from '@/engine/constants';
+import { FlyLayer } from './FlyLayer';
 
 function cardsText(h: PartialHand): string {
   return CARDS.filter((c) => (h[c] ?? 0) > 0)
@@ -51,6 +54,17 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
           play('dice');
           break;
         case 'produced':
+          {
+            // Each card flies from a tile that produced it (on the 2D board) to its new owner.
+            const total = view.turn.dice ? view.turn.dice.red + view.turn.dice.yellow : null;
+            const source = (c: Card): Place => {
+              const hex = view.board.hexes.find(
+                (h) => h.token === total && h.id !== view.robber && !h.fog && (TERRAIN_RESOURCE[h.terrain] === c || TERRAIN_COMMODITY[h.terrain] === c),
+              );
+              return hex ? { hex: hex.id } : 'board';
+            };
+            ev.gains.forEach((g, seat) => g && cardList(g).forEach((c, i) => fly(source(c), { seat }, [c], me, 250 + seat * 60 + i * 90)));
+          }
           if (me !== null && ev.gains[me] && Object.keys(ev.gains[me]).length) {
             play('gain');
             toast(`+ ${cardsText(ev.gains[me])}`, 'good');
@@ -64,6 +78,7 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
           break;
         case 'stole':
           play(ev.victim === me ? 'stolen' : 'steal');
+          fly({ seat: ev.victim }, { seat: ev.seat }, [(secret?.card as Card | undefined) ?? null], me);
           if (ev.victim === me) toast(`${name(ev.seat)} stole ${secret?.card ? CARD_COLORS[secret.card as Card].label.toLowerCase() : 'a card'} from you`, 'error');
           else if (ev.seat === me && secret?.card) toast(`You stole ${CARD_COLORS[secret.card as Card].label.toLowerCase()} from ${name(ev.victim)}`, 'good');
           break;
@@ -74,14 +89,33 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
           }
           break;
         case 'trade':
+          play('trade');
+          fly({ seat: ev.seat }, { seat: ev.partner }, cardList(ev.give), me);
+          fly({ seat: ev.partner }, { seat: ev.seat }, cardList(ev.get), me, 150);
+          break;
         case 'bankTrade':
           play('trade');
+          fly({ seat: ev.seat }, 'bank', cardList(ev.give), me);
+          fly('bank', { seat: ev.seat }, cardList(ev.get), me, 450);
           break;
+        case 'received':
+          fly('bank', { seat: ev.seat }, cardList(ev.cards), me);
+          break;
+        case 'discarded':
+          fly({ seat: ev.seat }, 'bank', cardList(ev.cards), me);
+          break;
+        case 'monopoly': {
+          const others = view.players.map((_, i) => i).filter((i) => i !== ev.seat);
+          const n = Math.min(ev.total, 6);
+          for (let i = 0; i < n; i++) fly({ seat: others[i % others.length] }, { seat: ev.seat }, [ev.card], me, i * 90);
+          break;
+        }
         case 'tradeOffered':
           if (me !== null && ev.seat !== me && view.trades.some((t) => t.id === ev.id && t.to.includes(me))) play('offer');
           break;
         case 'devBought':
           if (ev.seat === me) play('card');
+          fly('bank', { seat: ev.seat }, [null], me);
           if (ev.seat === me && secret?.card) toast(`You bought: ${DEV_NAMES[secret.card as DevCardType]}`);
           break;
         case 'devPlayed':
@@ -224,7 +258,7 @@ export function GameScreen() {
     <div className={`fixed inset-0 overflow-hidden ${prefs.view === '2d' ? 'sea-2d' : 'bg-sea-900'}`}>
       {/* The 3D canvas fills the screen (the camera frames the island above the dock); the flat
           2D board is fitted into the space the panels leave free. */}
-      <div className={prefs.view === '2d' ? 'absolute inset-x-2 bottom-80 top-37.5 lg:bottom-42 lg:left-2 lg:right-75 lg:top-16' : 'absolute inset-0'}>
+      <div className={prefs.view === '2d' ? 'absolute inset-x-2 bottom-80 top-37.5 lg:bottom-42 lg:left-2 lg:right-75 lg:top-16' : 'absolute inset-0'} data-board-anchor>
         <BoardView
           mode={prefs.view}
           quality={prefs.graphics}
@@ -309,6 +343,8 @@ export function GameScreen() {
           </div>
         </div>
       </div>
+
+      <FlyLayer />
 
       {/* dialogs */}
       {myPrompt?.kind === 'discard' && <DiscardDialog view={view} prompt={myPrompt} />}

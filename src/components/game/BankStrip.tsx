@@ -11,7 +11,7 @@ import { MiniArt } from './cardArt';
 export function BankStrip({ view }: { view: PlayerView }) {
   const cards = view.mode === 'ck' ? [...RESOURCES, ...COMMODITIES] : RESOURCES;
   return (
-    <div className="paper-flat flex items-center gap-1.5 px-2 py-1.5" title="Cards left in the bank">
+    <div className="paper-flat flex items-center gap-1.5 px-2 py-1.5" title="Cards left in the bank" data-bank-anchor>
       <Landmark size={18} className="mx-0.5 shrink-0 text-ink-soft" aria-label="Bank" />
       {cards.map((c) => {
         const col = CARD_COLORS[c];
