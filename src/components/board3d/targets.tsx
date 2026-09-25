@@ -35,9 +35,28 @@ function click(e: ThreeEvent<MouseEvent>, fn: () => void) {
   fn();
 }
 
-function VertexTarget({ x, z, id, kind, color, onPick }: { x: number; z: number; id: number; kind: BoardTargets['kind']; color: PlayerColor | null; onPick: (id: number) => void }) {
+/** Build hints are offered, not asked for: still and cream (legible on every terrain), where a pick pulses amber. */
+const hintMat = (hover: boolean) => mat(hover ? '#fff3cf' : '#f6eddb', { opacity: hover ? 1 : 0.9, emissive: '#f6eddb' });
+
+function VertexTarget({
+  x,
+  z,
+  id,
+  kind,
+  hint,
+  color,
+  onPick,
+}: {
+  x: number;
+  z: number;
+  id: number;
+  kind: BoardTargets['kind'];
+  hint?: boolean;
+  color: PlayerColor | null;
+  onPick: (id: number) => void;
+}) {
   const [hover, setHover] = useState(false);
-  const ring = usePulse(id);
+  const pulse = usePulse(id);
   const subtle = kind === 'knightAction';
   const lift = kind === 'city' ? 0.5 : kind === 'knightAction' ? 0.06 : 0.36;
   return (
@@ -45,9 +64,15 @@ function VertexTarget({ x, z, id, kind, color, onPick }: { x: number; z: number;
       {hover && color && kind === 'settlement' && <Settlement x={x} z={z} color={color} ghost />}
       {hover && color && kind === 'city' && <City x={x} z={z} color={color} ghost />}
       <mesh
-        ref={ring}
+        ref={hint && !subtle ? undefined : pulse}
         geometry={GEO.targetRing}
-        material={subtle ? mat(hover ? '#fff3cf' : '#f6eddb', { opacity: hover ? 0.9 : 0.45 }) : mat(hover ? '#fff3cf' : AMBER, { emissive: AMBER })}
+        material={
+          subtle
+            ? mat(hover ? '#fff3cf' : '#f6eddb', { opacity: hover ? 0.9 : 0.45 })
+            : hint
+              ? hintMat(hover)
+              : mat(hover ? '#fff3cf' : AMBER, { emissive: AMBER })
+        }
         position={[x, TILE_TOP + lift, z]}
         rotation={[Math.PI / 2, 0, 0]}
         scale={subtle ? 1.5 : 1}
@@ -64,20 +89,41 @@ function VertexTarget({ x, z, id, kind, color, onPick }: { x: number; z: number;
   );
 }
 
-function EdgeTarget({ x, z, angle, id, color, onPick }: { x: number; z: number; angle: number; id: number; color: PlayerColor | null; onPick: (id: number) => void }) {
+function EdgeTarget({
+  x,
+  z,
+  angle,
+  id,
+  hint,
+  color,
+  onPick,
+}: {
+  x: number;
+  z: number;
+  angle: number;
+  id: number;
+  hint?: boolean;
+  color: PlayerColor | null;
+  onPick: (id: number) => void;
+}) {
   const [hover, setHover] = useState(false);
   const bar = usePulse(id * 0.7);
   return (
     <group>
       {hover && color && <Road x={x} z={z} angle={angle} color={color} ghost />}
-      <mesh
-        ref={bar}
-        geometry={GEO.road}
-        material={mat(hover ? '#fff3cf' : AMBER, { opacity: hover ? 0.2 : 0.75, emissive: AMBER })}
-        position={[x, TILE_TOP + 0.08, z]}
-        rotation={[0, -angle, 0]}
-        scale={[0.7, 0.6, 0.6]}
-      />
+      {hint ? (
+        // A small ring on the edge's midpoint, like colonist's road hints.
+        <mesh geometry={GEO.targetRing} material={hintMat(hover)} position={[x, TILE_TOP + 0.1, z]} rotation={[Math.PI / 2, 0, 0]} scale={0.7} />
+      ) : (
+        <mesh
+          ref={bar}
+          geometry={GEO.road}
+          material={mat(hover ? '#fff3cf' : AMBER, { opacity: hover ? 0.2 : 0.75, emissive: AMBER })}
+          position={[x, TILE_TOP + 0.08, z]}
+          rotation={[0, -angle, 0]}
+          scale={[0.7, 0.6, 0.6]}
+        />
+      )}
       <mesh
         geometry={GEO.edgeHit}
         position={[x, TILE_TOP + 0.08, z]}
@@ -129,11 +175,20 @@ export function Targets({
     <group>
       {onVertex &&
         targets.vertices.map((id) => (
-          <VertexTarget key={`v${id}`} id={id} x={topo.vertices[id].x} z={topo.vertices[id].y} kind={targets.kind} color={color} onPick={onVertex} />
+          <VertexTarget
+            key={`v${id}`}
+            id={id}
+            x={topo.vertices[id].x}
+            z={topo.vertices[id].y}
+            kind={targets.vertexKinds?.[id] ?? targets.kind}
+            hint={targets.hint}
+            color={color}
+            onPick={onVertex}
+          />
         ))}
       {onEdge &&
         targets.edges.map((id) => (
-          <EdgeTarget key={`e${id}`} id={id} x={topo.edges[id].x} z={topo.edges[id].y} angle={topo.edges[id].angle} color={color} onPick={onEdge} />
+          <EdgeTarget key={`e${id}`} id={id} x={topo.edges[id].x} z={topo.edges[id].y} angle={topo.edges[id].angle} hint={targets.hint} color={color} onPick={onEdge} />
         ))}
       {onHex && targets.hexes.map((id) => <HexTarget key={`h${id}`} id={id} x={topo.hexes[id].x} z={topo.hexes[id].y} onPick={onHex} />)}
     </group>

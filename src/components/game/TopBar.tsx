@@ -78,6 +78,16 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
                 </div>
               )}
               <div className="grid gap-1.5">
+                <span className="label">Build hints</span>
+                <div className="grid grid-cols-2 gap-1.5" title="Show the spots you can afford to build on; click one to build">
+                  {([true, false] as const).map((on) => (
+                    <button key={String(on)} type="button" className={`btn py-1 text-sm ${prefs.buildHints === on ? 'btn-primary' : ''}`} onClick={() => prefs.set({ buildHints: on })}>
+                      {on ? 'On' : 'Off'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid gap-1.5">
                 <span className="label">Sound</span>
                 <div className="flex items-center gap-2">
                   <button type="button" className="btn btn-ghost h-8 w-8 p-0" onClick={() => prefs.set({ volume: prefs.volume > 0 ? 0 : 0.6 })} aria-label="Toggle sound">

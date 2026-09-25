@@ -22,6 +22,10 @@ export interface BoardTargets {
   hexes: number[];
   /** Vertex currently selected as the source of a two-step action (e.g. moving a knight). */
   selectedVertex?: number | null;
+  /** Per-vertex kind, overriding `kind` (build hints mix settlement, city and knight spots). */
+  vertexKinds?: Partial<Record<number, TargetKind>>;
+  /** Build hints: spots offered without a build mode, drawn quieter than an explicit pick. */
+  hint?: boolean;
 }
 
 export const NO_TARGETS: BoardTargets = { kind: null, vertices: [], edges: [], hexes: [] };

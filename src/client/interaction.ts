@@ -5,6 +5,9 @@
  * 3D boards: they only render `computeTargets` and forward clicks to `handlePick`.
  */
 import {
+  COSTS,
+  hasCards,
+  piecesLeft,
   intrigueTargets,
   inventorHexes,
   knightMoveTargets,
@@ -25,7 +28,7 @@ import {
   type ProgressParams,
 } from '@/engine';
 import type { PlayerView } from '@/engine/view';
-import { NO_TARGETS, type BoardTargets } from '@/components/board/types';
+import { NO_TARGETS, type BoardTargets, type TargetKind } from '@/components/board/types';
 import { api } from './store';
 import { useUi, type UiMode } from './ui';
 
@@ -84,7 +87,22 @@ function ownKnights(view: PlayerView): number[] {
   return out;
 }
 
-export function computeTargets(view: PlayerView | null, mode: UiMode): BoardTargets {
+/** Roads, settlements and cities the viewer can afford and place right now. */
+function affordableSpots(view: PlayerView, me: number): { roads: number[]; settlements: number[]; cities: number[] } {
+  const hand = view.players[me].hand;
+  const left = piecesLeft(view, me);
+  return {
+    roads: left.roads > 0 && hasCards(hand, COSTS.road) ? legalRoadSpots(view, me) : [],
+    settlements: left.settlements > 0 && hasCards(hand, COSTS.settlement) ? legalSettlementSpots(view, me) : [],
+    cities: left.cities > 0 && hasCards(hand, COSTS.city) ? legalCitySpots(view, me) : [],
+  };
+}
+
+/**
+ * @param hints Offer affordable build spots when nothing is selected (colonist-style): a click
+ *   builds right away, without picking Road/Settle/City first.
+ */
+export function computeTargets(view: PlayerView | null, mode: UiMode, hints = false): BoardTargets {
   if (!view || view.viewer === null || view.phase === 'ended') return NO_TARGETS;
   const me = view.viewer;
 
@@ -156,8 +174,17 @@ export function computeTargets(view: PlayerView | null, mode: UiMode): BoardTarg
     };
   }
   // Cities & Knights: your knights are clickable for their action menu.
-  if (view.mode === 'ck') return { ...NO_TARGETS, kind: 'knightAction', vertices: ownKnights(view) };
-  return NO_TARGETS;
+  const knights = view.mode === 'ck' ? ownKnights(view) : [];
+  if (!hints) return knights.length ? { ...NO_TARGETS, kind: 'knightAction', vertices: knights } : NO_TARGETS;
+  // Knights and walls stay behind their buttons: their spots overlap settlement spots.
+  const spots = affordableSpots(view, me);
+  const vertexKinds: Partial<Record<number, TargetKind>> = {};
+  for (const v of spots.settlements) vertexKinds[v] = 'settlement';
+  for (const v of spots.cities) vertexKinds[v] = 'city';
+  for (const v of knights) vertexKinds[v] = 'knightAction';
+  const vertices = [...spots.settlements, ...spots.cities, ...knights];
+  if (!vertices.length && !spots.roads.length) return NO_TARGETS;
+  return { kind: spots.roads.length ? 'road' : 'settlement', vertices, edges: spots.roads, hexes: [], vertexKinds, hint: true };
 }
 
 async function send(action: Action, then?: () => void): Promise<void> {
@@ -229,5 +256,12 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
     if (picked.length >= spec.need) return send({ type: 'playProgress', card: mode.card, params: progressParams(mode.cardType, picked) }, done);
     return ui.setMode({ ...mode, picked });
   }
-  if (target === 'vertex' && view.knights[id]?.owner === me) ui.setKnightMenu(id);
+  if (target === 'vertex' && view.knights[id]?.owner === me) return ui.setKnightMenu(id);
+  // Build hints: the spot itself says what gets built.
+  if (target === 'edge') return send({ type: 'buildRoad', edge: id });
+  if (target === 'vertex') {
+    const b = view.buildings[id];
+    if (!b) return send({ type: 'buildSettlement', vertex: id });
+    if (b.owner === me && !b.city) return send({ type: 'buildCity', vertex: id });
+  }
 }

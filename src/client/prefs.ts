@@ -13,6 +13,8 @@ export interface Prefs {
   view: '3d' | '2d';
   graphics: 'high' | 'low';
   volume: number;
+  /** Show affordable build spots on the board without picking Road/Settle/City first. */
+  buildHints: boolean;
 }
 
 const KEY = 'prefs.v1';
@@ -24,6 +26,7 @@ const defaults = (): Prefs => ({
   view: '3d',
   graphics: 'high',
   volume: 0.6,
+  buildHints: true,
 });
 
 function read(): Prefs {
@@ -39,6 +42,7 @@ function read(): Prefs {
       view: p.view === '2d' ? '2d' : '3d',
       graphics: p.graphics === 'low' ? 'low' : 'high',
       volume: typeof p.volume === 'number' ? Math.min(1, Math.max(0, p.volume)) : base.volume,
+      buildHints: typeof p.buildHints === 'boolean' ? p.buildHints : base.buildHints,
     };
   } catch {
     return base;
@@ -61,8 +65,8 @@ export const usePrefs = create<PrefsStore>((set, get) => ({
   set(patch) {
     set(patch);
     try {
-      const { name, color, knight, view, graphics, volume } = { ...get(), ...patch };
-      window.localStorage.setItem(KEY, JSON.stringify({ name, color, knight, view, graphics, volume }));
+      const { name, color, knight, view, graphics, volume, buildHints } = { ...get(), ...patch };
+      window.localStorage.setItem(KEY, JSON.stringify({ name, color, knight, view, graphics, volume, buildHints }));
     } catch {
       // Storage unavailable (private mode) — preferences just won't persist.
     }

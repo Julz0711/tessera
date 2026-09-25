@@ -88,8 +88,9 @@ export function City({ x, z, color, ghost = false }: { x: number; z: number; col
 }
 
 const CK_GEO = {
-  wall: new THREE.CylinderGeometry(0.31, 0.33, 0.09, 6, 1, true),
-  wallTop: new THREE.TorusGeometry(0.32, 0.025, 4, 6),
+  wall: new THREE.CylinderGeometry(0.32, 0.35, 0.11, 6, 1, true),
+  wallTop: new THREE.TorusGeometry(0.335, 0.028, 4, 6),
+  crenel: new THREE.BoxGeometry(0.07, 0.06, 0.045),
   tower: new THREE.BoxGeometry(0.13, 0.46, 0.13),
   towerRoof: new THREE.ConeGeometry(0.12, 0.16, 4),
   pole: new THREE.CylinderGeometry(0.008, 0.008, 0.22, 4),
@@ -101,13 +102,31 @@ const CK_GEO = {
 
 const TRACK_FLAG = { trade: '#e9c35a', politics: '#3a74d8', science: '#3f9b4f' } as const;
 
-/** Stone wall ringing a city (C&K). */
+/** Angles (hex corners) around the wall ring where a crenellation block sits. */
+const CRENEL_ANGLES = [0, 1, 2, 3, 4, 5].map((i) => (i * Math.PI) / 3);
+
+/**
+ * Stone wall ringing a city (C&K). Light sandstone with a dark battlement top so it stays
+ * readable against every terrain colour, including grey mountains where a plain grey wall
+ * used to disappear.
+ */
 export function CityWall({ x, z }: { x: number; z: number }) {
-  const stone = mat('#8f8a80');
+  const stone = mat('#e8d9b5');
+  const dark = mat('#5b4a36');
   return (
     <group position={[x, TILE_TOP, z]} rotation={[0, Math.PI / 6, 0]}>
-      <mesh geometry={CK_GEO.wall} material={stone} position={[0, 0.045, 0]} castShadow />
-      <mesh geometry={CK_GEO.wallTop} material={mat('#a39e93')} position={[0, 0.09, 0]} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh geometry={CK_GEO.wall} material={stone} position={[0, 0.055, 0]} castShadow />
+      <mesh geometry={CK_GEO.wallTop} material={dark} position={[0, 0.11, 0]} rotation={[Math.PI / 2, 0, 0]} />
+      {CRENEL_ANGLES.map((a, i) => (
+        <mesh
+          key={i}
+          geometry={CK_GEO.crenel}
+          material={dark}
+          position={[Math.sin(a) * 0.335, 0.14, Math.cos(a) * 0.335]}
+          rotation={[0, a, 0]}
+          castShadow
+        />
+      ))}
     </group>
   );
 }

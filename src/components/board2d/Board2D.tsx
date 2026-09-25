@@ -1,12 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Maximize2, Minus, Plus } from 'lucide-react';
 import { PIPS } from '@/engine/constants';
 import { getTopology, type Topology } from '@/engine/board/topology';
 import type { PlayerColor, Terrain } from '@/engine/types';
 import { CARD_COLORS, TERRAIN_COLORS } from '@/client/palette';
 import { PLAYER_COLORS } from '@/shared/colors';
 import type { BoardProps } from '@/components/board/types';
+import { useZoomPan } from './useZoomPan';
 
 const S = 100; // world units → SVG units
 
@@ -105,6 +107,16 @@ function TerrainGlyphs({ terrain, cx, cy }: { terrain: Terrain; cx: number; cy: 
   }
 }
 
+/** Build-hint marker: a cream ring with thin dark edges, legible on every terrain. */
+function HintRing({ x, y, r, filled, hover }: { x: number; y: number; r: number; filled: boolean; hover: boolean }) {
+  return (
+    <g opacity={hover ? 1 : 0.9}>
+      <circle cx={x} cy={y} r={r} fill="none" stroke="#1f1a14" strokeOpacity="0.55" strokeWidth="5.5" />
+      <circle cx={x} cy={y} r={r} fill={filled ? 'rgba(246,237,219,0.6)' : 'none'} stroke={hover ? '#fff3cf' : '#f6eddb'} strokeWidth="2.75" />
+    </g>
+  );
+}
+
 function HousePath({ x, y, color, ghost }: { x: number; y: number; color: PlayerColor; ghost?: boolean }) {
   const c = PLAYER_COLORS[color];
   return (
@@ -133,7 +145,7 @@ function CityPath({ x, y, color, ghost }: { x: number; y: number; color: PlayerC
   );
 }
 
-export default function Board2D({ scene, targets, onVertex, onEdge, onHex }: BoardProps) {
+export default function Board2D({ scene, targets, onVertex, onEdge, onHex, interactive }: BoardProps) {
   const topo = getTopology(scene.board.hexes);
   const [hover, setHover] = useState<string | null>(null);
   const bounds = useMemo(() => {
@@ -146,253 +158,300 @@ export default function Board2D({ scene, targets, onVertex, onEdge, onHex }: Boa
   }, [topo]);
   const hexTargets = new Set(targets.hexes);
   const myColor = scene.myColor;
+  const { svgRef, viewBox, zoom, minZoom, maxZoom, zoomIn, zoomOut, reset, svgHandlers } = useZoomPan(bounds, !!interactive);
 
   return (
-    <svg
-      viewBox={`${bounds.minX} ${bounds.minY} ${bounds.w} ${bounds.h}`}
-      className="h-full w-full select-none"
-      preserveAspectRatio="xMidYMid meet"
-      role="img"
-      aria-label="Game board"
-    >
-      {/* The sea itself is painted by the container (.sea-2d) so it spans the whole screen. */}
+    <div className="relative h-full w-full">
+      <svg
+        ref={svgRef}
+        viewBox={viewBox}
+        className="h-full w-full select-none"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="Game board"
+        {...svgHandlers}
+      >
+        {/* The sea itself is painted by the container (.sea-2d) so it spans the whole screen. */}
 
-      {/* foam, beach & tiles */}
-      {scene.board.hexes.map((h) => (
-        <polygon key={`f${h.id}`} points={hexPoints(topo, h.id, 1.26)} fill="#cdeef2" opacity="0.45" />
-      ))}
-      {scene.board.hexes.map((h) => (
-        <polygon key={`b${h.id}`} points={hexPoints(topo, h.id, 1.12)} fill="#e6d3a3" />
-      ))}
-      {scene.board.hexes.map((h) => {
-        const t = topo.hexes[h.id];
-        const c = TERRAIN_COLORS[h.terrain];
-        const target = hexTargets.has(h.id);
-        return (
-          <g
-            key={`h${h.id}`}
-            onClick={target && onHex ? () => onHex(h.id) : undefined}
-            onMouseEnter={target ? () => setHover(`h${h.id}`) : undefined}
-            onMouseLeave={target ? () => setHover(null) : undefined}
-            className={target ? 'cursor-pointer' : undefined}
-          >
-            <polygon points={hexPoints(topo, h.id, 0.97)} fill={c.top} stroke={c.side} strokeWidth="5" strokeLinejoin="round" />
-            <TerrainGlyphs terrain={h.terrain} cx={t.x * S} cy={t.y * S} />
-            {target && (
-              <polygon
-                points={hexPoints(topo, h.id, 0.8)}
-                fill={hover === `h${h.id}` ? 'rgba(242,179,61,0.35)' : 'rgba(242,179,61,0.12)'}
-                stroke="#f2b33d"
-                strokeWidth="6"
-                strokeDasharray="14 8"
-                strokeLinejoin="round"
-              />
-            )}
-          </g>
-        );
-      })}
-
-      {/* harbors */}
-      {scene.board.harbors.map((hb) => {
-        const e = topo.edges[hb.edge];
-        const land = topo.hexes[e.hexes[0]];
-        const dx = e.x - land.x;
-        const dy = e.y - land.y;
-        const len = Math.hypot(dx, dy) || 1;
-        const px = (e.x + (dx / len) * 0.66) * S;
-        const py = (e.y + (dy / len) * 0.66) * S;
-        const label = hb.kind === 'any' ? '3:1 harbor — any resource' : `2:1 harbor — ${CARD_COLORS[hb.kind].label}`;
-        return (
-          <g key={`hb${hb.edge}`} pointerEvents="none">
-            <title>{label}</title>
-            {/* wooden piers from both corners */}
-            {[e.a, e.b].map((v) => (
-              <line
-                key={v}
-                x1={topo.vertices[v].x * S}
-                y1={topo.vertices[v].y * S}
-                x2={px}
-                y2={py + 10}
-                stroke="#9c6f42"
-                strokeWidth="8"
-                strokeDasharray="5 3"
-                strokeLinecap="butt"
-              />
-            ))}
-            {/* a little ship: hull, mast and a sail showing the rate */}
-            <g transform={`translate(${px} ${py}) scale(1.35)`}>
-              <path d="M-24 8h48l-9 13h-30Z" fill="#8a6139" stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
-              <rect x="-1.5" y="-38" width="3" height="47" fill="#5a3d22" />
-              <path d="M-19-34h36q-4 16 0 34h-36q4-18 0-34Z" fill="#f6eddb" stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
-              {hb.kind === 'any' ? (
-                <text y="-20" textAnchor="middle" fontSize="14" fontWeight="900" fill="#1f1a14">
-                  ?
-                </text>
-              ) : (
-                <circle cy="-24" r="6.5" fill={CARD_COLORS[hb.kind].bg} stroke="#1f1a14" strokeWidth="1.5" />
-              )}
-              <text y="-5" textAnchor="middle" className="display" fontSize="13" fontWeight="900" fill="#1f1a14">
-                {hb.kind === 'any' ? '3:1' : '2:1'}
-              </text>
-            </g>
-          </g>
-        );
-      })}
-
-      {/* tokens */}
-      {scene.board.hexes.map((h) => {
-        if (!h.token) return null;
-        const t = topo.hexes[h.id];
-        const red = h.token === 6 || h.token === 8;
-        const lit = scene.highlightToken === h.token && h.id !== scene.robber;
-        const pips = PIPS[h.token];
-        return (
-          <g key={`t${h.id}`} pointerEvents="none">
-            <circle cx={t.x * S} cy={t.y * S} r="29" fill={lit ? '#f2b33d' : '#f6eddb'} stroke="#1f1a14" strokeWidth="3" />
-            <text x={t.x * S} y={t.y * S + 7} textAnchor="middle" className="display" fontSize="27" fontWeight="800" fill={red ? '#c2412d' : '#1f1a14'}>
-              {h.token}
-            </text>
-            {Array.from({ length: pips }, (_, i) => (
-              <circle key={i} cx={t.x * S + (i - (pips - 1) / 2) * 6} cy={t.y * S + 18} r="2.2" fill={red ? '#c2412d' : '#1f1a14'} />
-            ))}
-          </g>
-        );
-      })}
-
-      {/* roads */}
-      {scene.roads.map((owner, eid) => {
-        if (owner === null) return null;
-        const e = topo.edges[eid];
-        const a = topo.vertices[e.a];
-        const b = topo.vertices[e.b];
-        const c = PLAYER_COLORS[scene.colors[owner]];
-        const k = 0.16;
-        const x1 = (a.x + (b.x - a.x) * k) * S;
-        const y1 = (a.y + (b.y - a.y) * k) * S;
-        const x2 = (b.x + (a.x - b.x) * k) * S;
-        const y2 = (b.y + (a.y - b.y) * k) * S;
-        return (
-          <g key={`r${eid}`} pointerEvents="none">
-            <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.dark} strokeWidth="15" strokeLinecap="round" />
-            <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.hex} strokeWidth="9" strokeLinecap="round" />
-          </g>
-        );
-      })}
-
-      {/* buildings */}
-      {scene.buildings.map((b, v) => {
-        if (!b) return null;
-        const p = topo.vertices[v];
-        const color = scene.colors[b.owner];
-        return b.city ? (
-          <g key={`c${v}`} pointerEvents="none">
-            <CityPath x={p.x * S} y={p.y * S} color={color} />
-            {b.wall && <circle cx={p.x * S} cy={p.y * S} r="27" fill="none" stroke="#6b5d4a" strokeWidth="4" strokeDasharray="6 4" />}
-            {b.metropolis && <circle cx={p.x * S + 16} cy={p.y * S - 20} r="7" fill="#f2c14e" stroke="#1f1a14" strokeWidth="2" />}
-          </g>
-        ) : (
-          <HousePath key={`s${v}`} x={p.x * S} y={p.y * S} color={color} />
-        );
-      })}
-
-      {/* knights (C&K) */}
-      {scene.knights.map((k, v) => {
-        if (!k) return null;
-        const p = topo.vertices[v];
-        const c = PLAYER_COLORS[scene.colors[k.owner]];
-        return (
-          <g key={`k${v}`} pointerEvents="none">
-            <circle cx={p.x * S} cy={p.y * S} r="17" fill={k.active ? '#f2b33d' : '#2d2c33'} stroke="#1f1a14" strokeWidth="2.5" />
-            <path d={`M${p.x * S - 10} ${p.y * S - 9}h20v7c0 7-4 11-10 13-6-2-10-6-10-13Z`} fill={c.hex} stroke={c.dark} strokeWidth="2" />
-            {Array.from({ length: k.level }, (_, i) => (
-              <circle key={i} cx={p.x * S + (i - (k.level - 1) / 2) * 6} cy={p.y * S - 1} r="2.2" fill={c.ink} />
-            ))}
-          </g>
-        );
-      })}
-
-      {/* merchant (C&K) */}
-      {scene.merchant &&
-        (() => {
-          const t = topo.hexes[scene.merchant.hex];
-          const c = PLAYER_COLORS[scene.colors[scene.merchant.owner]];
-          const x = t.x * S - 44;
-          const y = t.y * S - 8;
+        {/* foam, beach & tiles */}
+        {scene.board.hexes.map((h) => (
+          <polygon key={`f${h.id}`} points={hexPoints(topo, h.id, 1.26)} fill="#cdeef2" opacity="0.45" />
+        ))}
+        {scene.board.hexes.map((h) => (
+          <polygon key={`b${h.id}`} points={hexPoints(topo, h.id, 1.12)} fill="#e6d3a3" />
+        ))}
+        {scene.board.hexes.map((h) => {
+          const t = topo.hexes[h.id];
+          const c = TERRAIN_COLORS[h.terrain];
+          const target = hexTargets.has(h.id);
           return (
-            <g pointerEvents="none">
-              <title>Merchant</title>
-              <path d={`M${x - 11} ${y + 14}c0-12 4-20 11-20s11 8 11 20Z`} fill={c.hex} stroke={c.dark} strokeWidth="2.5" />
-              <circle cx={x} cy={y - 11} r="6.5" fill="#e8c9a5" stroke="#1f1a14" strokeWidth="1.5" />
-              <path d={`M${x - 8} ${y - 15}h16l-3-6h-10Z`} fill="#e3b94a" stroke="#1f1a14" strokeWidth="1.5" />
+            <g
+              key={`h${h.id}`}
+              onClick={target && onHex ? () => onHex(h.id) : undefined}
+              onMouseEnter={target ? () => setHover(`h${h.id}`) : undefined}
+              onMouseLeave={target ? () => setHover(null) : undefined}
+              className={target ? 'cursor-pointer' : undefined}
+            >
+              <polygon points={hexPoints(topo, h.id, 0.97)} fill={c.top} stroke={c.side} strokeWidth="5" strokeLinejoin="round" />
+              <TerrainGlyphs terrain={h.terrain} cx={t.x * S} cy={t.y * S} />
+              {target && (
+                <polygon
+                  points={hexPoints(topo, h.id, 0.8)}
+                  fill={hover === `h${h.id}` ? 'rgba(242,179,61,0.35)' : 'rgba(242,179,61,0.12)'}
+                  stroke="#f2b33d"
+                  strokeWidth="6"
+                  strokeDasharray="14 8"
+                  strokeLinejoin="round"
+                />
+              )}
             </g>
           );
-        })()}
+        })}
 
-      {/* robber */}
-      {(() => {
-        const t = topo.hexes[scene.robber];
-        const x = t.x * S;
-        const y = t.y * S + 46;
-        return (
-          <g pointerEvents="none">
-            <ellipse cx={x} cy={y + 16} rx="15" ry="5" fill="#000" opacity="0.25" />
-            <path d={`M${x - 12} ${y + 16}c0-14 5-24 12-24s12 10 12 24Z`} fill="#2d2c33" />
-            <circle cx={x} cy={y - 12} r="8" fill="#3a3942" />
-          </g>
-        );
-      })()}
+        {/* harbors */}
+        {scene.board.harbors.map((hb) => {
+          const e = topo.edges[hb.edge];
+          const land = topo.hexes[e.hexes[0]];
+          const dx = e.x - land.x;
+          const dy = e.y - land.y;
+          const len = Math.hypot(dx, dy) || 1;
+          const px = (e.x + (dx / len) * 0.66) * S;
+          const py = (e.y + (dy / len) * 0.66) * S;
+          const label = hb.kind === 'any' ? '3:1 harbor — any resource' : `2:1 harbor — ${CARD_COLORS[hb.kind].label}`;
+          return (
+            <g key={`hb${hb.edge}`} pointerEvents="none">
+              <title>{label}</title>
+              {/* wooden piers from both corners */}
+              {[e.a, e.b].map((v) => (
+                <line
+                  key={v}
+                  x1={topo.vertices[v].x * S}
+                  y1={topo.vertices[v].y * S}
+                  x2={px}
+                  y2={py + 10}
+                  stroke="#9c6f42"
+                  strokeWidth="8"
+                  strokeDasharray="5 3"
+                  strokeLinecap="butt"
+                />
+              ))}
+              {/* a little ship: hull, mast and a sail showing the rate */}
+              <g transform={`translate(${px} ${py}) scale(1.35)`}>
+                <path d="M-24 8h48l-9 13h-30Z" fill="#8a6139" stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
+                <rect x="-1.5" y="-38" width="3" height="47" fill="#5a3d22" />
+                <path d="M-19-34h36q-4 16 0 34h-36q4-18 0-34Z" fill="#f6eddb" stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
+                {hb.kind === 'any' ? (
+                  <text y="-20" textAnchor="middle" fontSize="14" fontWeight="900" fill="#1f1a14">
+                    ?
+                  </text>
+                ) : (
+                  <circle cy="-24" r="6.5" fill={CARD_COLORS[hb.kind].bg} stroke="#1f1a14" strokeWidth="1.5" />
+                )}
+                <text y="-5" textAnchor="middle" className="display" fontSize="13" fontWeight="900" fill="#1f1a14">
+                  {hb.kind === 'any' ? '3:1' : '2:1'}
+                </text>
+              </g>
+            </g>
+          );
+        })}
 
-      {/* targets */}
-      {onEdge &&
-        targets.edges.map((eid) => {
+        {/* tokens */}
+        {scene.board.hexes.map((h) => {
+          if (!h.token) return null;
+          const t = topo.hexes[h.id];
+          const red = h.token === 6 || h.token === 8;
+          const lit = scene.highlightToken === h.token && h.id !== scene.robber;
+          const pips = PIPS[h.token];
+          return (
+            <g key={`t${h.id}`} pointerEvents="none">
+              <circle cx={t.x * S} cy={t.y * S} r="29" fill={lit ? '#f2b33d' : '#f6eddb'} stroke="#1f1a14" strokeWidth="3" />
+              <text x={t.x * S} y={t.y * S + 7} textAnchor="middle" className="display" fontSize="27" fontWeight="800" fill={red ? '#c2412d' : '#1f1a14'}>
+                {h.token}
+              </text>
+              {Array.from({ length: pips }, (_, i) => (
+                <circle key={i} cx={t.x * S + (i - (pips - 1) / 2) * 6} cy={t.y * S + 18} r="2.2" fill={red ? '#c2412d' : '#1f1a14'} />
+              ))}
+            </g>
+          );
+        })}
+
+        {/* roads */}
+        {scene.roads.map((owner, eid) => {
+          if (owner === null) return null;
           const e = topo.edges[eid];
           const a = topo.vertices[e.a];
           const b = topo.vertices[e.b];
-          const k = 0.2;
-          const key = `e${eid}`;
+          const c = PLAYER_COLORS[scene.colors[owner]];
+          const k = 0.16;
           const x1 = (a.x + (b.x - a.x) * k) * S;
           const y1 = (a.y + (b.y - a.y) * k) * S;
           const x2 = (b.x + (a.x - b.x) * k) * S;
           const y2 = (b.y + (a.y - b.y) * k) * S;
-          const isHover = hover === key;
           return (
-            <g key={key} className="cursor-pointer" onClick={() => onEdge(eid)} onMouseEnter={() => setHover(key)} onMouseLeave={() => setHover(null)}>
-              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth="26" />
-              <line
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke={isHover && myColor ? PLAYER_COLORS[myColor].hex : '#f2b33d'}
-                strokeWidth={isHover ? 11 : 8}
-                strokeLinecap="round"
-                strokeDasharray={isHover ? undefined : '10 8'}
-              >
-                {!isHover && <animate attributeName="stroke-dashoffset" from="0" to="-36" dur="1s" repeatCount="indefinite" />}
-              </line>
+            <g key={`r${eid}`} pointerEvents="none">
+              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.dark} strokeWidth="15" strokeLinecap="round" />
+              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.hex} strokeWidth="9" strokeLinecap="round" />
             </g>
           );
         })}
-      {onVertex &&
-        targets.vertices.map((vid) => {
-          const p = topo.vertices[vid];
-          const key = `v${vid}`;
-          const isHover = hover === key;
-          return (
-            <g key={key} className="cursor-pointer" onClick={() => onVertex(vid)} onMouseEnter={() => setHover(key)} onMouseLeave={() => setHover(null)}>
-              <circle cx={p.x * S} cy={p.y * S} r="22" fill="transparent" />
-              {isHover && myColor && targets.kind === 'settlement' && <HousePath x={p.x * S} y={p.y * S} color={myColor} ghost />}
-              {isHover && myColor && targets.kind === 'city' && <CityPath x={p.x * S} y={p.y * S} color={myColor} ghost />}
-              {targets.kind === 'knightAction' ? (
-                <circle cx={p.x * S} cy={p.y * S} r="21" fill="none" stroke={isHover ? '#f2b33d' : '#f6eddb'} strokeOpacity={isHover ? 1 : 0.6} strokeWidth="3" strokeDasharray="5 4" />
-              ) : (
-                <circle cx={p.x * S} cy={p.y * S} r="12" fill="rgba(242,179,61,0.35)" stroke="#f2b33d" strokeWidth="4">
-                  <animate attributeName="r" values="10;15;10" dur="1.4s" repeatCount="indefinite" />
-                </circle>
+
+        {/* buildings */}
+        {scene.buildings.map((b, v) => {
+          if (!b) return null;
+          const p = topo.vertices[v];
+          const color = scene.colors[b.owner];
+          return b.city ? (
+            <g key={`c${v}`} pointerEvents="none">
+              <CityPath x={p.x * S} y={p.y * S} color={color} />
+              {b.wall && (
+                <g>
+                  {/* dark outline first so the ring reads on every hex colour, incl. grey mountains */}
+                  <circle cx={p.x * S} cy={p.y * S} r="27" fill="none" stroke="#3a2f22" strokeWidth="9" />
+                  <circle cx={p.x * S} cy={p.y * S} r="27" fill="none" stroke="#e8d9b5" strokeWidth="6" />
+                  {/* battlement notches: dark teeth dashed over the light stone ring */}
+                  <circle cx={p.x * S} cy={p.y * S} r="27" fill="none" stroke="#5b4a36" strokeWidth="6" strokeDasharray="8 6" />
+                </g>
               )}
+              {b.metropolis && <circle cx={p.x * S + 16} cy={p.y * S - 20} r="7" fill="#f2c14e" stroke="#1f1a14" strokeWidth="2" />}
+            </g>
+          ) : (
+            <HousePath key={`s${v}`} x={p.x * S} y={p.y * S} color={color} />
+          );
+        })}
+
+        {/* knights (C&K) */}
+        {scene.knights.map((k, v) => {
+          if (!k) return null;
+          const p = topo.vertices[v];
+          const c = PLAYER_COLORS[scene.colors[k.owner]];
+          return (
+            <g key={`k${v}`} pointerEvents="none">
+              <circle cx={p.x * S} cy={p.y * S} r="17" fill={k.active ? '#f2b33d' : '#2d2c33'} stroke="#1f1a14" strokeWidth="2.5" />
+              <path d={`M${p.x * S - 10} ${p.y * S - 9}h20v7c0 7-4 11-10 13-6-2-10-6-10-13Z`} fill={c.hex} stroke={c.dark} strokeWidth="2" />
+              {Array.from({ length: k.level }, (_, i) => (
+                <circle key={i} cx={p.x * S + (i - (k.level - 1) / 2) * 6} cy={p.y * S - 1} r="2.2" fill={c.ink} />
+              ))}
             </g>
           );
         })}
-    </svg>
+
+        {/* merchant (C&K) */}
+        {scene.merchant &&
+          (() => {
+            const t = topo.hexes[scene.merchant.hex];
+            const c = PLAYER_COLORS[scene.colors[scene.merchant.owner]];
+            const x = t.x * S - 44;
+            const y = t.y * S - 8;
+            return (
+              <g pointerEvents="none">
+                <title>Merchant</title>
+                <path d={`M${x - 11} ${y + 14}c0-12 4-20 11-20s11 8 11 20Z`} fill={c.hex} stroke={c.dark} strokeWidth="2.5" />
+                <circle cx={x} cy={y - 11} r="6.5" fill="#e8c9a5" stroke="#1f1a14" strokeWidth="1.5" />
+                <path d={`M${x - 8} ${y - 15}h16l-3-6h-10Z`} fill="#e3b94a" stroke="#1f1a14" strokeWidth="1.5" />
+              </g>
+            );
+          })()}
+
+        {/* robber */}
+        {(() => {
+          const t = topo.hexes[scene.robber];
+          const x = t.x * S;
+          const y = t.y * S + 46;
+          return (
+            <g pointerEvents="none">
+              <ellipse cx={x} cy={y + 16} rx="15" ry="5" fill="#000" opacity="0.25" />
+              <path d={`M${x - 12} ${y + 16}c0-14 5-24 12-24s12 10 12 24Z`} fill="#2d2c33" />
+              <circle cx={x} cy={y - 12} r="8" fill="#3a3942" />
+            </g>
+          );
+        })()}
+
+        {/* targets */}
+        {onEdge &&
+          targets.edges.map((eid) => {
+            const e = topo.edges[eid];
+            const a = topo.vertices[e.a];
+            const b = topo.vertices[e.b];
+            const k = 0.2;
+            const key = `e${eid}`;
+            const x1 = (a.x + (b.x - a.x) * k) * S;
+            const y1 = (a.y + (b.y - a.y) * k) * S;
+            const x2 = (b.x + (a.x - b.x) * k) * S;
+            const y2 = (b.y + (a.y - b.y) * k) * S;
+            const isHover = hover === key;
+            return (
+              <g key={key} className="cursor-pointer" onClick={() => onEdge(eid)} onMouseEnter={() => setHover(key)} onMouseLeave={() => setHover(null)}>
+                <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth="26" />
+                {targets.hint ? (
+                  // Build hints: a quiet dot on the edge's midpoint (like colonist); hovering previews the road.
+                  <>
+                    {isHover && myColor && <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={PLAYER_COLORS[myColor].hex} strokeWidth="11" strokeLinecap="round" opacity="0.7" />}
+                    <HintRing x={e.x * S} y={e.y * S} r={6} filled={!isHover} hover={isHover} />
+                  </>
+                ) : (
+                  <>
+                    {/* dark underlay so the amber reads on light tiles */}
+                    {!isHover && <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#1f1a14" strokeOpacity="0.4" strokeWidth="12" strokeLinecap="round" />}
+                    <line
+                      x1={x1}
+                      y1={y1}
+                      x2={x2}
+                      y2={y2}
+                      stroke={isHover && myColor ? PLAYER_COLORS[myColor].hex : '#f2b33d'}
+                      strokeWidth={isHover ? 11 : 8}
+                      strokeLinecap="round"
+                      strokeDasharray={isHover ? undefined : '10 8'}
+                    >
+                      {!isHover && <animate attributeName="stroke-dashoffset" from="0" to="-36" dur="1s" repeatCount="indefinite" />}
+                    </line>
+                  </>
+                )}
+              </g>
+            );
+          })}
+        {onVertex &&
+          targets.vertices.map((vid) => {
+            const p = topo.vertices[vid];
+            const key = `v${vid}`;
+            const isHover = hover === key;
+            const kind = targets.vertexKinds?.[vid] ?? targets.kind;
+            return (
+              <g key={key} className="cursor-pointer" onClick={() => onVertex(vid)} onMouseEnter={() => setHover(key)} onMouseLeave={() => setHover(null)}>
+                <circle cx={p.x * S} cy={p.y * S} r="22" fill="transparent" />
+                {isHover && myColor && kind === 'settlement' && <HousePath x={p.x * S} y={p.y * S} color={myColor} ghost />}
+                {isHover && myColor && kind === 'city' && <CityPath x={p.x * S} y={p.y * S} color={myColor} ghost />}
+                {kind === 'knightAction' ? (
+                  <circle cx={p.x * S} cy={p.y * S} r="21" fill="none" stroke={isHover ? '#f2b33d' : '#f6eddb'} strokeOpacity={isHover ? 1 : 0.6} strokeWidth="3" strokeDasharray="5 4" />
+                ) : targets.hint ? (
+                  // Offered, not asked for: still, where a pick pulses. City spots ring the settlement.
+                  <HintRing x={p.x * S} y={p.y * S} r={kind === 'city' ? 24 : 10} filled={kind !== 'city' && !isHover} hover={isHover} />
+                ) : (
+                  <g>
+                    <circle cx={p.x * S} cy={p.y * S} r="12" fill="none" stroke="#1f1a14" strokeOpacity="0.4" strokeWidth="8">
+                      <animate attributeName="r" values="10;15;10" dur="1.4s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx={p.x * S} cy={p.y * S} r="12" fill="rgba(242,179,61,0.35)" stroke="#f2b33d" strokeWidth="4">
+                      <animate attributeName="r" values="10;15;10" dur="1.4s" repeatCount="indefinite" />
+                    </circle>
+                  </g>
+                )}
+              </g>
+            );
+          })}
+      </svg>
+      {interactive && (
+        <div className="absolute bottom-2 left-2 z-10 flex flex-col gap-1.5">
+          <button type="button" className="btn btn-dark h-10 w-10 p-0" onClick={zoomIn} disabled={zoom >= maxZoom - 1e-6} aria-label="Zoom in">
+            <Plus size={18} />
+          </button>
+          <button type="button" className="btn btn-dark h-10 w-10 p-0" onClick={zoomOut} disabled={zoom <= minZoom + 1e-6} aria-label="Zoom out">
+            <Minus size={18} />
+          </button>
+          <button type="button" className="btn btn-dark h-10 w-10 p-0" onClick={reset} disabled={zoom <= minZoom + 1e-6} aria-label="Reset zoom">
+            <Maximize2 size={18} />
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

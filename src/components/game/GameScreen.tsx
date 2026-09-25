@@ -160,7 +160,7 @@ export function GameScreen() {
 
   const styles = useMemo(() => room?.seats.map((s) => s.knight) ?? [], [room?.seats]);
   const scene = useMemo(() => (view ? { ...sceneFromView(view, styles), highlightToken: highlight } : null), [view, styles, highlight]);
-  const targets = useMemo(() => computeTargets(view, ui.mode), [view, ui.mode]);
+  const targets = useMemo(() => computeTargets(view, ui.mode, prefs.buildHints), [view, ui.mode, prefs.buildHints]);
 
   const onVertex = useCallback((id: number) => view && void handlePick(view, 'vertex', id), [view]);
   const onEdge = useCallback((id: number) => view && void handlePick(view, 'edge', id), [view]);
