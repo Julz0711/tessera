@@ -23,6 +23,8 @@ export function Hand({ view }: { view: PlayerView }) {
     ? []
     : DEV_ORDER.map((type) => ({ type, cards: p.devCards.filter((c) => c.type === type) })).filter((g) => g.cards.length > 0);
   const special = ck ? p.progress.length : dev.length;
+  // Clicking a card starts a trade with it, whenever the Trade button would work.
+  const canTrade = view.phase === 'play' && view.turn.rolled && view.pending.length === 0;
 
   return (
     // The inner row is only as wide as its cards, so it centres when it fits and scrolls from the
@@ -35,7 +37,7 @@ export function Hand({ view }: { view: PlayerView }) {
           </div>
         )}
         {held.map((c) => (
-          <CardStack key={c} card={c} count={p.hand[c]} />
+          <CardStack key={c} card={c} count={p.hand[c]} onClick={canTrade ? () => ui.openTrade({ [c]: 1 }) : undefined} />
         ))}
         {held.length > 0 && special > 0 && <span aria-hidden className="h-12 w-px self-center bg-white/20" />}
         {dev.map(({ type, cards }) => (

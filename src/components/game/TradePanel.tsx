@@ -1,8 +1,8 @@
 'use client';
 
-import { ArrowLeftRight, Check, Clock, CornerUpLeft, X } from 'lucide-react';
+import { ArrowLeftRight, Check, Clock, CornerUpLeft, Landmark, X } from 'lucide-react';
 import { useState } from 'react';
-import { CARDS, RESOURCES, handTotal, hasCards, type PartialHand, type TradeOffer } from '@/engine';
+import { CARDS, RESOURCES, bankRatio, handTotal, hasCards, type Card, type PartialHand, type TradeOffer } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { api } from '@/client/store';
 import { useUi } from '@/client/ui';
@@ -76,12 +76,24 @@ export function OfferRow({ view, offer, onCounter }: { view: PlayerView; offer: 
   );
 }
 
+/** The draft as a bank trade at the viewer's rate (one card type given, a multiple of the rate, for one type), or null. */
+function asBankTrade(view: PlayerView, me: number, give: PartialHand, want: PartialHand) {
+  const g = CARDS.filter((c) => (give[c] ?? 0) > 0);
+  const w = CARDS.filter((c) => (want[c] ?? 0) > 0);
+  if (g.length !== 1 || w.length !== 1 || g[0] === w[0]) return null;
+  const ratio = bankRatio(view, me, g[0]);
+  const count = want[w[0]]!;
+  if (give[g[0]] !== ratio * count || view.bank[w[0]] < count) return null;
+  return { give: g[0] as Card, get: w[0] as Card, count, ratio };
+}
+
 export function TradePanel({ view }: { view: PlayerView }) {
   const ui = useUi();
   const me = view.viewer!;
   const isActive = view.turn.seat === me;
   const cards = view.mode === 'ck' ? CARDS : RESOURCES;
-  const [give, setGive] = useState<PartialHand>({});
+  // Opened by clicking a card in the hand: that card starts on the give side.
+  const [give, setGive] = useState<PartialHand>(() => ({ ...ui.tradeGive }));
   const [want, setWant] = useState<PartialHand>({});
   const others = view.players.map((_, i) => i).filter((i) => i !== me);
   const [targets, setTargets] = useState<number[]>(others);
@@ -99,6 +111,15 @@ export function TradePanel({ view }: { view: PlayerView }) {
     }
   };
   const ready = handTotal(give) > 0 && handTotal(want) > 0;
+  const bank = isActive && view.turn.rolled && view.pending.length === 0 ? asBankTrade(view, me, give, want) : null;
+  const tradeBank = async () => {
+    if (!bank) return;
+    const r = await api.act({ type: 'bankTrade', give: bank.give, get: bank.get, count: bank.count });
+    if (r.ok) {
+      setGive({});
+      setWant({});
+    }
+  };
 
   return (
     <Modal open onClose={() => ui.setPanel(null)} title={isActive ? 'Trade with players' : `Counter-offer to ${view.players[view.turn.seat].name}`} wide>
@@ -134,7 +155,12 @@ export function TradePanel({ view }: { view: PlayerView }) {
             </div>
           </div>
         )}
-        <div className="flex justify-end">
+        <div className="flex flex-wrap justify-end gap-2">
+          {bank && (
+            <button type="button" className="btn px-4 py-2" onClick={tradeBank} title={`Trade ${bank.ratio}:1 with the bank`}>
+              <Landmark size={16} /> Bank {bank.ratio}:1
+            </button>
+          )}
           <button type="button" className="btn btn-primary px-5 py-2" disabled={!ready || (isActive && targets.length === 0)} onClick={send}>
             <ArrowLeftRight size={16} /> {isActive ? 'Send offer' : 'Send counter-offer'}
           </button>

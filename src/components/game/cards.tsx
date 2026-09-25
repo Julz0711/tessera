@@ -163,7 +163,7 @@ export function ResourceCard({
 }
 
 /** Held cards of one kind, fanned like a real stack: a sliver per extra card (up to 4), plus a count. */
-export function CardStack({ card, count }: { card: Card; count: number }) {
+export function CardStack({ card, count, onClick }: { card: Card; count: number; onClick?: () => void }) {
   const c = CARD_COLORS[card];
   const extra = Math.min(count - 1, 4);
   const step = 7;
@@ -177,7 +177,7 @@ export function CardStack({ card, count }: { card: Card; count: number }) {
           style={{ left: i * step, background: c.bg, filter: `brightness(${0.78 + i * 0.05})` }}
         />
       ))}
-      <ResourceCard card={card} count={count} />
+      <ResourceCard card={card} count={count} onClick={onClick} />
     </div>
   );
 }
