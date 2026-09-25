@@ -45,8 +45,6 @@ interface UiStore {
   mode: UiMode;
   panel: Panel;
   card: CardFocus | null;
-  /** Cards to give, pre-picked when the trade panel is opened from the hand. */
-  tradeGive: PartialHand | null;
   robber: RobberPick | null;
   /** Own knight whose action menu is open. */
   knightMenu: number | null;
@@ -57,8 +55,6 @@ interface UiStore {
   toggleBuild(what: BuildWhat): void;
   setPanel(panel: Panel): void;
   openCard(card: CardFocus | null): void;
-  /** Opens the trade panel with these cards already on the give side. */
-  openTrade(give: PartialHand): void;
   setRobber(pick: RobberPick | null): void;
   setKnightMenu(vertex: number | null): void;
   arm(armed: Armed | null): void;
@@ -72,7 +68,6 @@ export const useUi = create<UiStore>((set) => ({
   mode: null,
   panel: null,
   card: null,
-  tradeGive: null,
   robber: null,
   knightMenu: null,
   armed: null,
@@ -81,8 +76,7 @@ export const useUi = create<UiStore>((set) => ({
   setMode: (mode) => set({ mode, panel: null, card: null, knightMenu: null, armed: null }),
   toggleBuild: (what) =>
     set((s) => ({ mode: s.mode?.t === 'build' && s.mode.what === what ? null : { t: 'build', what }, panel: null, card: null, knightMenu: null, armed: null })),
-  setPanel: (panel) => set((s) => ({ panel: s.panel === panel ? null : panel, tradeGive: null, mode: null, card: null, knightMenu: null, armed: null })),
-  openTrade: (tradeGive) => set({ panel: 'trade', tradeGive, mode: null, card: null, knightMenu: null, armed: null }),
+  setPanel: (panel) => set((s) => ({ panel: s.panel === panel ? null : panel, mode: null, card: null, knightMenu: null, armed: null })),
   openCard: (card) => set({ card, panel: null, mode: null, knightMenu: null, armed: null }),
   setRobber: (robber) => set({ robber }),
   setKnightMenu: (knightMenu) => set({ knightMenu, armed: null }),

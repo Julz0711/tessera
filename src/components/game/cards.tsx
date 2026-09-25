@@ -146,6 +146,7 @@ export function ResourceCard({
   dim,
 }: {
   card: Card;
+  /** Shown as a badge when above 0; a picker passes 0 for a plain card. */
   count: number;
   size?: CardSize;
   onClick?: () => void;
@@ -155,7 +156,7 @@ export function ResourceCard({
   const c = CARD_COLORS[card];
   const Glyph = CARD_GLYPH[card];
   return (
-    <CardShell bg={c.bg} ink={c.ink} size={size} title={`${c.label}: ${count}`} onClick={onClick} selected={selected} dim={dim || count === 0} badge={count}>
+    <CardShell bg={c.bg} ink={c.ink} size={size} title={count > 0 ? `${c.label}: ${count}` : c.label} onClick={onClick} selected={selected} dim={dim} badge={count}>
       <Glyph size={GLYPH_SIZE[size]} strokeWidth={2} />
       <span className="mt-0.5 text-[9px] font-black uppercase tracking-wider opacity-80">{c.label}</span>
     </CardShell>

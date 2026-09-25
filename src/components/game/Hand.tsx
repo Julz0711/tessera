@@ -1,7 +1,8 @@
 'use client';
 
-import { COMMODITIES, RESOURCES, type DevCardType } from '@/engine';
+import { COMMODITIES, RESOURCES, type Card, type DevCardType } from '@/engine';
 import type { PlayerView } from '@/engine/view';
+import { openTrade, useTradeDraft } from '@/client/trade';
 import { useUi } from '@/client/ui';
 import { CardStack, DevCardFace, ProgressCardFace } from './cards';
 import { canPlayProgress } from './ck/ProgressCardDialog';
@@ -16,14 +17,18 @@ const DEV_ORDER: DevCardType[] = ['knight', 'roadBuilding', 'yearOfPlenty', 'mon
  */
 export function Hand({ view }: { view: PlayerView }) {
   const ui = useUi();
+  const draft = useTradeDraft();
   const p = view.players[view.viewer!];
   const ck = view.mode === 'ck';
-  const held = (ck ? [...RESOURCES, ...COMMODITIES] : RESOURCES).filter((c) => p.hand[c] > 0);
+  // While trading, cards put up on the give side have left the hand.
+  const trading = ui.panel === 'trade';
+  const count = (c: Card) => p.hand[c] - (trading ? Math.min(draft.give[c] ?? 0, p.hand[c]) : 0);
+  const held = (ck ? [...RESOURCES, ...COMMODITIES] : RESOURCES).filter((c) => count(c) > 0);
   const dev = ck
     ? []
     : DEV_ORDER.map((type) => ({ type, cards: p.devCards.filter((c) => c.type === type) })).filter((g) => g.cards.length > 0);
   const special = ck ? p.progress.length : dev.length;
-  // Clicking a card starts a trade with it, whenever the Trade button would work.
+  // Clicking a card starts a trade with it (or, while trading, puts it up), whenever the Trade button would work.
   const canTrade = view.phase === 'play' && view.turn.rolled && view.pending.length === 0;
 
   return (
@@ -31,13 +36,13 @@ export function Hand({ view }: { view: PlayerView }) {
     // first card when it doesn't.
     <div className="max-w-full overflow-x-auto scroll-thin">
       <div className="mx-auto flex w-max items-end gap-2.5 px-3 pb-2 pt-3 sm:gap-3">
-        {held.length === 0 && special === 0 && (
+        {held.length === 0 && special === 0 && !trading && (
           <div className="grid h-18 place-items-center rounded-lg border-2 border-dashed border-white/20 px-5 text-xs font-bold text-foam/60 sm:h-20">
             No cards in hand
           </div>
         )}
         {held.map((c) => (
-          <CardStack key={c} card={c} count={p.hand[c]} onClick={canTrade ? () => ui.openTrade({ [c]: 1 }) : undefined} />
+          <CardStack key={c} card={c} count={count(c)} onClick={canTrade ? () => (trading ? draft.add('give', c) : openTrade({ [c]: 1 })) : undefined} />
         ))}
         {held.length > 0 && special > 0 && <span aria-hidden className="h-12 w-px self-center bg-white/20" />}
         {dev.map(({ type, cards }) => (

@@ -21,6 +21,7 @@ import { buildMode, useUi } from '@/client/ui';
 import { CityGlyph, KnightGlyph, RoadGlyph, SettlementGlyph } from '@/components/ui/Glyphs';
 import { CardList } from './cards';
 import { Hand } from './Hand';
+import { TradePanel } from './TradePanel';
 
 function ActionButton({
   label,
@@ -121,6 +122,7 @@ export function Dock({ view }: { view: PlayerView }) {
   const wallOk = canBuild && ck && has(COSTS.wall) && wallSpots(view, me).length > 0;
   return (
     <div className="flex flex-col items-center gap-2">
+      {ui.panel === 'trade' && <TradePanel view={view} />}
       <Hand view={view} />
 
       {/* actions */}

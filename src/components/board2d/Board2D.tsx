@@ -246,7 +246,10 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
       <svg
         ref={svgRef}
         viewBox={viewBox}
-        className="h-full w-full select-none"
+        // The game screen frames the board in the space its panels leave free, but a zoomed-in board
+        // keeps going to the screen edges (under the panels, like the 3D canvas) instead of being cut
+        // off at that frame.
+        className={`h-full w-full select-none ${interactive ? 'overflow-visible' : ''}`}
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label="Game board"

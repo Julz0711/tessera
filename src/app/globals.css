@@ -46,6 +46,8 @@
   --animate-pop: pop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
   --animate-pulse-ring: pulse-ring 1.4s ease-out infinite;
   --animate-bob: bob 3s ease-in-out infinite;
+  --animate-slide-up: slide-up 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-slide-down: slide-down 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 
   @keyframes rise {
     from {
@@ -73,6 +75,27 @@
     }
     100% {
       box-shadow: 0 0 0 14px rgb(242 179 61 / 0);
+    }
+  }
+  /* Trade panel cards arrive from where they came from: up from the hand, down from the picker. */
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-40px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
     }
   }
   @keyframes bob {

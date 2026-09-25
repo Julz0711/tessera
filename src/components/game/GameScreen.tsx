@@ -30,7 +30,7 @@ import { LogPanel } from './LogPanel';
 import { PlayersPanel } from './PlayersPanel';
 import { DiscardDialog, FreeRoadsBanner, GoldDialog, VictimDialog } from './Prompts';
 import { TopBar } from './TopBar';
-import { OffersTray, TradePanel } from './TradePanel';
+import { OffersTray } from './TradePanel';
 
 function cardsText(h: PartialHand): string {
   return CARDS.filter((c) => (h[c] ?? 0) > 0)
@@ -208,7 +208,7 @@ export function GameScreen() {
         </div>
       </div>
 
-      {/* log/chat, bank, players + offers: right column on desktop */}
+      {/* log/chat, bank, players: right column on desktop */}
       <div className="absolute right-2 top-16 z-10 hidden max-h-[calc(100dvh-152px)] w-72 flex-col gap-2 overflow-y-auto scroll-thin lg:flex">
         <div className="flex min-h-36 max-h-72 flex-1 flex-col overflow-hidden">
           <SidePanel view={view} unread={unread} />
@@ -224,7 +224,6 @@ export function GameScreen() {
         <div className="shrink-0">
           <PlayersPanel view={view} room={room} />
         </div>
-        <OffersTray view={view} className="w-full shrink-0" />
       </div>
       {/* dice + roll: bottom-right on desktop; below lg it moves into the row above the dock */}
       <div className="absolute bottom-2 right-2 z-20 hidden lg:block">
@@ -239,14 +238,14 @@ export function GameScreen() {
         />
       </div>
 
-      {/* dock; on smaller screens the log/chat buttons, dice/roll and trade offers ride just above it,
+      {/* trade offers: top-left, clear of the side column (below the players strip on smaller screens) */}
+      <div className="absolute left-2 top-45 z-20 lg:top-16">
+        <OffersTray view={view} className="w-[min(400px,calc(100vw-16px))]" />
+      </div>
+
+      {/* dock; on smaller screens the log/chat buttons and dice/roll ride just above it,
           however tall the dock gets (C&K's action bar wraps to three rows on phones) */}
       <div className="pointer-events-none absolute inset-x-0 bottom-2 z-20 flex flex-col gap-2 px-2 lg:right-56 xl:right-0">
-        <div className="flex lg:hidden">
-          <div className="pointer-events-auto ml-auto">
-            <OffersTray view={view} className="w-[min(420px,92vw)]" />
-          </div>
-        </div>
         <div className="flex items-end justify-between gap-2 lg:hidden">
           <div className="pointer-events-auto">
             <MobileSide view={view} unread={unread} />
@@ -273,7 +272,6 @@ export function GameScreen() {
       {ui.card?.kind === 'progress' && me !== null && <ProgressCardDialog key={ui.card.id} view={view} id={ui.card.id} />}
       {ui.card?.kind === 'dev' && me !== null && <DevCardDialog key={ui.card.type} view={view} type={ui.card.type} />}
       {ui.knightMenu !== null && me !== null && <KnightMenu view={view} vertex={ui.knightMenu} />}
-      {ui.panel === 'trade' && me !== null && <TradePanel view={view} />}
       {ui.panel === 'bank' && me !== null && <BankPanel view={view} />}
       {view.phase === 'ended' && showResults && <GameOver view={view} room={room} onClose={() => setShowResults(false)} />}
       {view.phase === 'ended' && !showResults && (

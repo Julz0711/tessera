@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import type { PlayerColor } from '@/engine/types';
 import { PLAYER_COLORS } from '@/shared/colors';
-import { KNIGHT_STEEL, faceUrl, type KnightCustomization } from '@/shared/knight';
+import { KNIGHT_STEEL, faceFrame, faceUrl, type KnightCustomization } from '@/shared/knight';
 
 /**
  * Portrait of the player's knight: one basic knight in the player's color. If the player uploaded
@@ -21,6 +21,10 @@ export function KnightBadge({
   const pc = PLAYER_COLORS[color];
   const clip = useId().replace(/:/g, '');
   const steel = KNIGHT_STEEL;
+  const frame = faceFrame(knight);
+  // The face box is centred at (50,46) — same centre as the clip ellipse below. Panning/zooming is
+  // a translate-after-scale around that centre, so a drag feels the same size on screen at any zoom.
+  const faceTransform = `translate(${frame.x * 34 + 50} ${frame.y * 40 + 46}) scale(${frame.zoom}) translate(-50 -46)`;
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" role="img" aria-label="Knight">
       <defs>
@@ -53,6 +57,7 @@ export function KnightBadge({
             height="40"
             preserveAspectRatio="xMidYMid slice"
             clipPath={`url(#face-${clip})`}
+            transform={faceTransform}
           />
         ) : (
           <g>

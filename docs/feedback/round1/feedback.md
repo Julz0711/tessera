@@ -37,3 +37,11 @@ Round 4:
 
 1. placing quickly on the board should have a confirmation. so no accidental clicks can cause a build of a roasd or similar.
 2. still no paning. maybe with ctrl + click? oder middle mouse?ideally middle mouse
+3. sometimes water between tiles. the board should be elevated enough.
+4. still no confirmation prompt when placing a road or such. that was asked: ![alt text](image-5.png)
+5. the hints should also only apprear on hover. also should be available for knights and city walls. awlays ask for confirmation.
+6. home screen to much ai codedwordings. keep it simple, not much yapping.
+7. instead of your stats, make a small pill with user icon and name
+8. user should be able to customize the size of the elements. in settings add a setting for it
+9. the knight face should be adjustable to place it correctly.
+10. in map selection, show a preview of the map along the name

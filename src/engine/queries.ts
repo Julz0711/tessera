@@ -108,7 +108,16 @@ export function canPlaceSettlement(s: Q, seat: number, v: number, setup = false)
   if (!isVertex(s, v)) return false;
   if (s.knights[v]) return false;
   if (!distanceRuleOk(s, v)) return false;
+  if (setup && s.settings.map === 'blackForest' && !forestCorner(s, v)) return false;
   return setup || touchesOwnRoad(s, seat, v);
+}
+
+/**
+ * Black Forest: the starting settlements stand in the forest, on corners touching only forest (or
+ * the lake). The fog, and whatever the first placements revealed, is reached by building out later.
+ */
+function forestCorner(s: Q, v: number): boolean {
+  return topo(s).vertices[v].hexes.every((h) => s.board.hexes[h].terrain === 'forest');
 }
 
 export function legalSettlementSpots(s: Q, seat: number, setup = false): number[] {

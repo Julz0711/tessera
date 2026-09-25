@@ -201,4 +201,21 @@ describe('realtime server', () => {
     expect(final.settings.vpToWin).toBe(13);
     host.close();
   });
+
+  it('switches maps in the lobby and seats six players on the big ones', async () => {
+    const host = client(await guestCookie());
+    let room: RoomDTO | null = null;
+    host.on('room:state', (r) => (room = r));
+    expect((await call((ack) => host.emit('room:create', { profile: profile('Robin', 'red') }, ack))).ok).toBe(true);
+    expect((await call((ack) => host.emit('room:settings', { map: 'large' }, ack))).ok).toBe(true);
+    expect(room!.settings).toMatchObject({ map: 'large', maxPlayers: 6 });
+    expect((await call((ack) => host.emit('room:settings', { map: 'blackForest' }, ack))).ok).toBe(true);
+    expect(room!.settings).toMatchObject({ map: 'blackForest', maxPlayers: 6 });
+    for (let i = 0; i < 5; i++) expect((await call((ack) => host.emit('room:addBot', ack))).ok).toBe(true);
+    expect((await call((ack) => host.emit('room:addBot', ack))).ok).toBe(false);
+    // Six players do not fit the standard island.
+    expect((await call((ack) => host.emit('room:settings', { map: 'standard' }, ack))).ok).toBe(false);
+    expect((await call((ack) => host.emit('room:start', ack))).ok).toBe(true);
+    host.close();
+  });
 });

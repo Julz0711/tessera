@@ -21,6 +21,15 @@ export function KnightMenu({ view, vertex }: { view: PlayerView; vertex: number 
   const acts = canKnightAct(view, me, vertex);
   const targets = knightMoveTargets(view, me, vertex);
   const canMove = myTurn && acts && targets.moves.length + targets.displaces.length > 0;
+  // Why the move is greyed out, when the note above doesn't already say it.
+  const moveBlocked =
+    view.turn.seat !== me
+      ? 'Knights act on your own turn.'
+      : !view.turn.rolled
+        ? 'Roll the dice first.'
+        : acts && !canMove && view.pending.length === 0
+          ? 'No free corner along your roads to move to, and no weaker rival knight to displace. Build a road on from here.'
+          : null;
   const canChase = myTurn && chaseKnights(view, me).includes(vertex);
   const canPromote = myTurn && promotableKnights(view, me).includes(vertex) && hasCards(hand, COSTS.promote);
   const canActivate = myTurn && !knight.active && hasCards(hand, COSTS.activate);
@@ -64,6 +73,7 @@ export function KnightMenu({ view, vertex }: { view: PlayerView; vertex: number 
         >
           <Footprints size={16} /> Move or displace
         </button>
+        {moveBlocked && knight.active && <p className="-mt-1 px-1 text-xs text-ink-faint">{moveBlocked}</p>}
         <button type="button" className="btn justify-start px-4 py-2.5" disabled={!canChase} onClick={() => ui.setMode({ t: 'knightChase', from: vertex })}>
           <ShieldAlert size={16} /> Chase the robber away
         </button>
