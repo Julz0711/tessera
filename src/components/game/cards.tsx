@@ -29,6 +29,7 @@ import {
   VenetianMask,
 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import { reducedMotion } from '@/client/fx';
 import { COMMODITIES, type Card, type DevCardType, type PartialHand, type ProgressCard, type ProgressCardType } from '@/engine/types';
 import { DEV_NAMES, DEV_TEXT, PROGRESS_NAMES } from '@/client/describe';
 import { CARD_COLORS } from '@/client/palette';
@@ -210,7 +211,7 @@ export function CardStack({ card, count, held, onClick }: { card: Card; count: n
     const gained = held !== undefined && before.current !== undefined && held > before.current;
     before.current = held;
     const el = ref.current;
-    if (!gained || !el || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    if (!gained || !el || reducedMotion()) return;
     el.animate(
       [{ transform: 'none' }, { transform: 'translateY(-10px) scale(1.08)', offset: 0.4 }, { transform: 'none' }],
       { duration: 420, delay: 1000, easing: 'cubic-bezier(0.3, 1.4, 0.5, 1)' },

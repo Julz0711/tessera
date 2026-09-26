@@ -197,6 +197,15 @@ export function SettingsPage() {
                   ))}
                 </div>
               </Section>
+              <Section title="Animations" hint="Cards flying to whoever gets them. System follows your device's reduce-motion setting; Reduced shows cards where they land instead.">
+                <div className="flex flex-wrap gap-2">
+                  {(['system', 'full', 'reduced'] as const).map((m) => (
+                    <button key={m} type="button" className={`btn px-4 py-2 capitalize ${prefs.motion === m ? 'btn-primary' : ''}`} onClick={() => prefs.set({ motion: m })}>
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </Section>
               <Section title="Language" hint="More languages are planned.">
                 <select className="input max-w-xs" value="en" disabled aria-label="Language">
                   <option value="en">English</option>

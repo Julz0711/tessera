@@ -21,7 +21,18 @@ function FlyingCard({ flight }: { flight: Flight }) {
     const lift = -Math.min(90, 30 + Math.hypot(dx, dy) * 0.15);
     const at = (f: number, lifted: number, scale: number) =>
       `translate(calc(-50% + ${dx * f}px), calc(-50% + ${dy * f + lifted}px)) scale(${scale})`;
-    const anim = flight.spawn
+    const anim = flight.still
+      ? // Reduced motion: fade in and out where it lands, no travel.
+        el.animate(
+          [
+            { transform: at(0, 0, 1), opacity: 0 },
+            { offset: 0.25, transform: at(0, 0, 1), opacity: 1 },
+            { offset: 0.75, transform: at(0, 0, 1), opacity: 1 },
+            { transform: at(0, 0, 1), opacity: 0 },
+          ],
+          { duration: 900, delay: flight.delay, easing: 'ease-in-out', fill: 'both' },
+        )
+      : flight.spawn
       ? el.animate(
           [
             { transform: at(0, 0, 0.2), opacity: 0 },
@@ -50,12 +61,16 @@ function FlyingCard({ flight }: { flight: Flight }) {
     <span
       ref={ref}
       className={`pointer-events-none fixed z-[60] grid place-items-center rounded-md border-2 border-ink shadow-token ${
-        flight.big && flight.spawn ? 'h-16 w-12' : flight.big ? 'h-12 w-9' : 'h-8 w-6'
+        flight.big && flight.spawn ? 'h-16 w-12' : flight.big ? 'h-12 w-9' : flight.spawn ? 'h-11 w-8' : 'h-9 w-7'
       }`}
       style={{ left: flight.from.x, top: flight.from.y, background: c ? c.bg : '#1d5a6b', opacity: 0 }}
       aria-hidden
     >
-      {flight.card ? <MiniArt card={flight.card} size={flight.big ? (flight.spawn ? 38 : 28) : 18} /> : <span className="text-xs font-black text-paper">?</span>}
+      {flight.card ? (
+        <MiniArt card={flight.card} size={flight.big ? (flight.spawn ? 38 : 28) : flight.spawn ? 26 : 20} />
+      ) : (
+        <span className="text-xs font-black text-paper">?</span>
+      )}
     </span>
   );
 }

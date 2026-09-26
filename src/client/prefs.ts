@@ -22,11 +22,14 @@ export interface Prefs {
   confirmBuilds: boolean;
   /** Size of the pieces, number tokens and harbors on the board (the rest of the UI keeps its size). */
   boardScale: BoardScale;
+  /** Flying cards and other movement: follow the system's reduce-motion setting, or always full / reduced. */
+  motion: Motion;
 }
 
 const KEY = 'prefs.v1';
 
 export type BoardScale = 'small' | 'medium' | 'large';
+export type Motion = 'system' | 'full' | 'reduced';
 
 /** How much the pieces on the board grow or shrink for each size setting. */
 export const BOARD_SCALE: Record<BoardScale, number> = { small: 0.8, medium: 1, large: 1.25 };
@@ -42,6 +45,7 @@ const defaults = (): Prefs => ({
   buildHints: true,
   confirmBuilds: true,
   boardScale: 'medium',
+  motion: 'system',
 });
 
 function read(): Prefs {
@@ -63,6 +67,7 @@ function read(): Prefs {
       buildHints: typeof p.buildHints === 'boolean' ? p.buildHints : base.buildHints,
       confirmBuilds: typeof p.confirmBuilds === 'boolean' ? p.confirmBuilds : base.confirmBuilds,
       boardScale: boardScale === 'small' || boardScale === 'large' ? boardScale : base.boardScale,
+      motion: p.motion === 'full' || p.motion === 'reduced' ? p.motion : base.motion,
     };
   } catch {
     return base;
@@ -85,8 +90,8 @@ export const usePrefs = create<PrefsStore>((set, get) => ({
   set(patch) {
     set(patch);
     try {
-      const { name, color, knight, cosmetics, view, graphics, volume, buildHints, confirmBuilds, boardScale } = { ...get(), ...patch };
-      window.localStorage.setItem(KEY, JSON.stringify({ name, color, knight, cosmetics, view, graphics, volume, buildHints, confirmBuilds, boardScale }));
+      const { name, color, knight, cosmetics, view, graphics, volume, buildHints, confirmBuilds, boardScale, motion } = { ...get(), ...patch };
+      window.localStorage.setItem(KEY, JSON.stringify({ name, color, knight, cosmetics, view, graphics, volume, buildHints, confirmBuilds, boardScale, motion }));
     } catch {
       // Storage unavailable (private mode) — preferences just won't persist.
     }

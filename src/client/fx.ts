@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import type { Card, PartialHand } from '@/engine/types';
 import { CARDS } from '@/engine/types';
+import { usePrefs } from './prefs';
 
 /**
  * Flying cards: short animations that carry cards between places on screen (the board, the bank,
@@ -20,6 +21,8 @@ export interface Flight {
   big: boolean;
   /** Appears in the middle of the board first, then flies (cards from the bank). */
   spawn: boolean;
+  /** Reduced motion: no travel, the card just fades in and out where it lands. */
+  still: boolean;
 }
 
 interface FxStore {
@@ -69,13 +72,17 @@ export function cardList(h: PartialHand, cap = 5): Card[] {
   return out;
 }
 
-function reducedMotion(): boolean {
-  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+/** Whether to keep movement down: the player's Animations setting, or else the system's. */
+export function reducedMotion(): boolean {
+  const motion = usePrefs.getState().motion;
+  if (motion !== 'system') return motion === 'reduced';
+  return typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
 
 /** Sends cards flying from one place to another, one after the other. */
 export function fly(from: Place, to: Place, cards: (Card | null)[], me: number | null, delay = 0): void {
-  if (!cards.length || reducedMotion()) return;
+  if (!cards.length) return;
+  const still = reducedMotion();
   const flights: Flight[] = [];
   const toMe = typeof to === 'object' && 'seat' in to && to.seat === me;
   const spawn = from === 'center';
@@ -84,8 +91,10 @@ export function fly(from: Place, to: Place, cards: (Card | null)[], me: number |
     const b = point(placeSelectors(to, me, card), toMe ? 6 : 12);
     if (!a || !b) return;
     // Several cards appear side by side in the middle, then leave one after the other.
-    if (spawn) a.x += (i - (cards.length - 1) / 2) * (toMe ? 56 : 36);
-    flights.push({ id: nextId++, card, from: a, to: b, delay: delay + i * (spawn ? 120 : 90), big: toMe, spawn });
+    if (spawn) a.x += (i - (cards.length - 1) / 2) * (toMe ? 56 : 40);
+    // Reduced motion: the card shows up where it lands instead of travelling there.
+    const start = still ? b : a;
+    flights.push({ id: nextId++, card, from: start, to: b, delay: delay + i * (spawn ? 120 : 90), big: toMe, spawn: spawn && !still, still });
   });
   if (flights.length) useFx.setState((s) => ({ flights: [...s.flights.slice(-40), ...flights] }));
 }
