@@ -1,0 +1,24 @@
+# Render blueprint: the game server (Next.js + Socket.IO) as one free web service.
+# The database is a free Neon Postgres (Render's own free Postgres is deleted after 30 days):
+# create it at neon.com and paste its connection string as DATABASE_URL when Render asks.
+# See README → "Deploy for free".
+services:
+  - type: web
+    name: pioneers
+    runtime: node
+    plan: free
+    # `prisma db push` creates or updates the tables; it refuses changes that would drop data.
+    buildCommand: npm ci && npx prisma db push && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        sync: false
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: TRUST_PROXY
+        value: "1"
+      - key: APP_URL
+        sync: false

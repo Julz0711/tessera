@@ -54,6 +54,22 @@ AUTH_SECRET=... DATABASE_URL=... npm start
 Serve it behind HTTPS (the guest cookie becomes `Secure` automatically). Behind a proxy set
 `TRUST_PROXY=1` and `APP_URL`.
 
+### Deploy for free (Render + Neon)
+
+The game server keeps websocket connections open, so it needs a real Node host (not serverless).
+
+1. **Database:** create a free project at [neon.com](https://neon.com) (0.5 GB, no card needed, doesn't expire)
+   and copy its connection string.
+2. **Server:** at [render.com](https://render.com), New → Blueprint → pick this repo. `render.yaml` sets up a free
+   web service; paste the Neon string as `DATABASE_URL`. The build creates the tables (`prisma db push`).
+3. Optional: set `APP_URL` to the public address (e.g. `https://pioneers.onrender.com`). Only needed if the
+   game is also opened from another domain; its own address always works.
+4. Sign-in (optional): add `AUTH_GOOGLE_*` / `AUTH_DISCORD_*` with the live callback URLs
+   (`https://<your-app>/api/auth/callback/google`, …). Without them everyone plays as a guest.
+
+Free-tier limits: the server sleeps after 15 minutes without visitors, and the first visit after that
+takes about a minute to wake it. Games in progress survive that (they're restored from the database).
+
 ## Scripts
 
 | Script | What it does |

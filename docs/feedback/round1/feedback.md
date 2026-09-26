@@ -45,3 +45,8 @@ Round 4:
 8. user should be able to customize the size of the elements. in settings add a setting for it
 9. the knight face should be adjustable to place it correctly.
 10. in map selection, show a preview of the map along the name
+
+round 5:
+
+1. copy these maps: ![](image-6.png), ![alt text](image-7.png), ![](image-8.png) -> colonist goldrush, 7 fog of war with 1 random gold, ![alt text](image-9.png) -> vulcan, fog of war, only place on the far corners; middle is always gold 6
+2. clean up the main menu. put login link to top rightwhen not logged in. improve login/out routes
