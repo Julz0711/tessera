@@ -146,6 +146,35 @@ function dealTokens(
 }
 
 /**
+ * Numbers for groups of hexes (each from its own pool) where no 6 or 8 may touch another, for boards
+ * with too many of them for random deals to find a valid one: the 6s and 8s go down first, each on a
+ * hex with none next to it (`fixed` ones included), then the other numbers fill the rest at random.
+ */
+function spreadRedTokens(rng: RngHolder, topo: Topology, groups: [ids: number[], pool: number[]][], fixed: (number | null)[]): (number | null)[] {
+  let tokens = [...fixed];
+  for (let attempt = 0; attempt < 500; attempt++) {
+    tokens = [...fixed];
+    const clear = (id: number) => tokens[id] === null && !topo.hexes[id].neighbors.some((n) => isRed(tokens[n]));
+    let placed = true;
+    for (const [ids, pool] of groups) {
+      for (const red of pool.filter(isRed)) {
+        const spots = ids.filter(clear);
+        if (!spots.length) {
+          placed = false;
+          break;
+        }
+        tokens[spots[randomInt(rng, spots.length)]] = red;
+      }
+      if (!placed) break;
+      const rest = shuffle(rng, pool.filter((t) => !isRed(t)));
+      ids.filter((id) => tokens[id] === null).forEach((id, i) => (tokens[id] = rest[i]));
+    }
+    if (placed) break;
+  }
+  return tokens;
+}
+
+/**
  * Gold Rush: a ring island (rings 2 and 3) around seven hexes under fog; one of them, anywhere
  * among the seven, is a gold field. Nine harbors on the outer coast.
  */
@@ -265,20 +294,26 @@ function blackForestBoard(rng: RngHolder): Board {
 
   const terrains: Terrain[] = topo.hexes.map(() => 'desert');
   for (const id of visible) terrains[id] = 'forest';
-  const hidden = shuffle(rng, bag(BLACK_FOREST_FOG));
-  fogged.forEach((id, i) => (terrains[id] = hidden[i]));
+  // The two gold fields never touch: both are always a 6 or an 8, and those may not sit side by side.
+  const goldTouches = () => fogged.some((id) => terrains[id] === 'gold' && topo.hexes[id].neighbors.some((n) => terrains[n] === 'gold'));
+  do {
+    const hidden = shuffle(rng, bag(BLACK_FOREST_FOG));
+    fogged.forEach((id, i) => (terrains[id] = hidden[i]));
+  } while (goldTouches());
 
   // Gold is always a 6 or an 8. With this many numbers only the 6s and 8s are kept apart.
-  let tokens: (number | null)[] = [];
-  for (let attempt = 0; attempt < 5000; attempt++) {
-    tokens = topo.hexes.map(() => null);
-    const forest = shuffle(rng, [...BLACK_FOREST_TOKENS]);
-    visible.forEach((id, i) => (tokens[id] = forest[i]));
-    const fog = shuffle(rng, [...BLACK_FOREST_FOG_TOKENS]);
-    let k = 0;
-    for (const id of fogged) tokens[id] = terrains[id] === 'gold' ? shuffle(rng, [6, 8])[0] : fog[k++];
-    if (tokensValid(topo, tokens, true)) break;
-  }
+  const gold = fogged.filter((id) => terrains[id] === 'gold');
+  const fixed: (number | null)[] = topo.hexes.map(() => null);
+  for (const id of gold) fixed[id] = shuffle(rng, [6, 8])[0];
+  const tokens = spreadRedTokens(
+    rng,
+    topo,
+    [
+      [visible, [...BLACK_FOREST_TOKENS]],
+      [fogged.filter((id) => terrains[id] !== 'gold'), [...BLACK_FOREST_FOG_TOKENS]],
+    ],
+    fixed,
+  );
 
   const hexes: Hex[] = topo.hexes.map((h) => ({ id: h.id, q: h.q, r: h.r, terrain: terrains[h.id], token: tokens[h.id] }));
   for (const id of fogged) hexes[id].fog = true;

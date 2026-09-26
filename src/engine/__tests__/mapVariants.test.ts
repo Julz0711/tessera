@@ -103,6 +103,12 @@ describe('map variants', () => {
       for (const seed of seeds.slice(0, 20)) {
         const board = generateBoard({ rng: seed }, map);
         for (const h of board.hexes) expect(h.token === null, `${map} seed ${seed} hex ${h.id} (${h.terrain})`).toBe(h.terrain === 'desert');
+        // And no 6 or 8 ever sits next to another.
+        const topo = getTopology(board.hexes);
+        for (const h of board.hexes) {
+          if (h.token !== 6 && h.token !== 8) continue;
+          for (const n of topo.hexes[h.id].neighbors) expect([6, 8], `${map} seed ${seed} hex ${h.id}`).not.toContain(board.hexes[n].token);
+        }
       }
     }
   });
