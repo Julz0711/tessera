@@ -87,7 +87,10 @@ export function PlayersPanel({
   /** Extra tile shown before the players (e.g. the barbarian track on phones). */
   leading?: React.ReactNode;
 }) {
-  const actors = new Set(view.phase === 'setup' && view.setup ? [view.setup.order[view.setup.index]] : view.pending.length ? view.pending.map((p) => p.seat) : [view.turn.seat]);
+  // Whoever has to act: a pending prompt comes first (even a gold pick found during setup).
+  const actors = new Set(
+    view.pending.length ? view.pending.map((p) => p.seat) : view.phase === 'setup' && view.setup ? [view.setup.order[view.setup.index]] : [view.turn.seat],
+  );
   const ck = view.mode === 'ck';
   return (
     <ol className={compact ? 'scroll-thin flex gap-2 overflow-x-auto pb-1' : 'grid gap-2'}>

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { generateBoard } from '../board/generate';
 import { BLACK_FOREST_HEX_COORDS, LARGE_HEX_COORDS, STANDARD_HEX_COORDS, getTopology } from '../board/topology';
+import { applyAction } from '../apply';
+import { legalSetupRoads, legalSettlementSpots } from '../queries';
 import { createGame } from '../state';
 import { viewFor } from '../view';
-import { BLACK_FOREST_TOKENS, HARBOR_KINDS, LARGE_HARBOR_KINDS, LARGE_NUMBER_TOKENS, LARGE_TERRAIN_COUNTS, NUMBER_TOKENS, TERRAIN_COUNTS } from '../constants';
+import { BLACK_FOREST_TOKENS, TERRAIN_RESOURCE, HARBOR_KINDS, LARGE_HARBOR_KINDS, LARGE_NUMBER_TOKENS, LARGE_TERRAIN_COUNTS, NUMBER_TOKENS, TERRAIN_COUNTS } from '../constants';
 
 const topo = getTopology(STANDARD_HEX_COORDS);
 
@@ -112,6 +114,30 @@ describe('generateBoard (Black Forest)', () => {
         expect(bf.coast).toContain(h.edge);
       }
     }
+  });
+
+  it('pays out what a starting road uncovers in the fog', () => {
+    const players = [0, 1].map((i) => ({ id: `p${i}`, name: `P${i}`, color: (['red', 'blue'] as const)[i], isBot: false }));
+    const start = createGame({ seed: 11, mode: 'classic', players, settings: { map: 'blackForest' } });
+    const seat = start.setup!.order[0];
+    // Find a starting settlement whose road can run into the fog, then build them.
+    for (const v of legalSettlementSpots(start, seat, true)) {
+      const placed = applyAction(start, seat, { type: 'buildSettlement', vertex: v });
+      if (!placed.ok) continue;
+      const s = placed.state;
+      const t = getTopology(s.board.hexes);
+      const edge = legalSetupRoads(s).find((e) => [t.edges[e].a, t.edges[e].b].some((x) => t.vertices[x].hexes.some((h) => s.board.hexes[h].fog)));
+      if (edge === undefined) continue;
+      const found = [t.edges[edge].a, t.edges[edge].b].flatMap((x) => t.vertices[x].hexes).filter((h, i, all) => all.indexOf(h) === i && s.board.hexes[h].fog);
+      const after = applyAction(s, seat, { type: 'buildRoad', edge });
+      expect(after.ok).toBe(true);
+      if (!after.ok) return;
+      const paying = found.filter((h) => TERRAIN_RESOURCE[s.board.hexes[h].terrain]);
+      expect(Object.values(after.state.players[seat].hand).reduce((a, b) => a + b, 0)).toBe(paying.length);
+      expect(after.events.some((e) => e.type === 'received' && e.reason === 'discovery')).toBe(paying.length > 0);
+      return;
+    }
+    throw new Error('no starting road reaches the fog on this board');
   });
 
   it('leaves the gold fields out when gold is switched off', () => {
