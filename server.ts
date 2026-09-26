@@ -54,7 +54,8 @@ if (db) {
 }
 if (db) console.log('> Persistence: PostgreSQL (profiles, history and game recovery enabled)');
 else if (!process.env.DATABASE_URL) console.log('> Persistence: off (no DATABASE_URL) — games live in memory; sign-in is disabled');
-const realtime = attachRealtime(server, { persistence: db ? createPrismaPersistence(db) : undefined });
+const persistence = db ? createPrismaPersistence(db) : undefined;
+const realtime = attachRealtime(server, { persistence });
 
 // Socket.IO handles its own upgrade requests; everything else (e.g. Next.js HMR) goes to Next.
 server.on('upgrade', (req, socket, head) => {
@@ -67,10 +68,13 @@ server.listen({ port, host: hostname }, () => {
 });
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
-  process.on(signal, () => {
+  process.on(signal, async () => {
     console.log(`> ${signal} received, shutting down`);
     realtime.manager.dispose();
     server.close();
+    // A deploy stops the old server: write out the moves still queued (a few seconds at most), so
+    // running games come back exactly where they were on the new one.
+    await Promise.race([persistence?.flush(), new Promise((r) => setTimeout(r, 5000))]).catch(() => undefined);
     process.exit(0);
   });
 }
