@@ -116,8 +116,8 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
                 </div>
               </div>
               <div className="grid gap-1.5">
-                <span className="label">Confirm builds</span>
-                <div className="grid grid-cols-2 gap-1.5" title="Placing a piece asks first: pick it in the popup, or click the spot again">
+                <span className="label">Confirm placements</span>
+                <div className="grid grid-cols-2 gap-1.5" title="Placing a piece or moving the robber asks first: pick it in the popup, or click the spot again">
                   {([true, false] as const).map((on) => (
                     <button key={String(on)} type="button" className={`btn py-1 text-sm ${prefs.confirmBuilds === on ? 'btn-primary' : ''}`} onClick={() => prefs.set({ confirmBuilds: on })}>
                       {on ? 'On' : 'Off'}

@@ -18,7 +18,7 @@ export interface Prefs {
   volume: number;
   /** Show affordable build spots on the board without picking Road/Settle/City first. */
   buildHints: boolean;
-  /** Ask before placing a piece (a popup at the spot), so a stray click can't build anything. */
+  /** Ask before placing a piece or moving the robber (a popup at the spot), so a stray click can't do either. */
   confirmBuilds: boolean;
   /** Size of the pieces, number tokens and harbors on the board (the rest of the UI keeps its size). */
   boardScale: BoardScale;

@@ -211,6 +211,17 @@ function CityPath({ x, y, color, ghost, k = 1 }: { x: number; y: number; color: 
   );
 }
 
+/** The robber, standing below the hex's number token; a ghost previews a move waiting for confirmation. */
+function RobberFigure({ x, y, ghost, k = 1 }: { x: number; y: number; ghost?: boolean; k?: number }) {
+  return (
+    <g pointerEvents="none" transform={grow(x, y, k)} opacity={ghost ? 0.6 : 1}>
+      {!ghost && <ellipse cx={x} cy={y + 16} rx="15" ry="5" fill="#000" opacity="0.25" />}
+      <path d={`M${x - 12} ${y + 16}c0-14 5-24 12-24s12 10 12 24Z`} fill="#2d2c33" />
+      <circle cx={x} cy={y - 12} r="8" fill="#3a3942" />
+    </g>
+  );
+}
+
 export default function Board2D({ scene, targets, popup, onBackground, onVertex, onEdge, onHex, interactive, pieceScale = 1 }: BoardProps) {
   const ps = pieceScale;
   const topo = getTopology(scene.board.hexes);
@@ -227,10 +238,10 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
   const myColor = scene.myColor;
   const { svgRef, viewBox, zoom, minZoom, maxZoom, zoomIn, zoomOut, reset, svgHandlers } = useZoomPan(bounds, !!interactive);
 
-  // The build popup floats above its spot in screen space, so it keeps its size at any zoom.
+  // The popup floats above its spot in screen space, so it keeps its size at any zoom.
   const armed = targets.armed;
   const wrapRef = useRef<HTMLDivElement>(null);
-  const [popupAt, setPopupAt] = useState<{ x: number; y: number } | null>(null);
+  const [popupAt, setPopupAt] = useState<{ x: number; y: number; below: boolean } | null>(null);
   const [resized, setResized] = useState(0);
   useEffect(() => {
     const onResize = () => setResized((n) => n + 1);
@@ -245,14 +256,19 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
       setPopupAt(null);
       return;
     }
-    const spot = armed.target === 'edge' ? topo.edges[armed.at] : topo.vertices[armed.at];
-    const p = new DOMPoint(spot.x * S, spot.y * S).matrixTransform(ctm);
+    const spot = armed.target === 'edge' ? topo.edges[armed.at] : armed.target === 'hex' ? topo.hexes[armed.at] : topo.vertices[armed.at];
+    // Above its spot, or below it near the top edge (where the top bar would cover it). A hex's
+    // popup clears the whole tile, so its number and the ghost robber stay in view.
+    const reach = armed.target === 'hex' ? S : 0;
+    const above = new DOMPoint(spot.x * S, spot.y * S - reach).matrixTransform(ctm);
+    const below = above.y - box.top < 140;
+    const p = below && reach ? new DOMPoint(spot.x * S, spot.y * S + reach).matrixTransform(ctm) : above;
     // Keep the (up to 3-wide) popup from running off the left/right edge on narrow screens: its
     // horizontal center is clamped so it always has room, the same way the vertical flip keeps it
     // from going off the top.
     const margin = Math.min(140, box.width / 2);
     const x = Math.min(Math.max(p.x - box.left, margin), box.width - margin);
-    setPopupAt({ x, y: p.y - box.top });
+    setPopupAt({ x, y: p.y - box.top, below });
   }, [armed, hasPopup, viewBox, topo, resized, svgRef]);
 
   return (
@@ -488,18 +504,7 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
           })()}
 
         {/* robber */}
-        {(() => {
-          const t = topo.hexes[scene.robber];
-          const x = t.x * S;
-          const y = t.y * S + 46;
-          return (
-            <g pointerEvents="none" transform={grow(x, y, ps)}>
-              <ellipse cx={x} cy={y + 16} rx="15" ry="5" fill="#000" opacity="0.25" />
-              <path d={`M${x - 12} ${y + 16}c0-14 5-24 12-24s12 10 12 24Z`} fill="#2d2c33" />
-              <circle cx={x} cy={y - 12} r="8" fill="#3a3942" />
-            </g>
-          );
-        })()}
+        <RobberFigure x={topo.hexes[scene.robber].x * S} y={topo.hexes[scene.robber].y * S + 46} k={ps} />
 
         {/* targets */}
         {onEdge &&
@@ -589,8 +594,10 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
             );
           })}
 
-        {/* the spot whose build popup is open keeps its ghost */}
+        {/* the spot whose popup is open keeps its ghost */}
+        {armed?.target === 'hex' && <RobberFigure x={topo.hexes[armed.at].x * S} y={topo.hexes[armed.at].y * S + 46} k={ps} ghost />}
         {armed &&
+          armed.target !== 'hex' &&
           myColor &&
           (() => {
             if (armed.target === 'edge') {
@@ -627,8 +634,7 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
           })()}
       </svg>
       {popup && popupAt && (
-        // Above its spot, or below it near the top edge (where the top bar would cover it).
-        <div className="absolute z-30" style={{ left: popupAt.x, top: popupAt.y, transform: popupAt.y < 140 ? 'translate(-50%, 22px)' : 'translate(-50%, calc(-100% - 16px))' }}>
+        <div className="absolute z-30" style={{ left: popupAt.x, top: popupAt.y, transform: popupAt.below ? 'translate(-50%, 22px)' : 'translate(-50%, calc(-100% - 16px))' }}>
           {popup}
         </div>
       )}

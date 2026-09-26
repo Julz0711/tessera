@@ -172,10 +172,12 @@ export function Merchant({ x, z, color }: { x: number; z: number; color: PlayerC
   );
 }
 
-export function Robber({ x, z }: { x: number; z: number }) {
+/** The robber hops over to a new hex; a ghost previews a move waiting for confirmation. */
+export function Robber({ x, z, ghost = false }: { x: number; z: number; ghost?: boolean }) {
   const ref = useRef<THREE.Group>(null);
   const target = useRef(new THREE.Vector3(x, 0, z));
   const k = usePieceScale();
+  const o = ghost ? { opacity: 0.55 } : {};
   target.current.set(x, 0, z);
   useFrame(() => {
     const g = ref.current;
@@ -187,8 +189,8 @@ export function Robber({ x, z }: { x: number; z: number }) {
   return (
     <group ref={ref} position={[x, TILE_TOP, z]}>
       <group scale={k}>
-        <mesh geometry={GEO.robberBody} material={mat('#2d2c33')} position={[0, 0.21, 0]} castShadow />
-        <mesh geometry={GEO.robberHead} material={mat('#3a3942')} position={[0, 0.47, 0]} castShadow />
+        <mesh geometry={GEO.robberBody} material={mat('#2d2c33', o)} position={[0, 0.21, 0]} castShadow={!ghost} />
+        <mesh geometry={GEO.robberHead} material={mat('#3a3942', o)} position={[0, 0.47, 0]} castShadow={!ghost} />
       </group>
     </group>
   );

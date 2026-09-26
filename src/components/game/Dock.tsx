@@ -14,7 +14,7 @@ import {
   type PartialHand,
 } from '@/engine';
 import type { PlayerView } from '@/engine/view';
-import { confirmBuild } from '@/client/interaction';
+import { confirmBuild, confirmRobber } from '@/client/interaction';
 import { play } from '@/client/sound';
 import { api } from '@/client/store';
 import { buildMode, useUi } from '@/client/ui';
@@ -87,13 +87,17 @@ export function Dock({ view }: { view: PlayerView }) {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as Element | null;
       if (el && typeof el.closest === 'function' && el.closest('input, textarea, select, [contenteditable="true"]')) return;
-      // Esc closes an open build popup first, then any mode or panel.
+      // Esc closes an open popup (a build or the robber's) first, then any mode or panel.
       if (e.key === 'Escape') {
         if (ui.armed) ui.arm(null);
+        else if (ui.robber) ui.setRobber(null);
         else ui.reset();
       }
-      // Enter builds a popup's only option (unless a focused button is taking the Enter itself).
-      if (e.key === 'Enter' && ui.armed?.options.length === 1 && !el?.closest?.('button')) void confirmBuild();
+      // Enter takes a popup's only option (unless a focused button is taking the Enter itself).
+      if (e.key === 'Enter' && !el?.closest?.('button')) {
+        if (ui.armed?.options.length === 1) void confirmBuild();
+        else if (ui.robber) void confirmRobber(view);
+      }
       if (me === null || view.phase !== 'play' || view.turn.seat !== me || view.pending.length) return;
       if (e.key.toLowerCase() === 'r' && !view.turn.rolled) void api.act({ type: 'rollDice' });
       if (e.key.toLowerCase() === 'e' && view.turn.rolled) void api.act({ type: 'endTurn' });

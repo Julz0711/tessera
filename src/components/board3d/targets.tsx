@@ -8,7 +8,7 @@ import type { Topology } from '@/engine/board/topology';
 import type { PlayerColor } from '@/engine/types';
 import type { BoardTargets } from '@/components/board/types';
 import { GEO, mat } from './materials';
-import { City, Road, Settlement } from './pieces';
+import { City, Road, Robber, Settlement } from './pieces';
 import { TILE_TOP } from './terrain';
 
 const AMBER = '#f2b33d';
@@ -154,13 +154,16 @@ function HexTarget({ x, z, id, onPick }: { x: number; z: number; id: number; onP
   );
 }
 
-/** The spot whose build popup is open: its ghost stays, with the popup above it. */
+/** The spot whose popup is open (a build, or the robber's next hex): its ghost stays, with the popup above it. */
 function ArmedSpot({ armed, topo, color, popup }: { armed: NonNullable<BoardTargets['armed']>; topo: Topology; color: PlayerColor | null; popup?: ReactNode }) {
-  const p = armed.target === 'edge' ? topo.edges[armed.at] : topo.vertices[armed.at];
+  const p = armed.target === 'edge' ? topo.edges[armed.at] : armed.target === 'hex' ? topo.hexes[armed.at] : topo.vertices[armed.at];
   const x = p.x;
   const z = p.y;
+  // A hex's popup floats higher, clear of the whole tile (its number and the ghost robber stay in view).
+  const lift = armed.target === 'hex' ? 1.3 : 0.45;
   return (
     <group>
+      {armed.what === 'robber' && <Robber x={x} z={z + 0.46} ghost />}
       {color && armed.what === 'road' && <Road x={x} z={z} angle={topo.edges[armed.at].angle} color={color} ghost />}
       {color && armed.what === 'settlement' && <Settlement x={x} z={z} color={color} ghost />}
       {color && armed.what === 'city' && <City x={x} z={z} color={color} ghost />}
@@ -168,7 +171,7 @@ function ArmedSpot({ armed, topo, color, popup }: { armed: NonNullable<BoardTarg
         <mesh geometry={GEO.targetRing} material={hintMat} position={[x, TILE_TOP + 0.06, z]} rotation={[Math.PI / 2, 0, 0]} scale={1.5} />
       )}
       {popup && (
-        <Html position={[x, TILE_TOP + 0.45, z]} zIndexRange={[30, 0]} style={{ pointerEvents: 'none' }}>
+        <Html position={[x, TILE_TOP + lift, z]} zIndexRange={[30, 0]} style={{ pointerEvents: 'none' }}>
           {/* Clicks on the popup mustn't reach the board (they'd count as a click away). */}
           <div
             style={{ transform: 'translate(-50%, calc(-100% - 10px))', pointerEvents: 'auto' }}
