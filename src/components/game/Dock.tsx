@@ -34,6 +34,7 @@ function ActionButton({
   danger,
   hint,
   left,
+  bankAnchor,
 }: {
   label: string;
   icon: React.ReactNode;
@@ -46,6 +47,8 @@ function ActionButton({
   hint?: string;
   /** Pieces left in the player's supply. */
   left?: number;
+  /** Marks the button as the bank's spot on screen for flying cards (where the bank strip is hidden). */
+  bankAnchor?: boolean;
 }) {
   return (
     <button
@@ -57,6 +60,7 @@ function ActionButton({
       disabled={disabled}
       aria-pressed={active}
       title={hint ?? label}
+      data-bank-anchor={bankAnchor ? '' : undefined}
       className={`btn group relative flex-col gap-0.5 px-2.5 py-1.5 text-[11px] sm:min-w-16 ${primary ? 'btn-primary' : active ? 'btn-primary' : danger ? 'btn-danger' : ''}`}
     >
       {icon}
@@ -179,7 +183,7 @@ export function Dock({ view }: { view: PlayerView }) {
           active={ui.panel === 'trade'}
           disabled={view.phase !== 'play' || !view.turn.rolled || !free}
         />
-        <ActionButton label="Bank" icon={<Landmark size={20} />} onClick={() => ui.setPanel('bank')} active={ui.panel === 'bank'} disabled={!canBuild} />
+        <ActionButton label="Bank" icon={<Landmark size={20} />} onClick={() => ui.setPanel('bank')} active={ui.panel === 'bank'} disabled={!canBuild} bankAnchor />
         <span className="mx-0.5 h-8 w-px bg-white/15" />
         <ActionButton
           label="End (E)"

@@ -28,6 +28,7 @@ import {
   UserMinus,
   VenetianMask,
 } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { COMMODITIES, type Card, type DevCardType, type PartialHand, type ProgressCard, type ProgressCardType } from '@/engine/types';
 import { DEV_NAMES, DEV_TEXT, PROGRESS_NAMES } from '@/client/describe';
 import { CARD_COLORS } from '@/client/palette';
@@ -197,12 +198,26 @@ export function ResourceCard({
 }
 
 /** Held cards of one kind, fanned like a real stack: a sliver per extra card (up to 4), plus a count. */
-export function CardStack({ card, count, onClick }: { card: Card; count: number; onClick?: () => void }) {
+export function CardStack({ card, count, held, onClick }: { card: Card; count: number; held?: number; onClick?: () => void }) {
   const c = CARD_COLORS[card];
   const extra = Math.min(count - 1, 4);
   const step = 7;
+  const ref = useRef<HTMLDivElement>(null);
+  const before = useRef(held);
+  // More cards of this kind came in (not just back from the trade panel): the stack hops as the
+  // flying card lands on it (see FlyLayer; it arrives about 0.75 s after the event).
+  useEffect(() => {
+    const gained = held !== undefined && before.current !== undefined && held > before.current;
+    before.current = held;
+    const el = ref.current;
+    if (!gained || !el || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    el.animate(
+      [{ transform: 'none' }, { transform: 'translateY(-10px) scale(1.08)', offset: 0.4 }, { transform: 'none' }],
+      { duration: 420, delay: 650, easing: 'cubic-bezier(0.3, 1.4, 0.5, 1)' },
+    );
+  }, [held]);
   return (
-    <div className="relative flex shrink-0" style={{ paddingLeft: extra * step }}>
+    <div ref={ref} className="relative flex shrink-0" style={{ paddingLeft: extra * step }} data-hand-card={card}>
       {Array.from({ length: extra }, (_, i) => (
         <span
           key={i}

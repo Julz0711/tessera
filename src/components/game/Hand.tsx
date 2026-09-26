@@ -42,7 +42,7 @@ export function Hand({ view }: { view: PlayerView }) {
           </div>
         )}
         {held.map((c) => (
-          <CardStack key={c} card={c} count={count(c)} onClick={canTrade ? () => (trading ? draft.add('give', c) : openTrade({ [c]: 1 })) : undefined} />
+          <CardStack key={c} card={c} count={count(c)} held={p.hand[c]} onClick={canTrade ? () => (trading ? draft.add('give', c) : openTrade({ [c]: 1 })) : undefined} />
         ))}
         {held.length > 0 && special > 0 && <span aria-hidden className="h-12 w-px self-center bg-white/20" />}
         {dev.map(({ type, cards }) => (

@@ -33,11 +33,11 @@ function FlyingCard({ flight }: { flight: Flight }) {
   return (
     <span
       ref={ref}
-      className="pointer-events-none fixed z-[60] grid h-8 w-6 place-items-center rounded-[5px] border-2 border-ink shadow-token"
+      className={`pointer-events-none fixed z-[60] grid place-items-center rounded-[5px] border-2 border-ink shadow-token ${flight.big ? 'h-12 w-9' : 'h-8 w-6'}`}
       style={{ left: flight.from.x, top: flight.from.y, background: c ? c.bg : '#1d5a6b', opacity: 0 }}
       aria-hidden
     >
-      {flight.card ? <MiniArt card={flight.card} size={18} /> : <span className="text-xs font-black text-paper">?</span>}
+      {flight.card ? <MiniArt card={flight.card} size={flight.big ? 28 : 18} /> : <span className="text-xs font-black text-paper">?</span>}
     </span>
   );
 }
