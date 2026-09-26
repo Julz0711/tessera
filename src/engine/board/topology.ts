@@ -133,6 +133,60 @@ export const LONG_ISLE_HEX_COORDS: HexCoord[] = (() => {
   return out;
 })();
 
+/** Gold Rush: rings 0–3 without ring 3's six corner hexes — a ring island around a middle of seven. */
+export const GOLD_RUSH_HEX_COORDS: HexCoord[] = (() => {
+  const out: HexCoord[] = [];
+  for (let r = -3; r <= 3; r++) {
+    for (let q = -3; q <= 3; q++) {
+      const ring = Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r));
+      const corner = ring === 3 && (q === 0 || r === 0 || q + r === 0);
+      if (ring <= 3 && !corner) out.push({ q, r });
+    }
+  }
+  return out;
+})();
+
+/**
+ * Vulcan, copied tile for tile from colonist's map: rows from the top, left to right. B brick
+ * (hills), W wool (pasture), Gr grain (fields), L lumber (forest), O ore (mountains), D desert,
+ * G gold, with the number; ? is fog (its tile and number are dealt at random).
+ */
+export const VULCAN_LAYOUT: readonly string[] = [
+  'B5  W9  D   O11 ?   ?   O12 D   B10 W5',
+  'L6  Gr4 D   ?   O10 ?   O10 ?   D   Gr9 L4',
+  'B10 D   ?   ?   O5  O10 ?   ?   D   L8',
+  'D   O3  O11 O9  G6  O4  O4  O11 D',
+  'L6  D   ?   ?   O5  O9  ?   ?   D   B6',
+  'B10 W4  D   ?   O3  ?   O4  ?   D   B5  W9',
+  'B5  Gr9 D   O3  ?   ?   O2  D   L10 Gr4',
+];
+
+/** Each Vulcan tile's code with its coordinate; the rows are centred on the volcano at the origin. */
+export const VULCAN_TILES: { code: string; q: number; r: number }[] = VULCAN_LAYOUT.flatMap((row, i) => {
+  const r = i - 3;
+  const codes = row.trim().split(/\s+/);
+  // A hex's horizontal position, in hex widths, is q + r/2; each row is centred on x = 0.
+  return codes.map((code, k) => ({ code, q: k - (codes.length - 1) / 2 - r / 2, r }));
+});
+
+export const VULCAN_HEX_COORDS: HexCoord[] = VULCAN_TILES.map(({ q, r }) => ({ q, r }));
+
+/**
+ * Four Lakes (colonist's pinwheel island): seven rows around a desert, with four lakes cut into it,
+ * one in each quarter. Rows from the top, listing the q of each hex.
+ */
+export const FOUR_LAKES_HEX_COORDS: HexCoord[] = (
+  [
+    [-3, [-1, 0, 1, 2, 3, 4]],
+    [-2, [-2, -1, 1, 3, 4]],
+    [-1, [-3, -2, 0, 1, 3, 4]],
+    [0, [-2, -1, 0, 1, 2]],
+    [1, [-4, -3, -1, 0, 2, 3]],
+    [2, [-4, -3, -1, 1, 2]],
+    [3, [-4, -3, -2, -1, 0, 1]],
+  ] as [number, number[]][]
+).flatMap(([r, qs]) => qs.map((q) => ({ q, r })));
+
 const cache = new Map<string, Topology>();
 /** Fast path: the same hex array object (e.g. one game state) maps straight to its topology. */
 const byArray = new WeakMap<readonly HexCoord[], Topology>();

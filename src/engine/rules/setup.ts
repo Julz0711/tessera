@@ -22,7 +22,7 @@ export function setupSettlement(ctx: Ctx, vertex: number): void {
   const city = s.mode === 'ck' && secondRound;
   s.buildings[vertex] = { owner: ctx.seat, city, wall: false, metropolis: null };
   emit(ctx, { type: 'built', seat: ctx.seat, piece: city ? 'city' : 'settlement', at: vertex, free: true });
-  revealAround(ctx, [vertex]);
+  revealAround(ctx, [vertex], false);
 
   if (secondRound) {
     const gain = emptyHand();
@@ -48,7 +48,7 @@ export function setupRoad(ctx: Ctx, edge: number): void {
   assertRule(legalSetupRoads(s).includes(edge), 'The road must touch the settlement you just placed');
   s.roads[edge] = ctx.seat;
   emit(ctx, { type: 'built', seat: ctx.seat, piece: 'road', at: edge, free: true });
-  revealAround(ctx, [ctx.topo.edges[edge].a, ctx.topo.edges[edge].b]);
+  revealAround(ctx, [ctx.topo.edges[edge].a, ctx.topo.edges[edge].b], false);
 
   setup.index++;
   setup.placing = 'settlement';

@@ -165,21 +165,40 @@ export function chooseRobber(view: PlayerView, seat: number): { hex: number; vic
 
 // ── Setup ───────────────────────────────────────────────────────────────────
 
+/**
+ * Black Forest opening, a preference rather than a rule: the first settlement on a lake harbor,
+ * where the forest's lumber trades 2:1, and the second placement (a city in C&K) further out
+ * towards the fog; the starting roads lead outward to discover it.
+ */
+function blackForestSetupBonus(view: PlayerView): (v: number) => number {
+  if (view.settings.map !== 'blackForest') return () => 0;
+  const t = topo(view);
+  if (view.setup!.index < view.players.length) {
+    const harborCorners = new Set(view.board.harbors.flatMap((h) => [t.edges[h.edge].a, t.edges[h.edge].b]));
+    return (v) => (harborCorners.has(v) ? 8 : 0);
+  }
+  const far = Math.max(...t.vertices.map((x) => Math.hypot(x.x, x.y)));
+  return (v) => 8 * (Math.hypot(t.vertices[v].x, t.vertices[v].y) / far);
+}
+
 export function setupMove(view: PlayerView, seat: number): Action {
+  const t = topo(view);
   if (view.setup!.placing === 'settlement') {
     const weights = resourceWeights(view);
     const spots = legalSettlementSpots(view, seat, true);
-    return { type: 'buildSettlement', vertex: argmax(spots, (v) => vertexScore(view, seat, v, weights))! };
+    const bonus = blackForestSetupBonus(view);
+    return { type: 'buildSettlement', vertex: argmax(spots, (v) => vertexScore(view, seat, v, weights) + bonus(v))! };
   }
   const edges = legalSetupRoads(view);
   const from = view.setup!.lastVertex!;
-  const t = topo(view);
   const weights = resourceWeights(view);
+  const dist = (v: number) => Math.hypot(t.vertices[v].x, t.vertices[v].y);
   const edge = argmax(edges, (e) => {
     const edgeInfo = t.edges[e];
     const w = edgeInfo.a === from ? edgeInfo.b : edgeInfo.a;
     const next = t.vertices[w].vertices.filter((x) => x !== from && distanceRuleOk(view, x));
-    return Math.max(0, ...next.map((x) => vertexScore(view, seat, x, weights)));
+    const outward = view.settings.map === 'blackForest' && dist(w) > dist(from) ? 4 : 0;
+    return Math.max(0, ...next.map((x) => vertexScore(view, seat, x, weights))) + outward;
   })!;
   return { type: 'buildRoad', edge };
 }

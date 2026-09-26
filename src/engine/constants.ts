@@ -78,12 +78,31 @@ export const LARGE_BANK_PER_COMMODITY = 16;
 export const LARGE_DEV_DECK: Record<DevCardType, number> = { knight: 20, victoryPoint: 5, roadBuilding: 3, yearOfPlenty: 3, monopoly: 3 };
 
 /** Seats each map has room for. */
-export const MAX_PLAYERS: Record<MapId, number> = { standard: 4, large: 6, blackForest: 6, goldRush: 4, heartlake: 4, longIsle: 4 };
+export const MAX_PLAYERS: Record<MapId, number> = {
+  standard: 4,
+  large: 6,
+  blackForest: 6,
+  goldRush: 6,
+  vulcan: 4,
+  heartlake: 4,
+  longIsle: 4,
+  fourLakes: 6,
+};
 /** Maps that use the 5–6 player extension's bigger bank and development deck. */
-export const BIG_MAPS: ReadonlySet<MapId> = new Set<MapId>(['large', 'blackForest']);
+export const BIG_MAPS: ReadonlySet<MapId> = new Set<MapId>(['large', 'blackForest', 'goldRush', 'vulcan', 'fourLakes']);
 
-/** Gold Rush: the standard island with two gold fields (never on a 6 or 8) in place of a field and a pasture. */
-export const GOLD_RUSH_TERRAIN_COUNTS: Record<Terrain, number> = { forest: 4, hills: 3, pasture: 3, fields: 3, mountains: 3, desert: 1, gold: 2 };
+/** Gold Rush: the ring island's 24 visible tiles (one desert); the 7 in the middle hide under fog. */
+export const GOLD_RUSH_TERRAIN_COUNTS: Record<Terrain, number> = { forest: 5, hills: 4, pasture: 5, fields: 5, mountains: 4, desert: 1, gold: 0 };
+/** Gold Rush's fogged middle: one gold field, one of each resource and one more of a random resource. */
+export const GOLD_RUSH_FOG: Terrain[] = ['gold', 'forest', 'hills', 'pasture', 'fields', 'mountains'];
+
+/** What Vulcan's 18 fogged tiles hide (dealt at random; the rest of the map is fixed). */
+export const VULCAN_FOG_TERRAINS: Partial<Record<Terrain, number>> = { forest: 4, hills: 4, pasture: 3, fields: 3, mountains: 2, desert: 2 };
+/** Twelve 3:1 harbors along the four starting corners' coasts, as on colonist's map. */
+export const VULCAN_HARBOR_KINDS: HarborKind[] = Array.from({ length: 12 }, () => 'any');
+
+/** Four Lakes: 39 hexes, one desert. */
+export const FOUR_LAKES_TERRAIN_COUNTS: Record<Terrain, number> = { forest: 8, hills: 7, pasture: 9, fields: 7, mountains: 7, desert: 1, gold: 0 };
 
 /** Heartlake: 18 hexes around a lake; one 12 fewer than the standard numbers. */
 export const HEARTLAKE_TERRAIN_COUNTS: Record<Terrain, number> = { forest: 4, hills: 3, pasture: 4, fields: 3, mountains: 3, desert: 1, gold: 0 };

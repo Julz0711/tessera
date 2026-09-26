@@ -6,10 +6,12 @@ import { RESOURCES, type PartialHand, type Prompt } from '../types';
 import { removePrompt } from './common';
 
 /**
- * Black Forest: lifts the fog from every hex touching these corners (a new road's ends or a new
- * settlement). The builder takes one card of each discovered resource, or a free pick for gold.
+ * Fog maps: lifts the fog from every hex touching these corners (a new road's ends or a new
+ * settlement). The builder takes one card of each discovered resource, or a free pick for gold —
+ * unless `reward` is off: finds made during setup are shown but pay nothing, so setup never stops
+ * for a gold pick before the game has begun.
  */
-export function revealAround(ctx: Ctx, vertices: number[]): void {
+export function revealAround(ctx: Ctx, vertices: number[], reward = true): void {
   const s = ctx.s;
   const found = [...new Set(vertices.flatMap((v) => ctx.topo.vertices[v].hexes))].filter((h) => s.board.hexes[h].fog);
   if (!found.length) return;
@@ -18,6 +20,7 @@ export function revealAround(ctx: Ctx, vertices: number[]): void {
   for (const id of found) {
     const hex = s.board.hexes[id];
     delete hex.fog;
+    if (!reward) continue;
     if (hex.terrain === 'gold') picks++;
     const res = TERRAIN_RESOURCE[hex.terrain];
     if (res && s.bank[res] > 0) {

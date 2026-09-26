@@ -36,8 +36,10 @@ export interface Hex {
   terrain: Terrain;
   /** Number token (2–12) or null for the desert. */
   token: number | null;
-  /** Black Forest: still under fog. Views show fogged hexes as a blank desert until revealed. */
+  /** Still under fog (Black Forest, Gold Rush, Vulcan). Views show fogged hexes as a blank desert until revealed. */
   fog?: boolean;
+  /** Vulcan: part of a starting area. When a map has any, starting settlements must touch only these. */
+  start?: boolean;
 }
 
 export interface Harbor {
@@ -54,11 +56,11 @@ export interface Board {
 // ── Modes & settings ────────────────────────────────────────────────────────
 export type Mode = 'classic' | 'ck';
 /**
- * Board layout: the standard island, the larger 5–6 player island, the fog-covered Black Forest,
- * or one of the land-only variants (Gold Rush, Heartlake, Long Isle).
+ * Board layout: the standard island, the larger 5–6 player island, the fog maps (Black Forest,
+ * Gold Rush, Vulcan) or one of the land-only variants (Heartlake, Long Isle, Four Lakes).
  */
-export type MapId = 'standard' | 'large' | 'blackForest' | 'goldRush' | 'heartlake' | 'longIsle';
-export const MAP_IDS: readonly MapId[] = ['standard', 'large', 'blackForest', 'goldRush', 'heartlake', 'longIsle'];
+export type MapId = 'standard' | 'large' | 'blackForest' | 'goldRush' | 'vulcan' | 'heartlake' | 'longIsle' | 'fourLakes';
+export const MAP_IDS: readonly MapId[] = ['standard', 'large', 'blackForest', 'goldRush', 'vulcan', 'heartlake', 'longIsle', 'fourLakes'];
 export const isMapId = (v: unknown): v is MapId => typeof v === 'string' && (MAP_IDS as readonly string[]).includes(v);
 export type Track = 'trade' | 'politics' | 'science';
 export const TRACKS: readonly Track[] = ['trade', 'politics', 'science'];

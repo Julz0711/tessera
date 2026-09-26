@@ -108,16 +108,30 @@ export function canPlaceSettlement(s: Q, seat: number, v: number, setup = false)
   if (!isVertex(s, v)) return false;
   if (s.knights[v]) return false;
   if (!distanceRuleOk(s, v)) return false;
-  if (setup && s.settings.map === 'blackForest' && !forestCorner(s, v)) return false;
+  if (setup && !startingCorner(s, v)) return false;
   return setup || touchesOwnRoad(s, seat, v);
 }
 
 /**
- * Black Forest: the starting settlements and roads stand in the forest, on corners touching only
- * forest (or the lake). The fog is reached by building out later.
+ * Where starting settlements may stand. Never next to fog: what it hides is found by building out
+ * later (their roads may lead into it). Black Forest starts in the forest, on corners touching only
+ * forest (or the lake). A map with starting areas (Vulcan) starts on any corner touching one of
+ * their tiles, right up to the desert that borders them.
  */
-function forestCorner(s: Q, v: number): boolean {
-  return topo(s).vertices[v].hexes.every((h) => s.board.hexes[h].terrain === 'forest');
+function startingCorner(s: Q, v: number): boolean {
+  const hexes = topo(s).vertices[v].hexes.map((h) => s.board.hexes[h]);
+  if (hexes.some((h) => h.fog)) return false;
+  if (s.settings.map === 'blackForest') return hexes.every((h) => h.terrain === 'forest');
+  if (hasStartAreas(s)) return hexes.some((h) => h.start) && hexes.every((h) => h.start || h.terrain === 'desert');
+  return true;
+}
+
+/** Whether the board marks starting areas; asked once per corner, so remembered per board. */
+const startAreas = new WeakMap<object, boolean>();
+function hasStartAreas(s: Q): boolean {
+  let known = startAreas.get(s.board.hexes);
+  if (known === undefined) startAreas.set(s.board.hexes, (known = s.board.hexes.some((h) => h.start)));
+  return known;
 }
 
 export function legalSettlementSpots(s: Q, seat: number, setup = false): number[] {
@@ -148,13 +162,8 @@ export function legalRoadSpots(s: Q, seat: number): number[] {
 
 export function legalSetupRoads(s: Q): number[] {
   if (!s.setup || s.setup.placing !== 'road' || s.setup.lastVertex === null) return [];
-  const t = topo(s);
-  const free = t.vertices[s.setup.lastVertex].edges.filter((e) => s.roads[e] === null);
-  if (s.settings.map !== 'blackForest') return free;
-  // Black Forest: the starting road stays in the forest too (it would otherwise run into the fog
-  // and reveal it); only a corner with no forest road left may lead out.
-  const inForest = free.filter((e) => forestCorner(s, t.edges[e].a) && forestCorner(s, t.edges[e].b));
-  return inForest.length ? inForest : free;
+  // Black Forest too: the settlement stands in the forest, but its road may already lead out into the fog.
+  return topo(s).vertices[s.setup.lastVertex].edges.filter((e) => s.roads[e] === null);
 }
 
 export function legalCitySpots(s: Q, seat: number): number[] {

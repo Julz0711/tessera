@@ -50,16 +50,16 @@ export function RoomHeader({ room, onLeave }: { room: RoomDTO; onLeave: () => vo
         </button>
         <Logomark size={30} />
       </div>
-      <div className="flex items-center gap-2">
-        <div className="glass flex items-center gap-3 px-3 py-1.5">
-          <span className="label-light">Room</span>
-          <span className="font-mono text-lg font-black tracking-[0.2em] text-paper">{formatCode(room.code)}</span>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="glass flex shrink-0 items-center gap-3 px-3 py-1.5">
+          <span className="label-light shrink-0">Room</span>
+          <span className="whitespace-nowrap font-mono text-lg font-black tracking-[0.2em] text-paper">{formatCode(room.code)}</span>
         </div>
-        <button type="button" onClick={copy} className="btn btn-primary px-3 py-2 text-sm">
+        <button type="button" onClick={copy} className="btn btn-primary shrink-0 whitespace-nowrap px-3 py-2 text-sm">
           {copied ? <Check size={16} /> : <Copy size={16} />} {copied ? 'Copied' : 'Copy invite link'}
         </button>
         {typeof navigator !== 'undefined' && 'share' in navigator && (
-          <button type="button" onClick={share} className="btn px-3 py-2 text-sm sm:hidden" aria-label="Share">
+          <button type="button" onClick={share} className="btn shrink-0 px-3 py-2 text-sm sm:hidden" aria-label="Share">
             <Share2 size={16} />
           </button>
         )}
@@ -159,16 +159,20 @@ const MAP_LABELS: Record<MapId, string> = {
   large: 'Large (5–6)',
   blackForest: 'Black Forest',
   goldRush: 'Gold Rush',
+  vulcan: 'Vulcan',
   heartlake: 'Heartlake',
   longIsle: 'Long Isle',
+  fourLakes: 'Four Lakes',
 };
 const MAP_BLURBS: Record<MapId, string> = {
   standard: 'The classic 19-hex island.',
   large: 'A bigger island for 5–6 players, with a bigger bank and deck.',
   blackForest: 'Start inside a ring of forest; the rest of the island is hidden under fog until you explore it.',
-  goldRush: 'Two gold fields pay out any resource you like — never on a 6 or 8, so they’re worth fighting for.',
+  goldRush: 'A ring island around seven hexes of fog, one of them a gold field. Build inward to find it.',
+  vulcan: 'Start in the four far corners. Ore lies only around the volcano, a gold 6 in the fog-covered middle.',
   heartlake: 'A ring island around a lake. Three 3:1 harbors line the lake shore, reachable from the middle.',
   longIsle: 'A long, thin island: more coast, more harbors within reach, and tighter races for the long road.',
+  fourLakes: 'A big pinwheel island with four lakes cut into it, and harbors on their shores. For up to 6.',
 };
 
 function MapSegmented({ value, onChange, disabled }: { value: MapId; onChange: (v: MapId) => void; disabled?: boolean }) {
