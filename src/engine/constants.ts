@@ -66,10 +66,11 @@ export const LARGE_TERRAIN_COUNTS: Record<Terrain, number> = { forest: 6, hills:
 
 /**
  * Black Forest: a desert island in a lake, ringed by 24 visible forests; 30 tiles beyond lie under
- * fog: the other resources plus two gold fields, whose number is always a 6 or an 8. The forest
- * only numbers 4–10: two 6s, two 8s and five each of 4, 5, 9 and 10.
+ * fog: the other resources plus two gold fields, whose number is always a 6 or an 8. The forest's
+ * numbers are colonist's (dealt at random): four each of 5, 6 and 8, three 4s and 9s, two 10s and
+ * one each of 2, 3, 11 and 12.
  */
-export const BLACK_FOREST_TOKENS = [4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 6, 6, 8, 8, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10];
+export const BLACK_FOREST_TOKENS = [2, 3, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 8, 8, 8, 8, 9, 9, 9, 10, 10, 11, 12];
 export const BLACK_FOREST_FOG: Partial<Record<Terrain, number>> = { hills: 7, pasture: 7, fields: 7, mountains: 7, gold: 2 };
 export const BLACK_FOREST_FOG_TOKENS = [2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 8, 8, 8, 9, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12];
 export const LARGE_NUMBER_TOKENS = [2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 8, 8, 8, 9, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12];

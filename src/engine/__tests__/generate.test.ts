@@ -3,7 +3,7 @@ import { generateBoard } from '../board/generate';
 import { BLACK_FOREST_HEX_COORDS, LARGE_HEX_COORDS, STANDARD_HEX_COORDS, getTopology } from '../board/topology';
 import { createGame } from '../state';
 import { viewFor } from '../view';
-import { HARBOR_KINDS, LARGE_HARBOR_KINDS, LARGE_NUMBER_TOKENS, LARGE_TERRAIN_COUNTS, NUMBER_TOKENS, TERRAIN_COUNTS } from '../constants';
+import { BLACK_FOREST_TOKENS, HARBOR_KINDS, LARGE_HARBOR_KINDS, LARGE_NUMBER_TOKENS, LARGE_TERRAIN_COUNTS, NUMBER_TOKENS, TERRAIN_COUNTS } from '../constants';
 
 const topo = getTopology(STANDARD_HEX_COORDS);
 
@@ -98,12 +98,10 @@ describe('generateBoard (Black Forest)', () => {
       for (const h of fog) counts[h.terrain] = (counts[h.terrain] ?? 0) + 1;
       expect(counts).toEqual({ hills: 7, pasture: 7, fields: 7, mountains: 7, gold: 2 });
       for (const h of fog.filter((x) => x.terrain === 'gold')) expect([6, 8]).toContain(h.token);
-      // The starting forest only numbers 4–10, with two 6s and two 8s, never side by side.
+      // The starting forest has colonist's numbers, dealt at random; 6s and 8s never side by side.
       const forest = visible.filter((h) => h.terrain === 'forest');
       const tokens = forest.map((h) => h.token!);
-      expect(tokens.every((t) => t >= 4 && t <= 10)).toBe(true);
-      expect(tokens.filter((t) => t === 6)).toHaveLength(2);
-      expect(tokens.filter((t) => t === 8)).toHaveLength(2);
+      expect([...tokens].sort((x, y) => x - y)).toEqual([...BLACK_FOREST_TOKENS].sort((x, y) => x - y));
       for (const h of board.hexes) {
         if (h.token !== 6 && h.token !== 8) continue;
         for (const n of bf.hexes[h.id].neighbors) expect([6, 8]).not.toContain(board.hexes[n].token);

@@ -146,32 +146,36 @@ function dealTokens(
 }
 
 /**
- * Numbers for groups of hexes (each from its own pool) where no 6 or 8 may touch another, for boards
+ * Numbers for groups of hexes (each from its own pool) where 6s and 8s should not touch, for boards
  * with too many of them for random deals to find a valid one: the 6s and 8s go down first, each on a
- * hex with none next to it (`fixed` ones included), then the other numbers fill the rest at random.
+ * hex with none next to it (`fixed` ones included) where there is one, then the other numbers fill
+ * the rest at random. Every hex always gets a number; of many deals, the one with the fewest touching
+ * 6s and 8s is kept (almost always none).
  */
 function spreadRedTokens(rng: RngHolder, topo: Topology, groups: [ids: number[], pool: number[]][], fixed: (number | null)[]): (number | null)[] {
-  let tokens = [...fixed];
-  for (let attempt = 0; attempt < 500; attempt++) {
-    tokens = [...fixed];
-    const clear = (id: number) => tokens[id] === null && !topo.hexes[id].neighbors.some((n) => isRed(tokens[n]));
-    let placed = true;
+  let best = [...fixed];
+  let bestClashes = Infinity;
+  for (let attempt = 0; attempt < 500 && bestClashes > 0; attempt++) {
+    const tokens = [...fixed];
+    const touchesRed = (id: number) => topo.hexes[id].neighbors.some((n) => isRed(tokens[n]));
+    let clashes = 0;
     for (const [ids, pool] of groups) {
-      for (const red of pool.filter(isRed)) {
-        const spots = ids.filter(clear);
-        if (!spots.length) {
-          placed = false;
-          break;
-        }
+      for (const red of shuffle(rng, pool.filter(isRed))) {
+        const free = ids.filter((id) => tokens[id] === null);
+        const clear = free.filter((id) => !touchesRed(id));
+        const spots = clear.length ? clear : free;
+        if (!clear.length) clashes++;
         tokens[spots[randomInt(rng, spots.length)]] = red;
       }
-      if (!placed) break;
       const rest = shuffle(rng, pool.filter((t) => !isRed(t)));
       ids.filter((id) => tokens[id] === null).forEach((id, i) => (tokens[id] = rest[i]));
     }
-    if (placed) break;
+    if (clashes < bestClashes) {
+      best = tokens;
+      bestClashes = clashes;
+    }
   }
-  return tokens;
+  return best;
 }
 
 /**
@@ -294,8 +298,10 @@ function blackForestBoard(rng: RngHolder, gold: boolean): Board {
 
   const terrains: Terrain[] = topo.hexes.map(() => 'desert');
   for (const id of visible) terrains[id] = 'forest';
-  // The two gold fields never touch: both are always a 6 or an 8, and those may not sit side by side.
-  const goldTouches = () => fogged.some((id) => terrains[id] === 'gold' && topo.hexes[id].neighbors.some((n) => terrains[n] === 'gold'));
+  // Gold fields are always a 6 or an 8, and those may not sit side by side: the two never touch, and
+  // neither borders the forest (whose own eight 6s and 8s would otherwise not always fit apart).
+  const goldTouches = () =>
+    fogged.some((id) => terrains[id] === 'gold' && topo.hexes[id].neighbors.some((n) => terrains[n] === 'gold' || terrains[n] === 'forest'));
   // Without gold, two random resources take the gold fields' places.
   const resources: Terrain[] = ['hills', 'pasture', 'fields', 'mountains'];
   const hiddenBag = gold
