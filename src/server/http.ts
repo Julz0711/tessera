@@ -7,7 +7,7 @@ import { FACE_MAX_BYTES, FaceError, loadFace, storeFace } from './faces';
 import type { ProfileData, SessionInfo } from '@/shared/protocol';
 import { favoriteMode, historyFor, linkedProviders, preferencesFor, ratingFor, sanitizePreferences, updateProfile } from './profileApi';
 import { cosmeticStateFor } from './cosmetics';
-import { dbEnabled, getDb } from './db';
+import { dbEnabled, getDb, logDbError } from './db';
 import { GUEST_TTL_DAYS, newGuestId, resolveIdentity, setGuestCookie, type ServerIdentity } from './identity';
 import { limits } from './rateLimit';
 import { clientIp, originAllowed } from './realtime';
@@ -44,7 +44,10 @@ async function sessionInfo(identity: ServerIdentity | null): Promise<SessionInfo
   base.unlocks = cos.unlocks;
   try {
     if (identity.kind === 'user') {
-      const profile = await db.profile.findUnique({ where: { userId: identity.id } });
+      const profile = await db.profile.findUnique({
+        where: { userId: identity.id },
+        select: { displayName: true, avatarUrl: true, color: true, knight: true, preferences: true, gamesPlayed: true, gamesWon: true },
+      });
       if (profile) {
         const prefs = sanitizePreferences(profile.preferences);
         base.displayName = profile.displayName;
@@ -54,7 +57,10 @@ async function sessionInfo(identity: ServerIdentity | null): Promise<SessionInfo
         base.stats = { gamesPlayed: profile.gamesPlayed, gamesWon: profile.gamesWon };
       }
     } else {
-      const guest = await db.guestSession.findUnique({ where: { id: identity.id } });
+      const guest = await db.guestSession.findUnique({
+        where: { id: identity.id },
+        select: { displayName: true, color: true, knight: true, gamesPlayed: true, gamesWon: true },
+      });
       if (guest) {
         base.displayName = guest.displayName;
         base.color = isPlayerColor(guest.color) ? (guest.color as PlayerColor) : null;
@@ -63,7 +69,7 @@ async function sessionInfo(identity: ServerIdentity | null): Promise<SessionInfo
       }
     }
   } catch (err) {
-    console.error('[http] session info failed', err);
+    logDbError('session info', err);
   }
   return base;
 }
@@ -75,13 +81,13 @@ async function ensureGuest(req: IncomingMessage, res: ServerResponse): Promise<v
   const expiresAt = new Date(Date.now() + GUEST_TTL_DAYS * 86400_000);
   if (!identity) {
     if (!limits.guestCreate.take(clientIp({ headers: req.headers, address: req.socket.remoteAddress }))) {
-      return json(res, 429, { error: 'Too many new sessions — try again soon' });
+      return json(res, 429, { error: 'Too many new sessions. Try again soon.' });
     }
     const id = newGuestId();
     setGuestCookie(req, res, id);
     identity = { key: `g:${id}`, kind: 'guest', id, displayName: null, avatarUrl: null };
     if (db) {
-      await db.guestSession.create({ data: { id, expiresAt } }).catch((err: unknown) => console.error('[http] guest create failed', err));
+      await db.guestSession.create({ data: { id, expiresAt } }).catch((err: unknown) => logDbError('guest create', err));
     }
   } else if (identity.kind === 'guest') {
     // Sliding expiry.
@@ -89,7 +95,7 @@ async function ensureGuest(req: IncomingMessage, res: ServerResponse): Promise<v
     if (db) {
       await db.guestSession
         .upsert({ where: { id: identity.id }, create: { id: identity.id, expiresAt }, update: { lastSeenAt: new Date(), expiresAt } })
-        .catch((err: unknown) => console.error('[http] guest touch failed', err));
+        .catch((err: unknown) => logDbError('guest touch', err));
     }
   }
   json(res, 200, await sessionInfo(identity));
@@ -118,7 +124,7 @@ async function uploadFace(req: IncomingMessage, res: ServerResponse): Promise<vo
   if (!originAllowed(req)) return json(res, 403, { error: 'Bad origin' });
   const identity = await resolveIdentity(req.headers.cookie);
   if (!identity) return json(res, 401, { error: 'Start a session first' });
-  if (!limits.faceUpload.take(identity.key)) return json(res, 429, { error: 'Too many uploads — try again in a minute' });
+  if (!limits.faceUpload.take(identity.key)) return json(res, 429, { error: 'Too many uploads. Try again in a minute.' });
   const body = await readBody(req, FACE_MAX_BYTES);
   if (!body) return json(res, 413, { error: 'Image is too large (max 64 KB after resizing)' });
   try {
@@ -230,14 +236,30 @@ export async function handleHttp(req: IncomingMessage, res: ServerResponse): Pro
         json(res, 400, { error: 'Invalid request' });
         return true;
       }
-      await updateProfile(identity, parsed);
+      try {
+        await updateProfile(identity, parsed);
+      } catch (err) {
+        if (err instanceof UserError) {
+          json(res, 400, { error: err.message });
+          return true;
+        }
+        logDbError('profile save', err);
+        json(res, 503, { error: "Couldn't save your profile right now. Try again in a moment." });
+        return true;
+      }
     }
+    // A part that can't be read (say, a database behind the schema) is left out, not the whole page.
+    const orElse = <T,>(part: Promise<T>, fallback: T, what: string) =>
+      part.catch((err: unknown) => {
+        logDbError(what, err);
+        return fallback;
+      });
     const [session, history, providers, preferences, rating] = await Promise.all([
       sessionInfo(identity),
-      historyFor(identity),
-      linkedProviders(identity),
-      preferencesFor(identity),
-      ratingFor(identity),
+      orElse(historyFor(identity), [], 'game history'),
+      orElse(linkedProviders(identity), [], 'linked accounts'),
+      orElse(preferencesFor(identity), {}, 'profile preferences'),
+      orElse(ratingFor(identity), null, 'rating'),
     ]);
     const data: ProfileData = { session, history, providers, preferences, favoriteMode: favoriteMode(history), rating };
     json(res, 200, data);

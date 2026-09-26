@@ -39,7 +39,10 @@ const server = createServer((req, res) => {
 let db = getDb();
 if (db) {
   const check = await checkDatabase(db);
-  if (check.status !== 'ok') {
+  // Behind the schema: keep going (most of it works), but say how to fix what won't.
+  if (check.status === 'outdated') {
+    console.warn('> Database schema is out of date (profiles, ratings and frames will fail) — run `npm run db:push`, then restart.');
+  } else if (check.status !== 'ok') {
     await disableDb();
     db = null;
     console.warn(

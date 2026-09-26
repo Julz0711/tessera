@@ -41,7 +41,7 @@ export class FaceError extends Error {}
 export async function storeFace(data: Buffer): Promise<string> {
   if (data.length > FACE_MAX_BYTES) throw new FaceError('Image is too large');
   const mime = sniffImage(data);
-  if (!mime) throw new FaceError('Please upload a JPEG, PNG or WebP image');
+  if (!mime) throw new FaceError('Upload a JPEG, PNG or WebP image');
   const id = createHash('sha256').update(data).digest('hex');
   remember(id, { mime, data });
   const db = getDb();

@@ -118,11 +118,14 @@ describe.skipIf(!url)('prisma persistence', async () => {
   });
 
   it('restores a running game from snapshot + event replay', async () => {
-    const g = setup([`g:${randomUUID()}`]);
+    const guestId = randomUUID();
+    const g = setup([`g:${guestId}`]);
     persistence.roomCreated(g.room);
     persistence.gameStarted({ gameId: g.gameId, room: g.room, seats: g.seats, state: g.state });
     const live = play(g, 60);
     await persistence.flush();
+    // The guest saved a frame and title; the bot has none.
+    await db.guestSession.update({ where: { id: guestId }, data: { cosmetics: { frame: 'wood', title: 'trader' } } });
 
     const restored = await persistence.restoreRoom(g.room.code);
     expect(restored).not.toBeNull();
@@ -132,6 +135,8 @@ describe.skipIf(!url)('prisma persistence', async () => {
     expect(restored!.state.buildings).toEqual(live.buildings);
     expect(restored!.seats.map((s) => s.playerId)).toEqual(g.seats.map((s) => s.playerId));
     expect(restored!.seats[0].identityKey).toBe(g.seats[0].identityKey);
+    expect(restored!.seats[0].cosmetics).toEqual({ frame: 'wood', title: 'trader' });
+    expect(restored!.seats.at(-1)!.cosmetics).toBeUndefined();
   });
 
   it('rates games between signed-in players, and only those', async () => {

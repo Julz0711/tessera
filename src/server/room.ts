@@ -64,6 +64,8 @@ interface Seat {
   color: PlayerColor;
   knight: KnightCustomization;
   cosmetics: Cosmetics;
+  /** Restored after a restart without a saved frame/title: the player's next join may set it, once. */
+  cosmeticsPending?: boolean;
   avatarUrl?: string;
   sockets: Set<string>;
   lastSeen: number;
@@ -85,6 +87,8 @@ export class Room {
   settings: RoomSettings;
   seats: Seat[] = [];
   spectators = new Map<string, Spectator>();
+  /** Each identity's last chat line, for the repeat check (spectators have no player id to go by). */
+  private lastSaid = new Map<string, { text: string; at: number }>();
   /** Every attached socket → identity key. */
   sockets = new Map<string, string>();
   status: 'lobby' | 'playing' | 'finished' = 'lobby';
@@ -128,7 +132,8 @@ export class Room {
       name: s.name,
       color: s.color as PlayerColor,
       knight: sanitizeKnight(s.knight),
-      cosmetics: DEFAULT_COSMETICS,
+      cosmetics: s.cosmetics ?? DEFAULT_COSMETICS,
+      cosmeticsPending: !s.isBot && !s.cosmetics,
       sockets: new Set<string>(),
       lastSeen: room.now(),
       left: false,
@@ -138,7 +143,7 @@ export class Room {
     room.gameNumber = data.gameNumber;
     room.status = data.state.phase === 'ended' ? 'finished' : 'playing';
     room.window = { key: '', startedAt: room.now() };
-    room.system('The server restarted — your game was restored. Welcome back!');
+    room.system('The server restarted and your game was restored. Welcome back!');
     if (room.status === 'playing') {
       room.updateWindow();
       room.startTicker();
@@ -166,6 +171,12 @@ export class Room {
       seat.left = false;
       seat.lastSeen = this.now();
       if (opts.profile && this.status === 'lobby') this.applyProfile(seat, opts.profile);
+      // Mid-game the look is fixed. Only a seat restored without a saved frame/title takes the one
+      // the player brings, on their first rejoin.
+      else if (seat.cosmeticsPending && opts.profile?.cosmetics !== undefined) {
+        seat.cosmetics = sanitizeCosmetics(opts.profile.cosmetics);
+        seat.cosmeticsPending = false;
+      }
       this.sockets.set(socketId, key);
       if (wasAway) this.system(`${seat.name} is back`);
     } else {
@@ -221,7 +232,7 @@ export class Room {
       } else if (this.status === 'playing') {
         seat.left = true;
         seat.lastSeen = this.now();
-        this.system(`${seat.name} left — autopilot is playing for them`);
+        this.system(`${seat.name} left. Autopilot is playing for them.`);
       }
     }
     this.migrateHost();
@@ -567,16 +578,17 @@ export class Room {
     const text = sanitizeChat(raw);
     if (!text) return;
     const seat = this.seats.find((s) => s.identityKey === key);
-    // The same message again within a few seconds is spam, not conversation.
-    const sender = seat?.playerId ?? null;
-    const last = [...this.chat].reverse().find((m) => !m.system && m.playerId === sender);
-    if (last && last.text === text && this.now() - last.at < 10_000) throw new UserError('You just said that');
     const spectator = this.spectators.get(socketId);
+    const name = seat?.name ?? `${spectator?.name ?? 'Spectator'} (watching)`;
+    // The same message again from the same person within a few seconds is spam, not conversation.
+    const last = this.lastSaid.get(key);
+    if (last && last.text === text && this.now() - last.at < 10_000) throw new UserError('You just said that');
+    this.lastSaid.set(key, { text, at: this.now() });
     this.pushChat({
       id: randomUUID(),
       at: this.now(),
       playerId: seat?.playerId ?? null,
-      name: seat?.name ?? `${spectator?.name ?? 'Spectator'} (watching)`,
+      name,
       color: seat?.color,
       text,
     });

@@ -1,5 +1,5 @@
 import { clampCosmetics, DEFAULT_COSMETICS, NO_UNLOCKS, type Cosmetics, type UnlockStats } from '@/shared/cosmetics';
-import { getDb } from './db';
+import { getDb, logDbError } from './db';
 import type { ServerIdentity } from './identity';
 
 /**
@@ -24,7 +24,7 @@ export async function cosmeticStateFor(identity: ServerIdentity): Promise<{ unlo
     const unlocks = { gamesPlayed: g.gamesPlayed, gamesWon: g.gamesWon, rating: null };
     return { unlocks, chosen: g.cosmetics ? clampCosmetics(g.cosmetics, unlocks) : null };
   } catch (err) {
-    console.error('[cosmetics] lookup failed', err);
+    logDbError('cosmetics lookup', err);
     return { unlocks: NO_UNLOCKS, chosen: null };
   }
 }

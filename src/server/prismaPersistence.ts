@@ -3,6 +3,7 @@
  * here ever blocks or fails the live game — errors are logged and the in-memory game continues.
  */
 import { applyAction, victoryPoints, type Action, type GameEvent, type GameState } from '@/engine';
+import { clampCosmetics, type Cosmetics } from '@/shared/cosmetics';
 import { sanitizeKnight } from '@/shared/knight';
 import type { JoinProfile, RoomSettings } from '@/shared/protocol';
 import type { Db } from './db';
@@ -30,7 +31,8 @@ export interface RestoredRoom {
   gameId: string;
   gameNumber: number;
   state: GameState;
-  seats: PersistSeat[];
+  /** `cosmetics`: the frame and title the player saved, when they saved one. */
+  seats: (PersistSeat & { cosmetics?: Cosmetics })[];
 }
 
 export interface DurablePersistence extends Persistence {
@@ -228,6 +230,20 @@ export function createPrismaPersistence(db: Db): DurablePersistence {
         state = result.state;
       }
       gameRoom.set(current.id, room.id);
+      // Frames and titles aren't stored per game: bring back each player's saved choice.
+      const userIds = players.flatMap((p) => (p.userId ? [p.userId] : []));
+      const guestIds = players.flatMap((p) => (p.guestSessionId ? [p.guestSessionId] : []));
+      const [profiles, guests] = await Promise.all([
+        db.profile.findMany({ where: { userId: { in: userIds } }, select: { userId: true, cosmetics: true, gamesPlayed: true, gamesWon: true, rating: true, ratedGames: true } }),
+        db.guestSession.findMany({ where: { id: { in: guestIds } }, select: { id: true, cosmetics: true, gamesPlayed: true, gamesWon: true } }),
+      ]);
+      const saved = new Map<string, Cosmetics>();
+      for (const p of profiles) {
+        if (p.cosmetics) saved.set(`u:${p.userId}`, clampCosmetics(p.cosmetics, { gamesPlayed: p.gamesPlayed, gamesWon: p.gamesWon, rating: p.ratedGames > 0 ? p.rating : null }));
+      }
+      for (const g of guests) {
+        if (g.cosmetics) saved.set(`g:${g.id}`, clampCosmetics(g.cosmetics, { gamesPlayed: g.gamesPlayed, gamesWon: g.gamesWon, rating: null }));
+      }
       return {
         id: room.id,
         code: room.code,
@@ -235,14 +251,18 @@ export function createPrismaPersistence(db: Db): DurablePersistence {
         gameId: current.id,
         gameNumber: games.length,
         state,
-        seats: players.map((p) => ({
-          playerId: p.id,
-          identityKey: p.userId ? `u:${p.userId}` : p.guestSessionId ? `g:${p.guestSessionId}` : null,
-          isBot: p.isBot,
-          name: p.displayName,
-          color: p.color,
-          knight: sanitizeKnight(p.knightCustomization),
-        })),
+        seats: players.map((p) => {
+          const identityKey = p.userId ? `u:${p.userId}` : p.guestSessionId ? `g:${p.guestSessionId}` : null;
+          return {
+            playerId: p.id,
+            identityKey,
+            isBot: p.isBot,
+            name: p.displayName,
+            color: p.color,
+            knight: sanitizeKnight(p.knightCustomization),
+            cosmetics: identityKey ? saved.get(identityKey) : undefined,
+          };
+        }),
       };
     },
   };

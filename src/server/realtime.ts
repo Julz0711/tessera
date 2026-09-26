@@ -170,10 +170,12 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
     socket.on('room:create', async (p: { profile: JoinProfile; settings?: Partial<RoomSettings> }, ack) => {
       if (!limits.roomCreate.take(socket.data.ip)) {
         return reply(ack, () => {
-          throw new UserError('Too many rooms created — try again in a minute');
+          throw new UserError('Too many new rooms. Try again in a minute.');
         });
       }
       const profile = p && typeof p === 'object' && p.profile && typeof p.profile === 'object' ? await withCosmetics(p.profile) : null;
+      // The socket may have dropped during the lookup; seating it now would leave a seat nobody holds.
+      if (!socket.connected) return;
       reply(ack, () => {
         if (!profile) throw new UserError('Choose a name first');
         leaveCurrent();
@@ -188,12 +190,13 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
     socket.on('room:join', async (p: { code: string; profile?: JoinProfile; spectate?: boolean }, ack) => {
       if (!limits.roomJoin.take(socket.data.ip)) {
         return reply(ack, () => {
-          throw new UserError('Too many attempts — wait a moment');
+          throw new UserError('Too many tries. Wait a moment.');
         });
       }
       // Not in memory? It may be a running game from before a server restart.
       const room = manager.get(p?.code) ?? (await manager.restore(p?.code));
       const profile = await withCosmetics(p?.profile);
+      if (!socket.connected) return; // dropped while we looked things up (see room:create)
       reply(ack, () => {
         if (!room) throw new UserError("That room doesn't exist (or has ended)");
         if (socket.data.roomCode && socket.data.roomCode !== room.code) leaveCurrent();
@@ -275,7 +278,7 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
     socket.on('room:react', (reaction, ack) =>
       reply(ack, () => {
         if (!isReactionId(reaction)) throw new UserError('Unknown reaction');
-        if (!limits.reaction.take(socket.data.identity.key)) throw new UserError('Easy there, wait a moment');
+        if (!limits.reaction.take(socket.data.identity.key)) throw new UserError('Easy there. Wait a moment.');
         currentRoom().react(socket.id, reaction);
       }),
     );
