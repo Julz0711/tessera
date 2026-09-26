@@ -45,7 +45,7 @@ export function KnightMenu({ view, vertex }: { view: PlayerView; vertex: number 
         {knight.active
           ? acts
             ? 'Ready for action: move, displace a weaker knight, or chase the robber.'
-            : 'Activated this turn — it can act from your next turn.'
+            : 'Activated this turn, it can act from your next turn.'
           : 'Inactive. Activate it to defend against the barbarians and to act.'}
       </p>
       <div className="grid gap-2">

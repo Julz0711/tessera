@@ -141,7 +141,7 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
           if (ev.won) setTimeout(() => play('repelled'), 1300);
           toast(
             ev.won
-              ? `The barbarians attacked (${ev.strength}) — the knights (${ev.defense}) held the island!`
+              ? `The barbarians attacked (${ev.strength}): the knights (${ev.defense}) held the island!`
               : `The barbarians (${ev.strength}) overran the knights (${ev.defense})!`,
             ev.won ? 'good' : 'error',
           );
@@ -274,8 +274,10 @@ export function GameScreen() {
         />
       </div>
 
-      {/* top */}
-      <div className="absolute inset-x-0 top-0 z-20">
+      {/* top: z-30 so the menu dropdown (opened from TopBar) paints above the bottom dock row
+          (dice box, mobile log/chat) instead of being covered by it — both are otherwise the same
+          stacking level and the dock comes later in the DOM. */}
+      <div className="absolute inset-x-0 top-0 z-30">
         <TopBar view={view} room={room} />
         <div className="pointer-events-none mt-1 flex flex-col items-center gap-2">
           {myPrompt?.kind === 'freeRoads' && (
@@ -325,9 +327,11 @@ export function GameScreen() {
       </div>
 
       {/* dock; on smaller screens the log/chat buttons and dice/roll ride just above it,
-          however tall the dock gets (C&K's action bar wraps to three rows on phones) */}
+          however tall the dock gets (C&K's action bar wraps to three rows on phones). While the
+          trade panel is open (the dice are rolled by then) that row steps aside, so the taller
+          dock doesn't push it into the players strip. */}
       <div className="pointer-events-none absolute inset-x-0 bottom-2 z-20 flex flex-col gap-2 px-2 lg:right-56 xl:right-0">
-        <div className="flex items-end justify-between gap-2 lg:hidden">
+        <div className={`items-end justify-between gap-2 lg:hidden ${ui.panel === 'trade' ? 'hidden' : 'flex'}`}>
           <div className="pointer-events-auto">
             <MobileSide view={view} unread={unread} />
           </div>

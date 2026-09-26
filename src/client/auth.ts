@@ -3,8 +3,9 @@
 /**
  * Starts an OAuth sign-in through Auth.js (CSRF-protected POST), then returns to `callbackUrl`.
  * Guests keep their cookie through the round trip so their stats can be migrated.
+ * Defaults to the current page so sign-in drops you back where you started.
  */
-export async function startSignIn(provider: 'google' | 'discord', callbackUrl = '/profile'): Promise<void> {
+export async function startSignIn(provider: 'google' | 'discord', callbackUrl = window.location.pathname + window.location.search): Promise<void> {
   const csrf = await fetch('/api/auth/csrf', { credentials: 'same-origin' })
     .then((r) => r.json() as Promise<{ csrfToken: string }>)
     .catch(() => null);

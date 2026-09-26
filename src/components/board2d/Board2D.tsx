@@ -247,7 +247,12 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
     }
     const spot = armed.target === 'edge' ? topo.edges[armed.at] : topo.vertices[armed.at];
     const p = new DOMPoint(spot.x * S, spot.y * S).matrixTransform(ctm);
-    setPopupAt({ x: p.x - box.left, y: p.y - box.top });
+    // Keep the (up to 3-wide) popup from running off the left/right edge on narrow screens: its
+    // horizontal center is clamped so it always has room, the same way the vertical flip keeps it
+    // from going off the top.
+    const margin = Math.min(140, box.width / 2);
+    const x = Math.min(Math.max(p.x - box.left, margin), box.width - margin);
+    setPopupAt({ x, y: p.y - box.top });
   }, [armed, hasPopup, viewBox, topo, resized, svgRef]);
 
   return (
@@ -334,7 +339,7 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
           const at = harborAnchor(topo, hb.edge, 0.66);
           const px = at.x * S;
           const py = at.y * S;
-          const label = hb.kind === 'any' ? '3:1 harbor — any resource' : `2:1 harbor — ${CARD_COLORS[hb.kind].label}`;
+          const label = hb.kind === 'any' ? '3:1 harbor: any resource' : `2:1 harbor: ${CARD_COLORS[hb.kind].label}`;
           return (
             <g key={`hb${hb.edge}`} pointerEvents="none">
               <title>{label}</title>

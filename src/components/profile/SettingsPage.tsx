@@ -144,7 +144,7 @@ export function SettingsPage() {
                 hint={
                   data?.session.persistence
                     ? 'Shown next to your name in lobbies, games and on the leaderboard. Play and win to unlock more.'
-                    : 'Play and win to unlock more — progress is only kept when the server has a database.'
+                    : 'Play and win to unlock more. Progress is only kept when the server has a database.'
                 }
               >
                 <CosmeticsPicker value={cosmetics} onChange={setCosmetics} stats={data?.session.unlocks ?? NO_UNLOCKS} knight={knight} color={color} />

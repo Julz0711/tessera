@@ -15,10 +15,10 @@ export const DEV_NAMES: Record<DevCardType, string> = {
 
 export const DEV_TEXT: Record<DevCardType, string> = {
   knight: 'Move the robber and steal a card. Three knights earn the Largest Army.',
-  victoryPoint: 'Worth 1 victory point. Counted automatically — keep it secret!',
+  victoryPoint: 'Worth 1 victory point. Counted automatically, so keep it secret!',
   roadBuilding: 'Place two roads for free.',
   yearOfPlenty: 'Take any two resources from the bank.',
-  monopoly: 'Name a resource — every other player gives you all of theirs.',
+  monopoly: 'Name a resource: every other player gives you all of theirs.',
 };
 
 export const PROGRESS_NAMES: Record<ProgressCardType, string> = {
@@ -80,7 +80,7 @@ export function describe(ev: GameEvent, view: PlayerView): Part[][] {
     case 'produced':
       return ev.gains.flatMap((g, seat) => (count(g) ? [[P(seat), ' got ', ...cardParts(g)]] : []));
     case 'shortage':
-      return [[`The bank ran out of ${ev.card} — nobody gets it.`]];
+      return [[`The bank ran out of ${ev.card}, nobody gets it.`]];
     case 'built':
       return [[P(ev.seat), ev.free ? ' placed ' : ' built ', PIECE[ev.piece] ?? ev.piece]];
     case 'robberMoved': {
@@ -121,8 +121,8 @@ export function describe(ev: GameEvent, view: PlayerView): Part[][] {
       return [
         [
           ev.won
-            ? `The barbarians attacked with ${ev.strength} and were repelled by ${ev.defense} knights' strength!`
-            : `The barbarians (${ev.strength}) overwhelmed the island's knights (${ev.defense})!`,
+            ? `The barbarians attacked (${ev.strength}): the knights (${ev.defense}) held the island!`
+            : `The barbarians (${ev.strength}) overran the knights (${ev.defense})!`,
         ],
       ];
     case 'cityLost':
@@ -174,9 +174,9 @@ export function statusLine(view: PlayerView): { text: string; mine: boolean } {
   if (mine) {
     const texts: Record<string, string> = {
       discard: `Discard ${'count' in mine ? mine.count : ''} cards`,
-      robber: 'Move the robber — pick a hex',
+      robber: 'Move the robber: pick a hex',
       freeRoads: `Place ${'count' in mine ? mine.count : ''} free road${'count' in mine && mine.count === 1 ? '' : 's'}`,
-      loseCity: 'The barbarians won — choose a city to lose',
+      loseCity: 'The barbarians won: choose a city to lose',
       relocateKnight: 'Move your displaced knight',
       rewardDeck: 'Choose a progress card deck',
       aqueduct: 'Aqueduct: choose a resource',
@@ -203,6 +203,6 @@ export function statusLine(view: PlayerView): { text: string; mine: boolean } {
     return seat === me ? { text: `Place ${what}`, mine: true } : { text: `${name(seat)} is placing ${what}…`, mine: false };
   }
   const seat = view.turn.seat;
-  if (seat === me) return { text: view.turn.rolled ? 'Your turn — build, trade or end turn' : 'Your turn — roll the dice', mine: true };
+  if (seat === me) return { text: view.turn.rolled ? 'Your turn: build, trade or end turn' : 'Your turn: roll the dice', mine: true };
   return { text: `${name(seat)}'s turn`, mine: false };
 }

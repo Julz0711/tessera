@@ -157,7 +157,7 @@ export function ProgressCardDialog({ view, id }: { view: PlayerView; id: number 
               ))}
               <p className="text-sm font-bold">
                 Total: {dice.red + dice.yellow}
-                {dice.red + dice.yellow === 7 ? ' — careful, that moves the robber!' : ''}
+                {dice.red + dice.yellow === 7 ? ', careful, that moves the robber!' : ''}
               </p>
               <button type="button" className="btn btn-primary py-2" onClick={() => play(dice)}>
                 Set the dice

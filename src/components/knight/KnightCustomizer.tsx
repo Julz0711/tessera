@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ImagePlus, Link2, Loader2, Move, RotateCcw, UserRound, ZoomIn, ZoomOut } from 'lucide-react';
+import { Check, ImagePlus, Link2, Loader2, Move, RotateCcw, UserRound, ZoomIn, ZoomOut } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { PlayerColor } from '@/engine/types';
 import { uploadFace } from '@/client/face';
@@ -21,7 +21,6 @@ import {
 } from '@/shared/knight';
 import { KnightBadge } from './KnightBadge';
 
-const NUDGE_STEP = 0.04;
 // Same width:height ratio as the visor's face opening (the ellipse in KnightBadge), so what the
 // player frames here matches what actually shows in the helmet.
 const FRAME_W = 120;
@@ -31,7 +30,10 @@ function clamp(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v));
 }
 
-/** The photo inside a visor-shaped window; drag it to pan. */
+/** How far one arrow-key press moves the photo (Shift: four times as far). */
+const NUDGE_STEP = 0.02;
+
+/** The photo inside a visor-shaped window; drag it to pan, or focus it and use the arrow keys. */
 function FaceWindow({ look, onChange }: { look: KnightLook; onChange: (patch: Partial<KnightLook>) => void }) {
   const frame = faceFrame(look);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -53,18 +55,31 @@ function FaceWindow({ look, onChange }: { look: KnightLook; onChange: (patch: Pa
   const endDrag = () => {
     drag.current = null;
   };
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const dir = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+    if (!dir) return;
+    e.preventDefault();
+    const step = e.shiftKey ? NUDGE_STEP * 4 : NUDGE_STEP;
+    onChange({
+      faceX: clamp(frame.x + dir[0] * step, -FACE_OFFSET_RANGE, FACE_OFFSET_RANGE),
+      faceY: clamp(frame.y + dir[1] * step, -FACE_OFFSET_RANGE, FACE_OFFSET_RANGE),
+    });
+  };
 
   return (
     <div
       ref={boxRef}
-      className="relative shrink-0 cursor-grab touch-none select-none overflow-hidden rounded-full border-2 border-ink bg-paper-2 active:cursor-grabbing"
+      className="relative shrink-0 cursor-grab touch-none select-none overflow-hidden rounded-full border-2 border-ink bg-paper-2 outline-none focus-visible:ring-4 focus-visible:ring-amber active:cursor-grabbing"
       style={{ width: FRAME_W, height: FRAME_H }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
-      aria-label="Drag to reposition the face"
-      title="Drag to move the photo"
+      onKeyDown={onKeyDown}
+      tabIndex={0}
+      role="group"
+      aria-label="Face photo: drag it, or use the arrow keys, to move it"
+      title="Drag to move the photo (or use the arrow keys)"
     >
       {look.face && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -83,19 +98,14 @@ function FaceWindow({ look, onChange }: { look: KnightLook; onChange: (patch: Pa
   );
 }
 
-/** Zoom, arrow nudges and reset for the photo in the face window, as one toolbar. */
+/** Zoom and reset for the photo in the face window, in one row (the photo itself is dragged into place). */
 function FaceControls({ look, onChange, onDone }: { look: KnightLook; onChange: (patch: Partial<KnightLook>) => void; onDone: () => void }) {
   const frame = faceFrame(look);
   const zoomTo = (z: number) => onChange({ faceZoom: clamp(z, FACE_ZOOM_MIN, FACE_ZOOM_MAX) });
-  const nudge = (dx: number, dy: number) =>
-    onChange({
-      faceX: clamp(frame.x + dx, -FACE_OFFSET_RANGE, FACE_OFFSET_RANGE),
-      faceY: clamp(frame.y + dy, -FACE_OFFSET_RANGE, FACE_OFFSET_RANGE),
-    });
-  const segment = (label: string, onClick: () => void, icon: React.ReactNode) => (
+  const zoomButton = (label: string, onClick: () => void, icon: React.ReactNode) => (
     <button
       type="button"
-      className="grid h-8 w-8 place-items-center border-l-2 border-ink/15 first:border-l-0 hover:bg-paper-2 active:bg-paper-3"
+      className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border-2 border-ink bg-paper shadow-token hover:bg-paper-2 active:bg-paper-3"
       onClick={onClick}
       aria-label={label}
       title={label}
@@ -104,35 +114,20 @@ function FaceControls({ look, onChange, onDone }: { look: KnightLook; onChange: 
     </button>
   );
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-      <div className="flex items-center gap-2">
-        <span className="label">Zoom</span>
-        <div className="inline-flex overflow-hidden rounded-xl border-2 border-ink bg-paper shadow-token">
-          {segment('Zoom out', () => zoomTo(frame.zoom - 0.25), <ZoomOut size={15} />)}
-        </div>
-        <input
-          type="range"
-          min={FACE_ZOOM_MIN}
-          max={FACE_ZOOM_MAX}
-          step={0.05}
-          value={frame.zoom}
-          onChange={(e) => zoomTo(Number(e.target.value))}
-          className="range w-28"
-          aria-label="Zoom"
-        />
-        <div className="inline-flex overflow-hidden rounded-xl border-2 border-ink bg-paper shadow-token">
-          {segment('Zoom in', () => zoomTo(frame.zoom + 0.25), <ZoomIn size={15} />)}
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="label">Move</span>
-        <div className="inline-flex overflow-hidden rounded-xl border-2 border-ink bg-paper shadow-token">
-          {segment('Move face left', () => nudge(-NUDGE_STEP, 0), <ArrowLeft size={15} />)}
-          {segment('Move face up', () => nudge(0, -NUDGE_STEP), <ArrowUp size={15} />)}
-          {segment('Move face down', () => nudge(0, NUDGE_STEP), <ArrowDown size={15} />)}
-          {segment('Move face right', () => nudge(NUDGE_STEP, 0), <ArrowRight size={15} />)}
-        </div>
-      </div>
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="label">Zoom</span>
+      {zoomButton('Zoom out', () => zoomTo(frame.zoom - 0.25), <ZoomOut size={15} />)}
+      <input
+        type="range"
+        min={FACE_ZOOM_MIN}
+        max={FACE_ZOOM_MAX}
+        step={0.05}
+        value={frame.zoom}
+        onChange={(e) => zoomTo(Number(e.target.value))}
+        className="range w-28 min-w-0 shrink"
+        aria-label="Zoom"
+      />
+      {zoomButton('Zoom in', () => zoomTo(frame.zoom + 0.25), <ZoomIn size={15} />)}
       <div className="ml-auto flex items-center gap-2">
         <button type="button" className="btn h-9 px-3 text-sm" onClick={() => onChange({ faceX: 0, faceY: 0, faceZoom: 1 })}>
           <RotateCcw size={14} /> Reset
@@ -194,7 +189,10 @@ export function KnightCustomizer({
   };
 
   return (
-    <div className="grid gap-3">
+    // min-w-0: this sits in a single-column grid (the profile form); without it, the "adjusting"
+    // row below — a flex-wrap row that never shrinks past its children's natural width — pushes
+    // that whole grid track (and so the page) wider than the viewport instead of wrapping.
+    <div className="grid min-w-0 gap-3">
       {/* knight 1, 2, 3 */}
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Knights">
         {KNIGHT_SLOTS.map((n) => {

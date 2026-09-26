@@ -1,12 +1,18 @@
-/** A small low-poly hex island mark (brand-neutral, works for any product name). */
+/**
+ * The app's badge: a hex of sea with one low-poly peak in it, lit from the left, with a snowcap.
+ * Ink outline with a cream rim, so it holds on dark and light backgrounds and stays readable at
+ * favicon size (src/app/icon.svg is the same drawing).
+ */
 export function Logomark({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-      <path d="M16 1.5 29 9v14l-13 7.5L3 23V9Z" fill="#2a7d8e" stroke="#061419" strokeWidth="1.5" />
-      <path d="M16 6 25 11.2v9.6L16 26l-9-5.2v-9.6Z" fill="#e7c35c" />
-      <path d="M16 6 25 11.2 16 16.4 7 11.2Z" fill="#a3d170" />
-      <path d="M16 16.4V26l9-5.2v-9.6Z" fill="#c8764b" />
-      <path d="m12.5 13.5 3.5-5 3.5 5Z" fill="#3d7a45" />
+      <path d="M16 2.5 27.7 9.25v13.5L16 29.5 4.3 22.75V9.25Z" fill="#f6eddb" stroke="#f6eddb" strokeWidth="4.4" strokeLinejoin="round" />
+      <path d="M16 2.5 27.7 9.25v13.5L16 29.5 4.3 22.75V9.25Z" fill="#2a7d8e" />
+      <path d="M5.5 22.1 16 7.5l10.5 14.6L16 28.8Z" fill="#9ccf6c" />
+      <path d="M16 7.5l10.5 14.6L16 28.8Z" fill="#5e8c46" />
+      <path d="M16 7.5 12.2 12.8l3.8 1.9 3.8-1.9Z" fill="#f6eddb" />
+      <path d="M16 7.5v7.2l3.8-1.9Z" fill="#dccaa6" />
+      <path d="M16 2.5 27.7 9.25v13.5L16 29.5 4.3 22.75V9.25Z" fill="none" stroke="#1f1a14" strokeWidth="2" strokeLinejoin="round" />
     </svg>
   );
 }

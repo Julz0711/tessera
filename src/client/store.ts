@@ -173,7 +173,7 @@ function request<T extends object = object>(
     .then(
       () =>
         new Promise<AckResult<T>>((resolve) => {
-          const timer = setTimeout(() => resolve({ ok: false, error: 'The server did not answer — check your connection' }), 12_000);
+          const timer = setTimeout(() => resolve({ ok: false, error: 'The server did not answer, check your connection' }), 12_000);
           send(socket!, (r) => {
             clearTimeout(timer);
             resolve(r);

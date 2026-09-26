@@ -1,41 +1,47 @@
-'use client';
+"use client";
 
-import { ArrowRight, LogIn, Trophy } from 'lucide-react';
-import dynamic from 'next/dynamic';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
-import { APP_WORDMARK } from '@/config/app';
-import { startSignIn } from '@/client/auth';
-import { usePrefs } from '@/client/prefs';
-import { fetchSession } from '@/client/session';
-import type { SessionInfo } from '@/shared/protocol';
-import { DEFAULT_KNIGHT } from '@/shared/knight';
-import { DiscordMark, GoogleMark } from '@/components/ui/Glyphs';
-import { KnightBadge } from '@/components/knight/KnightBadge';
-import { Logomark } from '@/components/ui/Logomark';
+import { ArrowRight, LogIn, Trophy } from "lucide-react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { APP_WORDMARK } from "@/config/app";
+import { usePrefs } from "@/client/prefs";
+import { fetchSession } from "@/client/session";
+import type { SessionInfo } from "@/shared/protocol";
+import { DEFAULT_KNIGHT } from "@/shared/knight";
+import { SignInChoices } from "@/components/auth/SignInChoices";
+import { KnightBadge } from "@/components/knight/KnightBadge";
+import { Logomark } from "@/components/ui/Logomark";
+import { Modal } from "@/components/ui/Modal";
 
-const ShowcaseIsland = dynamic(() => import('./ShowcaseIsland'), { ssr: false });
+const ShowcaseIsland = dynamic(() => import("./ShowcaseIsland"), {
+  ssr: false,
+});
 
 /** Accepts "ABCD-EFGH", "abcdefgh" or a pasted invite link. */
 export function extractCode(input: string): string | null {
   const fromUrl = input.match(/\/r\/([A-Za-z0-9-]+)/)?.[1] ?? input;
-  const code = fromUrl.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const code = fromUrl.toUpperCase().replace(/[^A-Z0-9]/g, "");
   return code.length === 8 ? code : null;
 }
 
 export function Landing() {
   const router = useRouter();
   const [session, setSession] = useState<SessionInfo | null>(null);
+  const [sessionFailed, setSessionFailed] = useState(false);
   const [joining, setJoining] = useState(false);
-  const [code, setCode] = useState('');
+  const [signingIn, setSigningIn] = useState(false);
+  const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const prefs = usePrefs();
 
   useEffect(() => {
     prefs.load();
-    fetchSession().then(setSession).catch(() => undefined);
+    fetchSession()
+      .then(setSession)
+      .catch(() => setSessionFailed(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
@@ -46,15 +52,14 @@ export function Landing() {
     e.preventDefault();
     const c = extractCode(code);
     if (!c) {
-      setCodeError('Room codes have 8 letters/digits, like ABCD-2345');
+      setCodeError("Room codes have 8 letters/digits, like ABCD-2345");
       return;
     }
     router.push(`/r/${c}`);
   };
 
-  const signedIn = session?.kind === 'user';
-  const authReady = session ? session.auth.google || session.auth.discord : false;
-  const name = session?.displayName || prefs.name || 'Guest';
+  const signedIn = session?.kind === "user";
+  const name = session?.displayName || prefs.name || "Guest";
   const color = session?.color ?? prefs.color;
   const knight = session?.knight ?? prefs.knight ?? DEFAULT_KNIGHT;
 
@@ -70,12 +75,31 @@ export function Landing() {
       <header className="relative z-10 flex items-center justify-between px-5 pt-5 sm:px-10">
         <div className="flex items-center gap-2.5">
           <Logomark size={30} />
-          <span className="display text-lg font-black tracking-wide text-paper">{APP_WORDMARK}</span>
+          <span className="display text-lg font-black tracking-wide text-paper">
+            {APP_WORDMARK}
+          </span>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/leaderboard" className="btn btn-dark h-9 w-9 p-0" title="Leaderboard" aria-label="Leaderboard">
+          <Link
+            href="/leaderboard"
+            className="btn btn-dark h-9 w-9 p-0"
+            title="Leaderboard"
+            aria-label="Leaderboard"
+          >
             <Trophy size={17} />
           </Link>
+          {!signedIn && (
+            <button
+              type="button"
+              className="btn btn-dark px-3 py-1.5 text-sm"
+              title="Sign in"
+              aria-label="Sign in"
+              onClick={() => setSigningIn(true)}
+            >
+              <LogIn size={16} />{" "}
+              <span className="hidden sm:inline">Sign in</span>
+            </button>
+          )}
           <Link href="/profile" className="btn btn-dark px-3 py-1.5 text-sm">
             <KnightBadge knight={knight} color={color} size={24} />
             <span className="max-w-28 truncate">{name}</span>
@@ -90,18 +114,24 @@ export function Landing() {
         >
           {APP_WORDMARK}
         </h1>
-        <p className="animate-rise mt-3 text-sm font-bold text-foam/70 [animation-delay:80ms]">No account required.</p>
 
         <div className="animate-rise mt-9 flex flex-wrap items-center gap-3 [animation-delay:160ms]">
           <Link href="/create" className="btn btn-primary px-7 py-3.5 text-lg">
             Create game <ArrowRight size={20} strokeWidth={3} />
           </Link>
           {!joining ? (
-            <button type="button" className="btn px-6 py-3.5 text-lg" onClick={() => setJoining(true)}>
+            <button
+              type="button"
+              className="btn px-6 py-3.5 text-lg"
+              onClick={() => setJoining(true)}
+            >
               Join game
             </button>
           ) : (
-            <form onSubmit={submitJoin} className="paper-flat flex items-center gap-2 p-1.5 pl-3">
+            <form
+              onSubmit={submitJoin}
+              className="paper-flat flex items-center gap-2 p-1.5 pl-3"
+            >
               <input
                 ref={inputRef}
                 value={code}
@@ -119,31 +149,24 @@ export function Landing() {
             </form>
           )}
         </div>
-        {codeError && <p className="mt-2 text-sm font-semibold text-terracotta">{codeError}</p>}
-
-        {!signedIn && (
-          <div className="animate-rise mt-8 max-w-md [animation-delay:240ms]">
-            <div className="flex items-center gap-3 text-foam/45">
-              <span className="h-px flex-1 bg-foam/20" />
-              <span className="text-xs font-bold uppercase tracking-[0.18em]">or keep your stats</span>
-              <span className="h-px flex-1 bg-foam/20" />
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2.5">
-              <button type="button" className="btn btn-dark px-4 py-2 text-sm" disabled={!session?.auth.google} onClick={() => startSignIn('google')}>
-                <GoogleMark /> Continue with Google
-              </button>
-              <button type="button" className="btn btn-dark px-4 py-2 text-sm" disabled={!session?.auth.discord} onClick={() => startSignIn('discord')}>
-                <DiscordMark /> Continue with Discord
-              </button>
-            </div>
-            {session && !authReady && (
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-foam/45">
-                <LogIn size={12} /> Sign-in isn&apos;t configured on this server — guests can play everything.
-              </p>
-            )}
-          </div>
+        {codeError && (
+          <p className="mt-2 text-sm font-semibold text-terracotta">
+            {codeError}
+          </p>
         )}
       </section>
+
+      <Modal
+        open={signingIn}
+        onClose={() => setSigningIn(false)}
+        title="Sign in"
+      >
+        <p className="mb-4 text-sm text-ink-soft">
+          No account needed to play. Sign in to keep your stats across
+          devices.
+        </p>
+        <SignInChoices auth={session?.auth ?? null} failed={sessionFailed} />
+      </Modal>
     </main>
   );
 }

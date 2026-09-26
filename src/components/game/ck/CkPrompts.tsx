@@ -43,7 +43,7 @@ export function CkPromptDialog({ view, prompt }: { view: PlayerView; prompt: Pro
       return (
         // A quick pick: the board and your hand stay in full view behind it.
         <Modal open dismissable={false} dim={false} title="Aqueduct">
-          <p className="mb-3 text-sm text-ink-soft">The roll gave you nothing — take one resource of your choice.</p>
+          <p className="mb-3 text-sm text-ink-soft">The roll gave you nothing: take one resource of your choice.</p>
           <div className="flex flex-wrap justify-center gap-2">
             {RESOURCES.map((r) => (
               <ResourceCard key={r} card={r} count={0} onClick={() => api.act({ type: 'aqueduct', resource: r })} />
@@ -126,8 +126,8 @@ export function CkPromptDialog({ view, prompt }: { view: PlayerView; prompt: Pro
 }
 
 const PROMPT_HINT: Partial<Record<Prompt['kind'], string>> = {
-  loseCity: 'The barbarians won — pick a city to lose',
-  relocateKnight: 'Your knight was displaced — pick where it goes',
+  loseCity: 'The barbarians won: pick a city to lose',
+  relocateKnight: 'Your knight was displaced: pick where it goes',
   deserterRemove: 'A deserter! Pick one of your knights to leave',
   deserterPlace: 'Place the deserting knight next to your roads',
   placeMetropolis: 'Pick a city for your metropolis',

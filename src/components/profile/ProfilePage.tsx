@@ -4,15 +4,15 @@ import { ArrowLeft, Crown, Database, LogOut, Pencil, Save, Swords, Trophy } from
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { signOut, startSignIn } from '@/client/auth';
+import { signOut } from '@/client/auth';
 import { usePrefs } from '@/client/prefs';
 import { ensureSession } from '@/client/session';
 import type { ProfileData } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { DEFAULT_KNIGHT } from '@/shared/knight';
 import { PlayerPortrait, TitleTag } from './Cosmetics';
+import { SignInChoices } from '@/components/auth/SignInChoices';
 import { FriendsPanel } from '@/components/social/FriendsPanel';
-import { DiscordMark, GoogleMark } from '@/components/ui/Glyphs';
 import { Logomark } from '@/components/ui/Logomark';
 import { Modal } from '@/components/ui/Modal';
 
@@ -33,38 +33,24 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-export function SignInChoices({ data }: { data: ProfileData }) {
-  const { google, discord } = data.session.auth;
-  if (!google && !discord) {
-    return <p className="text-sm text-ink-soft">Sign-in isn&apos;t configured on this server yet. You can keep playing as a guest.</p>;
-  }
-  return (
-    <div className="grid gap-2">
-      {google && (
-        <button type="button" className="btn justify-start px-4 py-3" onClick={() => startSignIn('google')}>
-          <GoogleMark size={20} /> Continue with Google
-        </button>
-      )}
-      {discord && (
-        <button type="button" className="btn justify-start px-4 py-3" onClick={() => startSignIn('discord')}>
-          <DiscordMark size={20} /> Continue with Discord
-        </button>
-      )}
-    </div>
-  );
-}
-
 export function ProfilePage() {
   const prefs = usePrefs();
   const [data, setData] = useState<ProfileData | null>(null);
   const [failed, setFailed] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     prefs.load();
     fetchProfile()
       .then((d) => (d ? setData(d) : setFailed(true)))
       .catch(() => setFailed(true));
+    // Auth.js lands failed sign-ins here with ?error=...; show it once, then drop it from the URL.
+    const error = new URLSearchParams(window.location.search).get('error');
+    if (error) {
+      setAuthError(error);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -88,6 +74,7 @@ export function ProfilePage() {
         </div>
 
         {failed && <p className="paper p-5">Couldn&apos;t load your profile. Is the server running?</p>}
+        {authError && <p className="paper-flat p-3 text-sm font-semibold text-terracotta">Sign-in didn&apos;t go through. Give it another try.</p>}
 
         {data && (
           <section className="paper animate-rise grid gap-6 p-5 sm:grid-cols-[1fr_auto] sm:p-7">
@@ -160,7 +147,7 @@ export function ProfilePage() {
         {data && (
           <section className="grid gap-3">
             <h2 className="display text-2xl font-black text-paper">Game history</h2>
-            {data.history.length === 0 && <p className="text-foam/60">No finished games yet — go win one!</p>}
+            {data.history.length === 0 && <p className="text-foam/60">No finished games yet. Go win one!</p>}
             {data.history.map((g) => (
               <article key={g.gameId} className="paper-flat flex flex-wrap items-center gap-3 p-3">
                 <span className={`grid h-10 w-10 place-items-center rounded-xl border-2 border-ink ${g.won ? 'bg-amber' : 'bg-paper-2'}`}>
@@ -206,7 +193,7 @@ export function ProfilePage() {
           <p className="mb-4 text-sm text-ink-soft">
             Keep your stats ({stats.gamesPlayed} games, {stats.gamesWon} wins), history and knight across devices. Choose how to sign in:
           </p>
-          <SignInChoices data={data} />
+          <SignInChoices auth={data.session.auth} />
         </Modal>
       )}
     </main>

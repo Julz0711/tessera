@@ -46,7 +46,7 @@ export function ImprovementGrid({ levels, metropolis, compact = false }: { level
   const cell = compact ? 'h-1.5 w-2' : 'h-2 w-2.5';
   const summary = TRACKS.map((t) => `${TRACK_STYLE[t].label} ${levels[t]}${metropolis.includes(t) ? ' (metropolis)' : ''}`).join(' · ');
   return (
-    <div className="flex shrink-0 items-end gap-0.5" title={`City improvements — ${summary}`} aria-label={`City improvements: ${summary}`}>
+    <div className="flex shrink-0 items-end gap-0.5" title={`City improvements: ${summary}`} aria-label={`City improvements: ${summary}`}>
       {TRACKS.map((t) => {
         const s = TRACK_STYLE[t];
         return (

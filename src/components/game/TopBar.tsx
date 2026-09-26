@@ -10,6 +10,7 @@ import { api, toast, useGame } from '@/client/store';
 import type { PlayerView } from '@/engine/view';
 import type { RoomDTO } from '@/shared/protocol';
 import { formatCode } from '@/components/room/Lobby';
+import { LeaveDialog } from './LeaveDialog';
 import { ReactionPicker } from './Reactions';
 
 function useCountdown(deadline: number | null): number | null {
@@ -27,6 +28,7 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
   const conn = useGame((s) => s.conn);
   const prefs = usePrefs();
   const [menu, setMenu] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
   const status = statusLine(view);
   const seconds = useCountdown(room.deadline);
 
@@ -41,9 +43,14 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
     }
   };
   const leave = async () => {
-    if (view.phase !== 'ended' && room.you.seat !== null && !confirm('Leave the game? Autopilot will play your seat.')) return;
     await api.leaveRoom();
     router.push('/');
+  };
+  // Walking away from a running game asks first; watching, or a finished game, just leaves.
+  const askLeave = () => {
+    setMenu(false);
+    if (view.phase !== 'ended' && room.you.seat !== null) setConfirmLeave(true);
+    else void leave();
   };
 
   return (
@@ -120,11 +127,12 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
               <button type="button" className="btn py-1.5 text-sm" onClick={copy}>
                 <Copy size={15} /> Copy invite link
               </button>
-              <button type="button" className="btn btn-danger py-1.5 text-sm" onClick={leave}>
+              <button type="button" className="btn btn-danger py-1.5 text-sm" onClick={askLeave}>
                 <LogOut size={15} /> Leave game
               </button>
             </div>
           )}
+          {confirmLeave && <LeaveDialog view={view} room={room} onStay={() => setConfirmLeave(false)} onLeave={leave} />}
         </div>
         <button type="button" onClick={copy} className="glass hidden items-center gap-2 px-3 py-2 sm:flex" title="Copy invite link">
           <span className="font-mono text-sm font-black tracking-[0.18em] text-paper">{formatCode(room.code)}</span>

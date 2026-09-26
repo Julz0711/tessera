@@ -26,7 +26,7 @@ function blocker(view: PlayerView, type: DevCardType): string | null {
   if (view.phase !== 'play' || view.turn.seat !== view.viewer) return 'Development cards are played on your turn.';
   if (view.pending.length) return 'Finish the current step first.';
   if (view.turn.devPlayed) return 'You already played a development card this turn.';
-  return 'Bought this turn — playable from your next turn.';
+  return 'Bought this turn, playable from your next turn.';
 }
 
 /** One development card from the hand: what it does, and playing it. */

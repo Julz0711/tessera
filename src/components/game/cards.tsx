@@ -259,7 +259,7 @@ export function DevCardFace({
   onClick?: () => void;
 }) {
   return (
-    <CardShell bg={DEV_BG} ink="#f6eddb" size={size} title={`${DEV_NAMES[type]} — ${DEV_TEXT[type]}`} onClick={onClick} glow={glow} badge={count}>
+    <CardShell bg={DEV_BG} ink="#f6eddb" size={size} title={`${DEV_NAMES[type]}: ${DEV_TEXT[type]}`} onClick={onClick} glow={glow} badge={count}>
       <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[6px]">
         <svg className="h-full w-full" viewBox="0 0 100 140" preserveAspectRatio="xMidYMid slice">
           <FacetBackground color={DEV_BG} seed={type} />
@@ -320,7 +320,7 @@ export function ProgressCardFace({ card, size = 'md', glow, onClick }: { card: P
       bg={style.color}
       ink={style.ink}
       size={size}
-      title={`${PROGRESS_NAMES[card.type]} — ${PROGRESS_TEXT[card.type]}`}
+      title={`${PROGRESS_NAMES[card.type]}: ${PROGRESS_TEXT[card.type]}`}
       onClick={onClick}
       glow={glow}
     >
