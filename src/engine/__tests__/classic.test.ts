@@ -327,6 +327,28 @@ describe('trading', () => {
     expect(reject(s, 0, { type: 'bankTrade', give: 'grain', get: 'grain', count: 1 })).toMatch(/different/);
   });
 
+  it('makes several bank trades in one, at each card’s own rate', () => {
+    const s = playing();
+    const t = topo(s);
+    const harbor = s.board.harbors.find((h) => h.kind !== 'any')!;
+    s.buildings[t.edges[harbor.edge].a] = { owner: 0, city: false, wall: false, metropolis: null };
+    const cheap = harbor.kind as 'wool'; // 2:1 here
+    const [dear, want1, want2] = (['brick', 'lumber', 'wool', 'grain', 'ore'] as const).filter((c) => c !== cheap); // 4:1
+    setHand(s, 0, { [cheap]: 2, [dear]: 4 });
+
+    // 2 at 2:1 plus 4 at 4:1 buy two cards, of one kind or two.
+    const one = act(s, 0, { type: 'bankExchange', give: { [cheap]: 2, [dear]: 4 }, get: { [want1]: 2 } });
+    expect(one.players[0].hand[want1]).toBe(2);
+    expect(handTotal(one.players[0].hand)).toBe(2);
+    const two = act(s, 0, { type: 'bankExchange', give: { [cheap]: 2, [dear]: 4 }, get: { [want1]: 1, [want2]: 1 } });
+    expect(two.players[0].hand).toMatchObject({ [want1]: 1, [want2]: 1 });
+
+    expect(reject(s, 0, { type: 'bankExchange', give: { [dear]: 4 }, get: { [want1]: 2 } })).toMatch(/buys 1 card, not 2/);
+    expect(reject(s, 0, { type: 'bankExchange', give: { [dear]: 3 }, get: { [want1]: 1 } })).toMatch(/in 4s/);
+    expect(reject(s, 0, { type: 'bankExchange', give: { [dear]: 4 }, get: { [dear]: 1 } })).toMatch(/same card/);
+    expect(reject(s, 0, { type: 'bankExchange', give: { [dear]: 8 }, get: { [want1]: 2 } })).toMatch(/don't have/);
+  });
+
   it('runs offer → accept → confirm, and supports counter-offers', () => {
     let s = playing();
     setHand(s, 0, { brick: 2 });

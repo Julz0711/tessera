@@ -406,6 +406,8 @@ export type Action =
   | { type: 'playYearOfPlenty'; resources: Resource[] }
   | { type: 'playMonopoly'; resource: Resource }
   | { type: 'bankTrade'; give: Card; get: Card; count: number }
+  /** Several bank trades in one: each kind given in multiples of its rate, as many cards back as that buys. */
+  | { type: 'bankExchange'; give: PartialHand; get: PartialHand }
   | { type: 'offerTrade'; give: PartialHand; want: PartialHand; to: number[] }
   | { type: 'respondTrade'; id: number; accept: boolean }
   | { type: 'confirmTrade'; id: number; partner: number }

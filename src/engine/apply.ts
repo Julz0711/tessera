@@ -8,7 +8,7 @@ import { buyDevCard, playKnight, playMonopoly, playRoadBuilding, playYearOfPlent
 import { advance, endTurn, rollDice } from './rules/flow';
 import { discard, moveRobber } from './rules/robber';
 import { setupRoad, setupSettlement } from './rules/setup';
-import { bankTrade, cancelTrade, confirmTrade, offerTrade, respondTrade } from './rules/trade';
+import { bankExchange, bankTrade, cancelTrade, confirmTrade, offerTrade, respondTrade } from './rules/trade';
 import { makeCtx, type Ctx } from './state';
 import type { Action, ActionType, ApplyResult, GameState, Prompt, PromptKind } from './types';
 
@@ -99,6 +99,8 @@ function dispatch(ctx: Ctx, action: Action): void {
       return playMonopoly(ctx, action.resource);
     case 'bankTrade':
       return bankTrade(ctx, action.give, action.get, action.count);
+    case 'bankExchange':
+      return bankExchange(ctx, action.give, action.get);
     case 'offerTrade':
       return offerTrade(ctx, action.give, action.want, action.to);
     case 'respondTrade':

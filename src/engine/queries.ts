@@ -11,6 +11,7 @@ import {
   type GameState,
   type HarborKind,
   type KnightLevel,
+  type PartialHand,
 } from './types';
 
 export type Q = Pick<
@@ -206,6 +207,21 @@ export function bankRatio(s: Q, seat: number, card: Card): number {
   }
   if (s.turn.seat === seat && s.turn.merchantFleet.includes(card)) ratio = Math.min(ratio, 2);
   return ratio;
+}
+
+/**
+ * What `give` buys from the bank at the seat's rates: each kind given must be a whole multiple of
+ * its rate (4:1, or 3:1 / 2:1 with harbors); the number of cards it pays for, or an error.
+ */
+export function exchangeValue(s: Parameters<typeof bankRatio>[0], seat: number, give: PartialHand): { cards: number } | { error: string } {
+  let cards = 0;
+  for (const [c, n] of Object.entries(give) as [Card, number][]) {
+    if (!n) continue;
+    const ratio = bankRatio(s, seat, c);
+    if (n % ratio !== 0) return { error: `Give ${c} in ${ratio}s (your rate is ${ratio}:1)` };
+    cards += n / ratio;
+  }
+  return { cards };
 }
 
 // ── Robber ──────────────────────────────────────────────────────────────────

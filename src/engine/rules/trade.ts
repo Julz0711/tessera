@@ -1,7 +1,7 @@
 import { MAX_OPEN_TRADES } from '../constants';
-import { assertRule } from '../errors';
+import { assertRule, RuleError } from '../errors';
 import { commodityTotal, handTotal, hasCards, parseHand, sameCardTypes, transfer } from '../hand';
-import { bankRatio } from '../queries';
+import { bankRatio, exchangeValue } from '../queries';
 import { emit, nextId, type Ctx } from '../state';
 import { isCard, isCommodity, type Card, type PartialHand, type TradeOffer } from '../types';
 import { isInt, requireActive, requireRolled } from './common';
@@ -20,6 +20,26 @@ export function bankTrade(ctx: Ctx, give: Card, get: Card, count: number): void 
   transfer(s.players[ctx.seat].hand, s.bank, pay, `You need ${ratio * count} ${give}`);
   transfer(s.bank, s.players[ctx.seat].hand, receive);
   emit(ctx, { type: 'bankTrade', seat: ctx.seat, give: pay, get: receive });
+}
+
+/** Several bank trades at once, e.g. 4 lumber + 2 brick (at 2:1) for 1 ore + 1 grain. All or nothing. */
+export function bankExchange(ctx: Ctx, giveIn: unknown, getIn: unknown): void {
+  requireRolled(ctx);
+  const s = ctx.s;
+  const give = parseHand(giveIn, 40);
+  const get = parseHand(getIn, 20);
+  const kinds = [...Object.keys(give), ...Object.keys(get)] as Card[];
+  if (s.mode === 'classic') assertRule(kinds.every((c) => !isCommodity(c)), 'Unknown card');
+  assertRule(handTotal(give) > 0 && handTotal(get) > 0, 'Pick cards on both sides');
+  assertRule(Object.keys(give).every((c) => !(c in get)), "Don't give and ask for the same card");
+  const value = exchangeValue(s, ctx.seat, give);
+  if ('error' in value) throw new RuleError(value.error);
+  const buys = value.cards;
+  assertRule(handTotal(get) === buys, `That buys ${buys} card${buys === 1 ? '' : 's'}, not ${handTotal(get)}`);
+  for (const [c, n] of Object.entries(get) as [Card, number][]) assertRule(s.bank[c] >= n, `The bank doesn't have enough ${c}`);
+  transfer(s.players[ctx.seat].hand, s.bank, give, "You don't have those cards");
+  transfer(s.bank, s.players[ctx.seat].hand, get);
+  emit(ctx, { type: 'bankTrade', seat: ctx.seat, give, get });
 }
 
 function findOffer(ctx: Ctx, id: number): TradeOffer {

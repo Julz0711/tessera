@@ -2,7 +2,7 @@
 
 import { ArrowDown, ArrowLeftRight, ArrowUp, Check, ChevronDown, ChevronUp, Hourglass, Landmark, Pencil, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { CARDS, RESOURCES, bankRatio, handTotal, hasCards, type Card, type PartialHand, type TradeOffer } from '@/engine';
+import { CARDS, RESOURCES, exchangeValue, handTotal, hasCards, type Card, type PartialHand, type TradeOffer } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { api, useGame } from '@/client/store';
 import { openTrade, useTradeDraft, type TradeSide } from '@/client/trade';
@@ -247,15 +247,20 @@ function OfferCard({ view, offer }: { view: PlayerView; offer: TradeOffer }) {
   );
 }
 
-/** The draft as a bank trade at the viewer's rate (one card type given, a multiple of the rate, for one type), or null. */
-function asBankTrade(view: PlayerView, me: number, give: PartialHand, want: PartialHand) {
-  const g = CARDS.filter((c) => (give[c] ?? 0) > 0);
-  const w = CARDS.filter((c) => (want[c] ?? 0) > 0);
-  if (g.length !== 1 || w.length !== 1 || g[0] === w[0]) return null;
-  const ratio = bankRatio(view, me, g[0]);
-  const count = want[w[0]]!;
-  if (give[g[0]] !== ratio * count || view.bank[w[0]] < count) return null;
-  return { give: g[0] as Card, get: w[0] as Card, count, ratio };
+/**
+ * The draft as a trade with the bank: every kind given in whole multiples of the viewer's rate for it,
+ * buying exactly the cards asked for (any mix, e.g. 2 lumber at 2:1 + 4 brick for 2 ore). Why not, if it isn't.
+ */
+function asBankExchange(view: PlayerView, me: number, give: PartialHand, want: PartialHand): { ok: true } | { ok: false; why: string } {
+  const asked = handTotal(want);
+  if (!handTotal(give) || !asked) return { ok: false, why: 'Put up cards and pick what you want' };
+  if (CARDS.some((c) => (give[c] ?? 0) > 0 && (want[c] ?? 0) > 0)) return { ok: false, why: "Don't give and ask for the same card" };
+  const value = exchangeValue(view, me, give);
+  if ('error' in value) return { ok: false, why: value.error };
+  if (value.cards !== asked) return { ok: false, why: `That buys ${value.cards} card${value.cards === 1 ? '' : 's'}, not ${asked}` };
+  const short = CARDS.find((c) => view.bank[c] < (want[c] ?? 0));
+  if (short) return { ok: false, why: `The bank doesn't have enough ${short}` };
+  return { ok: true };
 }
 
 /**
@@ -280,15 +285,15 @@ export function TradePanel({ view }: { view: PlayerView }) {
   const [targets, setTargets] = useState<number[]>(others);
 
   const ready = handTotal(give) > 0 && handTotal(want) > 0 && (!isActive || targets.length > 0);
-  const bank = isActive && view.turn.rolled && view.pending.length === 0 ? asBankTrade(view, me, give, want) : null;
+  const exchange = isActive && view.turn.rolled && view.pending.length === 0 ? asBankExchange(view, me, give, want) : null;
   const send = async () => {
     // The offer then waits in the offers list, where the answers come in.
     const r = await api.act({ type: 'offerTrade', give, want, to: isActive ? targets : [view.turn.seat] });
     if (r.ok) ui.setPanel(null);
   };
   const tradeBank = async () => {
-    if (!bank) return;
-    const r = await api.act({ type: 'bankTrade', give: bank.give, get: bank.get, count: bank.count });
+    if (!exchange?.ok) return;
+    const r = await api.act({ type: 'bankExchange', give, get: want });
     if (r.ok) draft.clear();
   };
 
@@ -322,11 +327,15 @@ export function TradePanel({ view }: { view: PlayerView }) {
           <>
             {isActive && (
               <DealButton
-                label={bank ? `Trade ${bank.ratio * bank.count} for ${bank.count} with the bank (${bank.ratio}:1)` : 'Bank trade: one kind of card at your rate, for one kind'}
+                label={
+                  exchange?.ok
+                    ? `Trade ${handTotal(give)} for ${handTotal(want)} with the bank`
+                    : (exchange?.why ?? 'Trade with the bank on your turn, after rolling')
+                }
                 icon={<Landmark size={16} />}
                 onClick={tradeBank}
-                disabled={!bank}
-                ok={!!bank}
+                disabled={!exchange?.ok}
+                ok={!!exchange?.ok}
               />
             )}
             <DealButton label={isActive ? 'Offer to players' : 'Send counter-offer'} icon={<ArrowLeftRight size={16} />} onClick={send} disabled={!ready} ok={ready} primary />
