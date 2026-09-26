@@ -205,7 +205,7 @@ export function CardStack({ card, count, held, onClick }: { card: Card; count: n
   const ref = useRef<HTMLDivElement>(null);
   const before = useRef(held);
   // More cards of this kind came in (not just back from the trade panel): the stack hops as the
-  // flying card lands on it (see FlyLayer; it arrives about 0.75 s after the event).
+  // flying card lands on it (see FlyLayer; cards from the board or the bank land about 1 s after the event).
   useEffect(() => {
     const gained = held !== undefined && before.current !== undefined && held > before.current;
     before.current = held;
@@ -213,7 +213,7 @@ export function CardStack({ card, count, held, onClick }: { card: Card; count: n
     if (!gained || !el || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     el.animate(
       [{ transform: 'none' }, { transform: 'translateY(-10px) scale(1.08)', offset: 0.4 }, { transform: 'none' }],
-      { duration: 420, delay: 650, easing: 'cubic-bezier(0.3, 1.4, 0.5, 1)' },
+      { duration: 420, delay: 1000, easing: 'cubic-bezier(0.3, 1.4, 0.5, 1)' },
     );
   }, [held]);
   return (

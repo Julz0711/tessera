@@ -18,6 +18,8 @@ export interface Flight {
   delay: number;
   /** Headed for your own hand: drawn bigger, so you see what you got. */
   big: boolean;
+  /** Appears in the middle of the board first, then flies (cards from the bank). */
+  spawn: boolean;
 }
 
 interface FxStore {
@@ -44,14 +46,15 @@ function point(selectors: string[], scatter = 0): { x: number; y: number } | nul
   return null;
 }
 
-export type Place = 'board' | 'bank' | { seat: number } | { hex: number };
+/** `center`: the middle of the board, where cards from the bank appear before they fly off. */
+export type Place = 'board' | 'center' | 'bank' | { seat: number } | { hex: number };
 
 /**
  * The on-screen spot for a place; your own seat is your hand, and a card lands on its own stack there.
  * The bank is its strip on wide screens and the dock's Bank button where that strip is hidden.
  */
 function placeSelectors(place: Place, me: number | null, card: Card | null = null): string[] {
-  if (place === 'board') return ['[data-board-anchor]'];
+  if (place === 'board' || place === 'center') return ['[data-board-anchor]'];
   if (place === 'bank') return ['[data-bank-anchor]'];
   // A single tile is only on screen in the 2D board; the 3D board falls back to its middle.
   if ('hex' in place) return [`[data-hex-anchor="${place.hex}"]`, '[data-board-anchor]'];
@@ -75,11 +78,14 @@ export function fly(from: Place, to: Place, cards: (Card | null)[], me: number |
   if (!cards.length || reducedMotion()) return;
   const flights: Flight[] = [];
   const toMe = typeof to === 'object' && 'seat' in to && to.seat === me;
+  const spawn = from === 'center';
   cards.forEach((card, i) => {
-    const a = point(placeSelectors(from, me, card), from === 'board' ? 160 : typeof from === 'object' && 'hex' in from ? 30 : 16);
+    const a = point(placeSelectors(from, me, card), from === 'board' ? 160 : spawn ? 0 : typeof from === 'object' && 'hex' in from ? 30 : 16);
     const b = point(placeSelectors(to, me, card), toMe ? 6 : 12);
     if (!a || !b) return;
-    flights.push({ id: nextId++, card, from: a, to: b, delay: delay + i * 90, big: toMe });
+    // Several cards appear side by side in the middle, then leave one after the other.
+    if (spawn) a.x += (i - (cards.length - 1) / 2) * (toMe ? 56 : 36);
+    flights.push({ id: nextId++, card, from: a, to: b, delay: delay + i * (spawn ? 120 : 90), big: toMe, spawn });
   });
   if (flights.length) useFx.setState((s) => ({ flights: [...s.flights.slice(-40), ...flights] }));
 }

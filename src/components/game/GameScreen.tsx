@@ -96,10 +96,11 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
         case 'bankTrade':
           play('trade');
           fly({ seat: ev.seat }, 'bank', cardList(ev.give), me);
-          fly('bank', { seat: ev.seat }, cardList(ev.get), me, 450);
+          fly('center', { seat: ev.seat }, cardList(ev.get), me, 450);
           break;
         case 'received':
-          fly('bank', { seat: ev.seat }, cardList(ev.cards), me);
+          // Cards from the bank appear in the middle of the board and fly to whoever got them.
+          fly('center', { seat: ev.seat }, cardList(ev.cards), me);
           break;
         case 'discarded':
           fly({ seat: ev.seat }, 'bank', cardList(ev.cards), me);
