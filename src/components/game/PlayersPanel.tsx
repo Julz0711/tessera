@@ -1,6 +1,8 @@
 'use client';
 
-import { Bot, Crown, Route, ShieldHalf, Swords, WifiOff } from 'lucide-react';
+import { Ban, Bot, Crown, Route, ShieldHalf, Swords, WifiOff } from 'lucide-react';
+import { useState } from 'react';
+import { api } from '@/client/store';
 import { TRACKS, type Track } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { TRACK_STYLE } from '@/client/progressText';
@@ -11,29 +13,51 @@ import { Framed } from '@/components/profile/Cosmetics';
 import { titleInfo } from '@/shared/cosmetics';
 import { ReactionBubble } from './Reactions';
 
-function Stat({ icon, value, title }: { icon: React.ReactNode; value: React.ReactNode; title: string }) {
+/** A number beside its icon; `award` tints it when the player holds that award (Longest road, Largest army). */
+function Stat({ icon, value, title, award }: { icon: React.ReactNode; value: React.ReactNode; title: string; award?: string }) {
   return (
-    <span className="flex items-center gap-1 tabular" title={title}>
+    <span className={`flex items-center justify-between gap-1 rounded px-1 tabular ${award ?? ''}`} title={title}>
       {icon}
       {value}
     </span>
   );
 }
 
-type CardTone = 'hand' | 'dev' | 'progress';
+function CardBack({ bg }: { bg: string }) {
+  return <span className="h-3.75 w-2.75 shrink-0 rounded-[3px] border-[1.5px] border-ink" style={{ background: bg }} />;
+}
 
-const TONE_BG: Record<CardTone, string> = {
-  hand: 'repeating-linear-gradient(135deg, #ecdfc4 0 2px, #dccaa6 2px 4px)',
-  dev: '#1d5a6b',
-  progress: `linear-gradient(90deg, ${TRACK_STYLE.trade.color} 0 34%, ${TRACK_STYLE.politics.color} 34% 67%, ${TRACK_STYLE.science.color} 67%)`,
-};
-
-/** A count shown as a little face-down card, like the cards in front of a player at the table. */
-function CardCount({ tone, n, title }: { tone: CardTone; n: number; title: string }) {
+/** A face-down card at the table with its count in a badge, as on colonist. */
+function CardIcon({ bg, ink = '#f6eddb', n, title, glyph = '?', small }: { bg: string; ink?: string; n: number; title: string; glyph?: React.ReactNode; small?: boolean }) {
   return (
-    <span className="flex items-center gap-1 tabular" title={title}>
-      <span className="h-3.75 w-2.75 rounded-[3px] border-[1.5px] border-ink" style={{ background: TONE_BG[tone] }} />
-      {n}
+    <span
+      className={`relative grid shrink-0 place-items-center rounded-md border-2 border-ink font-black shadow-[0_2px_0_0_#1f1a14] ${small ? 'h-7.5 w-5 text-[11px]' : 'h-9 w-6.5 text-sm'} ${n ? '' : 'opacity-45'}`}
+      style={{ background: bg, color: ink }}
+      title={`${title}: ${n}`}
+      aria-label={`${title}: ${n}`}
+    >
+      {glyph}
+      <span className="absolute -right-2 -top-2 grid h-4.5 min-w-4.5 place-items-center rounded-full border-2 border-ink bg-paper px-0.5 text-[10px] leading-none text-ink tabular">
+        {n}
+      </span>
+    </span>
+  );
+}
+
+const HAND_BG = 'repeating-linear-gradient(135deg, #ecdfc4 0 3px, #dccaa6 3px 6px)';
+const DEV_BG = '#1d5a6b';
+
+/** Progress cards per track, the way their coloured backs show at the table (what a Spy would find). */
+export function ProgressCounts({ tracks }: { tracks: Record<Track, number> }) {
+  const summary = TRACKS.map((t) => `${TRACK_STYLE[t].label} ${tracks[t]}`).join(' · ');
+  return (
+    <span className="flex items-center gap-1.5 tabular" title={`Progress cards: ${summary}`} aria-label={`Progress cards: ${summary}`}>
+      {TRACKS.map((t) => (
+        <span key={t} className={`flex items-center gap-0.5 ${tracks[t] ? '' : 'opacity-40'}`}>
+          <CardBack bg={TRACK_STYLE[t].color} />
+          {tracks[t]}
+        </span>
+      ))}
     </span>
   );
 }
@@ -92,6 +116,12 @@ export function PlayersPanel({
     view.pending.length ? view.pending.map((p) => p.seat) : view.phase === 'setup' && view.setup ? [view.setup.order[view.setup.index]] : [view.turn.seat],
   );
   const ck = view.mode === 'ck';
+  // Whose turn it is (the player placing, during setup): their card sticks out to the left.
+  const turnSeat = view.phase === 'setup' && view.setup ? view.setup.order[view.setup.index] : view.phase === 'play' ? view.turn.seat : null;
+  const me = view.viewer;
+  const myEmbargo = me !== null ? (view.players[me].embargo ?? []) : [];
+  // Clicking another player opens their card's options (the embargo toggle).
+  const [open, setOpen] = useState<number | null>(null);
   return (
     <ol className={compact ? 'scroll-thin flex gap-2 overflow-x-auto pb-1' : 'grid gap-2'}>
       {leading && <li className="flex shrink-0">{leading}</li>}
@@ -99,69 +129,152 @@ export function PlayersPanel({
         const c = PLAYER_COLORS[p.color];
         const seatInfo = room?.seats[seat];
         const acting = actors.has(seat) && view.phase !== 'ended';
-        const isTurn = view.turn.seat === seat && view.phase === 'play';
         const vp = p.vp ?? p.publicVP;
+        const clickable = me !== null && seat !== me && view.phase !== 'ended';
+        const embargoed = myEmbargo.includes(seat);
+        const toggle = () => setOpen(open === seat ? null : seat);
+        // The name, with who is a bot, offline or under your embargo.
+        const nameRow = (
+          <div className="flex min-w-0 items-center gap-1 pr-0.5">
+            <span
+              className="min-w-0 truncate text-sm font-extrabold leading-tight"
+              title={seatInfo?.cosmetics.title ? titleInfo(seatInfo.cosmetics.title).name : undefined}
+            >
+              {p.name}
+              {seat === view.viewer && <span className="ml-1 text-xs font-bold text-ink-faint">(you)</span>}
+            </span>
+            {p.isBot && <Bot size={13} className="shrink-0 text-ink-faint" />}
+            {embargoed && (
+              <span className="shrink-0 text-danger" title={`Embargo: offers from ${p.name} are declined`} aria-label={`Embargo on ${p.name}`}>
+                <Ban size={13} strokeWidth={2.6} />
+              </span>
+            )}
+            {seatInfo && !seatInfo.isBot && !seatInfo.connected && <WifiOff size={13} className="shrink-0 text-terracotta" aria-label="Disconnected" />}
+            {seatInfo?.autopilot && seatInfo.connected === false && <span className="text-[10px] font-bold text-terracotta">auto</span>}
+          </div>
+        );
+        // Avatar with the victory points underneath, as on colonist.
+        const avatar = (
+          <div className="relative mb-1.5 shrink-0" data-seat-anchor={seat}>
+            {seatInfo ? (
+              <Framed frame={seatInfo.cosmetics.frame} size={compact ? 36 : 40}>
+                {(sz) => <KnightBadge knight={seatInfo.knight} color={p.color} size={sz} />}
+              </Framed>
+            ) : (
+              <div className={`${compact ? 'h-9 w-9' : 'h-10 w-10'} rounded-full`} style={{ background: c.hex }} />
+            )}
+            <span
+              className="absolute -bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-md border-2 border-ink bg-paper px-1.5 text-sm font-black leading-4.5 tabular"
+              title={`${vp} victory points`}
+            >
+              {view.winner === seat && <Crown size={12} className="text-amber-deep" />}
+              {vp}
+            </span>
+            <ReactionBubble playerId={p.id} side={compact ? 'below' : 'left'} />
+          </div>
+        );
+        const contents = (
+          <>
+            <div className={`flex items-center gap-2.5 ${compact ? '' : 'pt-1'}`}>
+              <CardIcon bg={HAND_BG} ink="#1f1a14" n={p.handCount} title="Cards in hand" small={compact} />
+              {ck ? (
+                <span className="flex items-center gap-2.5">
+                  {TRACKS.map((t) => (
+                    <CardIcon key={t} bg={TRACK_STYLE[t].color} ink={TRACK_STYLE[t].ink} n={p.progressTracks[t]} title={`${TRACK_STYLE[t].label} progress cards`} glyph="" small />
+                  ))}
+                </span>
+              ) : (
+                <CardIcon bg={DEV_BG} n={p.devCount} title="Development cards" small={compact} />
+              )}
+            </div>
+            {ck && <ImprovementGrid levels={p.improvements} metropolis={TRACKS.filter((t) => view.metropolis[t] === seat)} compact />}
+            <div className={`ml-auto shrink-0 text-xs font-black text-ink-soft ${compact ? 'flex items-center gap-1' : 'grid gap-0.5'}`}>
+              <Stat
+                icon={<Route size={13} />}
+                value={p.roadLength}
+                title={view.longestRoad === seat ? `Longest road (${p.roadLength})` : 'Road length'}
+                award={view.longestRoad === seat ? 'bg-amber text-ink' : undefined}
+              />
+              {ck ? (
+                <Stat
+                  icon={<Swords size={13} />}
+                  value={view.knights.reduce((n, k) => n + (k && k.owner === seat && k.active ? k.level : 0), 0)}
+                  title="Active knight strength"
+                />
+              ) : (
+                <Stat
+                  icon={<Swords size={13} />}
+                  value={p.knightsPlayed}
+                  title={view.largestArmy === seat ? `Largest army (${p.knightsPlayed} knights)` : 'Knights played'}
+                  award={view.largestArmy === seat ? 'bg-terracotta text-white' : undefined}
+                />
+              )}
+              {p.defender > 0 && (
+                <Stat
+                  icon={<ShieldHalf size={13} />}
+                  value={`+${p.defender}`}
+                  title="Defender of the island: 1 VP for each barbarian attack this player beat back best"
+                  award="bg-sea-600 text-white"
+                />
+              )}
+            </div>
+          </>
+        );
         return (
           <li
             key={p.id}
-            className={`paper-flat relative flex shrink-0 items-center gap-2.5 p-2 pr-3 transition ${compact ? (ck ? 'min-w-56' : 'min-w-47.5') : ''} ${
+            {...(clickable && {
+              role: 'button',
+              tabIndex: 0,
+              'aria-expanded': open === seat,
+              title: `${p.name}: embargo options`,
+              onClick: toggle,
+              onKeyDown: (e: React.KeyboardEvent) => {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                e.preventDefault();
+                toggle();
+              },
+            })}
+            className={`paper-flat relative flex shrink-0 flex-col gap-1 p-2 pl-3 pr-2.5 transition-all duration-300 motion-reduce:transition-none ${
+              compact ? 'min-w-max' : `min-w-0 ${turnSeat === seat ? '-ml-4' : ''}`
+            } ${
               acting ? 'ring-4 ring-amber' : ''
-            }`}
+            } ${clickable ? 'cursor-pointer hover:brightness-[0.97]' : ''}`}
             style={{ boxShadow: `inset 5px 0 0 ${c.hex}` }}
           >
-            <div className="relative" data-seat-anchor={seat}>
-              {seatInfo ? (
-                <Framed frame={seatInfo.cosmetics.frame} size={compact ? 40 : 48}>
-                  {(s) => <KnightBadge knight={seatInfo.knight} color={p.color} size={s} />}
-                </Framed>
-              ) : (
-                <div className="h-11 w-11 rounded-full" style={{ background: c.hex }} />
-              )}
-              {isTurn && <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 animate-ping rounded-full bg-amber" />}
-              <ReactionBubble playerId={p.id} side={compact ? 'below' : 'left'} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1">
-                <span className="truncate font-extrabold leading-tight" title={seatInfo?.cosmetics.title ? titleInfo(seatInfo.cosmetics.title).name : undefined}>
-                  {p.name}
-                  {seat === view.viewer && <span className="ml-1 text-xs font-bold text-ink-faint">(you)</span>}
-                </span>
-                {p.isBot && <Bot size={13} className="shrink-0 text-ink-faint" />}
-                {seatInfo && !seatInfo.isBot && !seatInfo.connected && <WifiOff size={13} className="shrink-0 text-terracotta" aria-label="Disconnected" />}
-                {seatInfo?.autopilot && seatInfo.connected === false && <span className="text-[10px] font-bold text-terracotta">auto</span>}
-              </div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs font-bold text-ink-soft">
-                <CardCount tone="hand" n={p.handCount} title="Cards in hand" />
-                {ck ? (
-                  <>
-                    <CardCount tone="progress" n={p.progressCount} title="Progress cards" />
-                    <Stat
-                      icon={<ShieldHalf size={12} />}
-                      value={view.knights.reduce((n, k) => n + (k && k.owner === seat && k.active ? k.level : 0), 0)}
-                      title="Active knight strength"
-                    />
-                  </>
-                ) : (
-                  <>
-                    <CardCount tone="dev" n={p.devCount} title="Development cards" />
-                    <Stat icon={<Swords size={12} />} value={p.knightsPlayed} title="Knights played" />
-                  </>
-                )}
-                <Stat icon={<Route size={12} />} value={p.roadLength} title="Longest road length" />
-              </div>
-              {(view.longestRoad === seat || view.largestArmy === seat) && (
-                <div className="mt-1 flex gap-1">
-                  {view.longestRoad === seat && <span className="rounded bg-amber px-1.5 text-[10px] font-black uppercase">Longest road</span>}
-                  {view.largestArmy === seat && <span className="rounded bg-terracotta px-1.5 text-[10px] font-black uppercase text-white">Largest army</span>}
+            {compact ? (
+              <div className="flex items-center gap-2">
+                {avatar}
+                <div className="grid min-w-0 gap-1">
+                  {nameRow}
+                  <div className="flex items-center gap-2">{contents}</div>
                 </div>
-              )}
-            </div>
-            {ck && <ImprovementGrid levels={p.improvements} metropolis={TRACKS.filter((t) => view.metropolis[t] === seat)} compact={compact} />}
-            <div className="flex flex-col items-center">
-              <span className="display text-2xl font-black leading-none tabular">{vp}</span>
-              <span className="text-[9px] font-black uppercase tracking-wider text-ink-faint">VP</span>
-              {view.winner === seat && <Crown size={16} className="text-amber-deep" />}
-            </div>
+              </div>
+            ) : (
+              <>
+                {nameRow}
+                <div className="flex items-center gap-2.5">
+                  {avatar}
+                  {contents}
+                </div>
+              </>
+            )}
+
+            {clickable && open === seat && (
+              <button
+                type="button"
+                className="mt-0.5 inline-flex items-center gap-1 self-start whitespace-nowrap rounded-md border border-danger/50 bg-danger/10 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-danger transition hover:bg-danger hover:text-white"
+                title={embargoed ? `Accept trade offers from ${p.name} again` : `Decline every trade offer from ${p.name}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void api.act({ type: 'embargo', seat, on: !embargoed });
+                  setOpen(null);
+                }}
+              >
+                <Ban size={11} strokeWidth={2.8} />
+                {embargoed ? 'End embargo' : 'Embargo'}
+              </button>
+            )}
           </li>
         );
       })}

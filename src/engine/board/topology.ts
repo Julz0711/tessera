@@ -149,14 +149,15 @@ export const GOLD_RUSH_HEX_COORDS: HexCoord[] = (() => {
 /**
  * Vulcan, copied tile for tile from colonist's map: rows from the top, left to right. B brick
  * (hills), W wool (pasture), Gr grain (fields), L lumber (forest), O ore (mountains), D desert,
- * G gold, with the number; ? is fog (its tile and number are dealt at random).
+ * G gold, with the number; ? is fog (its tile and number are dealt at random). One change from
+ * colonist: the lower right corner's B6 is a B8, so the corners share two 6s and two 8s.
  */
 export const VULCAN_LAYOUT: readonly string[] = [
   'B5  W9  D   O11 ?   ?   O12 D   B10 W5',
   'L6  Gr4 D   ?   O10 ?   O10 ?   D   Gr9 L4',
   'B10 D   ?   ?   O5  O10 ?   ?   D   L8',
   'D   O3  O11 O9  G6  O4  O4  O11 D',
-  'L6  D   ?   ?   O5  O9  ?   ?   D   B6',
+  'L6  D   ?   ?   O5  O9  ?   ?   D   B8',
   'B10 W4  D   ?   O3  ?   O4  ?   D   B5  W9',
   'B5  Gr9 D   O3  ?   ?   O2  D   L10 Gr4',
 ];

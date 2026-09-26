@@ -1,9 +1,9 @@
-import { CARDS, type Card, type DevCardType, type GameEvent, type PartialHand, type ProgressCardType, type Track } from '@/engine/types';
+import { CARDS, type Card, type DevCardType, type Dice, type GameEvent, type PartialHand, type ProgressCardType, type Track } from '@/engine/types';
 import type { PlayerView } from '@/engine/view';
 import { TERRAIN_COLORS } from './palette';
 
 /** A log line: text pieces with inline player names and card chips. */
-export type Part = string | { player: number } | { card: Card; n: number };
+export type Part = string | { player: number } | { card: Card; n: number } | { dice: Dice };
 
 export const DEV_NAMES: Record<DevCardType, string> = {
   knight: 'Knight',
@@ -75,7 +75,7 @@ export function describe(ev: GameEvent, view: PlayerView): Part[][] {
     case 'diceRolled': {
       const total = ev.dice.red + ev.dice.yellow;
       const extra = ev.dice.event ? ` · ${ev.dice.event === 'ship' ? 'barbarians advance' : `${TRACK_NAMES[ev.dice.event]} gate`}` : '';
-      return [[P(ev.seat), ` rolled ${total} (${ev.dice.red}+${ev.dice.yellow})${extra}`]];
+      return [[P(ev.seat), ' rolled ', { dice: ev.dice }, ` ${total}${extra}`]];
     }
     case 'produced':
       return ev.gains.flatMap((g, seat) => (count(g) ? [[P(seat), ' got ', ...cardParts(g)]] : []));
@@ -108,6 +108,7 @@ export function describe(ev: GameEvent, view: PlayerView): Part[][] {
     case 'trade':
       return [[P(ev.seat), ' gave ', ...cardParts(ev.give), ' to ', P(ev.partner), ' for ', ...cardParts(ev.get)]];
     case 'tradeOffered':
+    case 'tradeClosed':
       return [];
     case 'longestRoad':
       return [ev.seat === null ? ['Nobody holds the Longest Road now.'] : [P(ev.seat), ` took the Longest Road (${ev.length})`]];

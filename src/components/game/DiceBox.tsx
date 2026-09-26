@@ -16,7 +16,7 @@ function lastRoll(view: PlayerView) {
 }
 
 /** Last roll + the Roll button, floated as its own HUD panel. Empty when there's nothing to show. */
-export function DiceBox({ view }: { view: PlayerView }) {
+export function DiceBox({ view, size = 60 }: { view: PlayerView; size?: number }) {
   const roll = useMemo(() => lastRoll(view), [view]);
   const me = view.viewer;
   const canRoll = me !== null && view.phase === 'play' && view.turn.seat === me && !view.turn.rolled && view.pending.length === 0;
@@ -30,7 +30,8 @@ export function DiceBox({ view }: { view: PlayerView }) {
   };
 
   return (
-    <div className="glass flex items-center gap-3 p-2.5">
+    // Your turn and the dice still to roll: the box pulses like the "Your turn" pill up top.
+    <div className={`glass flex items-center gap-3 p-2.5 ${canRoll ? 'attention' : ''}`}>
       {roll && (
         <div
           className={`flex items-center gap-1.5 ${canRoll ? 'cursor-pointer' : ''}`}
@@ -38,9 +39,9 @@ export function DiceBox({ view }: { view: PlayerView }) {
           aria-label={`Last roll: ${roll.dice.red + roll.dice.yellow}`}
           title={`Last roll: ${roll.dice.red + roll.dice.yellow}`}
         >
-          <Die size={48} value={roll.dice.red} rollKey={roll.key} bg={ck ? '#d9483b' : '#f6eddb'} pip={ck ? '#fff7f0' : '#1f1a14'} />
-          <Die size={48} value={roll.dice.yellow} rollKey={roll.key + 1} bg={ck ? '#f2c14e' : '#f6eddb'} />
-          {roll.dice.event && <EventDie face={roll.dice.event} size={48} />}
+          <Die size={size} value={roll.dice.red} rollKey={roll.key} bg={ck ? '#d9483b' : '#f6eddb'} pip={ck ? '#fff7f0' : '#1f1a14'} />
+          <Die size={size} value={roll.dice.yellow} rollKey={roll.key + 1} bg={ck ? '#f2c14e' : '#f6eddb'} />
+          {roll.dice.event && <EventDie face={roll.dice.event} size={size} />}
         </div>
       )}
       {canRoll && (

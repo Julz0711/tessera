@@ -8,6 +8,8 @@ export interface PublicPlayer extends PlayerState {
   commodityCount: number;
   devCount: number;
   progressCount: number;
+  /** Progress cards held per track: the backs show their colour, so this is public. */
+  progressTracks: Record<Track, number>;
   publicVP: number;
   /** Full VP including hidden cards: own seat only (everyone once the game has ended). */
   vp: number | null;
@@ -51,6 +53,11 @@ export function viewFor(state: GameState, viewer: number | null): PlayerView {
       commodityCount: commodityTotal(p.hand),
       devCount: p.devCards.length,
       progressCount: p.progress.length,
+      progressTracks: {
+        trade: p.progress.filter((c) => c.track === 'trade').length,
+        politics: p.progress.filter((c) => c.track === 'politics').length,
+        science: p.progress.filter((c) => c.track === 'science').length,
+      },
       publicVP: publicVictoryPoints(state, seat),
       vp: own ? victoryPoints(state, seat) : null,
       roadLength: state.roadLengths[seat] ?? 0,

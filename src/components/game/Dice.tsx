@@ -79,11 +79,43 @@ export function EventDie({ face, size = 44 }: { face: EventFace; size?: number }
   const s = EVENT_STYLE[face];
   return (
     <div
-      className="animate-pop grid place-items-center rounded-[22%] border-2 border-ink text-white"
+      className="animate-pop grid place-items-center rounded-[22%] border-2 border-ink text-white [&>svg]:h-[45%] [&>svg]:w-[45%]"
       style={{ width: size, height: size, background: s.bg, boxShadow: '0 3px 0 0 #1f1a14' }}
       title={s.label}
     >
       {s.icon}
     </div>
+  );
+}
+
+/** A small flat die showing `value` (log lines). */
+export function FlatDie({ value, size = 16, bg = '#f6eddb', pip = '#1f1a14' }: { value: number; size?: number; bg?: string; pip?: string }) {
+  return (
+    <span
+      className="inline-grid shrink-0 grid-cols-3 grid-rows-3 rounded-[22%] border border-ink p-[12%] align-middle"
+      style={{ width: size, height: size, background: bg }}
+      role="img"
+      aria-label={String(value)}
+    >
+      {Array.from({ length: 9 }, (_, i) => (
+        <span key={i} className="grid place-items-center">
+          {PIP_LAYOUT[value]?.includes(i) && <span className="block h-[75%] w-[75%] rounded-full" style={{ background: pip }} />}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** The C&K event die as a small flat face (log lines). */
+export function FlatEventDie({ face, size = 16 }: { face: EventFace; size?: number }) {
+  const s = EVENT_STYLE[face];
+  return (
+    <span
+      className="inline-grid shrink-0 place-items-center rounded-[22%] border border-ink align-middle text-white [&>svg]:h-[70%] [&>svg]:w-[70%]"
+      style={{ width: size, height: size, background: s.bg }}
+      title={s.label}
+    >
+      {s.icon}
+    </span>
   );
 }

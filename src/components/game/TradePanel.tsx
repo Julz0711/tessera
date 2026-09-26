@@ -9,7 +9,7 @@ import { openTrade, useTradeDraft, type TradeSide } from '@/client/trade';
 import { useUi } from '@/client/ui';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
-import { ResourceCard } from './cards';
+import { CardStack, ResourceCard } from './cards';
 
 type Answer = 'yes' | 'no' | 'wait';
 
@@ -65,7 +65,7 @@ function DealRow({
         {held.map((c) => (
           // A card arrives from where it came from: up from the hand, down from the picker.
           <span key={c} className={side === 'give' ? 'animate-slide-up' : 'animate-slide-down'}>
-            <ResourceCard card={c} count={cards[c]!} size="xs" onClick={onCard ? () => onCard(c) : undefined} />
+            <CardStack card={c} count={cards[c]!} size="xs" onClick={onCard ? () => onCard(c) : undefined} />
           </span>
         ))}
       </div>
@@ -169,12 +169,9 @@ function OfferCard({ view, offer }: { view: PlayerView; offer: TradeOffer }) {
   const mine = offer.from === me;
   const [collapsed, setCollapsed] = useState(false);
   const myAnswer = answerOf(offer, me);
-  const allDeclined = mine && offer.to.every((s) => offer.declined.includes(s));
-  // Everyone said no: the offer goes away after a moment (your own is withdrawn for everyone).
-  const gone = useAfter(mine ? allDeclined : myAnswer === 'no', DISMISS_MS);
-  useEffect(() => {
-    if (mine && gone) void api.act({ type: 'cancelTrade', id: offer.id });
-  }, [mine, gone, offer.id]);
+  // An offer you turned down (or couldn't take) goes away after a moment. Your own closes for
+  // everyone once all have declined; the server does that.
+  const gone = useAfter(!mine && myAnswer === 'no', DISMISS_MS);
   if (gone) return null;
 
   if (mine) {
@@ -282,7 +279,9 @@ export function TradePanel({ view }: { view: PlayerView }) {
   }
   const want = draft.want;
   const others = view.players.map((_, i) => i).filter((i) => i !== me);
-  const [targets, setTargets] = useState<number[]>(others);
+  // Players with an embargo on you would only decline, so they start deselected.
+  const blocksMe = (seat: number) => view.players[seat].embargo?.includes(me) ?? false;
+  const [targets, setTargets] = useState<number[]>(() => others.filter((s) => !blocksMe(s)));
 
   const ready = handTotal(give) > 0 && handTotal(want) > 0 && (!isActive || targets.length > 0);
   const exchange = isActive && view.turn.rolled && view.pending.length === 0 ? asBankExchange(view, me, give, want) : null;
@@ -315,11 +314,11 @@ export function TradePanel({ view }: { view: PlayerView }) {
               type="button"
               aria-pressed={on}
               disabled={!isActive}
-              title={`${on ? 'Offer to' : 'Not offering to'} ${view.players[seat].name}`}
+              title={blocksMe(seat) ? `${view.players[seat].name} has an embargo on you` : `${on ? 'Offer to' : 'Not offering to'} ${view.players[seat].name}`}
               onClick={() => setTargets((t) => (on ? t.filter((x) => x !== seat) : [...t, seat]))}
               className={`rounded-full transition ${on ? '' : 'opacity-35 grayscale'}`}
             >
-              <Avatar view={view} seat={seat} />
+              <Avatar view={view} seat={seat} answer={blocksMe(seat) ? 'no' : undefined} />
             </button>
           );
         })}

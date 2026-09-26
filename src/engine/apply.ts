@@ -8,7 +8,7 @@ import { buyDevCard, playKnight, playMonopoly, playRoadBuilding, playYearOfPlent
 import { advance, endTurn, rollDice } from './rules/flow';
 import { discard, moveRobber } from './rules/robber';
 import { setupRoad, setupSettlement } from './rules/setup';
-import { bankExchange, bankTrade, cancelTrade, confirmTrade, offerTrade, respondTrade } from './rules/trade';
+import { bankExchange, bankTrade, cancelTrade, confirmTrade, offerTrade, respondTrade, setEmbargo, sweepTrades } from './rules/trade';
 import { makeCtx, type Ctx } from './state';
 import type { Action, ActionType, ApplyResult, GameState, Prompt, PromptKind } from './types';
 
@@ -48,6 +48,7 @@ export function applyAction(state: GameState, seat: number, action: Action): App
     assertRule(Number.isInteger(seat) && seat >= 0 && seat < s.players.length, 'Unknown player');
     assertRule(s.phase !== 'ended', 'The game is over');
     dispatch(ctx, action);
+    if (s.trades.length) sweepTrades(ctx);
     advance(ctx);
     updateLongestRoad(ctx);
     checkWinner(ctx);
@@ -60,6 +61,8 @@ export function applyAction(state: GameState, seat: number, action: Action): App
 
 function dispatch(ctx: Ctx, action: Action): void {
   const s = ctx.s;
+  // An embargo is a standing choice, not a move: it can be set at any time, prompts or not.
+  if (action.type === 'embargo') return setEmbargo(ctx, action.seat, action.on);
   const kinds = PROMPT_ACTIONS[action.type];
   if (kinds) {
     const prompt = s.pending.find((p) => p.seat === ctx.seat && kinds.includes(p.kind));

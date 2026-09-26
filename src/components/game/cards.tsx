@@ -77,10 +77,10 @@ const CARD_BOX: Record<CardSize, string> = {
   lg: 'h-36 w-26',
 };
 
-function CountBadge({ n, small }: { n: number; small?: boolean }) {
+function CountBadge({ n, small, warn }: { n: number; small?: boolean; warn?: boolean }) {
   return (
     <span
-      className={`absolute z-10 grid place-items-center rounded-full border-2 border-ink bg-paper font-black text-ink tabular ${
+      className={`absolute z-10 grid place-items-center rounded-full border-2 border-ink font-black tabular ${warn ? 'bg-danger text-white' : 'bg-paper text-ink'} ${
         small ? '-right-1.5 -top-1.5 h-4.5 min-w-4.5 px-0.5 text-[10px]' : '-right-2 -top-2 h-6 min-w-6 px-1 text-xs'
       }`}
     >
@@ -100,6 +100,7 @@ function CardShell({
   dim,
   glow,
   badge,
+  warn,
   children,
 }: {
   bg: string;
@@ -112,6 +113,8 @@ function CardShell({
   /** Playable right now. */
   glow?: boolean;
   badge?: number;
+  /** Red count badge (the hand is over the discard limit). */
+  warn?: boolean;
   children: React.ReactNode;
 }) {
   const Tag = onClick ? 'button' : 'div';
@@ -127,7 +130,7 @@ function CardShell({
       style={{ background: bg, color: ink }}
     >
       {children}
-      {badge !== undefined && badge > 0 && <CountBadge n={badge} small={size === 'xs'} />}
+      {badge !== undefined && badge > 0 && <CountBadge n={badge} small={size === 'xs'} warn={warn} />}
     </Tag>
   );
 }
@@ -171,6 +174,7 @@ export function ResourceCard({
   selected,
   dim,
   label = size === 'md' || size === 'lg',
+  warn,
 }: {
   card: Card;
   /** Shown as a badge when above 0; a picker passes 0 for a plain card. */
@@ -180,6 +184,7 @@ export function ResourceCard({
   selected?: boolean;
   dim?: boolean;
   label?: boolean;
+  warn?: boolean;
 }) {
   const c = CARD_COLORS[card];
   return (
@@ -192,17 +197,35 @@ export function ResourceCard({
       selected={selected}
       dim={dim}
       badge={count}
+      warn={warn}
     >
       <ResourceFace card={card} label={label} />
     </CardShell>
   );
 }
 
-/** Held cards of one kind, fanned like a real stack: a sliver per extra card (up to 4), plus a count. */
-export function CardStack({ card, count, held, onClick }: { card: Card; count: number; held?: number; onClick?: () => void }) {
+/**
+ * Cards of one kind, fanned like a real stack: a sliver per extra card (up to 4), plus a count.
+ * `held` is only passed for the hand: it marks the stack as where flying cards land.
+ */
+export function CardStack({
+  card,
+  count,
+  held,
+  size = 'md',
+  warn,
+  onClick,
+}: {
+  card: Card;
+  count: number;
+  held?: number;
+  size?: CardSize;
+  warn?: boolean;
+  onClick?: () => void;
+}) {
   const c = CARD_COLORS[card];
   const extra = Math.min(count - 1, 4);
-  const step = 7;
+  const step = size === 'md' || size === 'lg' ? 7 : 4;
   const ref = useRef<HTMLDivElement>(null);
   const before = useRef(held);
   // More cards of this kind came in (not just back from the trade panel): the stack hops as the
@@ -218,12 +241,12 @@ export function CardStack({ card, count, held, onClick }: { card: Card; count: n
     );
   }, [held]);
   return (
-    <div ref={ref} className="relative flex shrink-0" style={{ paddingLeft: extra * step }} data-hand-card={card}>
+    <div ref={ref} className="relative flex shrink-0" style={{ paddingLeft: extra * step }} data-hand-card={held !== undefined ? card : undefined}>
       {Array.from({ length: extra }, (_, i) => (
         <span
           key={i}
           aria-hidden
-          className={`absolute top-0 overflow-hidden rounded-lg border-2 border-ink shadow-token ${CARD_BOX.md}`}
+          className={`absolute top-0 overflow-hidden rounded-lg border-2 border-ink shadow-token ${CARD_BOX[size]}`}
           style={{ left: i * step, background: c.bg, filter: `brightness(${0.8 + i * 0.05})` }}
         >
           <svg className="h-full w-full" viewBox="0 0 100 140" preserveAspectRatio="xMidYMid slice">
@@ -231,7 +254,7 @@ export function CardStack({ card, count, held, onClick }: { card: Card; count: n
           </svg>
         </span>
       ))}
-      <ResourceCard card={card} count={count} onClick={onClick} />
+      <ResourceCard card={card} count={count} size={size} warn={warn} onClick={onClick} />
     </div>
   );
 }

@@ -5,10 +5,14 @@ import { describe, type Part } from '@/client/describe';
 import type { PlayerView } from '@/engine/view';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { CardChip } from './cards';
+import { FlatDie, FlatEventDie } from './Dice';
 
 function Line({ parts, view }: { parts: Part[]; view: PlayerView }) {
+  const ck = view.mode === 'ck';
+  // A roll opens each turn's lines, so it gets a rule above it.
+  const roll = parts.some((p) => typeof p !== 'string' && 'dice' in p);
   return (
-    <p className="text-[13px] leading-snug text-paper/90">
+    <p className={`text-[13px] leading-snug text-paper/90 ${roll ? 'border-t border-white/10 pt-1 first:border-t-0 first:pt-0' : ''}`}>
       {parts.map((p, i) => {
         if (typeof p === 'string') return <span key={i}>{p}</span>;
         if ('player' in p) {
@@ -21,6 +25,14 @@ function Line({ parts, view }: { parts: Part[]; view: PlayerView }) {
             </span>
           );
         }
+        if ('dice' in p)
+          return (
+            <span key={i} className="mx-0.5 inline-flex translate-y-[-1px] gap-0.5">
+              <FlatDie value={p.dice.red} bg={ck ? '#d9483b' : undefined} pip={ck ? '#fff7f0' : undefined} />
+              <FlatDie value={p.dice.yellow} bg={ck ? '#f2c14e' : undefined} />
+              {p.dice.event && <FlatEventDie face={p.dice.event} />}
+            </span>
+          );
         return <CardChip key={i} card={p.card} n={p.n} />;
       })}
     </p>

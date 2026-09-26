@@ -14,6 +14,8 @@ export type UiMode =
   | { t: 'progress'; card: number; cardType: ProgressCardType; picked: number[] };
 
 /** One thing that can be built on an armed spot. */
+export type SideTab = 'log' | 'chat' | 'dice';
+
 export interface BuildOption {
   what: BuildWhat;
   action: Action;
@@ -52,7 +54,7 @@ interface UiStore {
   /** Own knight whose action menu is open. */
   knightMenu: number | null;
   armed: Armed | null;
-  sideTab: 'log' | 'chat';
+  sideTab: SideTab;
   sideOpen: boolean;
   setMode(mode: UiMode): void;
   toggleBuild(what: BuildWhat): void;
@@ -61,7 +63,7 @@ interface UiStore {
   setRobber(pick: RobberPick | null): void;
   setKnightMenu(vertex: number | null): void;
   arm(armed: Armed | null): void;
-  setSide(tab: 'log' | 'chat', open?: boolean): void;
+  setSide(tab: SideTab, open?: boolean): void;
   /** Cancels build modes, panels and pending picks, but leaves an open card open. */
   cancelModes(): void;
   reset(): void;

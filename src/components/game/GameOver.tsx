@@ -3,7 +3,7 @@
 import { Crown, Home, RotateCcw, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, type ReactNode } from 'react';
-import { handTotal, PIPS } from '@/engine';
+import { handTotal } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { api } from '@/client/store';
 import type { RoomDTO } from '@/shared/protocol';
@@ -11,6 +11,7 @@ import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
 import { Framed, TitleTag } from '@/components/profile/Cosmetics';
 import { Modal } from '@/components/ui/Modal';
+import { DiceHistogram } from './DiceStats';
 
 function breakdown(view: PlayerView, seat: number): [string, number][] {
   let settlements = 0;
@@ -60,42 +61,6 @@ function Confetti() {
         />
       ))}
       <style>{`@keyframes confetti { to { transform: translateY(110vh) rotate(720deg); opacity: .9 } }`}</style>
-    </div>
-  );
-}
-
-const DICE_TOTALS = Array.from({ length: 11 }, (_, i) => i + 2); // 2..12
-
-/** A dice-roll histogram for totals 2–12, with a dashed marker at each total's expected count. */
-function DiceHistogram({ dice }: { dice: number[] }) {
-  const totalRolls = dice.reduce((a, b) => a + b, 0);
-  const maxCount = Math.max(1, ...DICE_TOTALS.map((t) => dice[t] ?? 0));
-  return (
-    <div className="paper-flat p-3">
-      <div className="mb-2 flex items-baseline justify-between">
-        <span className="label">Dice rolls</span>
-        <span className="text-xs font-bold text-ink-faint">{totalRolls} total</span>
-      </div>
-      <div className="grid grid-cols-11 items-end gap-1 sm:gap-1.5">
-        {DICE_TOTALS.map((t) => {
-          const count = dice[t] ?? 0;
-          const expected = (totalRolls * (PIPS[t] ?? 0)) / 36;
-          return (
-            <div key={t} className="flex flex-col items-center gap-1">
-              <span className="text-[10px] font-black tabular">{count}</span>
-              <div className="relative flex h-20 w-full items-end justify-center rounded-sm bg-ink/6 sm:h-24">
-                <span
-                  className="absolute inset-x-0.5 border-t-2 border-dashed border-terracotta/70"
-                  style={{ bottom: `${Math.min(100, (expected / maxCount) * 100)}%` }}
-                  title={`Expected ≈ ${expected.toFixed(1)} rolls of ${t}`}
-                />
-                <div className="w-full rounded-t-sm bg-sea-600" style={{ height: `${(count / maxCount) * 100}%` }} />
-              </div>
-              <span className="text-[10px] font-bold text-ink-faint">{t}</span>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }

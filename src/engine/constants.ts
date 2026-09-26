@@ -98,8 +98,8 @@ export const GOLD_RUSH_TERRAIN_COUNTS: Record<Terrain, number> = { forest: 5, hi
 /** Gold Rush's fogged middle: one gold field, one of each resource and one more of a random resource. */
 export const GOLD_RUSH_FOG: Terrain[] = ['gold', 'forest', 'hills', 'pasture', 'fields', 'mountains'];
 
-/** What Vulcan's 18 fogged tiles hide (dealt at random; the rest of the map is fixed). */
-export const VULCAN_FOG_TERRAINS: Partial<Record<Terrain, number>> = { forest: 4, hills: 4, pasture: 3, fields: 3, mountains: 2, desert: 2 };
+/** What Vulcan's 18 fogged tiles hide (dealt at random; the rest of the map is fixed). Never desert: exploring should pay. */
+export const VULCAN_FOG_TERRAINS: Partial<Record<Terrain, number>> = { forest: 4, hills: 4, pasture: 4, fields: 4, mountains: 2 };
 /** Twelve 3:1 harbors along the four starting corners' coasts, as on colonist's map. */
 export const VULCAN_HARBOR_KINDS: HarborKind[] = Array.from({ length: 12 }, () => 'any');
 

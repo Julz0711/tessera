@@ -132,6 +132,8 @@ function dealTokens(
   groups: [ids: number[], pool: number[]][],
   fixed: (number | null)[],
   allowEqual = true,
+  /** A map's own rule on top of the usual ones (Vulcan: a red number in every corner). */
+  extra?: (tokens: (number | null)[]) => boolean,
 ): (number | null)[] {
   let tokens: (number | null)[] = fixed;
   for (let attempt = 0; attempt < 5000; attempt++) {
@@ -140,7 +142,7 @@ function dealTokens(
       const deal = shuffle(rng, [...pool]);
       ids.forEach((id, i) => (tokens[id] = deal[i]));
     }
-    if (tokensValid(topo, tokens, allowEqual || attempt >= 3000, terrains)) break;
+    if (tokensValid(topo, tokens, allowEqual || attempt >= 3000, terrains) && (!extra || extra(tokens))) break;
   }
   return tokens;
 }
@@ -210,7 +212,8 @@ const VULCAN_TERRAIN: Record<string, Terrain> = { B: 'hills', W: 'pasture', Gr: 
  * of fog and ash (desert) on both sides, and the four far corners with every resource but ore, where
  * the game starts. The shape, the ash, the fog and the volcano are as in VULCAN_LAYOUT; each game
  * shuffles the corners' tiles, and deals the corners' and the mountains' numbers from the layout's own
- * (so the corners never get a 2, 3, 11 or 12). The fog hides a random deal.
+ * (so the corners never get a 2, 3, 11 or 12), one 6 or 8 in each corner, and the ring of mountains
+ * around the volcano only 4, 5, 9 and 10. The fog hides a random deal.
  */
 function vulcanBoard(rng: RngHolder): Board {
   const topo = getTopology(VULCAN_HEX_COORDS);
@@ -232,9 +235,16 @@ function vulcanBoard(rng: RngHolder): Board {
   const resource = (id: number) => !fogged.includes(id) && ['hills', 'pasture', 'fields', 'forest'].includes(terrains[id]);
   const home = topo.hexes.filter((h) => resource(h.id)).map((h) => h.id);
   const mountains = topo.hexes.filter((h) => !fogged.includes(h.id) && terrains[h.id] === 'mountains').map((h) => h.id);
+  // The ring around the volcano keeps its own good numbers (4, 5, 9, 10); the outer mountains share the rest.
+  const volcano = topo.hexes.find((h) => terrains[h.id] === 'gold')!.id;
+  const ring = mountains.filter((id) => topo.hexes[volcano].neighbors.includes(id));
+  const outer = mountains.filter((id) => !ring.includes(id));
+  // Which of the four corners a tile is in: left or right of the volcano, above or below it.
+  const cornerOf = (id: number) => (topo.hexes[id].q + topo.hexes[id].r / 2 > 0 ? 1 : 0) + (topo.hexes[id].r > 0 ? 2 : 0);
   const numbersOf = (ids: number[]) => ids.map((id) => tokens[id]!);
   const homeNumbers = numbersOf(home);
-  const mountainNumbers = numbersOf(mountains);
+  const ringNumbers = numbersOf(ring);
+  const outerNumbers = numbersOf(outer);
   shuffle(rng, home.map((id) => terrains[id])).forEach((t, i) => (terrains[home[i]] = t));
   for (const id of [...home, ...mountains]) tokens[id] = null;
 
@@ -248,10 +258,14 @@ function vulcanBoard(rng: RngHolder): Board {
     checked,
     [
       [home, homeNumbers],
-      [mountains, mountainNumbers],
+      [ring, ringNumbers],
+      [outer, outerNumbers],
       [hiddenNumbered, balancedTokens(hiddenNumbered.length)],
     ],
     tokens,
+    true,
+    // The corners share four 6s and 8s between them: one each, so no corner starts poor.
+    (dealt) => [0, 1, 2, 3].every((c) => home.filter((id) => cornerOf(id) === c && isRed(dealt[id])).length === 1),
   );
 
   const hexes: Hex[] = topo.hexes.map((h) => ({ id: h.id, q: h.q, r: h.r, terrain: terrains[h.id], token: dealt[h.id] }));

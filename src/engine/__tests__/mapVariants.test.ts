@@ -71,6 +71,20 @@ describe('map variants', () => {
       expect(sorted(corners.map(numberOf))).toEqual(sorted(cornerRef.map(numberOf)));
       expect(sorted(mountainNumbers)).toEqual(sorted(ref.filter((c) => kindOf(c) === 'O').map(numberOf)));
       if (corners.join() !== cornerRef.join()) differs = true;
+      // Each corner (left/right of the volcano, above/below it) gets exactly one 6 or 8.
+      const reds = [0, 0, 0, 0];
+      board.hexes.forEach((h, i) => {
+        if (isCorner(ref[i]) && (h.token === 6 || h.token === 8)) reds[(h.q + h.r / 2 > 0 ? 1 : 0) + (h.r > 0 ? 2 : 0)]++;
+      });
+      expect(reds).toEqual([1, 1, 1, 1]);
+      const cornerReds = board.hexes.filter((h, i) => isCorner(ref[i]) && (h.token === 6 || h.token === 8)).map((h) => h.token);
+      expect(sorted(cornerReds)).toEqual([6, 6, 8, 8]);
+      // The mountains around the volcano only ever get a 4, 5, 9 or 10.
+      const volcano = board.hexes.find((h) => h.terrain === 'gold')!;
+      const ring = getTopology(board.hexes).hexes[volcano.id].neighbors.map((n) => board.hexes[n]);
+      expect(ring.every((h) => h.terrain === 'mountains' && [4, 5, 9, 10].includes(h.token!))).toBe(true);
+      // The fog never hides a desert.
+      expect(board.hexes.filter((h) => h.fog).every((h) => h.terrain !== 'desert' && h.token !== null)).toBe(true);
       // No 6 or 8 next to another (the volcano's 6 included).
       const topo = getTopology(board.hexes);
       for (const h of board.hexes) {

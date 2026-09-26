@@ -3,7 +3,7 @@ import { assertRule, RuleError } from '../errors';
 import { commodityTotal, handTotal, hasCards, parseHand, sameCardTypes, transfer } from '../hand';
 import { bankRatio, exchangeValue } from '../queries';
 import { emit, nextId, type Ctx } from '../state';
-import { isCard, isCommodity, type Card, type PartialHand, type TradeOffer } from '../types';
+import { isCard, isCommodity, type Card, type GameState, type PartialHand, type TradeOffer } from '../types';
 import { isInt, requireActive, requireRolled } from './common';
 
 export function bankTrade(ctx: Ctx, give: Card, get: Card, count: number): void {
@@ -113,6 +113,40 @@ export function confirmTrade(ctx: Ctx, id: number, partner: number): void {
   assertRule(offer.from === ctx.seat, 'That is not your offer');
   assertRule(offer.accepted.includes(partner), 'That player has not accepted');
   execute(ctx, offer, partner);
+}
+
+/** Whether `seat` has an embargo on `from`: no offers from them. */
+export function embargoes(s: GameState, seat: number, from: number): boolean {
+  return s.players[seat].embargo?.includes(from) ?? false;
+}
+
+/** Starts or ends an embargo on `seat`; open offers from them are turned down on the spot (see `sweepTrades`). */
+export function setEmbargo(ctx: Ctx, seat: number, on: boolean): void {
+  const s = ctx.s;
+  assertRule(Number.isInteger(seat) && seat >= 0 && seat < s.players.length && seat !== ctx.seat, 'Unknown player');
+  const p = s.players[ctx.seat];
+  p.embargo = (p.embargo ?? []).filter((x) => x !== seat);
+  if (on) p.embargo.push(seat);
+}
+
+/**
+ * Tidies the open offers after every action: whoever can't give what an offer asks for, or has an
+ * embargo on its sender, declines it; an offer everyone has declined closes.
+ */
+export function sweepTrades(ctx: Ctx): void {
+  const s = ctx.s;
+  for (const offer of [...s.trades]) {
+    for (const seat of offer.to) {
+      if (offer.declined.includes(seat)) continue;
+      if (!embargoes(s, seat, offer.from) && hasCards(s.players[seat].hand, offer.want)) continue;
+      offer.accepted = offer.accepted.filter((i) => i !== seat);
+      offer.declined.push(seat);
+    }
+    if (offer.to.every((seat) => offer.declined.includes(seat))) {
+      s.trades = s.trades.filter((t) => t.id !== offer.id);
+      emit(ctx, { type: 'tradeClosed', seat: offer.from, id: offer.id });
+    }
+  }
 }
 
 export function cancelTrade(ctx: Ctx, id: number): void {

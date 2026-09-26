@@ -377,6 +377,52 @@ describe('trading', () => {
     s = act(s, 0, { type: 'endTurn' });
     expect(s.trades).toHaveLength(0);
   });
+
+  it('declines for players without the cards and closes an offer once everyone has declined', () => {
+    let s = playing();
+    setHand(s, 0, { brick: 2 });
+    setHand(s, 1, { ore: 1 });
+    s = act(s, 0, { type: 'offerTrade', give: { brick: 1 }, want: { ore: 1 }, to: [] });
+    const id = s.trades[0].id;
+    expect(s.trades[0].declined).toEqual([2]);
+    // Player 1 accepts, then spends the ore: the acceptance turns into a decline and the offer closes.
+    s = act(s, 1, { type: 'respondTrade', id, accept: true });
+    setHand(s, 1, {});
+    const r = applyAction(s, 0, { type: 'embargo', seat: 2, on: true });
+    if (!r.ok) throw new Error(r.error);
+    expect(r.state.trades).toHaveLength(0);
+    expect(r.events).toContainEqual(expect.objectContaining({ type: 'tradeClosed', seat: 0, id }));
+
+    // Nobody can take it: the offer closes as it is made.
+    s = act(r.state, 0, { type: 'offerTrade', give: { brick: 1 }, want: { grain: 1 }, to: [] });
+    expect(s.trades).toHaveLength(0);
+  });
+
+  it('turns down every offer from a player under embargo, until it is lifted', () => {
+    let s = playing();
+    setHand(s, 0, { brick: 3 });
+    setHand(s, 1, { ore: 2 });
+    setHand(s, 2, { ore: 2 });
+    s = act(s, 1, { type: 'embargo', seat: 0, on: true });
+    expect(reject(s, 1, { type: 'embargo', seat: 1, on: true })).toMatch(/Unknown player/);
+    s = act(s, 0, { type: 'offerTrade', give: { brick: 1 }, want: { ore: 1 }, to: [] });
+    expect(s.trades[0].declined).toEqual([1]);
+    // An embargo started while an offer is open declines it at once; here that closes it.
+    s = act(s, 2, { type: 'embargo', seat: 0, on: true });
+    expect(s.trades).toHaveLength(0);
+    // Embargoes only block offers coming in: player 1 can still send one the other way.
+    s.turn.seat = 1;
+    setHand(s, 1, { ore: 2, wool: 1 });
+    setHand(s, 0, { brick: 3 });
+    s = act(s, 1, { type: 'offerTrade', give: { wool: 1 }, want: { brick: 1 }, to: [0] });
+    expect(s.trades[0].declined).toEqual([]);
+    // Lifted: offers from player 0 get through again.
+    s.trades = [];
+    s.turn.seat = 0;
+    s = act(s, 1, { type: 'embargo', seat: 0, on: false });
+    s = act(s, 0, { type: 'offerTrade', give: { brick: 1 }, want: { ore: 1 }, to: [1] });
+    expect(s.trades[0].declined).toEqual([]);
+  });
 });
 
 describe('victory', () => {

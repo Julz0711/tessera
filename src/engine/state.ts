@@ -147,6 +147,7 @@ export function createGame(opts: CreateGameOptions): GameState {
       improvements: { trade: 0, politics: 0, science: 0 },
       defender: 0,
       progressVP: 0,
+      embargo: [],
     })),
     bank: fullBank(mode, map),
     devDeck,

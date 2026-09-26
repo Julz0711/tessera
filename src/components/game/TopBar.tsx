@@ -154,7 +154,7 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
 
       <div
         className={`pointer-events-auto max-w-[min(560px,55vw)] rounded-xl border-2 px-3 py-2 text-center text-sm font-extrabold shadow-[0_3px_0_0_#000] sm:px-4 sm:text-base ${
-          status.mine ? 'animate-pulse-ring border-ink bg-amber text-ink' : 'border-black bg-sea-900/90 text-paper'
+          status.mine ? 'attention border-ink bg-amber text-ink' : 'border-black bg-sea-900/90 text-paper'
         }`}
         aria-live="polite"
       >

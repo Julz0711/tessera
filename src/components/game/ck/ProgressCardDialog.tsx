@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { CARDS, COMMODITIES, RESOURCES, robberActive, type Card, type ProgressCard, type ProgressParams, type Resource } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { PROGRESS_NAMES } from '@/client/describe';
+import { ProgressCounts } from '../PlayersPanel';
 import { progressPickSpec } from '@/client/interaction';
 import { PROGRESS_TEXT, TRACK_STYLE } from '@/client/progressText';
 import { api } from '@/client/store';
@@ -128,8 +129,9 @@ export function ProgressCardDialog({ view, id }: { view: PlayerView; id: number 
                     onClick={() => play({ victim: seat })}
                   >
                     <span>{pl.name}</span>
-                    <span className="text-xs">
-                      {pl.publicVP} VP · {pl.handCount} cards · {pl.progressCount} progress
+                    <span className="flex items-center gap-2 text-xs">
+                      {pl.publicVP} VP · {pl.handCount} cards ·
+                      <ProgressCounts tracks={pl.progressTracks} />
                     </span>
                   </button>
                 );

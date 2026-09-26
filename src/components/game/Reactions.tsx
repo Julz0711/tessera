@@ -79,10 +79,13 @@ export function ReactionBubble({ playerId, side }: { playerId: string; side: 'le
   const anchor = useRef<HTMLSpanElement>(null);
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   useLayoutEffect(() => {
-    const box = anchor.current?.parentElement?.getBoundingClientRect();
+    const avatar = anchor.current?.parentElement;
+    const box = avatar?.getBoundingClientRect();
     // A panel that isn't displayed (the phone layout on a desktop) measures as an empty box.
     if (!visible || !box || box.width === 0) return setAt(null);
-    setAt(side === 'left' ? { x: box.left - 10, y: box.top + box.height / 2 } : { x: box.left + box.width / 2, y: box.bottom + 8 });
+    // To the left, the bubble keeps clear of the whole player card, not just the avatar inside it.
+    const card = avatar?.closest('li')?.getBoundingClientRect() ?? box;
+    setAt(side === 'left' ? { x: card.left - 10, y: box.top + box.height / 2 } : { x: box.left + box.width / 2, y: box.bottom + 10 });
   }, [visible, side, r?.at]);
   const text = r ? reactionText(r.reaction) : '';
   const emote = r ? isEmote(r.reaction) : false;

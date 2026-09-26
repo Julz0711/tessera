@@ -1,6 +1,6 @@
 'use client';
 
-import { COMMODITIES, RESOURCES, type Card, type DevCardType } from '@/engine';
+import { COMMODITIES, RESOURCES, handLimit, handTotal, type Card, type DevCardType } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { openTrade, useTradeDraft } from '@/client/trade';
 import { useUi } from '@/client/ui';
@@ -30,6 +30,10 @@ export function Hand({ view }: { view: PlayerView }) {
   const special = ck ? p.progress.length : dev.length;
   // Clicking a card starts a trade with it (or, while trading, puts it up), whenever the Trade button would work.
   const canTrade = view.phase === 'play' && view.turn.rolled && view.pending.length === 0;
+  // Over the hand limit: a 7 now would cost half the hand, so the stacks warn in red.
+  const total = handTotal(p.hand);
+  const limit = handLimit(view, view.viewer!);
+  const over = view.phase === 'play' && total > limit;
 
   return (
     // The inner row is only as wide as its cards, so it centres when it fits and scrolls from the
@@ -41,9 +45,23 @@ export function Hand({ view }: { view: PlayerView }) {
             No cards in hand
           </div>
         )}
-        {held.map((c) => (
-          <CardStack key={c} card={c} count={count(c)} held={p.hand[c]} onClick={canTrade ? () => (trading ? draft.add('give', c) : openTrade({ [c]: 1 })) : undefined} />
-        ))}
+        {held.length > 0 && (
+          <div
+            className={`-mx-1.5 -my-1 flex items-end gap-2.5 rounded-xl px-1.5 py-1 transition-colors sm:gap-3 ${over ? 'bg-danger/25 ring-2 ring-danger/70' : ''}`}
+            title={over ? `${total} cards, over your limit of ${limit}: a 7 would cost you ${Math.floor(total / 2)}` : undefined}
+          >
+            {held.map((c) => (
+              <CardStack
+                key={c}
+                card={c}
+                count={count(c)}
+                held={p.hand[c]}
+                warn={over}
+                onClick={canTrade ? () => (trading ? draft.add('give', c) : openTrade({ [c]: 1 })) : undefined}
+              />
+            ))}
+          </div>
+        )}
         {held.length > 0 && special > 0 && <span aria-hidden className="h-12 w-px self-center bg-white/20" />}
         {dev.map(({ type, cards }) => (
           <DevCardFace

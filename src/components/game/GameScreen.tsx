@@ -1,6 +1,6 @@
 'use client';
 
-import { MessageSquare, ScrollText, Trophy } from 'lucide-react';
+import { ChartColumn, MessageSquare, ScrollText, Trophy } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CARDS, type Card, type DevCardType, type GameEvent, type PartialHand, type ProgressCardType } from '@/engine';
 import type { PlayerView } from '@/engine/view';
@@ -11,7 +11,7 @@ import { play } from '@/client/sound';
 import { api, toast, useGame } from '@/client/store';
 import { computeTargets, handlePick } from '@/client/interaction';
 import { sceneFromView } from '@/client/targets';
-import { useUi } from '@/client/ui';
+import { useUi, type SideTab } from '@/client/ui';
 import { BoardView } from '@/components/board/BoardView';
 import { BuildPopup } from './BuildPopup';
 import { ChatPanel } from '@/components/room/ChatPanel';
@@ -24,6 +24,7 @@ import { KnightMenu } from './ck/KnightMenu';
 import { ProgressCardDialog } from './ck/ProgressCardDialog';
 import { DevCardDialog } from './DevCardDialog';
 import { DiceBox } from './DiceBox';
+import { DiceHistogram } from './DiceStats';
 import { Dock } from './Dock';
 import { GameOver } from './GameOver';
 import { LogPanel } from './LogPanel';
@@ -112,6 +113,9 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
           for (let i = 0; i < n; i++) fly({ seat: others[i % others.length] }, { seat: ev.seat }, [ev.card], me, i * 90);
           break;
         }
+        case 'tradeClosed':
+          if (ev.seat === me) toast('Nobody took your offer');
+          break;
         case 'tradeOffered':
           if (me !== null && ev.seat !== me && view.trades.some((t) => t.id === ev.id && t.to.includes(me))) play('offer');
           break;
@@ -297,8 +301,10 @@ export function GameScreen() {
       </div>
 
       {/* log/chat, bank, players: right column on desktop */}
-      <div className="absolute right-2 top-16 z-10 hidden max-h-[calc(100dvh-152px)] w-72 flex-col gap-2 overflow-y-auto scroll-thin lg:flex">
-        <div className="flex min-h-36 max-h-72 flex-1 flex-col overflow-hidden">
+      {/* The pl-4 strip on the left is room for the current player's card to stick out into; it lets
+          clicks through to the board. */}
+      <div className="pointer-events-none absolute right-2 top-16 z-10 hidden max-h-[calc(100dvh-164px)] w-76 flex-col gap-2 overflow-y-auto overflow-x-hidden pl-4 scroll-thin *:pointer-events-auto lg:flex">
+        <div className={`flex max-h-72 flex-1 flex-col overflow-hidden ${ui.sideTab === 'dice' ? 'min-h-48' : 'min-h-36'}`}>
           <SidePanel view={view} unread={unread} />
         </div>
         <div className="shrink-0">
@@ -315,7 +321,7 @@ export function GameScreen() {
       </div>
       {/* dice + roll: bottom-right on desktop; below lg it moves into the row above the dock */}
       <div className="absolute bottom-2 right-2 z-20 hidden lg:block">
-        <DiceBox view={view} />
+        <DiceBox view={view} size={60} />
       </div>
       <div className="absolute inset-x-2 top-26 z-10 lg:hidden">
         <PlayersPanel
@@ -341,7 +347,7 @@ export function GameScreen() {
             <MobileSide view={view} unread={unread} />
           </div>
           <div className="pointer-events-auto">
-            <DiceBox view={view} />
+            <DiceBox view={view} size={54} />
           </div>
         </div>
         {/* Only the dock itself takes clicks: this row spans the screen and would otherwise cover
@@ -379,7 +385,7 @@ function SidePanel({ view, unread }: { view: PlayerView; unread: number }) {
   return (
     <div className="glass flex min-h-0 flex-1 flex-col p-2.5">
       <div className="mb-2 flex gap-1">
-        {(['log', 'chat'] as const).map((tab) => (
+        {SIDE_TABS.map((tab) => (
           <button
             key={tab}
             type="button"
@@ -388,29 +394,49 @@ function SidePanel({ view, unread }: { view: PlayerView; unread: number }) {
               ui.sideTab === tab ? 'bg-paper text-ink' : 'text-foam/60 hover:text-paper'
             }`}
           >
-            {tab === 'log' ? <ScrollText size={13} /> : <MessageSquare size={13} />}
+            {SIDE_ICON[tab]}
             {tab}
             {tab === 'chat' && unread > 0 && ui.sideTab !== 'chat' && <span className="h-2 w-2 rounded-full bg-amber" />}
           </button>
         ))}
       </div>
-      {ui.sideTab === 'log' ? <LogPanel view={view} className="min-h-0 flex-1" /> : <ChatPanel className="min-h-0 flex-1" dark />}
+      <SideContent view={view} tab={ui.sideTab} />
+    </div>
+  );
+}
+
+const SIDE_TABS: SideTab[] = ['log', 'chat', 'dice'];
+const SIDE_ICON: Record<SideTab, React.ReactNode> = {
+  log: <ScrollText size={13} />,
+  chat: <MessageSquare size={13} />,
+  dice: <ChartColumn size={13} />,
+};
+
+function SideContent({ view, tab }: { view: PlayerView; tab: SideTab }) {
+  if (tab === 'log') return <LogPanel view={view} className="min-h-0 flex-1" />;
+  if (tab === 'chat') return <ChatPanel className="min-h-0 flex-1" dark />;
+  return (
+    <div className="scroll-thin min-h-0 flex-1 overflow-y-auto">
+      {view.stats ? <DiceHistogram dice={view.stats.dice} compact /> : <p className="text-sm text-foam/40">No rolls recorded for this game.</p>}
     </div>
   );
 }
 
 function MobileSide({ view, unread }: { view: PlayerView; unread: number }) {
-  const [open, setOpen] = useState<null | 'log' | 'chat'>(null);
+  const [open, setOpen] = useState<null | SideTab>(null);
   return (
     <div className="flex flex-col items-start gap-2">
       {open && (
         <div className="glass flex h-60 w-[min(340px,calc(100vw-16px))] flex-col p-2.5">
-          {open === 'log' ? <LogPanel view={view} className="min-h-0 flex-1" /> : <ChatPanel className="min-h-0 flex-1" dark />}
+          <SideContent view={view} tab={open} />
         </div>
       )}
       <div className="flex gap-1.5">
         <button type="button" className={`btn btn-dark h-10 w-10 p-0 ${open === 'log' ? 'btn-primary' : ''}`} onClick={() => setOpen(open === 'log' ? null : 'log')} aria-label="Game log">
           <ScrollText size={17} />
+        </button>
+        <button type="button" className={`btn btn-dark h-10 w-10 p-0 ${open === 'dice' ? 'btn-primary' : ''}`} onClick={() => setOpen(open === 'dice' ? null : 'dice')} aria-label="Dice stats">
+          <ChartColumn size={17} />
         </button>
         <button type="button" className={`btn btn-dark relative h-10 w-10 p-0 ${open === 'chat' ? 'btn-primary' : ''}`} onClick={() => setOpen(open === 'chat' ? null : 'chat')} aria-label="Chat">
           <MessageSquare size={17} />

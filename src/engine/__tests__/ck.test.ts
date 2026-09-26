@@ -158,6 +158,23 @@ describe('barbarians', () => {
     expect(victoryPoints(after, 1)).toBe(1);
   });
 
+  it('lets a player with several cities choose which one the barbarians take', () => {
+    const s = atTheGates(ck());
+    const t = topo(s);
+    const c1 = t.edges[t.coast[0]].a;
+    const c2 = t.edges[t.coast[10]].a;
+    city(s, 1, c1);
+    city(s, 1, c2, { wall: true });
+    let after = attack(s);
+    expect(after.pending).toContainEqual({ kind: 'loseCity', seat: 1 });
+    expect(after.buildings[c1]).toMatchObject({ city: true });
+    expect(reject(after, 1, { type: 'loseCity', vertex: t.edges[t.coast[20]].a })).toBeTruthy();
+    after = act(after, 1, { type: 'loseCity', vertex: c2 });
+    expect(after.buildings[c2]).toMatchObject({ owner: 1, city: false, wall: false });
+    expect(after.buildings[c1]).toMatchObject({ owner: 1, city: true });
+    expect(after.pending.some((p) => p.kind === 'loseCity')).toBe(false);
+  });
+
   it('keeps the robber away until the first attack', () => {
     let s = ck();
     s.turn.rolled = false;

@@ -17,6 +17,9 @@ const MAX_ZOOM = 3.5;
 const DRAG_THRESHOLD = 5;
 const WHEEL_SENSITIVITY = 0.0018;
 const BUTTON_STEP = 1.4;
+/** How far past each edge of the board the view may be dragged, as a share of the board's size, so it
+ * can also be panned when fully zoomed out (e.g. out from under the side panels). */
+const PAN_SLACK = 0.35;
 
 type Point = { x: number; y: number };
 type ViewState = { zoom: number; center: Point };
@@ -25,16 +28,18 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, v));
 }
 
-/** Clamps a candidate zoom/center so the visible window never leaves the board's bounds rect. */
+/** Clamps a candidate zoom/center so the visible window strays at most PAN_SLACK past the board's bounds rect. */
 function clampView(zoom: number, cx: number, cy: number, bounds: ZoomBounds): ViewState {
   const z = clamp(zoom, MIN_ZOOM, MAX_ZOOM);
   const vw = bounds.w / z;
   const vh = bounds.h / z;
+  const sx = bounds.w * PAN_SLACK;
+  const sy = bounds.h * PAN_SLACK;
   return {
     zoom: z,
     center: {
-      x: clamp(cx, bounds.minX + vw / 2, bounds.minX + bounds.w - vw / 2),
-      y: clamp(cy, bounds.minY + vh / 2, bounds.minY + bounds.h - vh / 2),
+      x: clamp(cx, bounds.minX + vw / 2 - sx, bounds.minX + bounds.w - vw / 2 + sx),
+      y: clamp(cy, bounds.minY + vh / 2 - sy, bounds.minY + bounds.h - vh / 2 + sy),
     },
   };
 }
@@ -215,6 +220,11 @@ export function useZoomPan(bounds: ZoomBounds, enabled: boolean) {
     svgRef,
     viewBox: `${viewState.center.x - vw / 2} ${viewState.center.y - vh / 2} ${vw} ${vh}`,
     zoom: viewState.zoom,
+    /** Fully zoomed out and centred: nothing for the reset button to undo. */
+    atHome:
+      viewState.zoom <= MIN_ZOOM + 1e-6 &&
+      Math.abs(viewState.center.x - (bounds.minX + bounds.w / 2)) < 1 &&
+      Math.abs(viewState.center.y - (bounds.minY + bounds.h / 2)) < 1,
     minZoom: MIN_ZOOM,
     maxZoom: MAX_ZOOM,
     zoomIn: () => zoomBy(BUTTON_STEP),

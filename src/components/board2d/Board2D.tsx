@@ -236,7 +236,7 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
   }, [topo]);
   const hexTargets = new Set(targets.hexes);
   const myColor = scene.myColor;
-  const { svgRef, viewBox, zoom, minZoom, maxZoom, zoomIn, zoomOut, reset, svgHandlers } = useZoomPan(bounds, !!interactive);
+  const { svgRef, viewBox, zoom, atHome, minZoom, maxZoom, zoomIn, zoomOut, reset, svgHandlers } = useZoomPan(bounds, !!interactive);
 
   // The popup floats above its spot in screen space, so it keeps its size at any zoom.
   const armed = targets.armed;
@@ -646,7 +646,7 @@ export default function Board2D({ scene, targets, popup, onBackground, onVertex,
           <button type="button" className="btn btn-dark h-10 w-10 p-0" onClick={zoomOut} disabled={zoom <= minZoom + 1e-6} aria-label="Zoom out">
             <Minus size={18} />
           </button>
-          <button type="button" className="btn btn-dark h-10 w-10 p-0" onClick={reset} disabled={zoom <= minZoom + 1e-6} aria-label="Reset zoom">
+          <button type="button" className="btn btn-dark h-10 w-10 p-0" onClick={reset} disabled={atHome} aria-label="Reset zoom">
             <Maximize2 size={18} />
           </button>
         </div>

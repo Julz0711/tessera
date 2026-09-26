@@ -44,7 +44,6 @@
 
   --animate-rise: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   --animate-pop: pop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
-  --animate-pulse-ring: pulse-ring 1.4s ease-out infinite;
   --animate-bob: bob 3s ease-in-out infinite;
   --animate-slide-up: slide-up 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   --animate-slide-down: slide-down 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
@@ -76,14 +75,6 @@
     to {
       opacity: 1;
       transform: none;
-    }
-  }
-  @keyframes pulse-ring {
-    0% {
-      box-shadow: 0 0 0 0 rgb(242 179 61 / 0.7);
-    }
-    100% {
-      box-shadow: 0 0 0 14px rgb(242 179 61 / 0);
     }
   }
   /* Trade panel cards arrive from where they came from: up from the hand, down from the picker. */
@@ -309,12 +300,42 @@ body {
 }
 }
 
+/* Reduced motion: the system's setting, unless the Animations preference (html[data-motion], see
+   PrefsLoader) says "full"; "reduced" applies it whatever the system says. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  :root:not([data-motion='full']) *,
+  :root:not([data-motion='full']) *::before,
+  :root:not([data-motion='full']) *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+}
+:root[data-motion='reduced'] *,
+:root[data-motion='reduced'] *::before,
+:root[data-motion='reduced'] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* Something waiting on you (the dice box before your roll, the status pill while it's your move): an
+   amber outline that blinks like the hexes of a rolled number (Board2D). A blink moves nothing, so
+   reduced motion keeps it too. */
+.attention {
+  outline: 4px solid var(--color-amber);
+  animation: attention-blink 0.9s ease-in-out infinite;
+}
+@keyframes attention-blink {
+  50% {
+    outline-color: rgb(242 179 61 / 0.45);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) .attention {
+    animation: attention-blink 0.9s ease-in-out infinite !important;
+  }
+}
+:root[data-motion='reduced'] .attention {
+  animation: attention-blink 0.9s ease-in-out infinite !important;
 }

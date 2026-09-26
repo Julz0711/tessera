@@ -164,6 +164,8 @@ export interface PlayerState {
   defender: number;
   /** C&K VP progress cards played (Printer, Constitution). */
   progressVP: number;
+  /** Seats this player refuses trade offers from (an embargo). Missing in games saved before embargoes. */
+  embargo?: number[];
 }
 
 // ── Turn flow ───────────────────────────────────────────────────────────────
@@ -299,7 +301,9 @@ export type GameEventBody =
   | { type: 'merchantPlaced'; seat: number; hex: number }
   | { type: 'roadRemoved'; seat: number; owner: number; at: number }
   | { type: 'tokensSwapped'; seat: number; a: number; b: number }
-  | { type: 'defenderAwarded'; seat: number };
+  | { type: 'defenderAwarded'; seat: number }
+  /** Everyone an offer went to declined it (or couldn't take it), so it closed. `seat` made the offer. */
+  | { type: 'tradeClosed'; seat: number; id: number };
 
 export type GameEvent = EventBase & GameEventBody;
 export type GameEventType = GameEventBody['type'];
@@ -412,6 +416,8 @@ export type Action =
   | { type: 'respondTrade'; id: number; accept: boolean }
   | { type: 'confirmTrade'; id: number; partner: number }
   | { type: 'cancelTrade'; id: number }
+  /** Refuse (or accept again) trade offers from `seat`. */
+  | { type: 'embargo'; seat: number; on: boolean }
   // C&K
   | { type: 'buildKnight'; vertex: number }
   | { type: 'activateKnight'; vertex: number }
