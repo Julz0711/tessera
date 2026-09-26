@@ -116,6 +116,20 @@ describe('generateBoard (Black Forest)', () => {
     }
   });
 
+  it('leaves the gold fields out when gold is switched off', () => {
+    for (let seed = 1; seed < 40; seed++) {
+      const board = generateBoard({ rng: seed * 7717 }, 'blackForest', { gold: false });
+      const fog = board.hexes.filter((h) => h.fog);
+      expect(fog).toHaveLength(30);
+      expect(board.hexes.some((h) => h.terrain === 'gold')).toBe(false);
+      for (const h of fog) expect(h.token).not.toBeNull();
+    }
+    const players = [0, 1].map((i) => ({ id: `p${i}`, name: `P${i}`, color: (['red', 'blue'] as const)[i], isBot: false }));
+    const s = createGame({ seed: 3, mode: 'classic', players, settings: { map: 'blackForest', gold: false } });
+    expect(s.settings.gold).toBe(false);
+    expect(s.board.hexes.some((h) => h.terrain === 'gold')).toBe(false);
+  });
+
   it('keeps fogged tiles secret in player views', () => {
     const players = [0, 1, 2].map((i) => ({ id: `p${i}`, name: `P${i}`, color: (['red', 'blue', 'white'] as const)[i], isBot: false }));
     const s = createGame({ seed: 42, mode: 'classic', players, settings: { map: 'blackForest' } });

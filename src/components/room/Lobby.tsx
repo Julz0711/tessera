@@ -235,6 +235,11 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
         <span className="label">Map</span>
         <MapSegmented value={s.map ?? 'standard'} onChange={(map) => set({ map })} disabled={!host} />
         <p className="text-xs font-semibold text-ink-soft">{MAP_BLURBS[s.map ?? 'standard']}</p>
+        {s.map === 'blackForest' && (
+          <div className="mt-1">
+            <Toggle label="Gold fields in the fog" checked={s.gold ?? true} onChange={(gold) => set({ gold })} disabled={!host} />
+          </div>
+        )}
       </div>
       <div className="grid gap-1.5">
         <span className="label">Seats</span>

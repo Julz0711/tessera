@@ -73,6 +73,8 @@ export interface GameSettings {
   discardLimit: number;
   /** Robber may not target hexes touching opponents with ≤ 2 public VP. */
   friendlyRobber: boolean;
+  /** Black Forest: whether two gold fields hide in the fog (default on; games from before lack it). */
+  gold?: boolean;
 }
 
 // ── Pieces ──────────────────────────────────────────────────────────────────

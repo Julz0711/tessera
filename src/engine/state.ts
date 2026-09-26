@@ -94,7 +94,8 @@ export function createGame(opts: CreateGameOptions): GameState {
   const map: MapId = opts.settings?.map ?? 'standard';
   if (players.length < 2 || players.length > MAX_PLAYERS[map]) throw new Error(`This map seats 2–${MAX_PLAYERS[map]} players`);
   const rng = { rng: normalizeSeed(opts.seed) };
-  const board = generateBoard(rng, map);
+  const gold = opts.settings?.gold ?? true;
+  const board = generateBoard(rng, map, { gold });
   const topo = getTopology(board.hexes);
 
   const devDeck: DevCardType[] = [];
@@ -122,6 +123,7 @@ export function createGame(opts: CreateGameOptions): GameState {
     vpToWin: opts.settings?.vpToWin ?? DEFAULT_VP[mode],
     discardLimit: opts.settings?.discardLimit ?? 7,
     friendlyRobber: opts.settings?.friendlyRobber ?? false,
+    gold,
   };
 
   const n = players.length;

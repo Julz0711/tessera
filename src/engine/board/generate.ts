@@ -285,7 +285,7 @@ function tokensValid(topo: Topology, tokens: (number | null)[], allowEqual = fal
  * while ring 3's corners and all of ring 4 hide the other resources and two gold fields under fog.
  * Six 2:1 lumber harbors line the lake shore.
  */
-function blackForestBoard(rng: RngHolder): Board {
+function blackForestBoard(rng: RngHolder, gold: boolean): Board {
   const topo = getTopology(BLACK_FOREST_HEX_COORDS);
   // The six hexes of a ring that lie straight out from the centre.
   const straight = (h: HexCoord) => h.q === 0 || h.r === 0 || h.q + h.r === 0;
@@ -296,21 +296,27 @@ function blackForestBoard(rng: RngHolder): Board {
   for (const id of visible) terrains[id] = 'forest';
   // The two gold fields never touch: both are always a 6 or an 8, and those may not sit side by side.
   const goldTouches = () => fogged.some((id) => terrains[id] === 'gold' && topo.hexes[id].neighbors.some((n) => terrains[n] === 'gold'));
+  // Without gold, two random resources take the gold fields' places.
+  const resources: Terrain[] = ['hills', 'pasture', 'fields', 'mountains'];
+  const hiddenBag = gold
+    ? bag(BLACK_FOREST_FOG)
+    : [...bag(BLACK_FOREST_FOG).filter((t) => t !== 'gold'), resources[randomInt(rng, 4)], resources[randomInt(rng, 4)]];
   do {
-    const hidden = shuffle(rng, bag(BLACK_FOREST_FOG));
+    const hidden = shuffle(rng, [...hiddenBag]);
     fogged.forEach((id, i) => (terrains[id] = hidden[i]));
   } while (goldTouches());
 
   // Gold is always a 6 or an 8. With this many numbers only the 6s and 8s are kept apart.
-  const gold = fogged.filter((id) => terrains[id] === 'gold');
+  const goldIds = fogged.filter((id) => terrains[id] === 'gold');
   const fixed: (number | null)[] = topo.hexes.map(() => null);
-  for (const id of gold) fixed[id] = shuffle(rng, [6, 8])[0];
+  for (const id of goldIds) fixed[id] = shuffle(rng, [6, 8])[0];
   const tokens = spreadRedTokens(
     rng,
     topo,
     [
       [visible, [...BLACK_FOREST_TOKENS]],
-      [fogged.filter((id) => terrains[id] !== 'gold'), [...BLACK_FOREST_FOG_TOKENS]],
+      // Tiles standing in for gold get a 5 and a 9 rather than gold's 6 or 8.
+      [fogged.filter((id) => terrains[id] !== 'gold'), gold ? [...BLACK_FOREST_FOG_TOKENS] : [...BLACK_FOREST_FOG_TOKENS, 5, 9]],
     ],
     fixed,
   );
@@ -327,9 +333,12 @@ function blackForestBoard(rng: RngHolder): Board {
   return { hexes, harbors };
 }
 
-/** Random "balanced" board for a map: no adjacent 6/8 and no adjacent equal numbers. */
-export function generateBoard(rng: RngHolder, map: MapId = 'standard'): Board {
-  if (map === 'blackForest') return blackForestBoard(rng);
+/**
+ * Random "balanced" board for a map: no adjacent 6/8 and no adjacent equal numbers. `gold: false`
+ * leaves Black Forest's gold fields out.
+ */
+export function generateBoard(rng: RngHolder, map: MapId = 'standard', opts: { gold?: boolean } = {}): Board {
+  if (map === 'blackForest') return blackForestBoard(rng, opts.gold ?? true);
   if (map === 'goldRush') return goldRushBoard(rng);
   if (map === 'vulcan') return vulcanBoard(rng);
   const spec = MAPS[map];

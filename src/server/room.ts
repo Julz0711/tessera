@@ -313,6 +313,7 @@ export class Room {
     }
     if (typeof patch.friendlyRobber === 'boolean') next.friendlyRobber = patch.friendlyRobber;
     if (typeof patch.allowSpectators === 'boolean') next.allowSpectators = patch.allowSpectators;
+    if (typeof patch.gold === 'boolean') next.gold = patch.gold;
     this.settings = next;
   }
 
@@ -415,7 +416,12 @@ export class Room {
       seed: randomInt(0, 2 ** 32 - 1),
       mode: this.settings.mode,
       players: this.seats.map((s) => ({ id: s.playerId, name: s.name, color: s.color, isBot: s.isBot })),
-      settings: { vpToWin: this.settings.vpToWin, friendlyRobber: this.settings.friendlyRobber, map: this.settings.map ?? 'standard' },
+      settings: {
+        vpToWin: this.settings.vpToWin,
+        friendlyRobber: this.settings.friendlyRobber,
+        map: this.settings.map ?? 'standard',
+        gold: this.settings.gold ?? true,
+      },
     });
     this.gameId = randomUUID();
     this.gameNumber++;
