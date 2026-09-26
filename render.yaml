@@ -7,6 +7,8 @@ services:
     name: pioneers
     runtime: node
     plan: free
+    # Close to the players (and to the Neon database, in AWS Frankfurt).
+    region: frankfurt
     # `prisma db push` creates or updates the tables; it refuses changes that would drop data.
     buildCommand: npm ci && npx prisma db push && npm run build
     startCommand: npm start
