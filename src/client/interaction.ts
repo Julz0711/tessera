@@ -31,7 +31,7 @@ import type { PlayerView } from '@/engine/view';
 import { NO_TARGETS, type BoardTargets, type TargetKind } from '@/components/board/types';
 import { usePrefs } from './prefs';
 import { api } from './store';
-import { useUi, type Armed, type BuildOption, type BuildWhat, type UiMode } from './ui';
+import { useUi, type Armed, type BuildOption, type BuildWhat, type RobberPick, type UiMode } from './ui';
 
 export interface PickSpec {
   target: 'vertex' | 'hex' | 'edge';
@@ -106,11 +106,14 @@ function affordableSpots(view: PlayerView, me: number): Record<'roads' | 'settle
  * @param hints Offer affordable build spots when nothing is selected (colonist-style): they show
  *   on hover, and a click opens the build popup there without picking Road/Settle/City first.
  * @param armed The spot whose build popup is open; it keeps a ghost of the piece.
+ * @param robber The hex picked for the robber, waiting for confirmation; it keeps a ghost robber.
  */
-export function computeTargets(view: PlayerView | null, mode: UiMode, hints = false, armed: Armed | null = null): BoardTargets {
+export function computeTargets(view: PlayerView | null, mode: UiMode, hints = false, armed: Armed | null = null, robber: RobberPick | null = null): BoardTargets {
   const targets = baseTargets(view, mode, hints);
-  if (!armed || targets === NO_TARGETS) return targets;
-  return { ...targets, armed: { target: armed.target, at: armed.at, what: armed.options[0].what } };
+  if (targets === NO_TARGETS) return targets;
+  if (armed) return { ...targets, armed: { target: armed.target, at: armed.at, what: armed.options[0].what } };
+  if (robber && targets.kind === 'robber') return { ...targets, armed: { target: 'hex', at: robber.hex, what: 'robber' } };
+  return targets;
 }
 
 function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): BoardTargets {
@@ -224,11 +227,8 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
     switch (prompt.kind) {
       case 'freeRoads':
         return arm('edge', id, [{ what: 'road', action: { type: 'buildRoad', edge: id }, cost: null }], false);
-      case 'robber': {
-        const victims = robberVictims(view, me, id);
-        if (prompt.reason !== 'bishop' && victims.length > 1) return ui.setRobber({ hex: id, chaseFrom: null });
-        return send({ type: 'moveRobber', hex: id, victim: prompt.reason === 'bishop' ? null : (victims[0] ?? null) });
-      }
+      case 'robber':
+        return pickRobberHex(view, id, null);
       case 'loseCity':
         return send({ type: 'loseCity', vertex: id });
       case 'relocateKnight':
@@ -248,11 +248,7 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
   const done = () => useUi.getState().setMode(null);
   if (mode?.t === 'build') return arm(target === 'edge' ? 'edge' : 'vertex', id, [buildOption(mode.what, id)], true);
   if (mode?.t === 'knightMove') return send({ type: 'moveKnight', from: mode.from, to: id }, done);
-  if (mode?.t === 'knightChase') {
-    const victims = robberVictims(view, me, id);
-    if (victims.length > 1) return ui.setRobber({ hex: id, chaseFrom: mode.from });
-    return send({ type: 'chaseRobber', vertex: mode.from, hex: id, victim: victims[0] ?? null }, done);
-  }
+  if (mode?.t === 'knightChase') return pickRobberHex(view, id, mode.from);
   if (mode?.t === 'progress') {
     const spec = progressPickSpec(view, mode.cardType);
     if (!spec) return;
@@ -273,6 +269,45 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
   ] as const;
   const options = offers.flatMap(([what, at]) => (at.includes(id) ? [buildOption(what, id)] : []));
   if (options.length) return arm('vertex', id, options, false);
+}
+
+/** Who the viewer chooses between when the robber goes to `hex` (nobody for the Bishop: it robs everyone there). */
+export function robberPickVictims(view: PlayerView, hex: number): number[] {
+  const me = view.viewer;
+  if (me === null) return [];
+  const prompt = view.pending.find((p) => p.seat === me);
+  return prompt?.kind === 'robber' && prompt.reason === 'bishop' ? [] : robberVictims(view, me, hex);
+}
+
+/**
+ * Picks the robber's new hex: a popup there (with a ghost robber) asks first, so a stray click
+ * can't move it. A second click on the hex or Enter confirms; with confirmation turned off, only a
+ * choice between several victims still asks.
+ */
+function pickRobberHex(view: PlayerView, hex: number, chaseFrom: number | null): Promise<void> | void {
+  const ui = useUi.getState();
+  const again = ui.robber?.hex === hex && ui.robber.chaseFrom === chaseFrom;
+  ui.setRobber({ hex, chaseFrom });
+  if (again || !usePrefs.getState().confirmBuilds) return confirmRobber(view);
+}
+
+/**
+ * Moves the robber to the picked hex and robs `victim`. Left out, the victim is the only one there
+ * (or nobody); a choice between several keeps the popup open.
+ */
+export async function confirmRobber(view: PlayerView, victim?: number): Promise<void> {
+  const ui = useUi.getState();
+  const pick = ui.robber;
+  if (!pick) return;
+  // The pick only stands while the robber is still waiting for this move.
+  const targets = baseTargets(view, ui.mode, false);
+  if (targets.kind !== 'robber' || !targets.hexes.includes(pick.hex)) return ui.setRobber(null);
+  const victims = robberPickVictims(view, pick.hex);
+  if (victim === undefined && victims.length > 1) return;
+  const robbed = victim ?? victims[0] ?? null;
+  ui.setRobber(null);
+  if (pick.chaseFrom === null) return send({ type: 'moveRobber', hex: pick.hex, victim: robbed });
+  return send({ type: 'chaseRobber', vertex: pick.chaseFrom, hex: pick.hex, victim: robbed }, () => useUi.getState().setMode(null));
 }
 
 function buildOption(what: BuildWhat, at: number): BuildOption {

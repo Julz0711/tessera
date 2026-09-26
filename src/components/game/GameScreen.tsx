@@ -28,7 +28,8 @@ import { Dock } from './Dock';
 import { GameOver } from './GameOver';
 import { LogPanel } from './LogPanel';
 import { PlayersPanel } from './PlayersPanel';
-import { DiscardDialog, FreeRoadsBanner, GoldDialog, VictimDialog } from './Prompts';
+import { DiscardDialog, FreeRoadsBanner, GoldDialog } from './Prompts';
+import { RobberPopup } from './RobberPopup';
 import { TopBar } from './TopBar';
 import { OffersTray } from './TradePanel';
 import { cardList, fly, type Place } from '@/client/fx';
@@ -242,7 +243,10 @@ export function GameScreen() {
 
   const styles = useMemo(() => room?.seats.map((s) => s.knight) ?? [], [room?.seats]);
   const scene = useMemo(() => (view ? { ...sceneFromView(view, styles), highlightToken: highlight } : null), [view, styles, highlight]);
-  const targets = useMemo(() => computeTargets(view, ui.mode, prefs.buildHints, ui.armed), [view, ui.mode, prefs.buildHints, ui.armed]);
+  const targets = useMemo(
+    () => computeTargets(view, ui.mode, prefs.buildHints, ui.armed, ui.robber),
+    [view, ui.mode, prefs.buildHints, ui.armed, ui.robber],
+  );
 
   const onVertex = useCallback((id: number) => view && void handlePick(view, 'vertex', id), [view]);
   const onEdge = useCallback((id: number) => view && void handlePick(view, 'edge', id), [view]);
@@ -266,8 +270,8 @@ export function GameScreen() {
           pieceScale={BOARD_SCALE[prefs.boardScale]}
           scene={scene}
           targets={targets}
-          popup={ui.armed && view ? <BuildPopup view={view} armed={ui.armed} /> : null}
-          onBackground={ui.armed ? () => ui.arm(null) : undefined}
+          popup={ui.armed ? <BuildPopup view={view} armed={ui.armed} /> : ui.robber ? <RobberPopup view={view} pick={ui.robber} /> : null}
+          onBackground={ui.armed ? () => ui.arm(null) : ui.robber ? () => ui.setRobber(null) : undefined}
           interactive
           onVertex={targets.vertices.length ? onVertex : undefined}
           onEdge={targets.edges.length ? onEdge : undefined}
@@ -354,7 +358,6 @@ export function GameScreen() {
       {/* dialogs */}
       {myPrompt?.kind === 'discard' && <DiscardDialog view={view} prompt={myPrompt} />}
       {myPrompt?.kind === 'goldPick' && <GoldDialog view={view} prompt={myPrompt} />}
-      {ui.robber !== null && <VictimDialog view={view} hex={ui.robber.hex} chaseFrom={ui.robber.chaseFrom} />}
       {myPrompt && <CkPromptDialog view={view} prompt={myPrompt} />}
       {ui.panel === 'improve' && me !== null && <ImprovementsPanel view={view} />}
       {ui.card?.kind === 'progress' && me !== null && <ProgressCardDialog key={ui.card.id} view={view} id={ui.card.id} />}

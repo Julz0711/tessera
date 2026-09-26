@@ -2,11 +2,9 @@
 
 import { SkipForward } from 'lucide-react';
 import { useState } from 'react';
-import { CARDS, RESOURCES, handTotal, robberVictims, type PartialHand, type Prompt } from '@/engine';
+import { CARDS, RESOURCES, handTotal, type PartialHand, type Prompt } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { api } from '@/client/store';
-import { useUi } from '@/client/ui';
-import { PLAYER_COLORS } from '@/shared/colors';
 import { Modal } from '@/components/ui/Modal';
 import { CardPicker } from './cards';
 
@@ -74,40 +72,6 @@ export function DiscardDialog({ view, prompt }: { view: PlayerView; prompt: Extr
         >
           Discard
         </button>
-      </div>
-    </Modal>
-  );
-}
-
-export function VictimDialog({ view, hex, chaseFrom }: { view: PlayerView; hex: number; chaseFrom: number | null }) {
-  const ui = useUi();
-  const me = view.viewer!;
-  const victims = robberVictims(view, me, hex);
-  return (
-    <Modal open onClose={() => ui.setRobber(null)} title="Steal from…">
-      <div className="grid gap-2">
-        {victims.map((seat) => {
-          const p = view.players[seat];
-          const c = PLAYER_COLORS[p.color];
-          return (
-            <button
-              key={seat}
-              type="button"
-              className="btn justify-between px-4 py-3"
-              style={{ ['--btn-bg' as string]: c.hex, ['--btn-fg' as string]: c.ink }}
-              onClick={async () => {
-                ui.setRobber(null);
-                const r = await api.act(
-                  chaseFrom !== null ? { type: 'chaseRobber', vertex: chaseFrom, hex, victim: seat } : { type: 'moveRobber', hex, victim: seat },
-                );
-                if (r.ok && chaseFrom !== null) ui.setMode(null);
-              }}
-            >
-              <span className="text-lg">{p.name}</span>
-              <span className="text-sm">{p.handCount} cards</span>
-            </button>
-          );
-        })}
       </div>
     </Modal>
   );

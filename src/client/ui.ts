@@ -35,7 +35,10 @@ export type Panel = null | 'trade' | 'bank' | 'improve';
 /** A card from the hand opened to read and play (development cards are grouped by type). */
 export type CardFocus = { kind: 'dev'; type: DevCardType } | { kind: 'progress'; id: number };
 
-/** A pending robber move waiting for the victim choice (from a 7/knight/bishop or a knight chase). */
+/**
+ * The hex picked for the robber (from a 7/knight/bishop or a knight chase), waiting in a popup there
+ * for confirmation and the victim choice.
+ */
 export interface RobberPick {
   hex: number;
   chaseFrom: number | null;
@@ -73,13 +76,20 @@ export const useUi = create<UiStore>((set) => ({
   armed: null,
   sideTab: 'log',
   sideOpen: true,
-  setMode: (mode) => set({ mode, panel: null, card: null, knightMenu: null, armed: null }),
+  setMode: (mode) => set({ mode, panel: null, card: null, knightMenu: null, armed: null, robber: null }),
   toggleBuild: (what) =>
-    set((s) => ({ mode: s.mode?.t === 'build' && s.mode.what === what ? null : { t: 'build', what }, panel: null, card: null, knightMenu: null, armed: null })),
-  setPanel: (panel) => set((s) => ({ panel: s.panel === panel ? null : panel, mode: null, card: null, knightMenu: null, armed: null })),
-  openCard: (card) => set({ card, panel: null, mode: null, knightMenu: null, armed: null }),
+    set((s) => ({
+      mode: s.mode?.t === 'build' && s.mode.what === what ? null : { t: 'build', what },
+      panel: null,
+      card: null,
+      knightMenu: null,
+      armed: null,
+      robber: null,
+    })),
+  setPanel: (panel) => set((s) => ({ panel: s.panel === panel ? null : panel, mode: null, card: null, knightMenu: null, armed: null, robber: null })),
+  openCard: (card) => set({ card, panel: null, mode: null, knightMenu: null, armed: null, robber: null }),
   setRobber: (robber) => set({ robber }),
-  setKnightMenu: (knightMenu) => set({ knightMenu, armed: null }),
+  setKnightMenu: (knightMenu) => set({ knightMenu, armed: null, robber: null }),
   arm: (armed) => set({ armed }),
   setSide: (sideTab, open) => set((s) => ({ sideTab, sideOpen: open ?? (s.sideTab === sideTab ? !s.sideOpen : true) })),
   cancelModes: () => set({ mode: null, panel: null, robber: null, knightMenu: null, armed: null }),

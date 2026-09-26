@@ -27,8 +27,13 @@ export interface BoardTargets {
   vertexKinds?: Partial<Record<number, TargetKind>>;
   /** Build hints: spots offered without a build mode, only shown on hover. */
   hint?: boolean;
-  /** The spot whose build popup is open: boards keep a ghost of the piece there and anchor the popup to it. */
-  armed?: { target: 'vertex' | 'edge'; at: number; what: 'road' | 'settlement' | 'city' | 'knight' | 'wall' };
+  /**
+   * The spot whose popup is open (a build, or the robber's next hex): boards keep a ghost of the
+   * piece there and anchor the popup to it.
+   */
+  armed?:
+    | { target: 'vertex' | 'edge'; at: number; what: 'road' | 'settlement' | 'city' | 'knight' | 'wall' }
+    | { target: 'hex'; at: number; what: 'robber' };
 }
 
 export const NO_TARGETS: BoardTargets = { kind: null, vertices: [], edges: [], hexes: [] };
@@ -60,7 +65,7 @@ export interface BoardHandlers {
 export interface BoardProps extends BoardHandlers {
   scene: BoardScene;
   targets: BoardTargets;
-  /** Build popup content, anchored above `targets.armed`. */
+  /** Popup content (a build or the robber's confirmation), anchored above `targets.armed`. */
   popup?: ReactNode;
   /** A click on the board that hit no target (closes the popup). */
   onBackground?: () => void;
