@@ -22,7 +22,7 @@ export interface RoomSettings {
   turnTimer: number;
   friendlyRobber: boolean;
   allowSpectators: boolean;
-  /** Black Forest: gold fields in the fog. Rooms saved before the toggle lack it (= on). */
+  /** Black Forest: gold fields in the fog (off for new rooms). Rooms saved before the toggle lack it (= on). */
   gold?: boolean;
 }
 
@@ -34,7 +34,7 @@ export const DEFAULT_ROOM_SETTINGS: RoomSettings = {
   turnTimer: 0,
   friendlyRobber: false,
   allowSpectators: true,
-  gold: true,
+  gold: false,
 };
 
 export const TURN_TIMER_OPTIONS = [0, 60, 90, 120, 180] as const;
