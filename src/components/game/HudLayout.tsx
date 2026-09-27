@@ -12,8 +12,8 @@ const SLOT_LABEL: Record<HudSlot, string> = {
   leftBottom: 'Left · bottom',
   rightTop: 'Right · top',
   rightBottom: 'Right · bottom',
-  cornerLeft: 'Dice corner',
-  cornerRight: 'Dice corner',
+  cornerLeft: 'Corner',
+  cornerRight: 'Corner',
 };
 
 interface Drag {

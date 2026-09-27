@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Maximize2, Minus, Plus } from "lucide-react";
 import { PIPS } from "@/engine/constants";
 import { getTopology, type Topology } from "@/engine/board/topology";
@@ -10,8 +11,23 @@ import { PALETTES, type BoardPalette, type TileColors } from "@/client/themes";
 import { THEME_GLYPHS } from "./themes";
 import { PLAYER_COLORS } from "@/shared/colors";
 import { harborAnchor } from "@/components/board/harbor";
-import type { BoardProps } from "@/components/board/types";
+import { barbarianTrackLayout, type BarbarianLayout } from "@/components/board/barbarian";
+import type { BoardProps, BoardScene } from "@/components/board/types";
 import { useZoomPan } from "./useZoomPan";
+import { useZoomHost } from "@/client/hud";
+
+/** Whether the screen is wide enough for the desktop HUD (Tailwind's `lg`). */
+function useWide(): boolean {
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const update = () => setWide(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return wide;
+}
 
 const S = 100; // world units → SVG units
 /** How much of its hex a tile fills; the rest is a strip of beach between neighbours. */
@@ -466,6 +482,136 @@ function Gloom({
   );
 }
 
+/** A flat pointy-top hexagon, sized like the barbarian track's little sea-steps. */
+function hexStepPoints(cx: number, cy: number, r: number): string {
+  const w = r * (Math.sqrt(3) / 2);
+  return [
+    [cx, cy - r],
+    [cx + w, cy - r / 2],
+    [cx + w, cy + r / 2],
+    [cx, cy + r],
+    [cx - w, cy + r / 2],
+    [cx - w, cy - r / 2],
+  ]
+    .map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`)
+    .join(" ");
+}
+
+type PierColors = { deck: string; plank: string; post: string };
+
+/** The barbarian longship: hull, curled prow, a striped sail and a few shields along the gunwale. */
+function BarbarianShipGlyph({
+  x,
+  y,
+  danger,
+  wood,
+  ps,
+}: {
+  x: number;
+  y: number;
+  danger: boolean;
+  wood: PierColors;
+  ps: number;
+}) {
+  const hull = danger ? "#8a1f14" : wood.deck;
+  const sail = danger ? "#f3d9d3" : "#f6eddb";
+  const stripe = danger ? "#8a1f14" : "#a83b2e";
+  return (
+    <g transform={`translate(${x} ${y}) scale(${1.8 * ps})`} pointerEvents="none">
+      <path d="M-26 8h52l-10 14h-32Z" fill={hull} stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
+      {/* curled prow */}
+      <path d="M26 8q14-2 14-14q0-8-8-8" fill="none" stroke={wood.post} strokeWidth="3.5" strokeLinecap="round" />
+      <rect x="-1.5" y="-36" width="3" height="45" fill={wood.post} />
+      <path d="M-18-32h34q-4 16 0 32h-34q4-16 0-32Z" fill={sail} stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
+      <rect x="-7" y="-32" width="5" height="32" fill={stripe} />
+      <rect x="6" y="-32" width="5" height="32" fill={stripe} />
+      <circle cx="-14" cy="15" r="4" fill={stripe} stroke="#1f1a14" strokeWidth="1.2" />
+      <circle cx="0" cy="16" r="4" fill={sail} stroke="#1f1a14" strokeWidth="1.2" />
+      <circle cx="14" cy="15" r="4" fill={stripe} stroke="#1f1a14" strokeWidth="1.2" />
+    </g>
+  );
+}
+
+/** A round badge (always screen-facing in 2D): a glyph, with its number in a dark bubble on the rim. */
+function BarbarianBadge({
+  x,
+  y,
+  value,
+  icon,
+  ok,
+}: {
+  x: number;
+  y: number;
+  value: number;
+  icon: "ship" | "swords";
+  ok: boolean;
+}) {
+  const rim = ok ? "#2f6b45" : "#e0503a";
+  return (
+    <g transform={`translate(${x} ${y}) scale(1.35)`} pointerEvents="none">
+      <circle r="17" fill="#f6eddb" stroke={rim} strokeWidth="4" />
+      {icon === "ship" ? (
+        <path d="M-8 3h16l-3 5h-10Z M0 3v-9 M0-8l6 3-6 3Z" fill={rim} />
+      ) : (
+        <g stroke={rim} strokeWidth="2.6" strokeLinecap="round">
+          <line x1="-7" y1="-7" x2="7" y2="6" />
+          <line x1="7" y1="-7" x2="-7" y2="6" />
+        </g>
+      )}
+      <g transform="translate(14 11)">
+        <circle r="10.5" fill="#1f1a14" stroke="#f6eddb" strokeWidth="2" />
+        <text y="4.6" textAnchor="middle" className="display" fontSize="13" fontWeight="900" fill="#f6eddb">
+          {value}
+        </text>
+      </g>
+    </g>
+  );
+}
+
+/**
+ * The barbarian ship's voyage (C&K): a column of small hex sea-steps west of the island, the
+ * landing (last step) glowing warm orange, and the ship on its current step with its two badges.
+ */
+function BarbarianTrack2D({
+  barbarian,
+  layout,
+  palette,
+  ps,
+}: {
+  barbarian: NonNullable<BoardScene["barbarian"]>;
+  layout: BarbarianLayout;
+  palette: BoardPalette;
+  ps: number;
+}) {
+  const wood = palette.pier ?? { deck: "#9c6f42", plank: "#8a6139", post: "#6b4a2b" };
+  const danger = barbarian.position >= barbarian.distance - 2;
+  const ok = barbarian.defense >= barbarian.strength;
+  const shipX = layout.x * S;
+  const shipY = layout.y(barbarian.position) * S;
+  return (
+    <g>
+      {Array.from({ length: barbarian.distance + 1 }, (_, i) => {
+        const landing = i === barbarian.distance;
+        const fill = landing ? (danger ? "#e0503a" : "#f2b33d") : wood.deck;
+        return (
+          <polygon
+            key={i}
+            points={hexStepPoints(layout.x * S, layout.y(i) * S, 25)}
+            fill={fill}
+            stroke={wood.post}
+            strokeWidth="3"
+            strokeLinejoin="round"
+            opacity={landing ? 0.95 : 0.82}
+          />
+        );
+      })}
+      <BarbarianShipGlyph x={shipX} y={shipY} danger={danger} wood={wood} ps={ps} />
+      <BarbarianBadge x={shipX - 62} y={shipY - 26} value={barbarian.strength} icon="ship" ok={ok} />
+      <BarbarianBadge x={shipX - 62} y={shipY + 26} value={barbarian.defense} icon="swords" ok={ok} />
+    </g>
+  );
+}
+
 export default function Board2D({
   scene,
   targets,
@@ -483,19 +629,30 @@ export default function Board2D({
   const ps = pieceScale;
   const topo = getTopology(scene.board.hexes);
   const [hover, setHover] = useState<string | null>(null);
+  const barbarian = scene.barbarian;
+  const barbLayout = useMemo(
+    () => (barbarian ? barbarianTrackLayout(topo, barbarian.distance + 1) : null),
+    [topo, barbarian],
+  );
   const bounds = useMemo(() => {
     const xs = topo.vertices.map((v) => v.x * S);
     const ys = topo.vertices.map((v) => v.y * S);
     const pad = 95;
-    const minX = Math.min(...xs) - pad;
-    const minY = Math.min(...ys) - pad;
+    let minX = Math.min(...xs) - pad;
+    let minY = Math.min(...ys) - pad;
+    // Room for the barbarian track's steps and badges, west of the island.
+    if (barbLayout) {
+      minX = Math.min(minX, barbLayout.x * S - 95);
+      // The ship's sail stands above the first step.
+      minY = Math.min(minY, barbLayout.y(0) * S - 75);
+    }
     return {
       minX,
       minY,
       w: Math.max(...xs) + pad - minX,
       h: Math.max(...ys) + pad - minY,
     };
-  }, [topo]);
+  }, [topo, barbLayout]);
   const hexTargets = new Set(targets.hexes);
   const myColor = scene.myColor;
   const {
@@ -510,6 +667,40 @@ export default function Board2D({
     reset,
     svgHandlers,
   } = useZoomPan(bounds, !!interactive);
+  const wideHud = useWide();
+  const hostEl = useZoomHost((s) => s.el);
+  const zoomHost = wideHud ? hostEl : null;
+  const zoomControls = (
+        <div className={zoomHost ? "flex gap-1.5" : "absolute bottom-2 left-2 z-10 flex flex-col gap-1.5"}>
+          <button
+            type="button"
+            className="btn btn-dark h-10 w-10 p-0"
+            onClick={zoomIn}
+            disabled={zoom >= maxZoom - 1e-6}
+            aria-label="Zoom in"
+          >
+            <Plus size={18} />
+          </button>
+          <button
+            type="button"
+            className="btn btn-dark h-10 w-10 p-0"
+            onClick={zoomOut}
+            disabled={zoom <= minZoom + 1e-6}
+            aria-label="Zoom out"
+          >
+            <Minus size={18} />
+          </button>
+          <button
+            type="button"
+            className="btn btn-dark h-10 w-10 p-0"
+            onClick={reset}
+            disabled={atHome}
+            aria-label="Reset zoom"
+          >
+            <Maximize2 size={18} />
+          </button>
+        </div>
+  );
 
   // The popup floats above its spot in screen space, so it keeps its size at any zoom.
   const armed = targets.armed;
@@ -990,6 +1181,11 @@ export default function Board2D({
           k={ps}
         />
 
+        {/* barbarian ship's voyage (C&K) */}
+        {barbarian && barbLayout && (
+          <BarbarianTrack2D barbarian={barbarian} layout={barbLayout} palette={palette} ps={ps} />
+        )}
+
         {/* targets */}
         {onEdge &&
           targets.edges.map((eid) => {
@@ -1257,37 +1453,8 @@ export default function Board2D({
           {popup}
         </div>
       )}
-      {interactive && (
-        <div className="absolute bottom-2 left-2 z-10 flex flex-col gap-1.5">
-          <button
-            type="button"
-            className="btn btn-dark h-10 w-10 p-0"
-            onClick={zoomIn}
-            disabled={zoom >= maxZoom - 1e-6}
-            aria-label="Zoom in"
-          >
-            <Plus size={18} />
-          </button>
-          <button
-            type="button"
-            className="btn btn-dark h-10 w-10 p-0"
-            onClick={zoomOut}
-            disabled={zoom <= minZoom + 1e-6}
-            aria-label="Zoom out"
-          >
-            <Minus size={18} />
-          </button>
-          <button
-            type="button"
-            className="btn btn-dark h-10 w-10 p-0"
-            onClick={reset}
-            disabled={atHome}
-            aria-label="Reset zoom"
-          >
-            <Maximize2 size={18} />
-          </button>
-        </div>
-      )}
+      {/* On wide screens the zoom buttons live in the HUD (wherever the player put them), a row there. */}
+      {interactive && (zoomHost ? createPortal(zoomControls, zoomHost) : zoomControls)}
     </div>
   );
 }

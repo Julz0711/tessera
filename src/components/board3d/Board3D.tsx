@@ -8,6 +8,8 @@ import type * as THREE from 'three';
 import { STANDARD_HEX_COORDS, getTopology, type Topology } from '@/engine/board/topology';
 import { PALETTES } from '@/client/themes';
 import type { BoardProps, BoardScene, BoardTargets } from '@/components/board/types';
+import { barbarianTrackLayout } from '@/components/board/barbarian';
+import { Barbarians } from './barbarians';
 import { City, CityWall, HarborPiece, Merchant, MetropolisTower, NumberToken, Road, Robber, Settlement } from './pieces';
 import { Targets } from './targets';
 import { HexTile } from './terrain';
@@ -37,6 +39,19 @@ function boardFrame(topo: Topology): { cx: number; cz: number; extent: number; a
 }
 
 const STANDARD_EXTENT = boardFrame(getTopology(STANDARD_HEX_COORDS)).extent;
+
+/** Whether the screen is clearly wider than tall (desktop, a phone on its side). */
+function useLandscape(): boolean {
+  const [landscape, setLandscape] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-aspect-ratio: 6/5)');
+    const update = () => setLandscape(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+  return landscape;
+}
 
 /** Keeps a panned camera over the island: pulls the orbit target back (camera and all) past `radius`. */
 function keepOverIsland(controls: { target: THREE.Vector3; object: THREE.Camera }, radius: number): void {
@@ -176,6 +191,7 @@ function Island({
       )}
       <KnightPieces scene={scene} topo={topo} />
       <Robber x={robberHex.x} z={robberHex.y + 0.46} />
+      {scene.barbarian && <Barbarians barbarian={scene.barbarian} topo={topo} />}
       <Targets targets={targets} topo={topo} color={scene.myColor} popup={popup} onVertex={onVertex} onEdge={onEdge} onHex={onHex} />
     </group>
   );
@@ -199,7 +215,16 @@ export default function Board3D({
   // Where the last press started: a click away closes the build popup, a drag (orbit/pan) doesn't.
   const pressed = useRef<{ x: number; y: number } | null>(null);
   const fontsReady = useFontReady();
-  const frame = useMemo(() => boardFrame(getTopology(scene.board.hexes)), [scene.board.hexes]);
+  const landscape = useLandscape();
+  const frame = useMemo(() => {
+    const topo = getTopology(scene.board.hexes);
+    const base = boardFrame(topo);
+    // The barbarian track sits west of the island. A landscape screen has sea to spare beside the
+    // island; a portrait one pulls the camera back so the track stays on-screen.
+    if (!scene.barbarian || landscape) return base;
+    const track = barbarianTrackLayout(topo, scene.barbarian.distance + 1);
+    return { ...base, extent: Math.max(base.extent, track.reach) };
+  }, [scene.board.hexes, scene.barbarian, landscape]);
   // Bigger maps pull the camera, fog, shadows and sea shelf out to match; a long, wide island a
   // little further, so its ends stay clear of the side panel.
   const scale = Math.max(1, frame.extent / STANDARD_EXTENT) * (1 + Math.max(0, frame.aspect - 1.3) * 0.12);

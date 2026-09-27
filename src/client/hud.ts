@@ -3,16 +3,16 @@
 import { create } from 'zustand';
 
 /** The HUD panels a player can move around (desktop). The top bar and the dock stay put. */
-export type HudPanel = 'side' | 'players' | 'bank' | 'dice' | 'offers';
+export type HudPanel = 'side' | 'players' | 'bank' | 'dice' | 'offers' | 'zoom';
 /**
  * Where a panel can go: the top or bottom of the left or right column, or a corner beside the dock
- * (only the dice fit there).
+ * (only the small ones fit there: the dice and the 2D board's zoom buttons).
  */
 export type HudSlot = 'leftTop' | 'leftBottom' | 'rightTop' | 'rightBottom' | 'cornerLeft' | 'cornerRight';
 export type HudLayout = Record<HudPanel, { slot: HudSlot; order: number }>;
 export type HudScale = 'small' | 'medium' | 'large';
 
-export const HUD_PANELS: readonly HudPanel[] = ['side', 'players', 'bank', 'dice', 'offers'];
+export const HUD_PANELS: readonly HudPanel[] = ['side', 'players', 'bank', 'dice', 'offers', 'zoom'];
 export const HUD_SLOTS: readonly HudSlot[] = ['leftTop', 'leftBottom', 'rightTop', 'rightBottom', 'cornerLeft', 'cornerRight'];
 export const CORNER_SLOTS: readonly HudSlot[] = ['cornerLeft', 'cornerRight'];
 
@@ -25,20 +25,22 @@ export const PANEL_LABEL: Record<HudPanel, string> = {
   bank: 'Bank',
   dice: 'Dice',
   offers: 'Trade offers',
+  zoom: 'Zoom',
 };
 
-/** Today's screen: offers top-left, log/bank/players down the right, dice in the bottom-right corner. */
+/** Offers top-left, log/bank/players down the right, dice bottom-right and the zoom buttons bottom-left. */
 export const DEFAULT_HUD_LAYOUT: HudLayout = {
   offers: { slot: 'leftTop', order: 0 },
   side: { slot: 'rightTop', order: 0 },
   bank: { slot: 'rightTop', order: 1 },
   players: { slot: 'rightTop', order: 2 },
   dice: { slot: 'cornerRight', order: 0 },
+  zoom: { slot: 'cornerLeft', order: 0 },
 };
 
-/** Whether `panel` may sit in `slot`: the corners beside the dock only have room for the dice. */
+/** Whether `panel` may sit in `slot`: the corners beside the dock only have room for small panels. */
 export function fits(panel: HudPanel, slot: HudSlot): boolean {
-  return !CORNER_SLOTS.includes(slot) || panel === 'dice';
+  return !CORNER_SLOTS.includes(slot) || panel === 'dice' || panel === 'zoom';
 }
 
 /** A stored layout, with anything unknown or misplaced back at its default spot. */
@@ -73,4 +75,13 @@ export const useHud = create<{ editing: boolean; startEditing(): void; stopEditi
   editing: false,
   startEditing: () => set({ editing: true }),
   stopEditing: () => set({ editing: false }),
+}));
+
+/**
+ * Where the 2D board's zoom buttons go on wide screens: the element of the `zoom` HUD panel (null
+ * while it isn't mounted, e.g. outside a game). The board portals its buttons into it.
+ */
+export const useZoomHost = create<{ el: HTMLElement | null; set(el: HTMLElement | null): void }>((set) => ({
+  el: null,
+  set: (el) => set({ el }),
 }));

@@ -111,10 +111,98 @@ export function harborTexture(kind: HarborKind): THREE.CanvasTexture {
   return tex;
 }
 
+const barbarianBadgeCache = new Map<string, THREE.CanvasTexture>();
+
+/** Two crossing blades, tips up — the defense badge's glyph. */
+function drawCrossedSwords(g: CanvasRenderingContext2D, x: number, y: number, s: number, color: string): void {
+  g.save();
+  g.translate(x, y);
+  g.strokeStyle = color;
+  g.fillStyle = color;
+  g.lineCap = 'round';
+  for (const flip of [1, -1]) {
+    g.save();
+    g.scale(flip, 1);
+    g.lineWidth = s * 0.16;
+    g.beginPath();
+    g.moveTo(-s * 0.55, s * 0.55);
+    g.lineTo(s * 0.55, -s * 0.55);
+    g.stroke();
+    // crossguard
+    g.beginPath();
+    g.moveTo(s * 0.18, -s * 0.18);
+    g.lineTo(s * 0.34, -s * 0.02);
+    g.lineWidth = s * 0.13;
+    g.stroke();
+    g.restore();
+  }
+  g.restore();
+}
+
+/** A little longship silhouette — the barbarian strength badge's glyph. */
+function drawShipGlyph(g: CanvasRenderingContext2D, x: number, y: number, s: number, color: string): void {
+  g.save();
+  g.translate(x, y);
+  g.fillStyle = color;
+  g.beginPath();
+  g.moveTo(-s * 0.62, s * 0.12);
+  g.quadraticCurveTo(-s * 0.5, s * 0.42, 0, s * 0.42);
+  g.quadraticCurveTo(s * 0.5, s * 0.42, s * 0.62, s * 0.12);
+  g.quadraticCurveTo(0, s * 0.28, -s * 0.62, s * 0.12);
+  g.fill();
+  g.strokeStyle = color;
+  g.lineWidth = s * 0.1;
+  g.beginPath();
+  g.moveTo(0, s * 0.1);
+  g.lineTo(0, -s * 0.55);
+  g.stroke();
+  g.beginPath();
+  g.moveTo(-s * 0.02, -s * 0.5);
+  g.lineTo(s * 0.4, -s * 0.34);
+  g.lineTo(-s * 0.02, -s * 0.18);
+  g.closePath();
+  g.fill();
+  g.restore();
+}
+
+/**
+ * A round badge for the barbarian track (C&K): the ship's strength, or the island's defense, with
+ * a small glyph above the number. Cached like the harbor/token faces.
+ */
+export function barbarianBadgeTexture(
+  value: number,
+  icon: 'ship' | 'swords',
+  colors: { rim: string; face: string; ink: string },
+): THREE.CanvasTexture {
+  const key = `${value}|${icon}|${colors.rim}|${colors.face}|${colors.ink}`;
+  const hit = barbarianBadgeCache.get(key);
+  if (hit) return hit;
+  const [c, g] = canvas256();
+  g.fillStyle = colors.rim;
+  g.beginPath();
+  g.arc(128, 128, 126, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = colors.face;
+  g.beginPath();
+  g.arc(128, 128, 106, 0, Math.PI * 2);
+  g.fill();
+  if (icon === 'ship') drawShipGlyph(g, 128, 84, 46, colors.ink);
+  else drawCrossedSwords(g, 128, 82, 40, colors.ink);
+  g.fillStyle = colors.ink;
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  sturdyText(g, String(value), 128, 168, value >= 10 ? 78 : 90);
+  const tex = finish(c);
+  barbarianBadgeCache.set(key, tex);
+  return tex;
+}
+
 /** Call after web fonts load so textures re-render with the real display font. */
 export function resetTextureCache(): void {
   for (const t of tokenCache.values()) t.dispose();
   for (const t of harborCache.values()) t.dispose();
+  for (const t of barbarianBadgeCache.values()) t.dispose();
   tokenCache.clear();
   harborCache.clear();
+  barbarianBadgeCache.clear();
 }

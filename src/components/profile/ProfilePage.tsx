@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Crown, Database, LogOut, Pencil, Save, Swords, Trophy } from 'lucide-react';
+import { ArrowLeft, Database, LogOut, Pencil, Save } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -8,9 +8,9 @@ import { signOut } from '@/client/auth';
 import { usePrefs } from '@/client/prefs';
 import { ensureSession } from '@/client/session';
 import type { ProfileData } from '@/shared/protocol';
-import { PLAYER_COLORS } from '@/shared/colors';
 import { DEFAULT_KNIGHT } from '@/shared/knight';
 import { PlayerPortrait, TitleTag } from './Cosmetics';
+import { GameHistory } from './GameHistory';
 import { SignInChoices } from '@/components/auth/SignInChoices';
 import { FriendsPanel } from '@/components/social/FriendsPanel';
 import { Logomark } from '@/components/ui/Logomark';
@@ -110,17 +110,17 @@ export function ProfilePage() {
                 <Link href="/profile/edit" className="btn px-4 py-2">
                   <Pencil size={16} /> Edit profile
                 </Link>
-                <Link href="/leaderboard" className="btn px-4 py-2">
-                  <Trophy size={16} /> Leaderboard
-                </Link>
                 {user ? (
                   <button type="button" className="btn btn-ghost px-4 py-2" onClick={() => void signOut()}>
                     <LogOut size={16} /> Sign out
                   </button>
                 ) : (
-                  <button type="button" className="btn btn-primary px-4 py-2" onClick={() => setSaving(true)}>
-                    <Save size={16} /> Save my profile
-                  </button>
+                  // Saving a guest profile means signing in; hidden when this server has no sign-in set up.
+                  (data.session.auth.google || data.session.auth.discord) && (
+                    <button type="button" className="btn btn-primary px-4 py-2" onClick={() => setSaving(true)}>
+                      <Save size={16} /> Save my profile
+                    </button>
+                  )
                 )}
               </div>
               {!data.session.persistence && (
@@ -144,48 +144,7 @@ export function ProfilePage() {
           </section>
         )}
 
-        {data && (
-          <section className="grid gap-3">
-            <h2 className="display text-2xl font-black text-paper">Game history</h2>
-            {data.history.length === 0 && <p className="text-foam/60">No finished games yet. Go win one!</p>}
-            {data.history.map((g) => (
-              <article key={g.gameId} className="paper-flat flex flex-wrap items-center gap-3 p-3">
-                <span className={`grid h-10 w-10 place-items-center rounded-xl border-2 border-ink ${g.won ? 'bg-amber' : 'bg-paper-2'}`}>
-                  {g.won ? <Trophy size={18} /> : <span className="display text-lg font-black">{g.rank ?? '–'}</span>}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 font-extrabold">
-                    {g.won ? 'Victory' : g.rank ? `Finished #${g.rank}` : 'Played'}
-                    <span className="flex items-center gap-1 rounded bg-ink px-1.5 text-[10px] font-black uppercase tracking-wider text-paper">
-                      {g.mode === 'ck' ? <Crown size={10} /> : <Swords size={10} />} {g.mode === 'ck' ? 'C&K' : 'Classic'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-ink-faint">
-                    {new Date(g.endedAt ?? g.startedAt).toLocaleString()}
-                    {g.ratingDelta !== null && (
-                      <span className={`ml-2 font-black ${g.ratingDelta >= 0 ? 'text-moss' : 'text-danger'}`}>
-                        {g.ratingDelta >= 0 ? '+' : ''}
-                        {g.ratingDelta} rating
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {g.players.map((p, i) => (
-                    <span
-                      key={i}
-                      className={`rounded-md px-2 py-0.5 text-xs font-bold ${p.isYou ? 'ring-2 ring-ink' : ''}`}
-                      style={{ background: PLAYER_COLORS[p.color].hex, color: PLAYER_COLORS[p.color].ink }}
-                    >
-                      {p.name} · {p.vp ?? '?'}
-                      {p.won ? ' 🏆' : ''}
-                    </span>
-                  ))}
-                </div>
-              </article>
-            ))}
-          </section>
-        )}
+        {data && <GameHistory history={data.history} />}
       </div>
 
       {data && (

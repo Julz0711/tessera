@@ -7,7 +7,7 @@ import type { PlayerView } from '@/engine/view';
 import { DEV_NAMES, PROGRESS_NAMES } from '@/client/describe';
 import { CARD_COLORS } from '@/client/palette';
 import { BOARD_SCALE, usePrefs } from '@/client/prefs';
-import { HUD_PANELS, HUD_SCALE, slotPanels, type HudPanel } from '@/client/hud';
+import { HUD_PANELS, HUD_SCALE, slotPanels, useZoomHost, type HudPanel } from '@/client/hud';
 import { PALETTES, type BoardPalette } from '@/client/themes';
 import { play } from '@/client/sound';
 import { api, toast, useGame } from '@/client/store';
@@ -19,7 +19,6 @@ import { BuildPopup } from './BuildPopup';
 import { ChatPanel } from '@/components/room/ChatPanel';
 import { BankPanel } from './BankPanel';
 import { BankStrip } from './BankStrip';
-import { BarbarianTrack } from './ck/BarbarianTrack';
 import { CkPromptDialog, PickBanner } from './ck/CkPrompts';
 import { ImprovementsPanel } from './ck/ImprovementsPanel';
 import { KnightMenu } from './ck/KnightMenu';
@@ -224,6 +223,7 @@ export function GameScreen() {
   const unread = useGame((s) => s.unread);
   const prefs = usePrefs();
   const ui = useUi();
+  const setZoomHost = useZoomHost((s) => s.set);
   const [highlight, setHighlight] = useState<number | null>(null);
   const [showResults, setShowResults] = useState(true);
 
@@ -282,8 +282,8 @@ export function GameScreen() {
     '--hud-l': `${(columnUsed('left') ? 300 : 8) * zoom}px`,
     '--hud-r': `${(columnUsed('right') ? 300 : 8) * zoom}px`,
   } as React.CSSProperties;
-  // The dock keeps clear of whichever corner holds the dice.
-  const dockClear = slotPanels(layout, 'cornerRight').length ? 'lg:right-56 xl:right-0' : slotPanels(layout, 'cornerLeft').length ? 'lg:left-56 xl:left-0' : '';
+  // The dock keeps clear of the corners that hold something.
+  const dockClear = `${slotPanels(layout, 'cornerRight').length ? 'lg:right-56 xl:right-0' : ''} ${slotPanels(layout, 'cornerLeft').length ? 'lg:left-56 xl:left-0' : ''}`;
 
   const renderPanel = (panel: HudPanel, side: HudSide) => {
     switch (panel) {
@@ -294,18 +294,16 @@ export function GameScreen() {
           </div>
         );
       case 'bank':
-        return (
-          <div className="grid gap-2">
-            <BankStrip view={view} />
-            {view.mode === 'ck' && <BarbarianTrack view={view} />}
-          </div>
-        );
+        return <BankStrip view={view} />;
       case 'players':
         return <PlayersPanel view={view} room={room} align={side} />;
       case 'dice':
         return <DiceBox view={view} size={60} />;
       case 'offers':
         return <OffersTray view={view} className="w-full" />;
+      case 'zoom':
+        // The 2D board portals its zoom buttons in here (empty on the 3D board).
+        return <div ref={setZoomHost} />;
     }
   };
 
@@ -363,7 +361,6 @@ export function GameScreen() {
           view={view}
           room={room}
           compact
-          leading={view.mode === 'ck' ? <div className="w-52 shrink-0"><BarbarianTrack view={view} /></div> : undefined}
         />
       </div>
 

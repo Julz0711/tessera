@@ -7,6 +7,7 @@ describe('hud layout', () => {
     expect(slotPanels(DEFAULT_HUD_LAYOUT, 'rightTop')).toEqual(['side', 'bank', 'players']);
     expect(slotPanels(DEFAULT_HUD_LAYOUT, 'leftTop')).toEqual(['offers']);
     expect(slotPanels(DEFAULT_HUD_LAYOUT, 'cornerRight')).toEqual(['dice']);
+    expect(slotPanels(DEFAULT_HUD_LAYOUT, 'cornerLeft')).toEqual(['zoom']);
   });
 
   it('places every panel exactly once', () => {
@@ -31,6 +32,7 @@ describe('hud layout', () => {
     expect(fits('players', 'cornerLeft')).toBe(false);
     expect(movePanel(DEFAULT_HUD_LAYOUT, 'players', 'cornerLeft')).toBe(DEFAULT_HUD_LAYOUT);
     expect(slotPanels(movePanel(DEFAULT_HUD_LAYOUT, 'dice', 'leftBottom'), 'leftBottom')).toEqual(['dice']);
+    expect(slotPanels(movePanel(DEFAULT_HUD_LAYOUT, 'dice', 'cornerLeft'), 'cornerLeft')).toEqual(['zoom', 'dice']);
   });
 
   it('sanitizes stored layouts', () => {
@@ -48,7 +50,7 @@ describe('prefs', () => {
   const stored = (v: unknown) => vi.stubGlobal('window', { localStorage: { getItem: () => JSON.stringify(v) } });
 
   it('reads the HUD and sound settings, dropping bad values', () => {
-    stored({ hudScale: 'large', hudLayout: { dice: { slot: 'cornerLeft', order: 0 } }, sfxVolume: { dice: 0.5, win: 7, turn: 'loud' } });
+    stored({ hudScale: 'large', hudLayout: { dice: { slot: 'cornerLeft', order: 1 } }, sfxVolume: { dice: 0.5, win: 7, turn: 'loud' } });
     const p = read();
     expect(p.hudScale).toBe('large');
     expect(p.hudLayout.dice.slot).toBe('cornerLeft');

@@ -55,6 +55,8 @@ export interface BoardScene {
   myColor: PlayerColor | null;
   /** Last dice total, to highlight producing hexes. */
   highlightToken: number | null;
+  /** The barbarian ship's voyage (C&K only; unset for classic games and demo scenes). */
+  barbarian?: { position: number; distance: number; strength: number; defense: number } | null;
 }
 
 export interface BoardHandlers {
