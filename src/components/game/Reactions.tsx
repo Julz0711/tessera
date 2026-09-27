@@ -73,7 +73,7 @@ export function ReactionPicker() {
  * A player's latest reaction as a speech bubble beside their avatar; it fades after a few seconds.
  * Rendered into the page body at the avatar's position, so scrolling panels don't clip it.
  */
-export function ReactionBubble({ playerId, side }: { playerId: string; side: 'left' | 'below' }) {
+export function ReactionBubble({ playerId, side }: { playerId: string; side: 'left' | 'right' | 'below' }) {
   const r = useGame((s) => s.reactions[playerId]);
   const visible = useUntil(r ? r.at + REACTION_SHOW_MS : 0);
   const anchor = useRef<HTMLSpanElement>(null);
@@ -83,9 +83,10 @@ export function ReactionBubble({ playerId, side }: { playerId: string; side: 'le
     const box = avatar?.getBoundingClientRect();
     // A panel that isn't displayed (the phone layout on a desktop) measures as an empty box.
     if (!visible || !box || box.width === 0) return setAt(null);
-    // To the left, the bubble keeps clear of the whole player card, not just the avatar inside it.
+    // Beside the card, the bubble keeps clear of the whole player card, not just the avatar inside it.
     const card = avatar?.closest('li')?.getBoundingClientRect() ?? box;
-    setAt(side === 'left' ? { x: card.left - 10, y: box.top + box.height / 2 } : { x: box.left + box.width / 2, y: box.bottom + 10 });
+    const mid = box.top + box.height / 2;
+    setAt(side === 'left' ? { x: card.left - 10, y: mid } : side === 'right' ? { x: card.right + 10, y: mid } : { x: box.left + box.width / 2, y: box.bottom + 10 });
   }, [visible, side, r?.at]);
   const text = r ? reactionText(r.reaction) : '';
   const emote = r ? isEmote(r.reaction) : false;
@@ -99,7 +100,7 @@ export function ReactionBubble({ playerId, side }: { playerId: string; side: 'le
             key={r.at}
             className={`pointer-events-none fixed z-50 animate-pop whitespace-nowrap rounded-2xl border-2 border-ink bg-paper px-2.5 py-1 font-black text-ink shadow-token ${
               emote ? 'text-sm' : 'text-2xl leading-none'
-            } ${side === 'left' ? '-translate-x-full -translate-y-1/2' : '-translate-x-1/2'}`}
+            } ${side === 'left' ? '-translate-x-full -translate-y-1/2' : side === 'right' ? '-translate-y-1/2' : '-translate-x-1/2'}`}
             style={{ left: at.x, top: at.y }}
             role="status"
           >

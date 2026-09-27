@@ -104,19 +104,22 @@ export function PlayersPanel({
   room,
   compact = false,
   leading,
+  align = 'right',
 }: {
   view: PlayerView;
   room: RoomDTO | null;
   compact?: boolean;
   /** Extra tile shown before the players (e.g. the barbarian track on phones). */
   leading?: React.ReactNode;
+  /** Which side of the screen the panel sits on: the current player's card sticks out towards the board. */
+  align?: 'left' | 'right';
 }) {
   // Whoever has to act: a pending prompt comes first (even a gold pick found during setup).
   const actors = new Set(
     view.pending.length ? view.pending.map((p) => p.seat) : view.phase === 'setup' && view.setup ? [view.setup.order[view.setup.index]] : [view.turn.seat],
   );
   const ck = view.mode === 'ck';
-  // Whose turn it is (the player placing, during setup): their card sticks out to the left.
+  // Whose turn it is (the player placing, during setup): their card sticks out towards the board.
   const turnSeat = view.phase === 'setup' && view.setup ? view.setup.order[view.setup.index] : view.phase === 'play' ? view.turn.seat : null;
   const me = view.viewer;
   const myEmbargo = me !== null ? (view.players[me].embargo ?? []) : [];
@@ -170,7 +173,7 @@ export function PlayersPanel({
               {view.winner === seat && <Crown size={12} className="text-amber-deep" />}
               {vp}
             </span>
-            <ReactionBubble playerId={p.id} side={compact ? 'below' : 'left'} />
+            <ReactionBubble playerId={p.id} side={compact ? 'below' : align === 'right' ? 'left' : 'right'} />
           </div>
         );
         const contents = (
@@ -236,7 +239,7 @@ export function PlayersPanel({
               },
             })}
             className={`paper-flat relative flex shrink-0 flex-col gap-1 p-2 pl-3 pr-2.5 transition-all duration-300 motion-reduce:transition-none ${
-              compact ? 'min-w-max' : `min-w-0 ${turnSeat === seat ? '-ml-4' : ''}`
+              compact ? 'min-w-max' : `min-w-0 ${turnSeat === seat ? (align === 'right' ? '-ml-4' : '-mr-4') : ''}`
             } ${
               acting ? 'ring-4 ring-amber' : ''
             } ${clickable ? 'cursor-pointer hover:brightness-[0.97]' : ''}`}

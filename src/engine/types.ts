@@ -11,7 +11,7 @@ export type Hand = Record<Card, number>;
 export type PartialHand = Partial<Record<Card, number>>;
 
 export const RESOURCES: readonly Resource[] = ['brick', 'lumber', 'wool', 'grain', 'ore'];
-export const COMMODITIES: readonly Commodity[] = ['paper', 'cloth', 'coin'];
+export const COMMODITIES: readonly Commodity[] = ['cloth', 'coin', 'paper'];
 export const CARDS: readonly Card[] = [...RESOURCES, ...COMMODITIES];
 
 export function isResource(card: unknown): card is Resource {

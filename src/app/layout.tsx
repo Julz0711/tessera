@@ -4,6 +4,7 @@ import { APP_DESCRIPTION, APP_NAME } from '@/config/app';
 import { Toasts } from '@/components/ui/Toasts';
 import { PrefsLoader } from '@/components/ui/PrefsLoader';
 import { SocialLayer } from '@/components/social/SocialLayer';
+import { SettingsOverlay } from '@/components/settings/SettingsOverlay';
 import './globals.css';
 
 const fraunces = Fraunces({
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Toasts />
         <PrefsLoader />
         <SocialLayer />
+        <SettingsOverlay />
       </body>
     </html>
   );

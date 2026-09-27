@@ -1,13 +1,12 @@
 'use client';
 
-import { Box, Clock, Copy, Grid2x2, LogOut, Menu, Volume2, VolumeX, Wifi, WifiOff } from 'lucide-react';
+import { Box, Clock, Copy, Grid2x2, LogOut, Menu, Settings, Volume2, VolumeX, Wifi, WifiOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { statusLine } from '@/client/describe';
 import { usePrefs } from '@/client/prefs';
-import { BOARD_THEMES } from '@/client/themes';
-import { ThemeSwatch } from '@/components/ui/ThemeSwatch';
-import { setVolume } from '@/client/sound';
+import { useSettingsUI } from '@/client/settingsUI';
+import { setVolume, setSfxVolumes } from '@/client/sound';
 import { api, toast, useGame } from '@/client/store';
 import type { PlayerView } from '@/engine/view';
 import type { RoomDTO } from '@/shared/protocol';
@@ -35,6 +34,7 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
   const seconds = useCountdown(room.deadline);
 
   useEffect(() => setVolume(prefs.volume), [prefs.volume]);
+  useEffect(() => setSfxVolumes(prefs.sfxVolume), [prefs.sfxVolume]);
 
   const copy = async () => {
     try {
@@ -63,95 +63,20 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
             <Menu size={18} />
           </button>
           {menu && (
-            <div className="paper animate-pop scroll-thin absolute left-0 top-12 z-40 grid max-h-[calc(100dvh-5rem)] w-64 gap-3 overflow-y-auto p-3">
-              <div className="grid gap-1.5">
-                <span className="label">Board</span>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <button type="button" className={`btn py-1.5 text-sm ${prefs.view === '3d' ? 'btn-primary' : ''}`} onClick={() => prefs.set({ view: '3d' })}>
-                    <Box size={15} /> 3D
-                  </button>
-                  <button type="button" className={`btn py-1.5 text-sm ${prefs.view === '2d' ? 'btn-primary' : ''}`} onClick={() => prefs.set({ view: '2d' })}>
-                    <Grid2x2 size={15} /> 2D
-                  </button>
-                </div>
-              </div>
-              <div className="grid gap-1.5">
-                <span className="label">Theme</span>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {BOARD_THEMES.map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      className={`btn justify-start gap-1.5 px-1.5 py-1 text-sm ${prefs.boardTheme === t.id ? 'btn-primary' : ''}`}
-                      onClick={() => prefs.set({ boardTheme: t.id })}
-                      title={t.blurb}
-                    >
-                      <ThemeSwatch theme={t.id} size={26} /> {t.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {prefs.view === '3d' && (
-                <div className="grid gap-1.5">
-                  <span className="label">3D quality</span>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {(['high', 'low'] as const).map((q) => (
-                      <button key={q} type="button" className={`btn py-1 text-sm capitalize ${prefs.graphics === q ? 'btn-primary' : ''}`} onClick={() => prefs.set({ graphics: q })}>
-                        {q}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="grid gap-1.5">
-                <span className="label">Board size</span>
-                <div className="grid grid-cols-3 gap-1.5" title="Size of the pieces, number tokens and harbors">
-                  {(['small', 'medium', 'large'] as const).map((sz) => (
-                    <button key={sz} type="button" className={`btn px-1 py-1 text-sm ${prefs.boardScale === sz ? 'btn-primary' : ''}`} onClick={() => prefs.set({ boardScale: sz })}>
-                      {sz === 'small' ? 'S' : sz === 'medium' ? 'M' : 'L'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="grid gap-1.5">
-                <span className="label">Animations</span>
-                <div className="grid grid-cols-3 gap-1.5" title="System follows your device's reduce-motion setting">
-                  {(['system', 'full', 'reduced'] as const).map((m) => (
-                    <button key={m} type="button" className={`btn px-1 py-1 text-sm capitalize ${prefs.motion === m ? 'btn-primary' : ''}`} onClick={() => prefs.set({ motion: m })}>
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="grid gap-1.5">
-                <span className="label">Build hints</span>
-                <div className="grid grid-cols-2 gap-1.5" title="Hovering a spot you can afford to build on previews the piece; click it to build">
-                  {([true, false] as const).map((on) => (
-                    <button key={String(on)} type="button" className={`btn py-1 text-sm ${prefs.buildHints === on ? 'btn-primary' : ''}`} onClick={() => prefs.set({ buildHints: on })}>
-                      {on ? 'On' : 'Off'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="grid gap-1.5">
-                <span className="label">Confirm placements</span>
-                <div className="grid grid-cols-2 gap-1.5" title="Placing a piece or moving the robber asks first: pick it in the popup, or click the spot again">
-                  {([true, false] as const).map((on) => (
-                    <button key={String(on)} type="button" className={`btn py-1 text-sm ${prefs.confirmBuilds === on ? 'btn-primary' : ''}`} onClick={() => prefs.set({ confirmBuilds: on })}>
-                      {on ? 'On' : 'Off'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="grid gap-1.5">
-                <span className="label">Sound</span>
-                <div className="flex items-center gap-2">
-                  <button type="button" className="btn btn-ghost h-8 w-8 p-0" onClick={() => prefs.set({ volume: prefs.volume > 0 ? 0 : 0.6 })} aria-label="Toggle sound">
-                    {prefs.volume > 0 ? <Volume2 size={16} /> : <VolumeX size={16} />}
-                  </button>
-                  <input type="range" min={0} max={1} step={0.05} value={prefs.volume} onChange={(e) => prefs.set({ volume: Number(e.target.value) })} className="flex-1 accent-ink" aria-label="Volume" />
-                </div>
-              </div>
+            <div className="paper animate-pop absolute left-0 top-12 z-40 grid w-56 gap-1.5 p-3">
+              <button
+                type="button"
+                className="btn py-1.5 text-sm"
+                onClick={() => {
+                  setMenu(false);
+                  useSettingsUI.getState().show();
+                }}
+              >
+                <Settings size={15} /> Settings
+              </button>
+              <button type="button" className="btn py-1.5 text-sm" onClick={() => prefs.set({ volume: prefs.volume > 0 ? 0 : 0.6 })}>
+                {prefs.volume > 0 ? <Volume2 size={15} /> : <VolumeX size={15} />} {prefs.volume > 0 ? 'Mute' : 'Unmute'}
+              </button>
               <button type="button" className="btn py-1.5 text-sm" onClick={copy}>
                 <Copy size={15} /> Copy invite link
               </button>

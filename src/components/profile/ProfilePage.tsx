@@ -107,7 +107,7 @@ export function ProfilePage() {
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
-                <Link href="/settings" className="btn px-4 py-2">
+                <Link href="/profile/edit" className="btn px-4 py-2">
                   <Pencil size={16} /> Edit profile
                 </Link>
                 <Link href="/leaderboard" className="btn px-4 py-2">

@@ -3,9 +3,10 @@
 import * as THREE from 'three';
 import type { Terrain } from '@/engine/types';
 import { mat } from '../materials';
+import { usePieceScale } from '../pieceScale';
 import { classicProps } from '../terrain';
 import { CORNERS, EDGE, TG, TILE_TOP, TOKEN_CLEAR, inFront, polar, seeded, spread, type Prop } from '../terrainKit';
-import type { ModelProps, ThemeKit } from './types';
+import type { ModelProps, PieceColors, ThemeKit } from './types';
 
 const y = TILE_TOP;
 
@@ -250,5 +251,36 @@ function Robber({ o, ghost }: { o: { opacity?: number }; ghost: boolean }) {
   );
 }
 
+/** Little wooden boardwalk slats across the road, a paper lantern beside them and a stray petal or two. */
+const ROAD_GEO = {
+  slat: new THREE.BoxGeometry(0.05, 0.016, 0.15),
+  lanternPost: new THREE.CylinderGeometry(0.009, 0.011, 0.055, 6),
+  lanternBox: new THREE.BoxGeometry(0.04, 0.034, 0.04),
+  lanternRoof: new THREE.ConeGeometry(0.032, 0.024, 4),
+  petal: new THREE.BoxGeometry(0.028, 0.004, 0.017),
+};
+
+/** A wooden boardwalk over the road, a tiny paper lantern lighting one end, and fallen blossom petals. */
+function Road({ ghost }: { ghost: boolean; c: PieceColors }) {
+  const k = usePieceScale();
+  if (ghost) return null;
+  const top = 0.045 * (2 * k - 1);
+  return (
+    <group position={[0, top, 0]} scale={[1, 1, k]}>
+      {[-0.2, 0, 0.2].map((x) => (
+        <mesh key={x} geometry={ROAD_GEO.slat} material={mat('#8a6139')} position={[x, 0.008, 0]} />
+      ))}
+      {/* Clear of the boardwalk (half-width 0.065), so it reads as standing beside the road, not on it. */}
+      <group position={[0.25, 0, 0.17]}>
+        <mesh geometry={ROAD_GEO.lanternPost} material={mat('#9a968c')} position={[0, 0.028, 0]} />
+        <mesh geometry={ROAD_GEO.lanternBox} material={mat('#f0b96a', { emissive: '#f0b96a', glow: 0.6 })} position={[0, 0.073, 0]} />
+        <mesh geometry={ROAD_GEO.lanternRoof} material={mat('#7a766c')} position={[0, 0.101, 0]} rotation={[0, Math.PI / 4, 0]} />
+      </group>
+      <mesh geometry={ROAD_GEO.petal} material={mat('#eea1b8')} position={[-0.08, 0.018, -0.05]} rotation={[0, 0.6, 0]} />
+      <mesh geometry={ROAD_GEO.petal} material={mat('#f4b6c8')} position={[0.05, 0.018, 0.04]} rotation={[0, -0.4, 0]} />
+    </group>
+  );
+}
+
 /** Sakura Isle: blossom groves, rice paddies and pagodas. */
-export const sakura: ThemeKit = { props, Settlement, City, Robber };
+export const sakura: ThemeKit = { props, Settlement, City, Robber, Road };

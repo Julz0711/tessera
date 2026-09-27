@@ -53,11 +53,78 @@ let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let reverb: GainNode | null = null;
 let volume = 0.6;
+let sfxGains: Partial<Record<Sfx, number>> = {};
+/** The current sound's gain multiplier, applied inside `out()` for the duration of one `play()` call. */
+let activeGain = 1;
 
 export function setVolume(v: number): void {
   volume = v;
   if (master && ctx) master.gain.setTargetAtTime(v, ctx.currentTime, 0.02);
 }
+
+/** Sets the per-sound gain multipliers (0..1, on top of the master volume). Replaces the whole map; a missing sound plays at full gain. */
+export function setSfxVolumes(map: Partial<Record<Sfx, number>>): void {
+  sfxGains = { ...map };
+}
+
+/** Sounds grouped for the Audio settings tab, covering all 31 effects. */
+export const SFX_GROUPS: { id: string; label: string; sounds: { sfx: Sfx; label: string }[] }[] = [
+  {
+    id: 'ui',
+    label: 'UI',
+    sounds: [
+      { sfx: 'click', label: 'Button click' },
+      { sfx: 'open', label: 'Panel open' },
+      { sfx: 'close', label: 'Panel close' },
+      { sfx: 'error', label: 'Error' },
+      { sfx: 'chat', label: 'Chat message' },
+      { sfx: 'reaction', label: 'Reaction' },
+    ],
+  },
+  {
+    id: 'game',
+    label: 'Game',
+    sounds: [
+      { sfx: 'dice', label: 'Dice roll' },
+      { sfx: 'road', label: 'Road built' },
+      { sfx: 'settlement', label: 'Settlement built' },
+      { sfx: 'city', label: 'City built' },
+      { sfx: 'wall', label: 'Wall built' },
+      { sfx: 'build', label: 'Piece placed' },
+      { sfx: 'gain', label: 'Resource gained' },
+      { sfx: 'card', label: 'Card bought or played' },
+      { sfx: 'trade', label: 'Trade completed' },
+      { sfx: 'steal', label: 'Resource stolen' },
+      { sfx: 'knight', label: 'Knight recruited' },
+      { sfx: 'knightUp', label: 'Knight promoted or activated' },
+      { sfx: 'improve', label: 'City improved' },
+      { sfx: 'barbarianStep', label: 'Barbarian advances' },
+    ],
+  },
+  {
+    id: 'alerts',
+    label: 'Alerts',
+    sounds: [
+      { sfx: 'turn', label: 'Your turn' },
+      { sfx: 'offer', label: 'Trade offer' },
+      { sfx: 'stolen', label: 'You were robbed' },
+      { sfx: 'robber', label: 'Robber moved' },
+      { sfx: 'alert', label: 'Decision needed' },
+      { sfx: 'barbarianAttack', label: 'Barbarian attack' },
+    ],
+  },
+  {
+    id: 'rewards',
+    label: 'Rewards',
+    sounds: [
+      { sfx: 'award', label: 'Special award' },
+      { sfx: 'repelled', label: 'Barbarians repelled' },
+      { sfx: 'metropolis', label: 'Metropolis' },
+      { sfx: 'win', label: 'Victory' },
+      { sfx: 'lose', label: 'Defeat' },
+    ],
+  },
+];
 
 /** A soft, synthetic room: decaying stereo noise used as a convolution impulse. */
 function impulse(c: AudioContext, seconds: number, decay: number): AudioBuffer {
@@ -109,7 +176,7 @@ function out(c: AudioContext, node: AudioNode, v: Voice, attack = 0.005): { star
   const end = start + v.dur;
   const g = c.createGain();
   g.gain.setValueAtTime(0.0001, start);
-  g.gain.exponentialRampToValueAtTime(v.gain, start + attack);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0001, v.gain * activeGain), start + attack);
   g.gain.exponentialRampToValueAtTime(0.0001, end);
   node.connect(g);
   g.connect(master!);
@@ -208,6 +275,17 @@ const N = { C4: hz(-9), D4: hz(-7), E4: hz(-5), G4: hz(-2), A4: hz(0), C5: hz(3)
 export function play(sfx: Sfx): void {
   const c = audio();
   if (!c) return;
+  const g = sfxGains[sfx] ?? 1;
+  if (g <= 0) return;
+  activeGain = g;
+  try {
+    playSfx(c, sfx);
+  } finally {
+    activeGain = 1;
+  }
+}
+
+function playSfx(c: AudioContext, sfx: Sfx): void {
   switch (sfx) {
     // ── subtle UI ──────────────────────────────────────────────────────────
     case 'click':

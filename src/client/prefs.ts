@@ -6,6 +6,8 @@ import { isPlayerColor } from '@/shared/colors';
 import { isBoardTheme, type BoardThemeId } from './themes';
 import { DEFAULT_COSMETICS, sanitizeCosmetics, type Cosmetics } from '@/shared/cosmetics';
 import { DEFAULT_KNIGHT, sanitizeKnight, type KnightCustomization } from '@/shared/knight';
+import { DEFAULT_HUD_LAYOUT, sanitizeHudLayout, type HudLayout, type HudScale } from './hud';
+import type { Sfx } from './sound';
 
 /** Per-browser preferences (localStorage). Profiles override the identity defaults when signed in. */
 export interface Prefs {
@@ -27,6 +29,12 @@ export interface Prefs {
   motion: Motion;
   /** How the island looks (both boards). Only this player's screen changes. */
   boardTheme: BoardThemeId;
+  /** Size of the in-game HUD (panels, top bar, dock). */
+  hudScale: HudScale;
+  /** Where each movable HUD panel sits on wide screens. */
+  hudLayout: HudLayout;
+  /** Per-sound volume, 0..1 on top of the master volume; a missing sound plays at full. */
+  sfxVolume: Partial<Record<Sfx, number>>;
 }
 
 const KEY = 'prefs.v1';
@@ -50,9 +58,24 @@ const defaults = (): Prefs => ({
   boardScale: 'medium',
   motion: 'system',
   boardTheme: 'classic',
+  hudScale: 'medium',
+  hudLayout: DEFAULT_HUD_LAYOUT,
+  sfxVolume: {},
 });
 
-function read(): Prefs {
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+
+function sanitizeSfxVolume(raw: unknown): Partial<Record<Sfx, number>> {
+  const out: Partial<Record<Sfx, number>> = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [k, v] of Object.entries(raw)) if (typeof v === 'number' && Number.isFinite(v)) out[k as Sfx] = clamp01(v);
+  return out;
+}
+
+/** The persisted fields (everything but the store's own state and methods). */
+const FIELDS = Object.keys(defaults()) as (keyof Prefs)[];
+
+export function read(): Prefs {
   const base = defaults();
   try {
     const raw = typeof window !== 'undefined' ? window.localStorage.getItem(KEY) : null;
@@ -73,6 +96,9 @@ function read(): Prefs {
       boardScale: boardScale === 'small' || boardScale === 'large' ? boardScale : base.boardScale,
       motion: p.motion === 'full' || p.motion === 'reduced' ? p.motion : base.motion,
       boardTheme: isBoardTheme(p.boardTheme) ? p.boardTheme : base.boardTheme,
+      hudScale: p.hudScale === 'small' || p.hudScale === 'large' ? p.hudScale : base.hudScale,
+      hudLayout: sanitizeHudLayout(p.hudLayout),
+      sfxVolume: sanitizeSfxVolume(p.sfxVolume),
     };
   } catch {
     return base;
@@ -95,11 +121,8 @@ export const usePrefs = create<PrefsStore>((set, get) => ({
   set(patch) {
     set(patch);
     try {
-      const { name, color, knight, cosmetics, view, graphics, volume, buildHints, confirmBuilds, boardScale, motion, boardTheme } = { ...get(), ...patch };
-      window.localStorage.setItem(
-        KEY,
-        JSON.stringify({ name, color, knight, cosmetics, view, graphics, volume, buildHints, confirmBuilds, boardScale, motion, boardTheme }),
-      );
+      const all = get();
+      window.localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(FIELDS.map((f) => [f, all[f]]))));
     } catch {
       // Storage unavailable (private mode) — preferences just won't persist.
     }

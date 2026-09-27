@@ -315,9 +315,10 @@ function Robber({ o, ghost }: { o: { opacity?: number }; ghost: boolean }) {
       <mesh geometry={FOX.body} material={ink} position={[0, 0.15, 0]} castShadow={!ghost} />
       <mesh geometry={FOX.tail} material={ink} position={[0.1, 0.1, -0.1]} rotation={[-0.6, 0, -1]} castShadow={!ghost} />
       <mesh geometry={FOX.tip} material={mat('#fbf8f0', o)} position={[0.19, 0.16, -0.17]} rotation={[-0.6, 0, -1]} />
-      <mesh geometry={FOX.head} material={ink} position={[0, 0.36, 0.05]} rotation={[Math.PI - 0.5, 0, 0]} castShadow={!ghost} />
+      {/* Lowered onto the body's tapering top so the snout tucks in rather than hovering above it. */}
+      <mesh geometry={FOX.head} material={ink} position={[0, 0.27, 0.04]} rotation={[Math.PI - 0.5, 0, 0]} castShadow={!ghost} />
       {[-0.045, 0.045].map((x) => (
-        <mesh key={x} geometry={FOX.ear} material={ink} position={[x, 0.46, 0.0]} rotation={[-0.2, 0, x > 0 ? -0.3 : 0.3]} castShadow={!ghost} />
+        <mesh key={x} geometry={FOX.ear} material={ink} position={[x, 0.37, -0.01]} rotation={[-0.2, 0, x > 0 ? -0.3 : 0.3]} castShadow={!ghost} />
       ))}
     </>
   );

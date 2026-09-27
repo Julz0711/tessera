@@ -7,6 +7,7 @@ import type { PlayerView } from '@/engine/view';
 import { DEV_NAMES, PROGRESS_NAMES } from '@/client/describe';
 import { CARD_COLORS } from '@/client/palette';
 import { BOARD_SCALE, usePrefs } from '@/client/prefs';
+import { HUD_PANELS, HUD_SCALE, slotPanels, type HudPanel } from '@/client/hud';
 import { PALETTES, type BoardPalette } from '@/client/themes';
 import { play } from '@/client/sound';
 import { api, toast, useGame } from '@/client/store';
@@ -37,6 +38,7 @@ import { OffersTray } from './TradePanel';
 import { cardList, fly, type Place } from '@/client/fx';
 import { TERRAIN_COMMODITY, TERRAIN_RESOURCE } from '@/engine/constants';
 import { FlyLayer } from './FlyLayer';
+import { DesktopHud, type HudSide } from './HudLayout';
 
 function cardsText(h: PartialHand): string {
   return CARDS.filter((c) => (h[c] ?? 0) > 0)
@@ -269,6 +271,43 @@ export function GameScreen() {
 
   const me = view.viewer;
   const myPrompt = me !== null ? view.pending.find((p) => p.seat === me) : undefined;
+  const zoom = HUD_SCALE[prefs.hudScale];
+  const layout = prefs.hudLayout;
+  // A side column takes room from the flat board when it holds more than the (usually empty) offers.
+  const columnUsed = (side: HudSide) =>
+    HUD_PANELS.some((p) => p !== 'offers' && (layout[p].slot === `${side}Top` || layout[p].slot === `${side}Bottom`));
+  const board2d = {
+    '--hud-t': `${64 * zoom}px`,
+    '--hud-b': `${168 * zoom}px`,
+    '--hud-l': `${(columnUsed('left') ? 300 : 8) * zoom}px`,
+    '--hud-r': `${(columnUsed('right') ? 300 : 8) * zoom}px`,
+  } as React.CSSProperties;
+  // The dock keeps clear of whichever corner holds the dice.
+  const dockClear = slotPanels(layout, 'cornerRight').length ? 'lg:right-56 xl:right-0' : slotPanels(layout, 'cornerLeft').length ? 'lg:left-56 xl:left-0' : '';
+
+  const renderPanel = (panel: HudPanel, side: HudSide) => {
+    switch (panel) {
+      case 'side':
+        return (
+          <div className={`flex h-72 flex-col overflow-hidden ${ui.sideTab === 'dice' ? 'min-h-48' : 'min-h-36'}`}>
+            <SidePanel view={view} unread={unread} />
+          </div>
+        );
+      case 'bank':
+        return (
+          <div className="grid gap-2">
+            <BankStrip view={view} />
+            {view.mode === 'ck' && <BarbarianTrack view={view} />}
+          </div>
+        );
+      case 'players':
+        return <PlayersPanel view={view} room={room} align={side} />;
+      case 'dice':
+        return <DiceBox view={view} size={60} />;
+      case 'offers':
+        return <OffersTray view={view} className="w-full" />;
+    }
+  };
 
   return (
     <div
@@ -277,7 +316,13 @@ export function GameScreen() {
     >
       {/* The 3D canvas fills the screen (the camera frames the island above the dock); the flat
           2D board is fitted into the space the panels leave free. */}
-      <div className={prefs.view === '2d' ? 'absolute inset-x-2 bottom-80 top-37.5 lg:bottom-42 lg:left-2 lg:right-75 lg:top-16' : 'absolute inset-0'} data-board-anchor>
+      <div
+        className={
+          prefs.view === '2d' ? 'absolute inset-x-2 bottom-80 top-37.5 lg:top-(--hud-t) lg:right-(--hud-r) lg:bottom-(--hud-b) lg:left-(--hud-l)' : 'absolute inset-0'
+        }
+        style={prefs.view === '2d' ? board2d : undefined}
+        data-board-anchor
+      >
         <BoardView
           mode={prefs.view}
           quality={prefs.graphics}
@@ -297,7 +342,7 @@ export function GameScreen() {
       {/* top: z-30 so the menu dropdown (opened from TopBar) paints above the bottom dock row
           (dice box, mobile log/chat) instead of being covered by it — both are otherwise the same
           stacking level and the dock comes later in the DOM. */}
-      <div className="absolute inset-x-0 top-0 z-30">
+      <div className="absolute inset-x-0 top-0 z-30" style={{ zoom }}>
         <TopBar view={view} room={room} />
         <div className="pointer-events-none mt-1 flex flex-col items-center gap-2">
           {myPrompt?.kind === 'freeRoads' && (
@@ -311,30 +356,9 @@ export function GameScreen() {
         </div>
       </div>
 
-      {/* log/chat, bank, players: right column on desktop */}
-      {/* The pl-4 strip on the left is room for the current player's card to stick out into; it lets
-          clicks through to the board. */}
-      <div className="pointer-events-none absolute right-2 top-16 z-10 hidden max-h-[calc(100dvh-164px)] w-76 flex-col gap-2 overflow-y-auto overflow-x-hidden pl-4 scroll-thin *:pointer-events-auto lg:flex">
-        <div className={`flex max-h-72 flex-1 flex-col overflow-hidden ${ui.sideTab === 'dice' ? 'min-h-48' : 'min-h-36'}`}>
-          <SidePanel view={view} unread={unread} />
-        </div>
-        <div className="shrink-0">
-          <BankStrip view={view} />
-        </div>
-        {view.mode === 'ck' && (
-          <div className="shrink-0">
-            <BarbarianTrack view={view} />
-          </div>
-        )}
-        <div className="shrink-0">
-          <PlayersPanel view={view} room={room} />
-        </div>
-      </div>
-      {/* dice + roll: bottom-right on desktop; below lg it moves into the row above the dock */}
-      <div className="absolute bottom-2 right-2 z-20 hidden lg:block">
-        <DiceBox view={view} size={60} />
-      </div>
-      <div className="absolute inset-x-2 top-26 z-10 lg:hidden">
+      {/* log/chat, bank, players, dice and offers on wide screens, wherever the player put them */}
+      <DesktopHud render={renderPanel} />
+      <div className="absolute inset-x-2 top-26 z-10 lg:hidden" style={{ zoom }}>
         <PlayersPanel
           view={view}
           room={room}
@@ -343,8 +367,8 @@ export function GameScreen() {
         />
       </div>
 
-      {/* trade offers: top-left, clear of the side column (below the players strip on smaller screens) */}
-      <div className="absolute left-2 top-45 z-20 lg:top-16">
+      {/* trade offers on smaller screens: top-left, below the players strip */}
+      <div className="absolute left-2 top-45 z-20 lg:hidden" style={{ zoom }}>
         <OffersTray view={view} className="w-max min-w-[min(330px,calc(100vw-16px))] max-w-[calc(100vw-16px)]" />
       </div>
 
@@ -352,7 +376,7 @@ export function GameScreen() {
           however tall the dock gets (C&K's action bar wraps to three rows on phones). While the
           trade panel is open (the dice are rolled by then) that row steps aside, so the taller
           dock doesn't push it into the players strip. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-2 z-20 flex flex-col gap-2 px-2 lg:right-56 xl:right-0">
+      <div className={`pointer-events-none absolute inset-x-0 bottom-2 z-20 flex flex-col gap-2 px-2 ${dockClear}`} style={{ zoom }}>
         <div className={`items-end justify-between gap-2 lg:hidden ${ui.panel === 'trade' ? 'hidden' : 'flex'}`}>
           <div className="pointer-events-auto">
             <MobileSide view={view} unread={unread} />

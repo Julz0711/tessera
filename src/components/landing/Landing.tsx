@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, LogIn, ScrollText, Trophy } from "lucide-react";
+import { ArrowRight, LogIn, ScrollText, Settings, Trophy } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { APP_WORDMARK } from "@/config/app";
 import { LATEST_PATCH, PATCH_SEEN_KEY } from "@/config/patchNotes";
 import { usePrefs } from "@/client/prefs";
+import { useSettingsUI } from "@/client/settingsUI";
 import { fetchSession } from "@/client/session";
 import type { SessionInfo } from "@/shared/protocol";
 import { DEFAULT_KNIGHT } from "@/shared/knight";
@@ -121,6 +122,15 @@ export function Landing() {
               <span className="hidden sm:inline">Sign in</span>
             </button>
           )}
+          <button
+            type="button"
+            className="btn btn-dark h-9 w-9 p-0"
+            title="Settings"
+            aria-label="Settings"
+            onClick={() => useSettingsUI.getState().show()}
+          >
+            <Settings size={17} />
+          </button>
           <Link href="/profile" className="btn btn-dark px-3 py-1.5 text-sm">
             <KnightBadge knight={knight} color={color} size={24} />
             <span className="max-w-28 truncate">{name}</span>

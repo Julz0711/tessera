@@ -6,10 +6,11 @@ import * as THREE from 'three';
 import type { Terrain } from '@/engine/types';
 import { faceCamera } from '../faceCamera';
 import { GEO, mat } from '../materials';
+import { usePieceScale } from '../pieceScale';
 import { classicProps } from '../terrain';
 import { CORNERS, EDGE, TG, TILE_TOP, TOKEN_CLEAR, inFront, polar, seeded, spread, type Prop } from '../terrainKit';
 import { gableRoof, roofMat } from './shared';
-import type { ModelProps, ThemeKit } from './types';
+import type { ModelProps, PieceColors, ThemeKit } from './types';
 
 const y = TILE_TOP;
 
@@ -254,5 +255,26 @@ function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
   );
 }
 
+/** Split logs laid crosswise (corduroy road) and a small standing runestone beside them. */
+const ROAD_GEO = {
+  log: new THREE.CylinderGeometry(0.026, 0.03, 0.16, 6).rotateX(Math.PI / 2),
+  runeStone: new THREE.BoxGeometry(0.02, 0.08, 0.04),
+};
+
+/** Split-log corduroy planks across the road, with a tiny runestone standing just beside it. */
+function Road({ ghost }: { ghost: boolean; c: PieceColors }) {
+  const k = usePieceScale();
+  if (ghost) return null;
+  const top = 0.045 * (2 * k - 1);
+  return (
+    <group position={[0, top, 0]} scale={[1, 1, k]}>
+      {[-0.24, -0.12, 0, 0.12, 0.24].map((x) => (
+        <mesh key={x} geometry={ROAD_GEO.log} material={mat('#6b4a2a')} position={[x, 0.026, 0]} />
+      ))}
+      <mesh geometry={ROAD_GEO.runeStone} material={mat('#8b939b')} position={[0.26, 0.04, 0.11]} rotation={[0, 0.3, 0.05]} />
+    </group>
+  );
+}
+
 /** Nordic Fjords: spruce, heather and longhouses. */
-export const nordic: ThemeKit = { props, Settlement, City, Robber, Harbor };
+export const nordic: ThemeKit = { props, Settlement, City, Robber, Harbor, Road };
