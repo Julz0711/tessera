@@ -1,10 +1,10 @@
-# Settlers
+# Tessera
 
-*Working title — the name lives in `src/config/app.ts` (or `NEXT_PUBLIC_APP_NAME`).*
+*The name lives in `src/config/app.ts` (or `NEXT_PUBLIC_APP_NAME`).*
 
 A free, browser-based multiplayer strategy board game for friend groups: open the site, create a
 private room, share the link, and play on a low-poly **3D** board — or flip to a clean **2D** board
-at any time. Classic rules and **Cities & Knights**, bots, spectators, chat, trading, reconnect,
+at any time. Classic rules and the **Knights & Barbarians** expansion mode, bots, spectators, chat, trading, reconnect,
 optional Google/Discord profiles with stats and game history.
 
 ## Quick start
@@ -62,7 +62,7 @@ The game server keeps websocket connections open, so it needs a real Node host (
    and copy its connection string.
 2. **Server:** at [render.com](https://render.com), New → Blueprint → pick this repo. `render.yaml` sets up a free
    web service; paste the Neon string as `DATABASE_URL`. The build creates the tables (`prisma db push`).
-3. Optional: set `APP_URL` to the public address (e.g. `https://pioneers.onrender.com`). Only needed if the
+3. Optional: set `APP_URL` to the public address (e.g. `https://tessera.onrender.com`). Only needed if the
    game is also opened from another domain; its own address always works.
 4. Sign-in (optional): add `AUTH_GOOGLE_*` / `AUTH_DISCORD_*` with the live callback URLs
    (`https://<your-app>/api/auth/callback/google`, …). Without them everyone plays as a guest.
@@ -84,7 +84,7 @@ takes about a minute to wake it. Games in progress survive that (they're restore
 
 ```
 server.ts                 one process: Next.js pages + Socket.IO game server + /api/auth, /api/session, /api/face
-src/engine/               pure, seeded rules engine (Classic + Cities & Knights), views with hidden info removed
+src/engine/               pure, seeded rules engine (Classic + Knights & Barbarians), views with hidden info removed
 src/bots/                 heuristic bots for both modes (also used for autopilot of absent players)
 src/server/               rooms/lobby, identity (guest cookies, Auth.js sessions), persistence, rate limits
 src/app, src/components/  pages, lobby, HUD; board3d (React Three Fiber, low-poly) and board2d (SVG)
@@ -101,5 +101,5 @@ prisma/schema.prisma      users, accounts, sessions, profiles, guest_sessions, r
   stored, Origin-checked WebSockets, rate limits on sessions, rooms, joins, actions, chat and
   uploads, and uploaded knight faces are re-encoded, type-checked and served with strict headers.
 
-Rules as implemented, including the Cities & Knights interpretations, are documented in
+Rules as implemented, including the Knights & Barbarians interpretations, are documented in
 [`src/engine/ck/README.md`](src/engine/ck/README.md). Design notes: [`docs/superpowers/specs`](docs/superpowers/specs).

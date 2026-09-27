@@ -1,14 +1,15 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
-import { SEA } from '@/client/palette';
+import { useBoardPalette } from './themes';
 
 /**
  * Faceted low-poly sea; a lighter shelf shows through around the island. The swells are baked in
  * once and never move: shimmering facets under the board distract from the game.
  */
 export function Ocean({ shelfRadius = 6.4 }: { /** Radius of the lighter shallows around the island. */ shelfRadius?: number }) {
+  const sea = useBoardPalette().sea;
   const geo = useMemo(() => {
     const g = new THREE.PlaneGeometry(46, 46, 46, 46);
     g.rotateX(-Math.PI / 2);
@@ -26,17 +27,18 @@ export function Ocean({ shelfRadius = 6.4 }: { /** Radius of the lighter shallow
   const water = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: SEA.shallow,
+        color: sea.shallow,
         flatShading: true,
         roughness: 0.32,
         metalness: 0.05,
         transparent: true,
         opacity: 0.9,
       }),
-    [],
+    [sea.shallow],
   );
-  const shelf = useMemo(() => new THREE.MeshStandardMaterial({ color: '#7fd0d3', flatShading: true, roughness: 1 }), []);
-  const floor = useMemo(() => new THREE.MeshStandardMaterial({ color: SEA.deep, roughness: 1 }), []);
+  const shelf = useMemo(() => new THREE.MeshStandardMaterial({ color: sea.shelf, flatShading: true, roughness: 1 }), [sea.shelf]);
+  const floor = useMemo(() => new THREE.MeshStandardMaterial({ color: sea.deep, roughness: 1 }), [sea.deep]);
+  useEffect(() => () => [water, shelf, floor].forEach((m) => m.dispose()), [water, shelf, floor]);
 
   return (
     <group>

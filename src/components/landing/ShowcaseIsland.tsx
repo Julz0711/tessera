@@ -6,6 +6,7 @@ import { applyAction, createGame, viewFor } from '@/engine';
 import { NO_TARGETS, type BoardScene } from '@/components/board/types';
 import { BoardView } from '@/components/board/BoardView';
 import { DEFAULT_KNIGHT } from '@/shared/knight';
+import { usePrefs } from '@/client/prefs';
 
 /** A random island with bot-placed starting pieces, for the landing page backdrop. */
 function demoScene(seed: number): BoardScene {
@@ -22,10 +23,13 @@ function demoScene(seed: number): BoardScene {
     if (!r.ok) break;
     s = r.state;
   }
+  // Show one city too, so every piece of the chosen board theme appears.
+  const first = s.buildings.findIndex((b) => b !== null);
+  const buildings = s.buildings.map((b, v) => (b && v === first ? { ...b, city: true } : b));
   return {
     board: s.board,
     robber: s.robber,
-    buildings: s.buildings,
+    buildings,
     roads: s.roads,
     knights: s.knights,
     merchant: null,
@@ -41,6 +45,7 @@ export default function ShowcaseIsland() {
   useEffect(() => {
     setScene(demoScene(Math.floor(Math.random() * 2 ** 31)));
   }, []);
+  const theme = usePrefs((p) => p.boardTheme);
   if (!scene) return null;
-  return <BoardView mode="3d" scene={scene} targets={NO_TARGETS} showcase quality="high" />;
+  return <BoardView mode="3d" scene={scene} targets={NO_TARGETS} showcase quality="high" theme={theme} />;
 }

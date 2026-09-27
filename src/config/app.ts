@@ -1,9 +1,9 @@
 /**
  * Product/brand configuration — the ONLY place the product name lives.
- * "Settlers" is a working title; override with NEXT_PUBLIC_APP_NAME to rename the product
+ * The product is called Tessera; override with NEXT_PUBLIC_APP_NAME to rename the product
  * without touching game logic, the database, or individual UI components.
  */
-export const APP_NAME: string = process.env.NEXT_PUBLIC_APP_NAME || "Pioneers";
+export const APP_NAME: string = process.env.NEXT_PUBLIC_APP_NAME || "Tessera";
 
 export const APP_TAGLINE = "Play strategy games with friends.";
 

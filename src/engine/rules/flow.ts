@@ -3,6 +3,7 @@ import { runBarbarians, runProgressDraw } from '../ck/events';
 import { assertRule } from '../errors';
 import { compactHand, emptyHand, handTotal } from '../hand';
 import { handLimit } from '../queries';
+import { drawBalanced } from '../dice';
 import { randomInt, rollDie } from '../rng';
 import { emit, type Ctx } from '../state';
 import { CARDS, type Hand, type Prompt, type Step } from '../types';
@@ -43,9 +44,8 @@ export function rollDice(ctx: Ctx): void {
   requireActive(ctx);
   const s = ctx.s;
   assertRule(!s.turn.rolled, 'You already rolled this turn');
-  const preset = s.turn.alchemist;
-  const red = preset ? preset.red : rollDie(s);
-  const yellow = preset ? preset.yellow : rollDie(s);
+  // The Alchemist sets the dice; otherwise roll them, or draw from the bag for balanced dice.
+  const { red, yellow } = s.turn.alchemist ?? (s.settings.dice === 'balanced' ? drawBalanced(s) : { red: rollDie(s), yellow: rollDie(s) });
   const event = s.mode === 'ck' ? EVENT_DIE[randomInt(s, EVENT_DIE.length)] : undefined;
   s.turn.alchemist = null;
   s.turn.rolled = true;

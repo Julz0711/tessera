@@ -7,6 +7,7 @@ import type { PlayerView } from '@/engine/view';
 import { DEV_NAMES, PROGRESS_NAMES } from '@/client/describe';
 import { CARD_COLORS } from '@/client/palette';
 import { BOARD_SCALE, usePrefs } from '@/client/prefs';
+import { PALETTES } from '@/client/themes';
 import { play } from '@/client/sound';
 import { api, toast, useGame } from '@/client/store';
 import { computeTargets, handlePick } from '@/client/interaction';
@@ -207,6 +208,11 @@ function useUiSounds(view: PlayerView | null) {
   }, [panel]);
 }
 
+/** The 2D sea's gradient colours for the board theme (read by .sea-2d). */
+function seaVars([centre, middle, edge]: [string, string, string]): React.CSSProperties {
+  return { '--sea-centre': centre, '--sea-middle': middle, '--sea-edge': edge } as React.CSSProperties;
+}
+
 export function GameScreen() {
   const view = useGame((s) => s.view);
   const room = useGame((s) => s.room);
@@ -264,7 +270,10 @@ export function GameScreen() {
   const myPrompt = me !== null ? view.pending.find((p) => p.seat === me) : undefined;
 
   return (
-    <div className={`fixed inset-0 overflow-hidden ${prefs.view === '2d' ? 'sea-2d' : 'bg-sea-900'}`}>
+    <div
+      className={`fixed inset-0 overflow-hidden ${prefs.view === '2d' ? 'sea-2d' : 'bg-sea-900'}`}
+      style={seaVars(PALETTES[prefs.boardTheme].sea2d)}
+    >
       {/* The 3D canvas fills the screen (the camera frames the island above the dock); the flat
           2D board is fitted into the space the panels leave free. */}
       <div className={prefs.view === '2d' ? 'absolute inset-x-2 bottom-80 top-37.5 lg:bottom-42 lg:left-2 lg:right-75 lg:top-16' : 'absolute inset-0'} data-board-anchor>
@@ -272,6 +281,7 @@ export function GameScreen() {
           mode={prefs.view}
           quality={prefs.graphics}
           pieceScale={BOARD_SCALE[prefs.boardScale]}
+          theme={prefs.boardTheme}
           scene={scene}
           targets={targets}
           popup={ui.armed ? <BuildPopup view={view} armed={ui.armed} /> : ui.robber ? <RobberPopup view={view} pick={ui.robber} /> : null}

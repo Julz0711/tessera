@@ -15,7 +15,7 @@ export function requireRolled(ctx: Ctx): void {
 }
 
 export function requireMode(ctx: Ctx, mode: 'classic' | 'ck'): void {
-  assertRule(ctx.s.mode === mode, mode === 'ck' ? 'Only in Cities & Knights' : 'Not in Cities & Knights');
+  assertRule(ctx.s.mode === mode, mode === 'ck' ? 'Only in Knights & Barbarians' : 'Not in Knights & Barbarians');
 }
 
 export function removePrompt(ctx: Ctx, prompt: Prompt): void {

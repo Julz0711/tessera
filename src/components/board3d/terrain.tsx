@@ -1,115 +1,18 @@
 'use client';
 
 import { useFrame } from '@react-three/fiber';
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { Hex, Terrain } from '@/engine/types';
-import { FOG, TERRAIN_COLORS } from '@/client/palette';
+import { reducedMotion } from '@/client/fx';
 import { mat } from './materials';
+import { CORNERS, EDGE, TG, TILE_TOP, TOKEN_CLEAR, inFront, polar, seeded, spread, type Prop } from './terrainKit';
+import { useBoardKit, useBoardPalette } from './themes';
 
-/** Height of the playable tile surface. */
-export const TILE_TOP = 0.13;
-/** Props stay outside this radius so the number token is always visible… */
-const TOKEN_CLEAR = 0.42;
-/** …and inside this one so nothing spills over the tile edge. */
-const EDGE = 0.8;
+export { TILE_TOP } from './terrainKit';
 
-const TG = {
-  base: new THREE.CylinderGeometry(1.0, 1.03, 0.16, 6),
-  top: new THREE.CylinderGeometry(0.935, 0.955, 0.12, 6),
-  beach: new THREE.CylinderGeometry(1.08, 1.14, 0.2, 6),
-  // forest
-  coneTree: new THREE.ConeGeometry(0.12, 0.3, 6),
-  coneTreeTop: new THREE.ConeGeometry(0.085, 0.2, 6),
-  trunk: new THREE.CylinderGeometry(0.022, 0.03, 0.1, 5),
-  canopy: new THREE.IcosahedronGeometry(0.11, 0),
-  logs: new THREE.CylinderGeometry(0.025, 0.025, 0.16, 6),
-  // hills
-  mound: new THREE.IcosahedronGeometry(0.16, 0),
-  brick: new THREE.BoxGeometry(0.07, 0.033, 0.035),
-  // beehive clay kiln (a dome, so it can't be mistaken for a player's settlement)
-  kilnDome: new THREE.SphereGeometry(0.09, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2),
-  kilnMouth: new THREE.BoxGeometry(0.05, 0.045, 0.025),
-  kilnFlue: new THREE.CylinderGeometry(0.017, 0.022, 0.05, 6),
-  pit: new THREE.CylinderGeometry(0.13, 0.11, 0.02, 8),
-  // pasture
-  tuft: new THREE.ConeGeometry(0.03, 0.09, 4),
-  sheepBody: new THREE.IcosahedronGeometry(0.075, 0),
-  sheepHead: new THREE.BoxGeometry(0.045, 0.045, 0.05),
-  post: new THREE.BoxGeometry(0.02, 0.08, 0.02),
-  rail: new THREE.BoxGeometry(0.2, 0.015, 0.012),
-  // fields
-  soil: new THREE.BoxGeometry(0.32, 0.03, 0.24),
-  wheatRow: new THREE.BoxGeometry(0.29, 0.055, 0.022),
-  // hills: a little wooden crane over the clay pit
-  cranePost: new THREE.BoxGeometry(0.018, 0.2, 0.018),
-  craneBeam: new THREE.BoxGeometry(0.2, 0.018, 0.018),
-  bucket: new THREE.CylinderGeometry(0.025, 0.02, 0.035, 6),
-  // straw: a conical haystack and round bales lying on their side (axis along X)
-  haystackBase: new THREE.CylinderGeometry(0.11, 0.115, 0.06, 8),
-  haystackTop: new THREE.ConeGeometry(0.113, 0.16, 8),
-  bale: new THREE.CylinderGeometry(0.055, 0.055, 0.085, 8).rotateZ(Math.PI / 2),
-  // mountains
-  peak: new THREE.ConeGeometry(0.21, 0.36, 5),
-  snow: new THREE.ConeGeometry(0.09, 0.13, 5),
-  rock: new THREE.DodecahedronGeometry(0.055, 0),
-  // desert
-  dune: new THREE.SphereGeometry(0.22, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2),
-  cactus: new THREE.CylinderGeometry(0.03, 0.035, 0.22, 6),
-  cactusArm: new THREE.CylinderGeometry(0.022, 0.022, 0.08, 6),
-  stone: new THREE.DodecahedronGeometry(0.06, 0),
-  // gold (Black Forest)
-  nugget: new THREE.IcosahedronGeometry(0.045, 0),
-  // fog (Black Forest)
-  cloud: new THREE.IcosahedronGeometry(0.2, 1),
-};
-
-type GeoKey = keyof typeof TG;
-
-interface Prop {
-  geo: GeoKey;
-  color: string;
-  p: [number, number, number];
-  r?: [number, number, number];
-  s?: [number, number, number] | number;
-  /** Shiny (gold nuggets). */
-  metal?: boolean;
-}
-
-function seeded(seed: number) {
-  let s = seed >>> 0;
-  return () => {
-    s = (s + 0x6d2b79f5) >>> 0;
-    let t = s;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/** Angle measured in the board plane (x right, z towards the default camera). */
-const polar = (a: number, r: number): [number, number] => [Math.cos(a) * r, Math.sin(a) * r];
-/** The strip in front of the token (towards the camera) is reserved for low props. */
-const inFront = (a: number) => {
-  const d = Math.atan2(Math.sin(a - Math.PI / 2), Math.cos(a - Math.PI / 2));
-  return Math.abs(d) < 0.75;
-};
-const CORNERS = [0, 1, 2, 3, 4, 5].map((k) => Math.PI / 6 + (k * Math.PI) / 3);
-
-function spread(rand: () => number, count: number, rMin: number, rMax: number, opts: { avoidFront?: boolean } = {}): [number, number, number][] {
-  const out: [number, number, number][] = [];
-  const start = rand() * Math.PI * 2;
-  for (let i = 0; out.length < count && i < count * 4; i++) {
-    const a = start + (i / count) * Math.PI * 2 + (rand() - 0.5) * 0.5;
-    if (opts.avoidFront && inFront(a)) continue;
-    const r = rMin + rand() * (rMax - rMin);
-    const [x, z] = polar(a, r);
-    out.push([x, z, a]);
-  }
-  return out;
-}
-
-function propsFor(terrain: Terrain, seed: number): Prop[] {
+/** The classic props on a tile (themes fall back to these). */
+export function classicProps(terrain: Terrain, seed: number): Prop[] {
   const rand = seeded(seed * 7919 + terrain.length * 31);
   const pick = <T,>(xs: T[]) => xs[Math.floor(rand() * xs.length)];
   const out: Prop[] = [];
@@ -240,20 +143,27 @@ function propsFor(terrain: Terrain, seed: number): Prop[] {
       break;
     }
     case 'gold': {
-      // Clusters of nuggets glinting between a few rocks.
-      for (const [x, z] of spread(rand, 3, 0.52, EDGE - 0.14)) {
-        for (let k = 0; k < 4; k++) {
+      // Heaps of big nuggets (a ring of six under a peak of three) between dark rocks, so the tile
+      // reads as treasure from across the board.
+      const heaps = spread(rand, 4, 0.52, EDGE - 0.2, { avoidFront: true });
+      for (const [x, z] of heaps) {
+        const layers: [number, number, number][] = [
+          ...Array.from({ length: 6 }, (_, k) => [Math.cos((k / 6) * Math.PI * 2) * 0.095, 0.04, Math.sin((k / 6) * Math.PI * 2) * 0.095] as [number, number, number]),
+          ...Array.from({ length: 3 }, (_, k) => [Math.cos((k / 3) * Math.PI * 2 + 0.5) * 0.045, 0.11, Math.sin((k / 3) * Math.PI * 2 + 0.5) * 0.045] as [number, number, number]),
+          [0, 0.17, 0],
+        ];
+        layers.forEach(([dx, dy, dz], k) => {
           out.push({
             geo: 'nugget',
-            color: k % 2 ? '#f7cf4a' : '#e0a21a',
+            color: k % 3 === 0 ? '#ffc21a' : k % 3 === 1 ? '#f5a600' : '#ffd84a',
             metal: true,
-            p: [x + (rand() - 0.5) * 0.14, y + 0.03 + (k === 3 ? 0.04 : 0), z + (rand() - 0.5) * 0.14],
+            p: [x + dx, y + dy, z + dz],
             r: [rand() * 3, rand() * 3, 0],
-            s: 0.8 + rand() * 0.6,
+            s: 1 + rand() * 0.45,
           });
-        }
+        });
       }
-      for (const [x, z] of spread(rand, 3, 0.55, EDGE - 0.08)) out.push({ geo: 'rock', color: '#8a7a5c', p: [x, y + 0.03, z], r: [rand(), rand(), 0] });
+      for (const [x, z] of spread(rand, 4, 0.55, EDGE - 0.06)) out.push({ geo: 'rock', color: pick(['#5b4524', '#6e5530']), p: [x, y + 0.03, z], r: [rand(), rand(), 0] });
       break;
     }
     case 'desert': {
@@ -272,14 +182,15 @@ function propsFor(terrain: Terrain, seed: number): Prop[] {
 }
 
 export const TerrainProps = memo(function TerrainProps({ terrain, seed, shadows }: { terrain: Terrain; seed: number; shadows: boolean }) {
-  const props = useMemo(() => propsFor(terrain, seed), [terrain, seed]);
+  const kit = useBoardKit();
+  const props = useMemo(() => kit.props?.(terrain, seed) ?? classicProps(terrain, seed), [kit, terrain, seed]);
   return (
     <group>
       {props.map((p, i) => (
         <mesh
           key={i}
-          geometry={TG[p.geo]}
-          material={mat(p.color, p.metal ? { metal: 0.7, rough: 0.28 } : {})}
+          geometry={typeof p.geo === 'string' ? TG[p.geo] : p.geo}
+          material={mat(p.color, p.metal ? { metal: 0.35, rough: 0.3, emissive: p.emissive ?? '#ff9d00' } : p.emissive ? { emissive: p.emissive, glow: 0.9 } : {})}
           position={p.p}
           rotation={p.r ?? [0, 0, 0]}
           scale={p.s ?? 1}
@@ -292,6 +203,7 @@ export const TerrainProps = memo(function TerrainProps({ terrain, seed, shadows 
 
 /** Black Forest: an undiscovered tile, blanketed in low cloud. */
 const FogClouds = memo(function FogClouds({ seed, shadows }: { seed: number; shadows: boolean }) {
+  const cloud = useBoardPalette().fog.cloud;
   const puffs = useMemo(() => {
     const rand = seeded(seed * 4801 + 17);
     return Array.from({ length: 7 }, (_, i) => {
@@ -301,14 +213,46 @@ const FogClouds = memo(function FogClouds({ seed, shadows }: { seed: number; sha
       return {
         p: [Math.cos(a) * r, TILE_TOP + 0.1 + rand() * 0.08, Math.sin(a) * r] as [number, number, number],
         s: [size * 1.25, size * 0.6, size] as [number, number, number],
-        color: rand() > 0.5 ? FOG.cloud : '#e3e7ec',
+        color: rand() > 0.5 ? cloud : '#e3e7ec',
       };
     });
-  }, [seed]);
+  }, [seed, cloud]);
   return (
     <group>
       {puffs.map((c, i) => (
         <mesh key={i} geometry={TG.cloud} material={mat(c.color, { rough: 1 })} position={c.p} scale={c.s} castShadow={shadows} />
+      ))}
+    </group>
+  );
+});
+
+const SPARKLE = new THREE.OctahedronGeometry(0.05, 0);
+
+/** Gold field: little four-point glints that twinkle over the heaps, each on its own beat. */
+const GoldSparkles = memo(function GoldSparkles({ seed }: { seed: number }) {
+  const material = useMemo(() => new THREE.MeshBasicMaterial({ color: '#fffbe0', transparent: true, depthWrite: false }), []);
+  useEffect(() => () => material.dispose(), [material]);
+  const glints = useMemo(() => {
+    const rand = seeded(seed * 1231 + 5);
+    return spread(rand, 7, 0.45, EDGE - 0.12).map(([x, z]) => ({ p: [x, TILE_TOP + 0.12 + rand() * 0.12, z] as [number, number, number], phase: rand() * Math.PI * 2, speed: 1.6 + rand() * 1.4 }));
+  }, [seed]);
+  const refs = useRef<(THREE.Mesh | null)[]>([]);
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    const still = reducedMotion();
+    glints.forEach((g, i) => {
+      const m = refs.current[i];
+      if (!m) return;
+      // Mostly hidden, with a quick flash once per cycle; reduced motion keeps a steady glint.
+      const s = still ? 0.5 : Math.max(0, Math.sin(t * g.speed + g.phase)) ** 6;
+      m.scale.set(s * 0.6, s * 1.8, s * 0.6);
+      m.rotation.y = still ? g.phase : t * 2 + g.phase;
+    });
+  });
+  return (
+    <group>
+      {glints.map((g, i) => (
+        <mesh key={i} ref={(m) => void (refs.current[i] = m)} geometry={SPARKLE} material={material} position={g.p} scale={0} />
       ))}
     </group>
   );
@@ -344,11 +288,15 @@ export function HexTile({
   blocked?: boolean;
   onClick?: () => void;
 }) {
-  const colors = hex.fog ? FOG : TERRAIN_COLORS[hex.terrain];
-  const top = useMemo(() => [mat(colors.side), mat(colors.top), mat(colors.side)], [colors]);
+  const palette = useBoardPalette();
+  const kit = useBoardKit();
+  const colors = hex.fog ? palette.fog : palette.terrain[hex.terrain];
+  // Gold fields glow a little so they stand out from the wheat-yellow fields.
+  const gold = hex.terrain === 'gold' && !hex.fog;
+  const top = useMemo(() => [mat(colors.side), mat(colors.top, gold ? { rough: 0.5, emissive: '#b85e00' } : {}), mat(colors.side)], [colors, gold]);
   return (
     <group position={[x, producing ? 0.06 : 0, z]}>
-      <mesh geometry={TG.beach} material={mat('#e6d3a3')} position={[0, -0.12, 0]} receiveShadow={shadows} />
+      <mesh geometry={TG.beach} material={mat(palette.beach)} position={[0, -0.12, 0]} receiveShadow={shadows} />
       <mesh geometry={TG.base} material={mat(colors.side)} position={[0, -0.07, 0]} receiveShadow={shadows} />
       <mesh
         geometry={TG.top}
@@ -366,6 +314,12 @@ export function HexTile({
         }
       />
       {hex.fog ? <FogClouds seed={hex.id + 1} shadows={shadows} /> : <TerrainProps terrain={hex.terrain} seed={hex.id + 1} shadows={shadows} />}
+      {gold && <GoldSparkles seed={hex.id + 1} />}
+      {!hex.fog && kit.Tile && (
+        <group position={[0, TILE_TOP, 0]}>
+          <kit.Tile terrain={hex.terrain} seed={hex.id + 1} />
+        </group>
+      )}
       {producing && <HexRing color="#f2b33d" />}
       {blocked && <HexRing color="#d9483b" />}
     </group>

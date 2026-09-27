@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import type { PlayerColor } from '@/engine/types';
 import { isPlayerColor } from '@/shared/colors';
+import { isBoardTheme, type BoardThemeId } from './themes';
 import { DEFAULT_COSMETICS, sanitizeCosmetics, type Cosmetics } from '@/shared/cosmetics';
 import { DEFAULT_KNIGHT, sanitizeKnight, type KnightCustomization } from '@/shared/knight';
 
@@ -24,6 +25,8 @@ export interface Prefs {
   boardScale: BoardScale;
   /** Flying cards and other movement: follow the system's reduce-motion setting, or always full / reduced. */
   motion: Motion;
+  /** How the island looks (both boards). Only this player's screen changes. */
+  boardTheme: BoardThemeId;
 }
 
 const KEY = 'prefs.v1';
@@ -46,6 +49,7 @@ const defaults = (): Prefs => ({
   confirmBuilds: true,
   boardScale: 'medium',
   motion: 'system',
+  boardTheme: 'classic',
 });
 
 function read(): Prefs {
@@ -68,6 +72,7 @@ function read(): Prefs {
       confirmBuilds: typeof p.confirmBuilds === 'boolean' ? p.confirmBuilds : base.confirmBuilds,
       boardScale: boardScale === 'small' || boardScale === 'large' ? boardScale : base.boardScale,
       motion: p.motion === 'full' || p.motion === 'reduced' ? p.motion : base.motion,
+      boardTheme: isBoardTheme(p.boardTheme) ? p.boardTheme : base.boardTheme,
     };
   } catch {
     return base;
@@ -90,8 +95,11 @@ export const usePrefs = create<PrefsStore>((set, get) => ({
   set(patch) {
     set(patch);
     try {
-      const { name, color, knight, cosmetics, view, graphics, volume, buildHints, confirmBuilds, boardScale, motion } = { ...get(), ...patch };
-      window.localStorage.setItem(KEY, JSON.stringify({ name, color, knight, cosmetics, view, graphics, volume, buildHints, confirmBuilds, boardScale, motion }));
+      const { name, color, knight, cosmetics, view, graphics, volume, buildHints, confirmBuilds, boardScale, motion, boardTheme } = { ...get(), ...patch };
+      window.localStorage.setItem(
+        KEY,
+        JSON.stringify({ name, color, knight, cosmetics, view, graphics, volume, buildHints, confirmBuilds, boardScale, motion, boardTheme }),
+      );
     } catch {
       // Storage unavailable (private mode) — preferences just won't persist.
     }

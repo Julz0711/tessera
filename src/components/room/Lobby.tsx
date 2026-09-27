@@ -226,7 +226,7 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
         <Segmented
           value={s.mode}
           options={FEATURES.citiesAndKnights ? (['classic', 'ck'] as const) : (['classic'] as const)}
-          format={(m) => (m === 'classic' ? 'Classic' : 'Cities & Knights')}
+          format={(m) => (m === 'classic' ? 'Classic' : 'Knights & Barbarians')}
           onChange={(mode) => set({ mode })}
           disabled={!host}
         />
@@ -265,6 +265,16 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
       <div className="grid gap-1.5">
         <span className="label">Turn timer</span>
         <Segmented value={s.turnTimer} options={TURN_TIMER_OPTIONS} format={(t) => (t === 0 ? 'Off' : `${t}s`)} onChange={(turnTimer) => set({ turnTimer })} disabled={!host} />
+      </div>
+      <div className="grid gap-1.5">
+        <span className="label">Dice</span>
+        <Segmented
+          value={s.dice ?? 'random'}
+          options={['random', 'balanced'] as const}
+          format={(d) => (d === 'random' ? 'Random' : 'Balanced')}
+          onChange={(dice) => set({ dice })}
+          disabled={!host}
+        />
       </div>
       <Toggle label="Friendly robber (spares players with ≤ 2 points)" checked={s.friendlyRobber} onChange={(friendlyRobber) => set({ friendlyRobber })} disabled={!host} />
       <Toggle label="Allow spectators" checked={s.allowSpectators} onChange={(allowSpectators) => set({ allowSpectators })} disabled={!host} />

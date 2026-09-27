@@ -124,6 +124,7 @@ export function createGame(opts: CreateGameOptions): GameState {
     discardLimit: opts.settings?.discardLimit ?? 7,
     friendlyRobber: opts.settings?.friendlyRobber ?? false,
     gold,
+    dice: opts.settings?.dice ?? 'random',
   };
 
   const n = players.length;

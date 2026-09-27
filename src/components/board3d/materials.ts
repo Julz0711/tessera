@@ -3,8 +3,8 @@ import * as THREE from 'three';
 const cache = new Map<string, THREE.Material>();
 
 /** Shared flat-shaded (low-poly) material per color. */
-export function mat(color: string, opts: { rough?: number; metal?: number; opacity?: number; emissive?: string } = {}): THREE.Material {
-  const key = `${color}|${opts.rough ?? 0.85}|${opts.metal ?? 0}|${opts.opacity ?? 1}|${opts.emissive ?? ''}`;
+export function mat(color: string, opts: { rough?: number; metal?: number; opacity?: number; emissive?: string; glow?: number } = {}): THREE.Material {
+  const key = `${color}|${opts.rough ?? 0.85}|${opts.metal ?? 0}|${opts.opacity ?? 1}|${opts.emissive ?? ''}|${opts.glow ?? ''}`;
   let m = cache.get(key);
   if (!m) {
     const params: THREE.MeshStandardMaterialParameters = {
@@ -17,7 +17,7 @@ export function mat(color: string, opts: { rough?: number; metal?: number; opaci
     };
     if (opts.emissive) {
       params.emissive = new THREE.Color(opts.emissive);
-      params.emissiveIntensity = 0.35;
+      params.emissiveIntensity = opts.glow ?? 0.35;
     }
     m = new THREE.MeshStandardMaterial(params);
     cache.set(key, m);

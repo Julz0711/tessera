@@ -9,20 +9,15 @@ import { PLAYER_COLORS } from '@/shared/colors';
 import { GEO, mat } from './materials';
 import { usePieceScale } from './pieceScale';
 import { TILE_TOP } from './terrain';
+import { ClassicCity, ClassicRobber, ClassicSettlement } from './models';
+import { useBoardKit, useBoardPalette } from './themes';
 import { harborTexture, tokenTexture } from './textures';
 import { harborAnchor } from '../board/harbor';
-
-const tmpQuat = new THREE.Quaternion();
-const tmpEuler = new THREE.Euler();
-
-/** Turns a flat label around Y so it reads upright from the camera's current azimuth. */
-function faceCamera(obj: THREE.Object3D, camera: THREE.Camera): void {
-  const parentYaw = obj.parent ? tmpEuler.setFromQuaternion(obj.parent.getWorldQuaternion(tmpQuat), 'YXZ').y : 0;
-  obj.rotation.y = Math.atan2(camera.position.x, camera.position.z) - parentYaw;
-}
+import { faceCamera } from './faceCamera';
 
 export function NumberToken({ n, x, z, lit }: { n: number; x: number; z: number; lit: boolean }) {
-  const face = useMemo(() => new THREE.MeshBasicMaterial({ map: tokenTexture(n) }), [n]);
+  const palette = useBoardPalette();
+  const face = useMemo(() => new THREE.MeshBasicMaterial({ map: tokenTexture(n, palette.token) }), [n, palette.token]);
   const ref = useRef<THREE.Group>(null);
   const k = usePieceScale();
   useFrame((state) => {
@@ -34,7 +29,7 @@ export function NumberToken({ n, x, z, lit }: { n: number; x: number; z: number;
   return (
     <group ref={ref} position={[x, TILE_TOP, z]}>
       <group scale={k}>
-        <mesh geometry={GEO.tokenDisc} material={mat(lit ? '#f2b33d' : '#d9c9a6')} position={[0, 0.03, 0]} castShadow />
+        <mesh geometry={GEO.tokenDisc} material={mat(lit ? '#f2b33d' : palette.token.disc)} position={[0, 0.03, 0]} castShadow />
         <mesh geometry={GEO.tokenFace} material={face} position={[0, 0.062, 0]} rotation={[-Math.PI / 2, 0, 0]} />
       </group>
     </group>
@@ -60,10 +55,12 @@ export function Road({ x, z, angle, color, ghost = false }: { x: number; z: numb
   const c = PLAYER_COLORS[color];
   const ref = useAppear(ghost);
   const k = usePieceScale();
+  const Decor = useBoardKit().Road;
   return (
     <group ref={ref} position={[x, TILE_TOP + 0.06, z]} rotation={[0, -angle, 0]} scale={ghost ? 1 : 0.001}>
       {/* Thicker or thinner, never longer: the road still spans exactly one edge. */}
       <mesh geometry={GEO.road} material={mat(c.hex, ghost ? { opacity: 0.55 } : {})} position={[0, 0.045 * (k - 1), 0]} scale={[1, k, k]} castShadow={!ghost} />
+      {Decor && <Decor ghost={ghost} />}
     </group>
   );
 }
@@ -73,11 +70,11 @@ export function Settlement({ x, z, color, ghost = false }: { x: number; z: numbe
   const o = ghost ? { opacity: 0.55 } : {};
   const ref = useAppear(ghost);
   const k = usePieceScale();
+  const Model = useBoardKit().Settlement ?? ClassicSettlement;
   return (
     <group ref={ref} position={[x, TILE_TOP, z]} scale={ghost ? 1 : 0.001}>
       <group scale={k}>
-        <mesh geometry={GEO.houseBody} material={mat(c.hex, o)} position={[0, 0.09, 0]} castShadow={!ghost} />
-        <mesh geometry={GEO.houseRoof} material={mat(c.dark, o)} position={[0, 0.26, 0]} rotation={[0, Math.PI / 4, 0]} castShadow={!ghost} />
+        <Model c={c} o={o} ghost={ghost} />
       </group>
     </group>
   );
@@ -88,13 +85,11 @@ export function City({ x, z, color, ghost = false }: { x: number; z: number; col
   const o = ghost ? { opacity: 0.55 } : {};
   const ref = useAppear(ghost);
   const k = usePieceScale();
+  const Model = useBoardKit().City ?? ClassicCity;
   return (
     <group ref={ref} position={[x, TILE_TOP, z]} scale={ghost ? 1 : 0.001}>
       <group scale={k}>
-        <mesh geometry={GEO.cityBase} material={mat(c.hex, o)} position={[0.04, 0.09, 0.02]} castShadow={!ghost} />
-        <mesh geometry={GEO.cityTower} material={mat(c.hex, o)} position={[-0.1, 0.17, -0.02]} castShadow={!ghost} />
-        <mesh geometry={GEO.cityRoof} material={mat(c.dark, o)} position={[-0.1, 0.42, -0.02]} rotation={[0, Math.PI / 4, 0]} castShadow={!ghost} />
-        <mesh geometry={GEO.houseRoof} material={mat(c.dark, o)} position={[0.1, 0.24, 0.02]} rotation={[0, Math.PI / 4, 0]} scale={[0.9, 0.7, 0.9]} castShadow={!ghost} />
+        <Model c={c} o={o} ghost={ghost} />
       </group>
     </group>
   );
@@ -178,6 +173,7 @@ export function Robber({ x, z, ghost = false }: { x: number; z: number; ghost?: 
   const target = useRef(new THREE.Vector3(x, 0, z));
   const k = usePieceScale();
   const o = ghost ? { opacity: 0.55 } : {};
+  const Model = useBoardKit().Robber ?? ClassicRobber;
   target.current.set(x, 0, z);
   useFrame(() => {
     const g = ref.current;
@@ -189,18 +185,21 @@ export function Robber({ x, z, ghost = false }: { x: number; z: number; ghost?: 
   return (
     <group ref={ref} position={[x, TILE_TOP, z]}>
       <group scale={k}>
-        <mesh geometry={GEO.robberBody} material={mat('#2d2c33', o)} position={[0, 0.21, 0]} castShadow={!ghost} />
-        <mesh geometry={GEO.robberHead} material={mat('#3a3942', o)} position={[0, 0.47, 0]} castShadow={!ghost} />
+        <Model o={o} ghost={ghost} />
       </group>
     </group>
   );
 }
 
-/** A little wooden pier out at sea with a floating rate token. */
+/** Height of a harbor's rate sign above the water (times the Board size scale). */
+const SIGN_Y = 0.3;
+
+/** A little wooden pier out at sea with its rate sign on a pole. */
 export function HarborPiece({ harbor, topo }: { harbor: Harbor; topo: Topology }) {
   const face = useMemo(() => new THREE.MeshBasicMaterial({ map: harborTexture(harbor.kind) }), [harbor.kind]);
   const label = useRef<THREE.Group>(null);
   const k = usePieceScale();
+  const Decor = useBoardKit().Harbor;
   useFrame((state) => {
     if (label.current) faceCamera(label.current, state.camera);
   });
@@ -221,9 +220,17 @@ export function HarborPiece({ harbor, topo }: { harbor: Harbor; topo: Topology }
         <mesh key={i} geometry={GEO.plank} material={mat('#8a6139')} position={[p.mx, 0.03, p.mz]} rotation={[0, p.rot, 0]} scale={[1, 1, p.l]} />
       ))}
       <mesh geometry={GEO.pier} material={mat('#9c6f42')} position={[px, 0.04, pz]} rotation={[0, Math.atan2(ox, oz), 0]} castShadow />
+      {Decor && <Decor x={px} z={pz} rot={Math.atan2(ox, oz)} />}
       <mesh geometry={GEO.post} material={mat('#6b4a2b')} position={[px + oz * 0.2, 0.05, pz - ox * 0.2]} />
       <mesh geometry={GEO.post} material={mat('#6b4a2b')} position={[px - oz * 0.2, 0.05, pz + ox * 0.2]} />
-      <group ref={label} position={[px + ox * 0.05, 0.3 * k, pz + oz * 0.05]} scale={k}>
+      {/* The sign stands on a pole from the pier, up to the underside of its disc. */}
+      <mesh
+        geometry={GEO.post}
+        material={mat('#6b4a2b')}
+        position={[px + ox * 0.05, (0.065 + SIGN_Y * k) / 2, pz + oz * 0.05]}
+        scale={[0.7, (SIGN_Y * k - 0.065) / 0.3, 0.7]}
+      />
+      <group ref={label} position={[px + ox * 0.05, SIGN_Y * k, pz + oz * 0.05]} scale={k}>
         <mesh geometry={GEO.harborDisc} material={mat('#f6eddb')} castShadow />
         <mesh geometry={GEO.harborFace} material={face} position={[0, 0.027, 0]} rotation={[-Math.PI / 2, 0, 0]} />
       </group>

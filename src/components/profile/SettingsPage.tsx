@@ -4,6 +4,8 @@ import { ArrowLeft, Box, Check, Grid2x2, Loader2, Volume2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePrefs } from '@/client/prefs';
+import { BOARD_THEMES } from '@/client/themes';
+import { ThemeSwatch } from '@/components/ui/ThemeSwatch';
 import { play, setVolume, type Sfx } from '@/client/sound';
 import { toast } from '@/client/store';
 import type { PlayerColor } from '@/engine/types';
@@ -184,6 +186,24 @@ export function SettingsPage() {
                   {(['high', 'low'] as const).map((q) => (
                     <button key={q} type="button" className={`btn px-4 py-2 capitalize ${graphics === q ? 'btn-primary' : ''}`} onClick={() => setGraphics(q)}>
                       {q} quality
+                    </button>
+                  ))}
+                </div>
+              </Section>
+              <Section title="Board theme" hint="How the island looks, on the 3D and the 2D board. Only your screen changes; you can switch any time during a game.">
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {BOARD_THEMES.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={`btn justify-start gap-3 px-3 py-2 text-left ${prefs.boardTheme === t.id ? 'btn-primary' : ''}`}
+                      onClick={() => prefs.set({ boardTheme: t.id })}
+                    >
+                      <ThemeSwatch theme={t.id} size={44} />
+                      <span className="grid min-w-0">
+                        <span className="font-extrabold">{t.name}</span>
+                        <span className="truncate text-xs font-semibold opacity-75">{t.blurb}</span>
+                      </span>
                     </button>
                   ))}
                 </div>

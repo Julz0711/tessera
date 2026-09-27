@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { startSignIn } from '@/client/auth';
 import { DiscordMark, GoogleMark } from '@/components/ui/Glyphs';
 
@@ -24,6 +25,10 @@ export function SignInChoices({ auth, failed }: { auth: { google: boolean; disco
           <DiscordMark size={20} /> Continue with Discord
         </button>
       )}
+      <p className="mt-1 text-xs text-ink-faint">
+        By signing in you agree to the <Link href="/terms" className="underline">terms</Link> and{' '}
+        <Link href="/privacy" className="underline">privacy policy</Link>.
+      </p>
     </div>
   );
 }

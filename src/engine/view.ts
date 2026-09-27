@@ -16,7 +16,7 @@ export interface PublicPlayer extends PlayerState {
   roadLength: number;
 }
 
-export interface PlayerView extends Omit<GameState, 'players' | 'devDeck' | 'progressDecks' | 'rng'> {
+export interface PlayerView extends Omit<GameState, 'players' | 'devDeck' | 'progressDecks' | 'rng' | 'diceBag'> {
   /** Seat of the viewer, or null for spectators. */
   viewer: number | null;
   players: PublicPlayer[];
@@ -63,7 +63,7 @@ export function viewFor(state: GameState, viewer: number | null): PlayerView {
       roadLength: state.roadLengths[seat] ?? 0,
     };
   });
-  const { devDeck, progressDecks, rng: _rng, players: _players, log, pending, ...rest } = state;
+  const { devDeck, progressDecks, rng: _rng, diceBag: _diceBag, players: _players, log, pending, ...rest } = state;
   const visible = structuredClone(rest);
   // Black Forest: what lies under the fog stays secret (a blank tile) until someone discovers it;
   // once the game is over the whole map is shown.

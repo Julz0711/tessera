@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { statusLine } from '@/client/describe';
 import { usePrefs } from '@/client/prefs';
+import { BOARD_THEMES } from '@/client/themes';
+import { ThemeSwatch } from '@/components/ui/ThemeSwatch';
 import { setVolume } from '@/client/sound';
 import { api, toast, useGame } from '@/client/store';
 import type { PlayerView } from '@/engine/view';
@@ -71,6 +73,22 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
                   <button type="button" className={`btn py-1.5 text-sm ${prefs.view === '2d' ? 'btn-primary' : ''}`} onClick={() => prefs.set({ view: '2d' })}>
                     <Grid2x2 size={15} /> 2D
                   </button>
+                </div>
+              </div>
+              <div className="grid gap-1.5">
+                <span className="label">Theme</span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {BOARD_THEMES.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={`btn justify-start gap-1.5 px-1.5 py-1 text-sm ${prefs.boardTheme === t.id ? 'btn-primary' : ''}`}
+                      onClick={() => prefs.set({ boardTheme: t.id })}
+                      title={t.blurb}
+                    >
+                      <ThemeSwatch theme={t.id} size={26} /> {t.name}
+                    </button>
+                  ))}
                 </div>
               </div>
               {prefs.view === '3d' && (

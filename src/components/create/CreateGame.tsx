@@ -95,7 +95,7 @@ export function CreateGame() {
                 disabled={!FEATURES.citiesAndKnights}
                 onClick={() => setMode('ck')}
                 icon={<Crown size={22} />}
-                title="Cities & Knights"
+                title="Knights & Barbarians"
                 text={FEATURES.citiesAndKnights ? 'Knights, barbarians, commodities and city improvements. First to 13.' : 'Coming soon.'}
               />
             </div>

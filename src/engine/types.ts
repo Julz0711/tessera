@@ -75,6 +75,19 @@ export interface GameSettings {
   friendlyRobber: boolean;
   /** Black Forest: whether two gold fields hide in the fog (default on; games from before lack it). */
   gold?: boolean;
+  /** Random dice, or balanced ones drawn from a bag (see dice.ts). Games from before lack it (= random). */
+  dice?: DiceMode;
+}
+
+export type DiceMode = 'random' | 'balanced';
+export const isDiceMode = (v: unknown): v is DiceMode => v === 'random' || v === 'balanced';
+
+/** Balanced dice: what's left in the bag (see dice.ts). */
+export interface DiceBag {
+  /** Remaining two-dice combinations, each (red − 1) × 6 + (yellow − 1). */
+  cards: number[];
+  /** The previous drawn total (0 before the first draw). */
+  last: number;
 }
 
 // ── Pieces ──────────────────────────────────────────────────────────────────
@@ -377,6 +390,8 @@ export interface GameState {
   nextId: number;
   /** Seeded PRNG state — server-only, never sent to clients. */
   rng: number;
+  /** Balanced dice: what's left in the bag — server-only, never sent to clients. */
+  diceBag?: DiceBag;
   /** Running totals for the end-of-game stats screen; see `GameStats`. */
   stats: GameStats;
 }

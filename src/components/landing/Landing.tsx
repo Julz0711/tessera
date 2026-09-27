@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowRight, LogIn, Trophy } from "lucide-react";
+import { ArrowRight, LogIn, ScrollText, Trophy } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { APP_WORDMARK } from "@/config/app";
+import { LATEST_PATCH, PATCH_SEEN_KEY } from "@/config/patchNotes";
 import { usePrefs } from "@/client/prefs";
 import { fetchSession } from "@/client/session";
 import type { SessionInfo } from "@/shared/protocol";
@@ -36,6 +37,15 @@ export function Landing() {
   const [codeError, setCodeError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const prefs = usePrefs();
+  // A dot on the patch notes button until this browser has opened the latest notes.
+  const [newPatch, setNewPatch] = useState(false);
+  useEffect(() => {
+    try {
+      setNewPatch(localStorage.getItem(PATCH_SEEN_KEY) !== LATEST_PATCH);
+    } catch {
+      setNewPatch(false);
+    }
+  }, []);
 
   useEffect(() => {
     prefs.load();
@@ -80,6 +90,17 @@ export function Landing() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            href="/patch-notes"
+            className="btn btn-dark relative h-9 w-9 p-0"
+            title={`Patch notes (${LATEST_PATCH})`}
+            aria-label={newPatch ? `Patch notes: ${LATEST_PATCH} is new` : "Patch notes"}
+          >
+            <ScrollText size={17} />
+            {newPatch && (
+              <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-ink bg-amber" />
+            )}
+          </Link>
           <Link
             href="/leaderboard"
             className="btn btn-dark h-9 w-9 p-0"
@@ -155,6 +176,15 @@ export function Landing() {
           </p>
         )}
       </section>
+
+      <footer className="absolute inset-x-0 bottom-0 z-10 flex gap-4 px-5 pb-4 text-xs font-bold text-foam/60 sm:px-10">
+        <Link href="/privacy" className="hover:text-paper">
+          Privacy
+        </Link>
+        <Link href="/terms" className="hover:text-paper">
+          Terms
+        </Link>
+      </footer>
 
       <Modal
         open={signingIn}

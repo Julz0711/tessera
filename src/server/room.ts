@@ -8,6 +8,7 @@ import {
   applyAction,
   createGame,
   eventsFor,
+  isDiceMode,
   isMapId,
   viewFor,
   type Action,
@@ -314,6 +315,7 @@ export class Room {
     if (typeof patch.friendlyRobber === 'boolean') next.friendlyRobber = patch.friendlyRobber;
     if (typeof patch.allowSpectators === 'boolean') next.allowSpectators = patch.allowSpectators;
     if (typeof patch.gold === 'boolean') next.gold = patch.gold;
+    if (isDiceMode(patch.dice)) next.dice = patch.dice;
     this.settings = next;
   }
 
@@ -406,7 +408,7 @@ export class Room {
 
   private startGame(): void {
     if (this.seats.length < 2) throw new UserError('Add at least one more player or bot');
-    if (this.settings.mode === 'ck' && !CK_READY) throw new UserError('Cities & Knights is coming soon');
+    if (this.settings.mode === 'ck' && !CK_READY) throw new UserError('Knights & Barbarians is coming soon');
     // Random turn order (Fisher–Yates with crypto randomness).
     for (let i = this.seats.length - 1; i > 0; i--) {
       const j = randomInt(i + 1);
@@ -421,6 +423,7 @@ export class Room {
         friendlyRobber: this.settings.friendlyRobber,
         map: this.settings.map ?? 'standard',
         gold: this.settings.gold ?? true,
+        dice: this.settings.dice ?? 'random',
       },
     });
     this.gameId = randomUUID();

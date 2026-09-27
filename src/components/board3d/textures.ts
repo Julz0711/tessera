@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PIPS } from '@/engine/constants';
 import type { HarborKind } from '@/engine/types';
-import { CARD_COLORS } from '@/client/palette';
+import { CARD_COLORS, TOKEN } from '@/client/palette';
 
 /** The page's display font (next/font exposes its generated family through a CSS variable). */
 export function displayFont(): string {
@@ -10,7 +10,7 @@ export function displayFont(): string {
   return family || 'Georgia, serif';
 }
 
-const tokenCache = new Map<number, THREE.CanvasTexture>();
+const tokenCache = new Map<string, THREE.CanvasTexture>();
 const harborCache = new Map<string, THREE.CanvasTexture>();
 
 /** Textures are drawn on a 256-unit square, rendered at twice that so they stay crisp up close. */
@@ -49,32 +49,39 @@ function sturdyText(g: CanvasRenderingContext2D, text: string, x: number, y: num
   g.restore();
 }
 
-export function tokenTexture(n: number): THREE.CanvasTexture {
-  const hit = tokenCache.get(n);
+/** A number token's face in a theme's token colours (classic when omitted). */
+export function tokenTexture(n: number, colors: { rim: string; face: string; ink: string; hot: string } = TOKEN): THREE.CanvasTexture {
+  const key = `${n}|${colors.rim}|${colors.face}`;
+  const hit = tokenCache.get(key);
   if (hit) return hit;
   const [c, g] = canvas256();
-  g.fillStyle = '#f6eddb';
+  // Our own token look: a sea-blue rim around a paper face, with the odds shown as small diamonds.
+  g.fillStyle = colors.rim;
   g.beginPath();
   g.arc(128, 128, 126, 0, Math.PI * 2);
   g.fill();
-  g.lineWidth = 8;
-  g.strokeStyle = '#d9c9a6';
+  g.fillStyle = colors.face;
   g.beginPath();
-  g.arc(128, 128, 112, 0, Math.PI * 2);
-  g.stroke();
+  g.arc(128, 128, 106, 0, Math.PI * 2);
+  g.fill();
   const red = n === 6 || n === 8;
-  g.fillStyle = red ? '#c2412d' : '#1f1a14';
+  g.fillStyle = red ? colors.hot : colors.ink;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  sturdyText(g, String(n), 128, 112, n >= 10 ? 106 : 124);
+  sturdyText(g, String(n), 128, 114, n >= 10 ? 100 : 118);
   const pips = PIPS[n] ?? 0;
   for (let i = 0; i < pips; i++) {
+    const x = 128 + (i - (pips - 1) / 2) * 22;
     g.beginPath();
-    g.arc(128 + (i - (pips - 1) / 2) * 22, 190, 7.5, 0, Math.PI * 2);
+    g.moveTo(x, 182);
+    g.lineTo(x + 8, 191);
+    g.lineTo(x, 200);
+    g.lineTo(x - 8, 191);
+    g.closePath();
     g.fill();
   }
   const tex = finish(c);
-  tokenCache.set(n, tex);
+  tokenCache.set(key, tex);
   return tex;
 }
 

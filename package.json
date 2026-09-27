@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Browser-based 3D multiplayer strategy board game for friend groups (working title: Settlers).",
+  "description": "Browser-based 3D multiplayer strategy board game for friend groups (Tessera).",
   "engines": {
     "node": ">=22.12.0"
   },

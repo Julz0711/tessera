@@ -1,3 +1,4 @@
+import type { BoardThemeId } from '@/client/themes';
 import type { ReactNode } from 'react';
 import type { Board, Building, Knight, PlayerColor } from '@/engine/types';
 import type { KnightCustomization } from '@/shared/knight';
@@ -75,4 +76,6 @@ export interface BoardProps extends BoardHandlers {
   quality?: 'high' | 'low';
   /** Size multiplier for the pieces, number tokens and harbors (the "Board size" setting). */
   pieceScale?: number;
+  /** How the island looks (the "Board theme" setting); classic when unset. */
+  theme?: BoardThemeId;
 }

@@ -4,7 +4,7 @@
 # See README → "Deploy for free".
 services:
   - type: web
-    name: pioneers
+    name: tessera
     runtime: node
     plan: free
     # Close to the players (and to the Neon database, in AWS Frankfurt).

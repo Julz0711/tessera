@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { MOUSE } from 'three';
 import type * as THREE from 'three';
 import { STANDARD_HEX_COORDS, getTopology, type Topology } from '@/engine/board/topology';
-import { SEA } from '@/client/palette';
+import { PALETTES } from '@/client/themes';
 import type { BoardProps, BoardScene, BoardTargets } from '@/components/board/types';
 import { City, CityWall, HarborPiece, Merchant, MetropolisTower, NumberToken, Road, Robber, Settlement } from './pieces';
 import { Targets } from './targets';
@@ -15,6 +15,7 @@ import { Ocean } from './ocean';
 import { displayFont, resetTextureCache } from './textures';
 import { KnightPieces } from './knights';
 import { PieceScale } from './pieceScale';
+import { BoardThemeContext } from './themes';
 
 /** Aiming the camera slightly "below" the island centre lifts it above the bottom dock. */
 const GAME_TARGET_Z = 1.3;
@@ -191,8 +192,10 @@ export default function Board3D({
   showcase = false,
   quality = 'high',
   pieceScale = 1,
+  theme = 'classic',
 }: BoardProps) {
   const shadows = quality === 'high';
+  const palette = PALETTES[theme];
   // Where the last press started: a click away closes the build popup, a drag (orbit/pan) doesn't.
   const pressed = useRef<{ x: number; y: number } | null>(null);
   const fontsReady = useFontReady();
@@ -208,7 +211,7 @@ export default function Board3D({
       </PieceScale.Provider>
     </group>
   );
-  const backdrop = showcase ? '#061419' : SEA.sky;
+  const backdrop = showcase ? '#061419' : palette.sea.sky;
   return (
     <Canvas
       shadows={shadows ? 'percentage' : false}
@@ -224,49 +227,51 @@ export default function Board3D({
         if (onBackground && p && Math.hypot(e.clientX - p.x, e.clientY - p.y) < 6) onBackground();
       }}
     >
-      <color attach="background" args={[backdrop]} />
-      <fog attach="fog" args={[backdrop, (showcase ? 14 : 18) * scale, (showcase ? 34 : 44) * scale]} />
-      <hemisphereLight args={['#e6f3ff', '#1d3b2c', 0.9]} />
-      <ambientLight intensity={0.18} />
-      <directionalLight
-        position={[5, 12, 6]}
-        intensity={1.9}
-        color="#fff4e0"
-        castShadow={shadows}
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-left={-7 * scale}
-        shadow-camera-right={7 * scale}
-        shadow-camera-top={7 * scale}
-        shadow-camera-bottom={-7 * scale}
-        shadow-camera-near={1}
-        shadow-camera-far={30}
-        shadow-bias={-0.0006}
-        shadow-normalBias={0.02}
-      />
-      <Ocean shelfRadius={frame.extent + 2} />
-      <FitCamera showcase={showcase} scale={scale} />
-      {showcase ? (
-        <Spin>{island}</Spin>
-      ) : (
-        <>
-          {island}
-          <OrbitControls
-            makeDefault
-            // Pan with the middle or right button (or Ctrl/Shift + drag, two fingers on touch), across the table.
-            mouseButtons={{ LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.PAN }}
-            screenSpacePanning={false}
-            onChange={(e) => e && keepOverIsland(e.target, frame.extent * 0.8)}
-            enableDamping
-            dampingFactor={0.08}
-            minDistance={6}
-            maxDistance={24 * scale}
-            minPolarAngle={0.12}
-            maxPolarAngle={1.2}
-            target={[0, 0, GAME_TARGET_Z]}
-          />
-        </>
-      )}
+      <BoardThemeContext.Provider value={theme}>
+        <color attach="background" args={[backdrop]} />
+        <fog attach="fog" args={[backdrop, (showcase ? 14 : 18) * scale * (palette.light.haze ?? 1), (showcase ? 34 : 44) * scale * (palette.light.haze ?? 1)]} />
+        <hemisphereLight args={[palette.light.sky, palette.light.ground, palette.light.hemi]} />
+        <ambientLight intensity={palette.light.ambient} />
+        <directionalLight
+          position={[5, 12, 6]}
+          intensity={palette.light.sunIntensity}
+          color={palette.light.sun}
+          castShadow={shadows}
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
+          shadow-camera-left={-7 * scale}
+          shadow-camera-right={7 * scale}
+          shadow-camera-top={7 * scale}
+          shadow-camera-bottom={-7 * scale}
+          shadow-camera-near={1}
+          shadow-camera-far={30}
+          shadow-bias={-0.0006}
+          shadow-normalBias={0.02}
+        />
+        <Ocean shelfRadius={frame.extent + 2} />
+        <FitCamera showcase={showcase} scale={scale} />
+        {showcase ? (
+          <Spin>{island}</Spin>
+        ) : (
+          <>
+            {island}
+            <OrbitControls
+              makeDefault
+              // Pan with the middle or right button (or Ctrl/Shift + drag, two fingers on touch), across the table.
+              mouseButtons={{ LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.PAN }}
+              screenSpacePanning={false}
+              onChange={(e) => e && keepOverIsland(e.target, frame.extent * 0.8)}
+              enableDamping
+              dampingFactor={0.08}
+              minDistance={6}
+              maxDistance={24 * scale}
+              minPolarAngle={0.12}
+              maxPolarAngle={1.2}
+              target={[0, 0, GAME_TARGET_Z]}
+            />
+          </>
+        )}
+      </BoardThemeContext.Provider>
     </Canvas>
   );
 }

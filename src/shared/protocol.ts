@@ -1,5 +1,5 @@
 /** Typed Socket.IO protocol shared by client and server. */
-import type { Action, GameEvent, MapId, Mode, PlayerColor } from '@/engine/types';
+import type { Action, DiceMode, GameEvent, MapId, Mode, PlayerColor } from '@/engine/types';
 import type { PlayerView } from '@/engine/view';
 import type { Cosmetics, UnlockStats } from './cosmetics';
 import type { KnightCustomization } from './knight';
@@ -24,6 +24,8 @@ export interface RoomSettings {
   allowSpectators: boolean;
   /** Black Forest: gold fields in the fog (off for new rooms). Rooms saved before the toggle lack it (= on). */
   gold?: boolean;
+  /** Random or balanced (bag-drawn) dice. Rooms saved before the option lack it (= random). */
+  dice?: DiceMode;
 }
 
 export const DEFAULT_ROOM_SETTINGS: RoomSettings = {
@@ -35,6 +37,7 @@ export const DEFAULT_ROOM_SETTINGS: RoomSettings = {
   friendlyRobber: false,
   allowSpectators: true,
   gold: false,
+  dice: 'random',
 };
 
 export const TURN_TIMER_OPTIONS = [0, 60, 90, 120, 180] as const;
