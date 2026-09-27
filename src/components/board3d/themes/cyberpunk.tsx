@@ -9,7 +9,7 @@ import { Ocean } from '../ocean';
 import { usePieceScale } from '../pieceScale';
 import { CORNERS, EDGE, TILE_TOP, TOKEN_CLEAR, inFront, polar, seeded, spread, type Prop } from '../terrainKit';
 import { Hover, Pool, beamMat, lit } from './shared';
-import type { ModelProps, PieceColors, ThemeKit } from './types';
+import type { KnightFigureProps, ModelProps, PieceColors, ThemeKit } from './types';
 
 /**
  * Cyberpunk: the island as a megacity district at night, in the rain. The palette brings dim city
@@ -421,6 +421,55 @@ function Robber({ o, ghost }: { o: { opacity?: number }; ghost: boolean }) {
   );
 }
 
+/** A street samurai: an angular helm with a glowing neon visor slit, a neon-piped coat, an energy blade. */
+const KNIGHT = {
+  leg: new THREE.BoxGeometry(0.055, 0.15, 0.065),
+  torso: new THREE.CylinderGeometry(0.075, 0.09, 0.17, 6),
+  tabard: new THREE.BoxGeometry(0.1, 0.14, 0.02),
+  cape: new THREE.BoxGeometry(0.17, 0.25, 0.02),
+  stripe: new THREE.BoxGeometry(0.02, 0.24, 0.008),
+  arm: new THREE.BoxGeometry(0.045, 0.13, 0.045),
+  helm: new THREE.BoxGeometry(0.15, 0.16, 0.14),
+  antenna: new THREE.CylinderGeometry(0.004, 0.004, 0.08, 4),
+  antennaTip: new THREE.SphereGeometry(0.009, 6, 4),
+  face: new THREE.CircleGeometry(0.046, 16),
+  visorRing: new THREE.TorusGeometry(0.05, 0.006, 4, 20),
+  hilt: new THREE.CylinderGeometry(0.009, 0.009, 0.06, 6),
+  blade: new THREE.BoxGeometry(0.022, 0.26, 0.008),
+};
+
+function Knight({ metal, trim, cloth, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+  const s = shadows;
+  const neon = MINT;
+  return (
+    <>
+      <mesh geometry={KNIGHT.leg} material={trim} position={[-0.035, 0.075, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.leg} material={trim} position={[0.035, 0.075, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.torso} material={metal} position={[0, 0.235, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.tabard} material={cloth} position={[0, 0.225, 0.078]} />
+      <mesh geometry={KNIGHT.cape} material={mat('#15171e')} position={[0, 0.22, -0.085]} rotation={[0.18, 0, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.stripe} material={lit(neon, 1.8)} position={[0, 0.22, -0.076]} rotation={[0.18, 0, 0]} />
+      <mesh geometry={KNIGHT.arm} material={metal} position={[-0.11, 0.25, 0.01]} rotation={[0, 0, 0.25]} castShadow={s} />
+      <mesh geometry={KNIGHT.arm} material={metal} position={[0.11, 0.25, 0.02]} rotation={[0.5, 0, -0.2]} castShadow={s} />
+      {/* an angular helm; a thin antenna, and a neon ring framing the face */}
+      <mesh geometry={KNIGHT.helm} material={metal} position={[0, headY, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.antenna} material={trim} position={[0.05, headY + 0.1, -0.03]} rotation={[0.3, 0, 0]} />
+      <mesh geometry={KNIGHT.antennaTip} material={lit(neon, 1.8)} position={[0.06, headY + 0.14, -0.05]} />
+      {faceMat ? (
+        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.05, 0.0755]} />
+      ) : (
+        <mesh geometry={KNIGHT.face} material={mat('#0d0e12')} position={[0, headY - 0.05, 0.0755]} />
+      )}
+      <mesh geometry={KNIGHT.visorRing} material={lit(neon, 2)} position={[0, headY - 0.05, 0.076]} />
+      {/* the energy blade, glowing instead of steel */}
+      <group position={[0.14, 0.2, 0.07]}>
+        <mesh geometry={KNIGHT.hilt} material={trim} position={[0, -0.02, 0]} />
+        <mesh geometry={KNIGHT.blade} material={lit(neon, 2.2)} position={[0, 0.13, 0]} />
+      </group>
+    </>
+  );
+}
+
 const STRIP = new THREE.BoxGeometry(0.56, 0.008, 0.03);
 
 /** A neon-edged street: a glowing strip in the owner's colour along the top of the road. */
@@ -491,4 +540,4 @@ function BarbarianShip({ danger }: { danger: boolean }) {
 }
 
 /** Cyberpunk: neon, rain-black water and a megacity skyline. */
-export const cyberpunk: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Tile, Sea, BarbarianShip };
+export const cyberpunk: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Tile, Sea, BarbarianShip, Knight };

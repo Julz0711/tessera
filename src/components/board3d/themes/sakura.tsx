@@ -6,7 +6,7 @@ import { mat } from '../materials';
 import { usePieceScale } from '../pieceScale';
 import { classicProps } from '../terrain';
 import { CORNERS, EDGE, TG, TILE_TOP, TOKEN_CLEAR, inFront, polar, seeded, spread, type Prop } from '../terrainKit';
-import type { ModelProps, PieceColors, ThemeKit } from './types';
+import type { KnightFigureProps, ModelProps, PieceColors, ThemeKit } from './types';
 
 const y = TILE_TOP;
 
@@ -273,6 +273,58 @@ function City({ c, o, ghost }: ModelProps) {
   );
 }
 
+/** A samurai in lamellar armour: a kabuto helmet with flared wings and a crescent crest, a katana at the hip. */
+const KNIGHT = {
+  leg: new THREE.BoxGeometry(0.05, 0.15, 0.062),
+  torso: new THREE.CylinderGeometry(0.078, 0.07, 0.15, 6),
+  kusazuri: new THREE.CylinderGeometry(0.07, 0.135, 0.1, 6),
+  sode: new THREE.BoxGeometry(0.06, 0.075, 0.02),
+  arm: new THREE.BoxGeometry(0.045, 0.12, 0.045),
+  bowl: new THREE.SphereGeometry(0.078, 10, 6, 0, Math.PI * 2, 0, Math.PI / 1.7),
+  wing: new THREE.BoxGeometry(0.018, 0.095, 0.1),
+  crest: new THREE.TorusGeometry(0.05, 0.007, 4, 10, Math.PI),
+  face: new THREE.CircleGeometry(0.046, 16),
+  eyeSlit: new THREE.BoxGeometry(0.07, 0.01, 0.01),
+  saya: new THREE.BoxGeometry(0.018, 0.24, 0.014),
+  tsuba: new THREE.CylinderGeometry(0.02, 0.02, 0.008, 8),
+};
+
+function Knight({ trim, cloth, dark, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+  const s = shadows;
+  return (
+    <>
+      <mesh geometry={KNIGHT.leg} material={dark} position={[-0.032, 0.075, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.leg} material={dark} position={[0.032, 0.075, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.kusazuri} material={cloth} position={[0, 0.155, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.torso} material={cloth} position={[0, 0.245, 0]} castShadow={s} />
+      {[-0.1, 0.1].map((x) => (
+        <mesh key={x} geometry={KNIGHT.sode} material={dark} position={[x, 0.29, 0.01]} rotation={[0, 0, x > 0 ? -0.3 : 0.3]} castShadow={s} />
+      ))}
+      <mesh geometry={KNIGHT.arm} material={dark} position={[-0.1, 0.24, 0.03]} rotation={[0.3, 0, 0.2]} castShadow={s} />
+      <mesh geometry={KNIGHT.arm} material={dark} position={[0.1, 0.24, 0.03]} rotation={[0.3, 0, -0.2]} castShadow={s} />
+      {/* kabuto: a rounded bowl with wings flared back from the face, and a crescent crest */}
+      <mesh geometry={KNIGHT.bowl} material={dark} position={[0, headY, 0]} castShadow={s} />
+      {[-1, 1].map((side) => (
+        <mesh key={side} geometry={KNIGHT.wing} material={dark} position={[side * 0.08, headY - 0.02, -0.01]} rotation={[0, side * 0.75, 0]} castShadow={s} />
+      ))}
+      <mesh geometry={KNIGHT.crest} material={mat('#e8c35a', { metal: 0.4, rough: 0.4 })} position={[0, headY + 0.09, -0.01]} rotation={[Math.PI / 2, 0, Math.PI / 2]} />
+      {faceMat ? (
+        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.05, 0.0755]} />
+      ) : (
+        <>
+          <mesh geometry={KNIGHT.face} material={trim} position={[0, headY - 0.05, 0.0755]} />
+          <mesh geometry={KNIGHT.eyeSlit} material={dark} position={[0, headY - 0.03, 0.078]} />
+        </>
+      )}
+      {/* the katana, sheathed and worn diagonally at the hip */}
+      <group position={[0.12, 0.16, -0.04]} rotation={[0, 0, 0.9]}>
+        <mesh geometry={KNIGHT.saya} material={mat('#26201c')} castShadow={s} />
+        <mesh geometry={KNIGHT.tsuba} material={mat('#8a6139', { metal: 0.3, rough: 0.5 })} position={[0, 0.12, 0]} rotation={[Math.PI / 2, 0, 0]} />
+      </group>
+    </>
+  );
+}
+
 /** The robber: a bandit hiding under a wide straw hat. */
 function Robber({ o, ghost }: { o: { opacity?: number }; ghost: boolean }) {
   return (
@@ -316,4 +368,4 @@ function Road({ ghost }: { ghost: boolean; c: PieceColors }) {
 }
 
 /** Sakura Isle: blossom groves, rice paddies and pagodas. */
-export const sakura: ThemeKit = { props, Settlement, City, Robber, Road, BarbarianShip };
+export const sakura: ThemeKit = { props, Settlement, City, Robber, Road, BarbarianShip, Knight };

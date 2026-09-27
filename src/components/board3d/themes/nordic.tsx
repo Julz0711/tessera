@@ -10,7 +10,7 @@ import { usePieceScale } from '../pieceScale';
 import { classicProps } from '../terrain';
 import { CORNERS, EDGE, TG, TILE_TOP, TOKEN_CLEAR, inFront, polar, seeded, spread, type Prop } from '../terrainKit';
 import { gableRoof, roofMat } from './shared';
-import type { ModelProps, PieceColors, ThemeKit } from './types';
+import type { KnightFigureProps, ModelProps, PieceColors, ThemeKit } from './types';
 
 const y = TILE_TOP;
 
@@ -331,6 +331,63 @@ function Robber({ o, ghost }: { o: { opacity?: number }; ghost: boolean }) {
   );
 }
 
+/** A viking raider: a spectacled, horned helmet, mail, a round shield and a long-hafted axe. */
+const KNIGHT = {
+  leg: new THREE.BoxGeometry(0.055, 0.15, 0.065),
+  torso: new THREE.CylinderGeometry(0.075, 0.09, 0.17, 6),
+  tunic: new THREE.BoxGeometry(0.1, 0.08, 0.021),
+  cape: new THREE.BoxGeometry(0.16, 0.22, 0.02),
+  arm: new THREE.BoxGeometry(0.045, 0.13, 0.045),
+  dome: new THREE.SphereGeometry(0.078, 9, 6, 0, Math.PI * 2, 0, Math.PI / 1.9),
+  horn: new THREE.ConeGeometry(0.017, 0.1, 6),
+  brow: new THREE.BoxGeometry(0.09, 0.014, 0.012),
+  face: new THREE.CircleGeometry(0.046, 16),
+  shield: new THREE.CylinderGeometry(0.09, 0.09, 0.02, 14),
+  boss: new THREE.IcosahedronGeometry(0.024, 0),
+  cross: new THREE.BoxGeometry(0.16, 0.014, 0.006),
+  haft: new THREE.CylinderGeometry(0.011, 0.011, 0.34, 6),
+  axeHead: new THREE.ConeGeometry(0.055, 0.09, 3),
+};
+
+function Knight({ metal, trim, cloth, dark, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+  const s = shadows;
+  return (
+    <>
+      <mesh geometry={KNIGHT.leg} material={trim} position={[-0.035, 0.075, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.leg} material={trim} position={[0.035, 0.075, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.torso} material={metal} position={[0, 0.235, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.tunic} material={cloth} position={[0, 0.16, 0.078]} />
+      <mesh geometry={KNIGHT.cape} material={dark} position={[0, 0.22, -0.08]} rotation={[0.15, 0, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.arm} material={metal} position={[-0.11, 0.25, 0.01]} rotation={[0, 0, 0.25]} castShadow={s} />
+      <mesh geometry={KNIGHT.arm} material={metal} position={[0.11, 0.25, 0.02]} rotation={[0.5, 0, -0.2]} castShadow={s} />
+      {/* the dome, spectacle brow bars over the eyes, and a horn curving out from each side */}
+      <mesh geometry={KNIGHT.dome} material={metal} position={[0, headY, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.brow} material={trim} position={[0, headY - 0.008, 0.073]} />
+      {/* horns splayed mostly horizontal so they read clearly from the game's top-down camera */}
+      {[-1, 1].map((side) => (
+        <mesh key={side} geometry={KNIGHT.horn} material={mat('#e8dfc8', { rough: 0.6 })} position={[side * 0.08, headY + 0.005, -0.005]} rotation={[0.1, 0, side * 1.3]} />
+      ))}
+      {faceMat ? (
+        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.05, 0.0755]} />
+      ) : (
+        <mesh geometry={KNIGHT.face} material={trim} position={[0, headY - 0.05, 0.0755]} />
+      )}
+      {/* round shield on the left arm, a cross of planks over the boss */}
+      <group position={[-0.15, 0.24, 0.05]} rotation={[Math.PI / 2, 0, 0.35]}>
+        <mesh geometry={KNIGHT.shield} material={cloth} castShadow={s} />
+        <mesh geometry={KNIGHT.cross} material={dark} position={[0, 0, 0.012]} />
+        <mesh geometry={KNIGHT.cross} material={dark} position={[0, 0, 0.012]} rotation={[0, 0, Math.PI / 2]} />
+        <mesh geometry={KNIGHT.boss} material={trim} position={[0, 0, 0.015]} />
+      </group>
+      {/* a long-hafted axe, head forward */}
+      <group position={[0.14, 0.22, 0.06]} rotation={[0, 0, -0.1]}>
+        <mesh geometry={KNIGHT.haft} material={mat('#6b4a2a')} castShadow={s} />
+        <mesh geometry={KNIGHT.axeHead} material={trim} position={[0.045, 0.13, 0]} rotation={[0, 0, -Math.PI / 2]} scale={[1, 0.5, 1]} castShadow={s} />
+      </group>
+    </>
+  );
+}
+
 /** A mooring post at the pier's sea end, flying a small round painted shield. */
 function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
   // A mooring pile just past the end of the pier (the pier runs 0.23 each way along local x),
@@ -376,4 +433,4 @@ function Road({ ghost }: { ghost: boolean; c: PieceColors }) {
 }
 
 /** Nordic Fjords: spruce, heather and longhouses. */
-export const nordic: ThemeKit = { props, Settlement, City, Robber, Harbor, Road, BarbarianShip };
+export const nordic: ThemeKit = { props, Settlement, City, Robber, Harbor, Road, BarbarianShip, Knight };

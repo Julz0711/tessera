@@ -12,6 +12,8 @@ import { mat } from './materials';
 import { useAppear } from './pieces';
 import { usePieceScale } from './pieceScale';
 import { TILE_TOP } from './terrain';
+import { useBoardKit } from './themes';
+import type { KnightFigureProps } from './themes/types';
 
 const faceCache = new Map<string, THREE.Texture>();
 
@@ -90,24 +92,12 @@ const KNIGHT_FORMATION: Record<KnightLevel, { pos: [number, number]; scale: numb
 /** How much wider the base plinth grows so it still reads as one base under a multi-figure cluster. */
 const BASE_SCALE: Record<KnightLevel, number> = { 1: 1, 2: 1.15, 3: 1.3 };
 
-/** One knight body (legs through sword); the caller positions and scales it to form a group. */
-function KnightFigure({
-  metal,
-  trim,
-  cloth,
-  faceMat,
-  faceGeo,
-  shadows,
-  headY,
-}: {
-  metal: THREE.Material;
-  trim: THREE.Material;
-  cloth: THREE.Material;
-  faceMat: THREE.Material | null;
-  faceGeo: THREE.BufferGeometry | null;
-  shadows: boolean;
-  headY: number;
-}) {
+/**
+ * The classic knight body (legs through sword); the caller positions and scales it to form a
+ * group. Themes replace this with their own `Knight` (see `KnightFigureProps` in themes/types.ts)
+ * but keep the same `metal`/`trim`/`cloth`/`faceMat`/`faceGeo`/`shadows`/`headY` contract.
+ */
+function KnightFigure({ metal, trim, cloth, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
   const s = shadows;
   return (
     <>
@@ -179,8 +169,12 @@ export function KnightModel({
   const metal = mat(KNIGHT_STEEL.base, { rough: 0.45, metal: 0.55 });
   const trim = mat(KNIGHT_STEEL.trim, { rough: 0.5, metal: 0.4 });
   const cloth = mat(pc.hex);
+  const dark = mat(pc.dark);
   const s = shadows;
   const headY = 0.46;
+  // Board themes swap in their own figure (helmet, weapon, silhouette) via useBoardKit(); classic
+  // (and the turntable preview, which sits outside any theme) keeps the base KnightFigure.
+  const Figure = useBoardKit().Knight ?? KnightFigure;
   return (
     <group>
       {level !== undefined && (
@@ -205,7 +199,7 @@ export function KnightModel({
       <group position={[0, level !== undefined ? 0.05 : 0, 0]}>
         {KNIGHT_FORMATION[level ?? 1].map((figure, i) => (
           <group key={i} position={[figure.pos[0], 0, figure.pos[1]]} scale={figure.scale}>
-            <KnightFigure metal={metal} trim={trim} cloth={cloth} faceMat={faceMat} faceGeo={faceGeo} shadows={s} headY={headY} />
+            <Figure metal={metal} trim={trim} cloth={cloth} dark={dark} faceMat={faceMat} faceGeo={faceGeo} shadows={s} headY={headY} />
           </group>
         ))}
       </group>

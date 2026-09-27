@@ -8,7 +8,7 @@ import { usePieceScale } from '../pieceScale';
 import { CORNERS, EDGE, TILE_TOP, TOKEN_CLEAR, inFront, polar, seeded, spread, type Prop } from '../terrainKit';
 import { useBoardPalette } from './index';
 import { gableRoof, lit, roofMat, rockBase } from './shared';
-import type { ModelProps, PieceColors, ThemeKit } from './types';
+import type { KnightFigureProps, ModelProps, PieceColors, ThemeKit } from './types';
 
 const y = TILE_TOP;
 
@@ -404,6 +404,59 @@ function Robber({ o, ghost }: { o: { opacity?: number }; ghost: boolean }) {
   );
 }
 
+/** A sky-marine in riveted brass armour: aviator goggles pushed up on the brow, a sabre, a back tank. */
+const KNIGHT = {
+  leg: new THREE.BoxGeometry(0.055, 0.15, 0.065),
+  torso: new THREE.CylinderGeometry(0.075, 0.09, 0.17, 6),
+  tabard: new THREE.BoxGeometry(0.1, 0.14, 0.02),
+  tank: new THREE.CylinderGeometry(0.03, 0.03, 0.16, 8),
+  arm: new THREE.BoxGeometry(0.045, 0.13, 0.045),
+  cap: new THREE.SphereGeometry(0.072, 9, 6, 0, Math.PI * 2, 0, Math.PI / 1.85),
+  earflap: new THREE.BoxGeometry(0.02, 0.05, 0.04),
+  strap: new THREE.BoxGeometry(0.1, 0.014, 0.012),
+  lens: new THREE.CylinderGeometry(0.021, 0.021, 0.014, 12).rotateX(Math.PI / 2),
+  face: new THREE.CircleGeometry(0.046, 16),
+  hilt: new THREE.CylinderGeometry(0.009, 0.009, 0.06, 6),
+  blade: new THREE.BoxGeometry(0.19, 0.024, 0.01),
+  guard: new THREE.TorusGeometry(0.022, 0.006, 4, 10),
+};
+
+function Knight({ cloth, dark, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+  const s = shadows;
+  const brass = mat(BRASS, { metal: 0.5, rough: 0.4 });
+  return (
+    <>
+      <mesh geometry={KNIGHT.leg} material={brass} position={[-0.035, 0.075, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.leg} material={brass} position={[0.035, 0.075, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.torso} material={brass} position={[0, 0.235, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.tabard} material={cloth} position={[0, 0.225, 0.078]} />
+      <mesh geometry={KNIGHT.tank} material={mat(COPPER, { metal: 0.4, rough: 0.45 })} position={[0, 0.24, -0.09]} castShadow={s} />
+      <mesh geometry={KNIGHT.arm} material={brass} position={[-0.11, 0.25, 0.01]} rotation={[0, 0, 0.25]} castShadow={s} />
+      <mesh geometry={KNIGHT.arm} material={brass} position={[0.11, 0.25, 0.02]} rotation={[0.5, 0, -0.2]} castShadow={s} />
+      {/* a snug leather flight cap with ear flaps, goggles resting on the brow above the face */}
+      <mesh geometry={KNIGHT.cap} material={dark} position={[0, headY, 0]} castShadow={s} />
+      {[-1, 1].map((side) => (
+        <mesh key={side} geometry={KNIGHT.earflap} material={dark} position={[side * 0.07, headY - 0.05, 0.01]} />
+      ))}
+      <mesh geometry={KNIGHT.strap} material={mat('#3a2e22')} position={[0, headY + 0.02, 0.07]} />
+      {[-0.028, 0.028].map((x) => (
+        <mesh key={x} geometry={KNIGHT.lens} material={brass} position={[x, headY + 0.02, 0.073]} />
+      ))}
+      {faceMat ? (
+        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.05, 0.0755]} />
+      ) : (
+        <mesh geometry={KNIGHT.face} material={mat('#c9a27a')} position={[0, headY - 0.05, 0.0755]} />
+      )}
+      {/* the sabre, its blade curving forward */}
+      <group position={[0.14, 0.2, 0.07]}>
+        <mesh geometry={KNIGHT.hilt} material={dark} position={[0, -0.02, 0]} />
+        <mesh geometry={KNIGHT.blade} material={brass} position={[0.08, 0.06, 0]} rotation={[0, 0, 0.18]} castShadow={s} />
+        <mesh geometry={KNIGHT.guard} material={brass} rotation={[Math.PI / 2, 0, 0]} />
+      </group>
+    </>
+  );
+}
+
 const PIPE = {
   pipe: new THREE.CylinderGeometry(0.018, 0.018, 0.6, 8).rotateZ(Math.PI / 2),
   flange: new THREE.CylinderGeometry(0.026, 0.026, 0.016, 8).rotateZ(Math.PI / 2),
@@ -497,4 +550,4 @@ function BarbarianShip({ danger }: { danger: boolean }) {
 }
 
 /** Skyport: a steampunk island floating over a sea of clouds, with airships at its harbors. */
-export const skyport: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Base, Sea, BarbarianShip };
+export const skyport: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Base, Sea, BarbarianShip, Knight };

@@ -8,7 +8,7 @@ import { usePieceScale } from '../pieceScale';
 import { CORNERS, EDGE, TILE_TOP, TOKEN_CLEAR, inFront, polar, seeded, spread, type Prop } from '../terrainKit';
 import { useBoardPalette } from './index';
 import { gableRoof, roofMat } from './shared';
-import type { ModelProps, PieceColors, ThemeKit } from './types';
+import type { KnightFigureProps, ModelProps, PieceColors, ThemeKit } from './types';
 
 /**
  * Origami: the island folded from paper. Few, crisp facets and soft even light (the palette) make
@@ -324,6 +324,56 @@ function Robber({ o, ghost }: { o: { opacity?: number }; ghost: boolean }) {
   );
 }
 
+/** A folded paper knight: a faceted body of cones and prisms, a triangular blade and shield. */
+const KNIGHT = {
+  leg: new THREE.TetrahedronGeometry(0.05, 0),
+  torso: new THREE.ConeGeometry(0.11, 0.2, 4),
+  arm: new THREE.ConeGeometry(0.028, 0.13, 4),
+  head: new THREE.OctahedronGeometry(0.072, 0),
+  crest: new THREE.ConeGeometry(0.05, 0.1, 4),
+  face: new THREE.CircleGeometry(0.044, 6),
+  hilt: new THREE.CylinderGeometry(0.007, 0.007, 0.05, 4),
+};
+const KNIGHT_BLADE = paper([[
+  [0, -0.02, 0],
+  [0, 0.22, 0],
+  [0.03, 0.1, 0],
+]]);
+const KNIGHT_SHIELD = paper([[
+  [-0.07, 0.075, 0],
+  [0.07, 0.075, 0],
+  [0, -0.075, 0],
+]]);
+
+function Knight({ cloth, dark, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+  const s = shadows;
+  return (
+    <>
+      <mesh geometry={KNIGHT.leg} material={dark} position={[-0.035, 0.05, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.leg} material={dark} position={[0.035, 0.05, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.torso} material={cloth} position={[0, 0.19, 0]} rotation={[0, Math.PI / 4, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.arm} material={cloth} position={[-0.13, 0.23, 0]} rotation={[0, 0, 1.3]} castShadow={s} />
+      <mesh geometry={KNIGHT.arm} material={cloth} position={[0.13, 0.2, 0]} rotation={[0, 0, -1.5]} castShadow={s} />
+      {/* a faceted head under a folded, pointed crest */}
+      <mesh geometry={KNIGHT.head} material={dark} position={[0, headY, 0]} rotation={[0, Math.PI / 4, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.crest} material={dark} position={[0, headY + 0.1, 0]} rotation={[0, Math.PI / 4, 0]} castShadow={s} />
+      {faceMat ? (
+        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.05, 0.0755]} />
+      ) : (
+        <mesh geometry={KNIGHT.face} material={mat('#fbf8f0')} position={[0, headY - 0.05, 0.0755]} />
+      )}
+      {/* a folded paper blade and a triangular shield, both flat and double-sided */}
+      <group position={[-0.14, 0.24, 0.03]} rotation={[0, 0.5, 0]}>
+        <mesh geometry={KNIGHT_SHIELD} material={cloth} castShadow={s} />
+      </group>
+      <group position={[0.14, 0.16, 0.05]}>
+        <mesh geometry={KNIGHT.hilt} material={dark} position={[0, -0.02, 0]} />
+        <mesh geometry={KNIGHT_BLADE} material={mat('#e8e2d2')} castShadow={s} />
+      </group>
+    </>
+  );
+}
+
 const CREASE = new THREE.BoxGeometry(0.56, 0.004, 0.008);
 
 /** A strip of paper: the road, with a white crease folded down its middle. */
@@ -356,4 +406,4 @@ function BarbarianShip({ danger }: { danger: boolean }) {
 }
 
 /** Origami: pyramid trees, accordion fields, a crane and a fox, all folded from paper. */
-export const origami: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Sea, BarbarianShip };
+export const origami: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Sea, BarbarianShip, Knight };

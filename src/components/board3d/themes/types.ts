@@ -1,4 +1,5 @@
 import type { FC } from 'react';
+import type * as THREE from 'three';
 import type { Terrain } from '@/engine/types';
 import type { Prop } from '../terrainKit';
 
@@ -17,6 +18,27 @@ export interface ModelProps {
   c: PieceColors;
   o: { opacity?: number };
   ghost: boolean;
+}
+
+/**
+ * What one C&K knight figure is drawn with (see `KnightFigure`/`KnightModel` in knights.tsx): the
+ * player's colours (`cloth` in `hex`, `dark` for trim/accents — keep it dominant, like a
+ * `ModelProps`' `c`), a neutral steel `metal`/`trim` a theme may reuse for straps and blades, the
+ * uploaded face (`faceMat`/`faceGeo`, null without one — mount it on the head's front so it stays
+ * visible), whether to cast shadows, and `headY` (world y of the head's centre at scale 1) so the
+ * face and any headwear line up. A themed `Knight` is free to ignore `metal`/`trim` if its own
+ * palette reads better, but should stay close to the classic's ~0.6-unit height and footprint so
+ * formations and hit targets still work.
+ */
+export interface KnightFigureProps {
+  metal: THREE.Material;
+  trim: THREE.Material;
+  cloth: THREE.Material;
+  dark: THREE.Material;
+  faceMat: THREE.Material | null;
+  faceGeo: THREE.BufferGeometry | null;
+  shadows: boolean;
+  headY: number;
 }
 
 /**
@@ -63,4 +85,6 @@ export interface ThemeKit {
    * from landing; show it with red tints/glow, like the classic longship does.
    */
   BarbarianShip?: FC<{ danger: boolean }>;
+  /** Replaces one knight figure's body (legs through weapon) in the theme's own style. */
+  Knight?: FC<KnightFigureProps>;
 }

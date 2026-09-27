@@ -5,7 +5,7 @@ import type { Terrain } from '@/engine/types';
 import { mat } from '../materials';
 import { usePieceScale } from '../pieceScale';
 import { CORNERS, EDGE, TILE_TOP, TOKEN_CLEAR, inFront, polar, seeded, spread, type Prop } from '../terrainKit';
-import type { ModelProps, PieceColors, ThemeKit } from './types';
+import type { KnightFigureProps, ModelProps, PieceColors, ThemeKit } from './types';
 
 const y = TILE_TOP;
 
@@ -247,6 +247,62 @@ function Robber({ o, ghost }: { o: { opacity?: number }; ghost: boolean }) {
   );
 }
 
+/** A palace guard: a striped nemes headdress, a gold collar, a khopesh and a hide shield. */
+const KNIGHT = {
+  leg: new THREE.BoxGeometry(0.05, 0.15, 0.06),
+  kilt: new THREE.CylinderGeometry(0.06, 0.11, 0.1, 8),
+  torso: new THREE.CylinderGeometry(0.072, 0.08, 0.16, 6),
+  collar: new THREE.TorusGeometry(0.078, 0.014, 4, 14),
+  arm: new THREE.BoxGeometry(0.042, 0.12, 0.042),
+  peak: new THREE.ConeGeometry(0.078, 0.09, 6),
+  wing: new THREE.BoxGeometry(0.02, 0.13, 0.09),
+  band: new THREE.BoxGeometry(0.09, 0.018, 0.012),
+  face: new THREE.CircleGeometry(0.046, 16),
+  shield: new THREE.BoxGeometry(0.02, 0.16, 0.11),
+  shieldRim: new THREE.BoxGeometry(0.024, 0.166, 0.014),
+  hilt: new THREE.CylinderGeometry(0.009, 0.009, 0.06, 6),
+  blade: new THREE.BoxGeometry(0.16, 0.03, 0.012),
+  hook: new THREE.BoxGeometry(0.06, 0.05, 0.012),
+};
+
+function Knight({ trim, cloth, dark, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+  const s = shadows;
+  const skin = mat('#c9986a');
+  return (
+    <>
+      <mesh geometry={KNIGHT.leg} material={skin} position={[-0.032, 0.07, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.leg} material={skin} position={[0.032, 0.07, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.kilt} material={cloth} position={[0, 0.135, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.torso} material={skin} position={[0, 0.24, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.collar} material={mat('#e8c35a', { metal: 0.4, rough: 0.35 })} position={[0, 0.32, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 1, 0.6]} />
+      <mesh geometry={KNIGHT.arm} material={skin} position={[-0.105, 0.25, 0.01]} rotation={[0, 0, 0.25]} castShadow={s} />
+      <mesh geometry={KNIGHT.arm} material={skin} position={[0.105, 0.24, 0.02]} rotation={[0.5, 0, -0.2]} castShadow={s} />
+      {/* the nemes: a striped peak with wings flaring down to the shoulders, and a gold browband */}
+      <mesh geometry={KNIGHT.peak} material={cloth} position={[0, headY + 0.03, -0.01]} castShadow={s} />
+      {[-1, 1].map((side) => (
+        <mesh key={side} geometry={KNIGHT.wing} material={cloth} position={[side * 0.075, headY - 0.03, -0.015]} rotation={[0, 0, side * 0.22]} castShadow={s} />
+      ))}
+      <mesh geometry={KNIGHT.band} material={mat('#e8c35a', { metal: 0.4, rough: 0.35 })} position={[0, headY - 0.005, 0.073]} />
+      {faceMat ? (
+        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.05, 0.0755]} />
+      ) : (
+        <mesh geometry={KNIGHT.face} material={skin} position={[0, headY - 0.05, 0.0755]} />
+      )}
+      {/* a rectangular hide shield, held forward on the left */}
+      <group position={[-0.14, 0.23, 0.06]} rotation={[0, 0.3, 0]}>
+        <mesh geometry={KNIGHT.shieldRim} material={dark} castShadow={s} />
+        <mesh geometry={KNIGHT.shield} material={trim} position={[0, 0, 0.002]} />
+      </group>
+      {/* the khopesh: a hooked bronze blade */}
+      <group position={[0.14, 0.2, 0.07]} rotation={[0, 0, -0.2]}>
+        <mesh geometry={KNIGHT.hilt} material={mat('#6b4a2a')} position={[0, -0.02, 0]} />
+        <mesh geometry={KNIGHT.blade} material={mat('#c9a24a', { metal: 0.4, rough: 0.4 })} position={[0.07, 0.03, 0]} />
+        <mesh geometry={KNIGHT.hook} material={mat('#c9a24a', { metal: 0.4, rough: 0.4 })} position={[0.12, 0.07, 0]} rotation={[0, 0, -1.1]} />
+      </group>
+    </>
+  );
+}
+
 const CURB = new THREE.BoxGeometry(0.6, 1, 0.022);
 
 /** A stone causeway: sandstone kerbs along both sides of the road. */
@@ -326,4 +382,4 @@ function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
 }
 
 /** Nile: palms and mudbrick, wheat along the canals, pyramids, temples, a mummy and feluccas. */
-export const nile: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, BarbarianShip };
+export const nile: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, BarbarianShip, Knight };

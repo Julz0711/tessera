@@ -6,7 +6,7 @@ import { mat } from '../materials';
 import { usePieceScale } from '../pieceScale';
 import { CORNERS, EDGE, TILE_TOP, TOKEN_CLEAR, inFront, polar, seeded, spread, type Prop } from '../terrainKit';
 import { gableRoof, roofMat } from './shared';
-import type { ModelProps, PieceColors, ThemeKit } from './types';
+import type { KnightFigureProps, ModelProps, PieceColors, ThemeKit } from './types';
 
 const y = TILE_TOP;
 
@@ -279,6 +279,49 @@ function Robber({ o, ghost }: { o: { opacity?: number }; ghost: boolean }) {
   );
 }
 
+/** A sheriff standing watch: a wide-brimmed hat, a long duster coat, a tin star and a rifle. */
+const KNIGHT = {
+  leg: new THREE.BoxGeometry(0.055, 0.15, 0.065),
+  coat: new THREE.ConeGeometry(0.13, 0.28, 8),
+  vest: new THREE.BoxGeometry(0.09, 0.09, 0.025),
+  star: new THREE.IcosahedronGeometry(0.016, 0),
+  arm: new THREE.BoxGeometry(0.045, 0.13, 0.045),
+  head: new THREE.IcosahedronGeometry(0.075, 0),
+  face: new THREE.CircleGeometry(0.046, 16),
+  brim: new THREE.CylinderGeometry(0.15, 0.15, 0.015, 12),
+  crown: new THREE.CylinderGeometry(0.06, 0.07, 0.085, 10),
+  barrel: new THREE.CylinderGeometry(0.009, 0.009, 0.34, 6),
+  stock: new THREE.BoxGeometry(0.03, 0.05, 0.09),
+};
+
+function Knight({ trim, cloth, dark, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+  const s = shadows;
+  return (
+    <>
+      <mesh geometry={KNIGHT.leg} material={dark} position={[-0.035, 0.075, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.leg} material={dark} position={[0.035, 0.075, 0]} castShadow={s} />
+      {/* the duster: a long open coat over the body */}
+      <mesh geometry={KNIGHT.coat} material={cloth} position={[0, 0.29, 0]} rotation={[Math.PI, 0, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.vest} material={dark} position={[0, 0.26, 0.06]} />
+      <mesh geometry={KNIGHT.star} material={mat('#e8c35a', { metal: 0.4, rough: 0.35 })} position={[0.025, 0.285, 0.073]} />
+      <mesh geometry={KNIGHT.arm} material={cloth} position={[-0.13, 0.28, 0.02]} rotation={[0, 0, 0.35]} castShadow={s} />
+      <mesh geometry={KNIGHT.arm} material={cloth} position={[0.12, 0.26, 0.03]} rotation={[0.6, 0, -0.3]} castShadow={s} />
+      {/* a bare head under a wide-brimmed hat, the face open to the sun */}
+      <mesh geometry={KNIGHT.head} material={mat('#c9a27a')} position={[0, headY - 0.02, 0]} castShadow={s} />
+      {faceMat ? (
+        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.06, 0.0755]} />
+      ) : null}
+      <mesh geometry={KNIGHT.crown} material={dark} position={[0, headY + 0.075, -0.005]} />
+      <mesh geometry={KNIGHT.brim} material={dark} position={[0, headY + 0.04, -0.005]} rotation={[0.05, 0, 0]} castShadow={s} />
+      {/* the rifle, slung diagonally across the body */}
+      <group position={[0.02, 0.24, 0.02]} rotation={[0, 0, 0.95]}>
+        <mesh geometry={KNIGHT.barrel} material={trim} castShadow={s} />
+        <mesh geometry={KNIGHT.stock} material={mat('#6b4a2a')} position={[0, -0.19, 0]} />
+      </group>
+    </>
+  );
+}
+
 const RAIL = {
   tie: new THREE.BoxGeometry(0.032, 0.012, 0.17),
   rail: new THREE.BoxGeometry(0.6, 0.012, 0.014),
@@ -361,4 +404,4 @@ function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
 }
 
 /** Frontier: pines and ranches, adobe and silver mines, saloons, railroads and an outlaw. */
-export const frontier: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, BarbarianShip };
+export const frontier: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, BarbarianShip, Knight };

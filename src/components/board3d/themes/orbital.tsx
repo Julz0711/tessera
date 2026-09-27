@@ -1,14 +1,16 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { Terrain } from '@/engine/types';
+import { reducedMotion } from '@/client/fx';
 import { shade } from '@/client/palette';
 import { mat } from '../materials';
 import { usePieceScale } from '../pieceScale';
 import { CORNERS, EDGE, TILE_TOP, TOKEN_CLEAR, inFront, polar, seeded, spread, type Prop } from '../terrainKit';
 import { Hover, Pool, beamMat, lit, rockBase } from './shared';
-import type { ModelProps, PieceColors, ThemeKit } from './types';
+import type { KnightFigureProps, ModelProps, PieceColors, ThemeKit } from './types';
 
 /**
  * Orbital: the island as an asteroid colony adrift in space. Stars, nebulae and a ringed planet
@@ -300,6 +302,51 @@ function Robber({ o, ghost }: { o: { opacity?: number }; ghost: boolean }) {
   );
 }
 
+/** A trooper in a pressure suit: a glass bubble helmet over the face, a chest panel, a blaster. */
+const KNIGHT = {
+  leg: new THREE.BoxGeometry(0.06, 0.15, 0.07),
+  torso: new THREE.CylinderGeometry(0.08, 0.09, 0.17, 8),
+  panel: new THREE.BoxGeometry(0.06, 0.05, 0.014),
+  light: new THREE.BoxGeometry(0.014, 0.014, 0.006),
+  pack: new THREE.BoxGeometry(0.09, 0.14, 0.05),
+  arm: new THREE.BoxGeometry(0.05, 0.13, 0.05),
+  ring: new THREE.TorusGeometry(0.082, 0.012, 4, 14),
+  bubble: new THREE.SphereGeometry(0.095, 12, 8),
+  face: new THREE.CircleGeometry(0.046, 16),
+  gunBody: new THREE.BoxGeometry(0.09, 0.03, 0.03),
+  gunBarrel: new THREE.CylinderGeometry(0.008, 0.009, 0.09, 8).rotateZ(Math.PI / 2),
+};
+
+function Knight({ trim, cloth, dark, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+  const s = shadows;
+  return (
+    <>
+      <mesh geometry={KNIGHT.leg} material={cloth} position={[-0.038, 0.075, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.leg} material={cloth} position={[0.038, 0.075, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.torso} material={cloth} position={[0, 0.235, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.panel} material={dark} position={[0, 0.24, 0.083]} />
+      <mesh geometry={KNIGHT.light} material={lit(CYAN, 1.8)} position={[-0.014, 0.25, 0.091]} />
+      <mesh geometry={KNIGHT.light} material={lit('#ff4d4d', 1.8)} position={[0.014, 0.25, 0.091]} />
+      <mesh geometry={KNIGHT.pack} material={dark} position={[0, 0.24, -0.075]} castShadow={s} />
+      <mesh geometry={KNIGHT.arm} material={cloth} position={[-0.115, 0.25, 0.01]} rotation={[0, 0, 0.25]} castShadow={s} />
+      <mesh geometry={KNIGHT.arm} material={cloth} position={[0.115, 0.25, 0.02]} rotation={[0.5, 0, -0.2]} castShadow={s} />
+      {/* the ring collar, then face and helmet lamp inside a clear bubble helmet */}
+      <mesh geometry={KNIGHT.ring} material={dark} position={[0, headY - 0.09, 0]} rotation={[Math.PI / 2, 0, 0]} />
+      {faceMat ? (
+        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.05, 0.0755]} />
+      ) : (
+        <mesh geometry={KNIGHT.face} material={mat('#c9a27a')} position={[0, headY - 0.05, 0.0755]} />
+      )}
+      <mesh geometry={KNIGHT.bubble} material={mat(CYAN, { opacity: 0.32, rough: 0.15 })} position={[0, headY - 0.01, 0]} castShadow={s} />
+      {/* a two-handed blaster */}
+      <group position={[0.15, 0.19, 0.06]} rotation={[0, 0.5, 0]}>
+        <mesh geometry={KNIGHT.gunBody} material={trim} castShadow={s} />
+        <mesh geometry={KNIGHT.gunBarrel} material={trim} position={[0.08, 0, 0]} />
+      </group>
+    </>
+  );
+}
+
 const RUNWAY = new THREE.SphereGeometry(0.012, 6, 4);
 
 /** Runway lights along both edges of the road, glowing in the owner's colour. */
@@ -344,24 +391,116 @@ function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
   );
 }
 
+/**
+ * The raider's hull: a sharp arrowhead/manta plan (bow at +z), swept wings and a concave notch
+ * between the two engine nacelles at the stern. A shallow bevel gives its edges a hard, angular
+ * highlight instead of the saucer's soft curve.
+ */
+function raiderHull(): THREE.BufferGeometry {
+  const plan = new THREE.Shape();
+  plan.moveTo(0, 0.22); // bow
+  plan.lineTo(0.045, 0.12);
+  plan.lineTo(0.19, -0.02); // starboard wingtip
+  plan.lineTo(0.09, -0.17); // starboard nacelle root
+  plan.lineTo(0, -0.09); // stern notch, drawn in
+  plan.lineTo(-0.09, -0.17); // port nacelle root
+  plan.lineTo(-0.19, -0.02); // port wingtip
+  plan.lineTo(-0.045, 0.12);
+  plan.closePath();
+  const g = new THREE.ExtrudeGeometry(plan, { depth: 0.05, bevelEnabled: true, bevelThickness: 0.016, bevelSize: 0.011, bevelSegments: 1, curveSegments: 1 });
+  g.rotateX(Math.PI / 2);
+  g.translate(0, 0.095, 0);
+  return g;
+}
+
 const RAIDER = {
-  hull: new THREE.SphereGeometry(1, 14, 8),
-  fin: new THREE.ConeGeometry(0.05, 0.12, 4),
-  underGlow: new THREE.CylinderGeometry(0.17, 0.19, 0.014, 16),
+  hull: raiderHull(),
+  canopy: new THREE.SphereGeometry(0.055, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2),
+  fin: new THREE.BoxGeometry(0.012, 0.05, 0.09),
+  nacelle: new THREE.CylinderGeometry(0.028, 0.034, 0.11, 8),
+  nacelleGlow: new THREE.CircleGeometry(0.026, 12),
+  navLight: new THREE.IcosahedronGeometry(0.009, 0),
+  // Sized so that once the ship group's 1.7 scale and its HULL_CLEAR (0.075) lift are applied, the
+  // beam's narrow end touches the hull's underside and its wide end just reaches the sea-step.
+  beam: new THREE.ConeGeometry(0.05, 0.095, 12, 1, true),
+  // glowing trim along the leading edges, a reactor core on the spine, and engine exhaust plumes
+  trim: new THREE.BoxGeometry(0.009, 0.006, 0.27),
+  core: new THREE.CylinderGeometry(0.03, 0.03, 0.01, 6),
+  plume: new THREE.ConeGeometry(0.026, 0.15, 10, 1, true).rotateX(-Math.PI / 2),
 };
 
-/** The barbarian ship as an alien raider craft: a flattened hull hovering over a glowing underside. */
+/** The engines' exhaust: a flickering plume behind each nacelle, and a pulsing reactor core. */
+function Exhaust({ glow }: { glow: string }) {
+  const plumes = useRef<THREE.Group>(null);
+  const core = useRef<THREE.Mesh>(null);
+  useFrame((state) => {
+    if (reducedMotion()) return;
+    const t = state.clock.elapsedTime;
+    plumes.current?.scale.set(1, 1, 0.85 + Math.sin(t * 17) * 0.1 + Math.sin(t * 7.3) * 0.08);
+    core.current?.scale.setScalar(0.9 + Math.sin(t * 3) * 0.12);
+  });
+  return (
+    <>
+      <group ref={plumes} position={[0, 0.09, -0.205]}>
+        {[-0.09, 0.09].map((x) => (
+          <mesh key={x} geometry={RAIDER.plume} material={beamMat(glow, 0.55)} position={[x, 0, -0.075]} />
+        ))}
+      </group>
+      <mesh ref={core} geometry={RAIDER.core} material={lit(glow, 2.6)} position={[0, 0.114, -0.04]} />
+    </>
+  );
+}
+
+/** A wingtip nav light that blinks by popping its scale, held still with reduced motion. */
+function NavLight({ x, z, color }: { x: number; z: number; color: string }) {
+  const ref = useRef<THREE.Mesh>(null);
+  const phase = useRef(Math.random() * 10);
+  useFrame((state) => {
+    if (!ref.current) return;
+    const on = reducedMotion() || Math.sin(state.clock.elapsedTime * 3 + phase.current) > 0.85;
+    ref.current.scale.setScalar(on ? 1 : 0.3);
+  });
+  return <mesh ref={ref} geometry={RAIDER.navLight} material={lit(color, 2.4)} position={[x, 0.1, z]} />;
+}
+
+/**
+ * The barbarian ship as a menacing alien raider: a sharp arrowhead hull with a dark glass canopy,
+ * hull fins at the wingtips, twin glowing engine nacelles at the stern, blinking nav lights, and a
+ * faint tractor beam reaching down towards its step.
+ */
 function BarbarianShip({ danger }: { danger: boolean }) {
-  const hullMat = mat(danger ? '#5a1a2a' : '#4a4f68', { metal: 0.45, rough: 0.35 });
+  const hullMat = mat(danger ? '#8a3044' : '#9aa1c2', { metal: 0.6, rough: 0.25 });
+  const finMat = mat(danger ? '#4f1824' : '#454a66', { metal: 0.45, rough: 0.35 });
   const glow = danger ? '#ff4d4d' : CYAN;
   return (
     <group>
-      <mesh geometry={RAIDER.hull} material={hullMat} scale={[0.13, 0.06, 0.23]} position={[0, 0.1, 0]} castShadow />
-      <mesh geometry={RAIDER.fin} material={hullMat} position={[0, 0.17, -0.1]} rotation={[Math.PI, 0, 0]} />
-      <mesh geometry={RAIDER.underGlow} material={lit(glow, 2.6)} position={[0, 0.05, 0]} />
+      <mesh geometry={RAIDER.hull} material={hullMat} castShadow />
+      {/* a dark glass canopy just aft of the bow */}
+      <mesh geometry={RAIDER.canopy} material={lit(danger ? '#ff4d4d' : '#b06bff', 1.1)} position={[0, 0.11, 0.09]} scale={[1, 0.7, 1.3]} />
+      {/* glowing trim down both leading edges, bow to wingtip */}
+      {[-1, 1].map((side) => (
+        <mesh key={`t${side}`} geometry={RAIDER.trim} material={lit(glow, 2.2)} position={[side * 0.085, 0.113, 0.095]} rotation={[0, -side * 0.66, 0]} />
+      ))}
+      <Exhaust glow={glow} />
+      {/* angled fins at the wingtips */}
+      {[-1, 1].map((side) => (
+        <mesh key={side} geometry={RAIDER.fin} material={finMat} position={[side * 0.185, 0.12, -0.02]} rotation={[0, 0, side * 0.55]} />
+      ))}
+      {/* twin engine nacelles at the stern, glowing from behind */}
+      {[-0.09, 0.09].map((x) => (
+        <group key={x} position={[x, 0.09, -0.15]}>
+          <mesh geometry={RAIDER.nacelle} material={finMat} rotation={[Math.PI / 2, 0, 0]} castShadow />
+          <mesh geometry={RAIDER.nacelleGlow} material={lit(glow, 2.8)} position={[0, 0, -0.056]} rotation={[0, Math.PI, 0]} />
+        </group>
+      ))}
+      {/* nav lights: red to port, green to starboard, blinking */}
+      <NavLight x={-0.185} z={-0.02} color="#ff4d4d" />
+      <NavLight x={0.185} z={-0.02} color="#7dffb0" />
+      {/* a faint tractor beam reaching down towards the sea-step below */}
+      <mesh geometry={RAIDER.beam} material={beamMat(glow, 0.14)} position={[0, -0.003, 0]} />
     </group>
   );
 }
 
 /** Orbital: an asteroid colony in space, with domes, a UFO for a robber and shuttles at the harbors. */
-export const orbital: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Base, Sea, BarbarianShip };
+export const orbital: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Base, Sea, BarbarianShip, Knight };

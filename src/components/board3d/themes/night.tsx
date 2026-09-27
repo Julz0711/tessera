@@ -5,10 +5,11 @@ import { useRef } from 'react';
 import * as THREE from 'three';
 import type { Terrain } from '@/engine/types';
 import { reducedMotion } from '@/client/fx';
+import { KNIGHT_STEEL } from '@/shared/knight';
 import { mat } from '../materials';
 import { ClassicCity, ClassicSettlement } from '../models';
 import { CORNERS, polar, seeded } from '../terrainKit';
-import type { ModelProps, ThemeKit } from './types';
+import type { KnightFigureProps, ModelProps, ThemeKit } from './types';
 
 /**
  * Night: the classic island after dark. The palette (src/client/themes.ts) brings dim moonlight
@@ -70,6 +71,62 @@ function BarbarianShip({ danger }: { danger: boolean }) {
         </group>
       ))}
     </group>
+  );
+}
+
+/** A knight after dark, by lantern-light: the classic figure, but with a lit lantern instead of a shield. */
+const KNIGHT = {
+  leg: new THREE.BoxGeometry(0.055, 0.15, 0.065),
+  torso: new THREE.CylinderGeometry(0.075, 0.09, 0.17, 6),
+  tabard: new THREE.BoxGeometry(0.1, 0.14, 0.02),
+  cape: new THREE.BoxGeometry(0.17, 0.25, 0.02),
+  arm: new THREE.BoxGeometry(0.045, 0.13, 0.045),
+  helmet: new THREE.CylinderGeometry(0.072, 0.075, 0.13, 8),
+  dome: new THREE.SphereGeometry(0.073, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2),
+  face: new THREE.CircleGeometry(0.048, 18),
+  visorSlit: new THREE.BoxGeometry(0.075, 0.012, 0.01),
+  blade: new THREE.BoxGeometry(0.02, 0.24, 0.01),
+  guard: new THREE.BoxGeometry(0.08, 0.018, 0.02),
+  lanternCage: new THREE.BoxGeometry(0.052, 0.075, 0.052),
+  lanternRoof: new THREE.ConeGeometry(0.042, 0.035, 4),
+  handle: new THREE.TorusGeometry(0.024, 0.006, 4, 8),
+};
+
+/** Knight: the classic figure, holding a lit lantern up in its shield hand instead of a shield. */
+function Knight({ metal, trim, cloth, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+  const s = shadows;
+  return (
+    <>
+      <mesh geometry={KNIGHT.leg} material={trim} position={[-0.035, 0.075, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.leg} material={trim} position={[0.035, 0.075, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.torso} material={metal} position={[0, 0.235, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.tabard} material={cloth} position={[0, 0.225, 0.078]} />
+      <mesh geometry={KNIGHT.cape} material={cloth} position={[0, 0.22, -0.085]} rotation={[0.18, 0, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.arm} material={metal} position={[-0.13, 0.26, 0.01]} rotation={[0, 0, 0.8]} castShadow={s} />
+      <mesh geometry={KNIGHT.arm} material={metal} position={[0.11, 0.25, 0.02]} rotation={[0.5, 0, -0.2]} castShadow={s} />
+      <mesh geometry={KNIGHT.helmet} material={metal} position={[0, headY - 0.05, 0]} castShadow={s} />
+      <mesh geometry={KNIGHT.dome} material={metal} position={[0, headY + 0.015, 0]} castShadow={s} />
+      {faceMat ? (
+        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.05, 0.0755]} />
+      ) : (
+        <>
+          <mesh geometry={KNIGHT.face} material={mat(KNIGHT_STEEL.visor)} position={[0, headY - 0.05, 0.0755]} />
+          <mesh geometry={KNIGHT.visorSlit} material={metal} position={[0, headY - 0.04, 0.078]} />
+          <mesh geometry={KNIGHT.visorSlit} material={metal} position={[0, headY - 0.065, 0.078]} />
+        </>
+      )}
+      {/* the lantern, held out to the left at shoulder height: the cage itself glows warm (like the
+          tile and road lanterns above), so nothing opaque hides the light. */}
+      <group position={[-0.2, 0.28, 0.05]}>
+        <mesh geometry={KNIGHT.handle} material={trim} position={[0, 0.045, 0]} rotation={[Math.PI / 2, 0, 0]} />
+        <mesh geometry={KNIGHT.lanternCage} material={lit(2.6)} castShadow={s} />
+        <mesh geometry={KNIGHT.lanternRoof} material={trim} position={[0, 0.055, 0]} rotation={[0, Math.PI / 4, 0]} />
+      </group>
+      <group position={[0.14, 0.2, 0.07]}>
+        <mesh geometry={KNIGHT.blade} material={mat('#dfe5ea', { rough: 0.35, metal: 0.6 })} position={[0, 0.15, 0]} castShadow={s} />
+        <mesh geometry={KNIGHT.guard} material={mat('#8a6139')} position={[0, 0.02, 0]} />
+      </group>
+    </>
   );
 }
 
@@ -202,4 +259,4 @@ function Tile({ terrain, seed }: { terrain: Terrain; seed: number }) {
   );
 }
 
-export const night: ThemeKit = { Settlement, City, Road, Tile, BarbarianShip };
+export const night: ThemeKit = { Settlement, City, Road, Tile, BarbarianShip, Knight };
