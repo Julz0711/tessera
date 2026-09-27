@@ -4,12 +4,12 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { Topology } from '@/engine/board/topology';
-import { BARBARIAN_STEP_R, barbarianTrackLayout } from '../board/barbarian';
+import { BARBARIAN_HEADER_H, BARBARIAN_STEP_R, barbarianTrackLayout } from '../board/barbarian';
 import { faceCamera } from './faceCamera';
 import { mat } from './materials';
 import { usePieceScale } from './pieceScale';
 import { useBoardKit, useBoardPalette } from './themes';
-import { barbarianBadgeTexture } from './textures';
+import { barbarianStatusTexture } from './textures';
 
 export interface BarbarianInfo {
   position: number;
@@ -40,9 +40,8 @@ const GEO = {
   sail: new THREE.BoxGeometry(0.22, 0.16, 0.012),
   stripe: new THREE.BoxGeometry(0.034, 0.16, 0.014),
   shield: new THREE.CylinderGeometry(0.032, 0.032, 0.016, 8),
-  // camera-facing number badges
-  badgeDisc: new THREE.CylinderGeometry(0.14, 0.145, 0.028, 20),
-  badgeFace: new THREE.CircleGeometry(0.13, 22),
+  // the status sign above the field (a 2:1 plane)
+  sign: new THREE.PlaneGeometry(0.96, 0.48),
 };
 
 /** A hexagonal sea-step; the landing (last) step glows warm orange, red when the barbarians are close. */
@@ -65,18 +64,41 @@ function Swell({ children }: { children: React.ReactNode }) {
   return <group ref={ref}>{children}</group>;
 }
 
-/** A camera-facing round badge showing a number and a small glyph (ship strength / crossed-swords defense). */
-function Badge({ x, y, z, value, icon, ok }: { x: number; y: number; z: number; value: number; icon: 'ship' | 'swords'; ok: boolean }) {
+/** The dark field on the water under the status sign and the steps, like the 2D board's panel. */
+function Field({ x, top, bottom, width }: { x: number; top: number; bottom: number; width: number }) {
+  const geometry = useMemo(() => {
+    const [w, h, rr] = [width, bottom - top, 0.16];
+    const shape = new THREE.Shape();
+    shape.moveTo(-w / 2 + rr, 0);
+    shape.lineTo(w / 2 - rr, 0);
+    shape.quadraticCurveTo(w / 2, 0, w / 2, rr);
+    shape.lineTo(w / 2, h - rr);
+    shape.quadraticCurveTo(w / 2, h, w / 2 - rr, h);
+    shape.lineTo(-w / 2 + rr, h);
+    shape.quadraticCurveTo(-w / 2, h, -w / 2, h - rr);
+    shape.lineTo(-w / 2, rr);
+    shape.quadraticCurveTo(-w / 2, 0, -w / 2 + rr, 0);
+    // Shape y runs down the field (world +z) once laid flat.
+    return new THREE.ShapeGeometry(shape).rotateX(Math.PI / 2);
+  }, [width, top, bottom]);
+  const material = useMemo(() => new THREE.MeshBasicMaterial({ color: '#0b2233', transparent: true, opacity: 0.42, depthWrite: false, side: THREE.DoubleSide }), []);
+  return <mesh geometry={geometry} material={material} position={[x, 0.005, top]} />;
+}
+
+/** Above the field, turned to the camera: the barbarians' strength against the island's knight defense. */
+function StatusSign({ x, z, strength, defense }: { x: number; z: number; strength: number; defense: number }) {
   const ref = useRef<THREE.Group>(null);
-  const rim = ok ? '#2f6b45' : DANGER;
-  const face = useMemo(() => new THREE.MeshBasicMaterial({ map: barbarianBadgeTexture(value, icon, { rim, face: '#f6eddb', ink: '#1f1a14' }) }), [value, icon, rim]);
+  const material = useMemo(
+    () => new THREE.MeshBasicMaterial({ map: barbarianStatusTexture(strength, defense), transparent: true, depthWrite: false, fog: false, toneMapped: false }),
+    [strength, defense],
+  );
   useFrame((state) => {
     if (ref.current) faceCamera(ref.current, state.camera);
   });
   return (
-    <group ref={ref} position={[x, y, z]} scale={1.5}>
-      <mesh geometry={GEO.badgeDisc} material={mat(rim)} castShadow />
-      <mesh geometry={GEO.badgeFace} material={face} position={[0, 0.016, 0]} rotation={[-Math.PI / 2, 0, 0]} />
+    <group ref={ref} position={[x, 0.3, z]}>
+      {/* Stood up to face the default camera (about 50° above the table); drawn after the field under it. */}
+      <mesh geometry={GEO.sign} material={material} rotation={[-0.68, 0, 0]} renderOrder={2} />
     </group>
   );
 }
@@ -114,8 +136,8 @@ function Longship({ danger, wood }: { danger: boolean; wood: typeof NEUTRAL_WOOD
   );
 }
 
-/** The barbarian ship: glides to its current step, bobs at anchor, and carries its two badges. */
-function Ship({ x, z, danger, strength, defense, wood, k }: { x: number; z: number; danger: boolean; strength: number; defense: number; wood: typeof NEUTRAL_WOOD; k: number }) {
+/** The barbarian ship: glides to its current step and bobs at anchor. */
+function Ship({ x, z, danger, wood, k }: { x: number; z: number; danger: boolean; wood: typeof NEUTRAL_WOOD; k: number }) {
   const anchor = useRef<THREE.Group>(null);
   const tilt = useRef<THREE.Group>(null);
   const target = useRef(new THREE.Vector3(x, HULL_CLEAR, z));
@@ -137,8 +159,6 @@ function Ship({ x, z, danger, strength, defense, wood, k }: { x: number; z: numb
       <group ref={tilt} scale={1.7}>
         {ShipModel ? <ShipModel danger={danger} /> : <Longship danger={danger} wood={wood} />}
       </group>
-      <Badge x={0.5} y={0.45} z={-0.12} value={strength} icon="ship" ok={defense >= strength} />
-      <Badge x={0.95} y={0.45} z={-0.12} value={defense} icon="swords" ok={defense >= strength} />
     </group>
   );
 }
@@ -162,7 +182,14 @@ export function Barbarians({ barbarian, topo }: { barbarian: BarbarianInfo; topo
           <Step key={i} x={layout.at(i).x} z={layout.at(i).y} landing={i === barbarian.distance} danger={danger} wood={wood} />
         ))}
       </Swell>
-      <Ship x={layout.at(barbarian.position).x} z={layout.at(barbarian.position).y} danger={danger} strength={barbarian.strength} defense={barbarian.defense} wood={wood} k={k} />
+      <Field
+        x={layout.header.x}
+        top={layout.header.y - BARBARIAN_HEADER_H / 2 - 0.05}
+        bottom={layout.at(steps - 1).y + layout.r + 0.1}
+        width={(Math.sqrt(3) / 2) * layout.r * 2 + (Math.sqrt(3) / 2) * layout.r + 0.2}
+      />
+      <StatusSign x={layout.header.x} z={layout.header.y} strength={barbarian.strength} defense={barbarian.defense} />
+      <Ship x={layout.at(barbarian.position).x} z={layout.at(barbarian.position).y} danger={danger} wood={wood} k={k} />
     </group>
   );
 }

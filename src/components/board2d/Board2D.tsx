@@ -11,7 +11,7 @@ import { PALETTES, type BoardPalette, type BoardThemeId, type TileColors } from 
 import { THEME_BARBARIAN_SHIPS, THEME_GLYPHS, type BarbarianShipGlyph } from "./themes";
 import { PLAYER_COLORS } from "@/shared/colors";
 import { harborAnchor } from "@/components/board/harbor";
-import { barbarianTrackLayout, type BarbarianLayout } from "@/components/board/barbarian";
+import { BARBARIAN_HEADER_H, barbarianTrackLayout, type BarbarianLayout } from "@/components/board/barbarian";
 import type { BoardProps, BoardScene } from "@/components/board/types";
 import { useZoomPan } from "./useZoomPan";
 import { useZoomHost } from "@/client/hud";
@@ -540,83 +540,83 @@ function BarbarianShipGlyph({
   return <g transform={`translate(${x} ${y}) scale(${1.15 * ps})`}>{glyph({ danger, wood })}</g>;
 }
 
-/** A round badge (always screen-facing in 2D): a glyph, with its number in a dark bubble on the rim. */
-function BarbarianBadge({
-  x,
-  y,
-  value,
-  icon,
-  ok,
-}: {
-  x: number;
-  y: number;
-  value: number;
-  icon: "ship" | "swords";
-  ok: boolean;
-}) {
-  const rim = ok ? "#2f6b45" : "#e0503a";
+/** One sword pointing up, centred on its grip's top (a blade, crossguard, grip and pommel). */
+function Sword({ angle }: { angle: number }) {
   return (
-    <g transform={`translate(${x} ${y}) scale(1.15)`} pointerEvents="none">
-      <circle r="17" fill="#f6eddb" stroke={rim} strokeWidth="4" />
-      {icon === "ship" ? (
-        <path d="M-8 3h16l-3 5h-10Z M0 3v-9 M0-8l6 3-6 3Z" fill={rim} />
-      ) : (
-        <g stroke={rim} strokeWidth="2.6" strokeLinecap="round">
-          <line x1="-7" y1="-7" x2="7" y2="6" />
-          <line x1="7" y1="-7" x2="-7" y2="6" />
-        </g>
-      )}
-      <g transform="translate(14 11)">
-        <circle r="10.5" fill="#1f1a14" stroke="#f6eddb" strokeWidth="2" />
-        <text y="4.6" textAnchor="middle" className="display" fontSize="13" fontWeight="900" fill="#f6eddb">
-          {value}
-        </text>
-      </g>
+    <g transform={`rotate(${angle})`}>
+      <path d="M0 -14 L2.4 -10.5 L2.4 3.5 L-2.4 3.5 L-2.4 -10.5 Z" />
+      <rect x="-6" y="3.5" width="12" height="2.6" rx="1" />
+      <rect x="-1.3" y="6.1" width="2.6" height="5" />
+      <circle cy="12.4" r="2.1" />
+    </g>
+  );
+}
+
+/** Two swords crossing: the island's knight defense. */
+function CrossedSwords({ x, y, color }: { x: number; y: number; color: string }) {
+  return (
+    <g transform={`translate(${x} ${y})`} fill={color} stroke="#0b2233" strokeWidth="0.8" strokeLinejoin="round">
+      <Sword angle={-40} />
+      <Sword angle={40} />
+    </g>
+  );
+}
+
+/** A small ship silhouette: the barbarians' strength. */
+function ShipIcon({ x, y, color }: { x: number; y: number; color: string }) {
+  return (
+    <g transform={`translate(${x} ${y})`} fill={color}>
+      <path d="M-13 3 H13 L8 10 H-8 Z" />
+      <rect x="-1" y="-13" width="2" height="16" />
+      <path d="M1 -12 L11 -3 L1 -1 Z" />
+      <path d="M-1 -10 L-9 -1 L-1 0 Z" />
     </g>
   );
 }
 
 /**
- * The barbarian ship's voyage (C&K): a zigzag strip of touching hex steps on a dark panel west of
- * the island, the landing (last step) warm orange, and the ship on its current step with its two
- * badges beside it.
+ * The barbarian ship's voyage (C&K): a dark field west of the island with the status on top
+ * (barbarian strength against the island's knight defense) and a zigzag strip of touching hex steps
+ * below, the landing (last step) warm orange, the ship on its current step.
  */
 function BarbarianTrack2D({
   barbarian,
   layout,
   palette,
-  ps,
   theme,
 }: {
   barbarian: NonNullable<BoardScene["barbarian"]>;
   layout: BarbarianLayout;
   palette: BoardPalette;
-  ps: number;
   theme: BoardThemeId;
 }) {
   const wood = palette.pier ?? { deck: "#9c6f42", plank: "#8a6139", post: "#6b4a2b" };
   const danger = barbarian.position >= barbarian.distance - 2;
-  const ok = barbarian.defense >= barbarian.strength;
+  const losing = barbarian.strength > barbarian.defense;
   const r = layout.r * S;
   const steps = Array.from({ length: barbarian.distance + 1 }, (_, i) => layout.at(i));
   const xs = steps.map((p) => p.x * S);
-  const top = steps[0].y * S - r - 10;
+  const left = Math.min(...xs) - r - 10;
+  const width = Math.max(...xs) - Math.min(...xs) + 2 * r + 20;
+  const hx = layout.header.x * S;
+  const hy = layout.header.y * S;
+  const top = hy - (BARBARIAN_HEADER_H * S) / 2 - 4;
   const bottom = steps[steps.length - 1].y * S + r + 10;
   const ship = steps[barbarian.position];
-  const shipX = ship.x * S;
-  const shipY = ship.y * S;
-  const badgeX = Math.max(...xs) + r + 22;
+  const paper = "#f6eddb";
   return (
     <g pointerEvents="none">
-      <rect
-        x={Math.min(...xs) - r - 10}
-        y={top}
-        width={Math.max(...xs) - Math.min(...xs) + 2 * r + 20}
-        height={bottom - top}
-        rx="16"
-        fill="#0b2233"
-        opacity="0.38"
-      />
+      <rect x={left} y={top} width={width} height={bottom - top} rx="16" fill="#0b2233" opacity="0.5" />
+      <g aria-label={`Barbarians ${barbarian.strength}, knights ${barbarian.defense}`}>
+        <ShipIcon x={hx - 38} y={hy} color={losing ? "#ff8a73" : paper} />
+        <text x={hx - 20} y={hy + 8} className="display" fontSize="22" fontWeight="900" fill={losing ? "#ff8a73" : paper}>
+          {barbarian.strength}
+        </text>
+        <CrossedSwords x={hx + 16} y={hy} color={losing ? paper : "#8fe0a8"} />
+        <text x={hx + 32} y={hy + 8} className="display" fontSize="22" fontWeight="900" fill={losing ? paper : "#8fe0a8"}>
+          {barbarian.defense}
+        </text>
+      </g>
       {steps.map((p, i) => {
         const landing = i === barbarian.distance;
         return (
@@ -631,9 +631,7 @@ function BarbarianTrack2D({
           />
         );
       })}
-      <BarbarianShipGlyph x={shipX} y={shipY} danger={danger} wood={wood} ps={1} theme={theme} />
-      <BarbarianBadge x={badgeX} y={shipY - 22} value={barbarian.strength} icon="ship" ok={ok} />
-      <BarbarianBadge x={badgeX + 48} y={shipY - 22} value={barbarian.defense} icon="swords" ok={ok} />
+      <BarbarianShipGlyph x={ship.x * S} y={ship.y * S} danger={danger} wood={wood} ps={1} theme={theme} />
     </g>
   );
 }
@@ -669,8 +667,7 @@ export default function Board2D({
     // Room for the barbarian track's steps and badges, west of the island.
     if (barbLayout) {
       minX = Math.min(minX, (barbLayout.at(0).x - barbLayout.r) * S - 30);
-      // The ship's sail stands above the first step.
-      minY = Math.min(minY, barbLayout.at(0).y * S - 70);
+      minY = Math.min(minY, (barbLayout.header.y - BARBARIAN_HEADER_H / 2) * S - 20);
     }
     return {
       minX,
@@ -1209,7 +1206,7 @@ export default function Board2D({
 
         {/* barbarian ship's voyage (C&K) */}
         {barbarian && barbLayout && (
-          <BarbarianTrack2D barbarian={barbarian} layout={barbLayout} palette={palette} ps={ps} theme={theme} />
+          <BarbarianTrack2D barbarian={barbarian} layout={barbLayout} palette={palette} theme={theme} />
         )}
 
         {/* targets */}

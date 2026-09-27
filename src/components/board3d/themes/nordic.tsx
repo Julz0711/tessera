@@ -54,51 +54,99 @@ const MOOR = {
 
 const SHIP_DANGER = '#c23a2a';
 
-/** A dragon-headed drakkar: a longship hull under a black-and-white sail, a carved head at the prow. */
-const SHIP = {
-  hullMid: new THREE.BoxGeometry(0.16, 0.08, 0.2),
-  hullBow: new THREE.ConeGeometry(0.085, 0.16, 4),
-  hullStern: new THREE.ConeGeometry(0.075, 0.11, 4),
-  neck: new THREE.CylinderGeometry(0.02, 0.028, 0.14, 6),
-  head: new THREE.ConeGeometry(0.045, 0.1, 5),
-  jaw: new THREE.BoxGeometry(0.03, 0.02, 0.06),
-  tail: new THREE.ConeGeometry(0.03, 0.13, 4),
-  mast: new THREE.CylinderGeometry(0.011, 0.011, 0.32, 5),
-  yard: new THREE.CylinderGeometry(0.008, 0.008, 0.22, 4),
-  sailHalf: new THREE.BoxGeometry(0.11, 0.16, 0.012),
-  shield: new THREE.CylinderGeometry(0.032, 0.032, 0.016, 8),
-};
-const SHIELDS = [-0.06, 0, 0.06];
+/** Hull length (half) and the width of its lens-shaped plan; bow towards +z. */
+const HULL_L = 0.22;
+const HULL_C = 0.15;
+/** Half-width of the hull at `z` (the plan is a quadratic lens). */
+const hullHalfWidth = (z: number) => (HULL_C / 2) * (1 - (z / HULL_L) ** 2);
 
-/** The barbarian ship as a Nordic drakkar: a carved dragon head at the prow, and a black-and-white sail. */
+function hullGeometry(): THREE.BufferGeometry {
+  const plan = new THREE.Shape();
+  plan.moveTo(0, -HULL_L);
+  plan.quadraticCurveTo(HULL_C, 0, 0, HULL_L);
+  plan.quadraticCurveTo(-HULL_C, 0, 0, -HULL_L);
+  const g = new THREE.ExtrudeGeometry(plan, { depth: 0.045, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.018, bevelSegments: 1, curveSegments: 10 });
+  // The plan's y becomes the length (z) and the extrusion runs downwards from the gunwale.
+  g.rotateX(Math.PI / 2);
+  g.translate(0, 0.1, 0);
+  return g;
+}
+
+const tube = (points: [number, number, number][], radius: number) =>
+  new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map((p) => new THREE.Vector3(...p))), 14, radius, 5);
+
+const SHIP = {
+  hull: hullGeometry(),
+  // the stem rises from the bow and ends in the dragon's head; the stern post curls back over itself
+  stem: tube([[0, 0.08, 0.2], [0, 0.14, 0.26], [0, 0.24, 0.28], [0, 0.31, 0.26]], 0.014),
+  stern: tube([[0, 0.08, -0.2], [0, 0.15, -0.255], [0, 0.23, -0.25], [0, 0.26, -0.205], [0, 0.225, -0.18]], 0.013),
+  head: new THREE.BoxGeometry(0.036, 0.04, 0.05),
+  snout: new THREE.ConeGeometry(0.018, 0.05, 5).rotateX(Math.PI / 2),
+  horn: new THREE.ConeGeometry(0.008, 0.035, 4),
+  eye: new THREE.SphereGeometry(0.006, 5, 4),
+  mast: new THREE.CylinderGeometry(0.009, 0.011, 0.3, 6),
+  yard: new THREE.CylinderGeometry(0.007, 0.007, 0.26, 5).rotateZ(Math.PI / 2),
+  sail: new THREE.BoxGeometry(0.23, 0.17, 0.008),
+  stripe: new THREE.BoxGeometry(0.04, 0.17, 0.01),
+  shield: new THREE.CylinderGeometry(0.026, 0.026, 0.008, 10).rotateZ(Math.PI / 2),
+  oar: new THREE.CylinderGeometry(0.004, 0.004, 0.17, 4),
+};
+const SHIELD_Z = [-0.12, -0.04, 0.04, 0.12];
+const OAR_Z = [-0.08, 0, 0.08];
+
+/**
+ * The barbarian ship as a Nordic drakkar: a dark, lens-shaped hull, a dragon's head on the rising
+ * stem and a curled stern post, a row of shields on each gunwale, oars, and a dark striped sail.
+ */
 function BarbarianShip({ danger }: { danger: boolean }) {
-  const hullMat = mat(danger ? SHIP_DANGER : '#2f2418', danger ? { emissive: SHIP_DANGER, glow: 0.35 } : {});
-  const trimMat = mat(danger ? '#5a2a24' : '#1c1712');
-  const blackSail = mat(danger ? '#4a2624' : '#1f1a17');
-  const whiteSail = mat(danger ? '#f3d9d3' : '#e8e2d2');
-  const shieldA = mat(danger ? '#8a1f14' : '#3a3530');
-  const shieldB = mat('#e8e2d2');
+  const hull = mat(danger ? SHIP_DANGER : '#4a3522', danger ? { emissive: SHIP_DANGER, glow: 0.35 } : {});
+  const trim = mat(danger ? '#5a2a24' : '#2e2116');
+  const sail = mat(danger ? '#5a2320' : '#26323c');
+  const stripe = mat('#e8e2d2');
+  const shields = [mat(danger ? '#8a1f14' : '#b5342a'), mat('#e8e2d2')];
   return (
     <group>
-      <mesh geometry={SHIP.hullMid} material={hullMat} position={[0, 0.04, 0]} castShadow />
-      <mesh geometry={SHIP.hullBow} material={hullMat} position={[0, 0.04, 0.18]} rotation={[Math.PI / 2, 0, 0]} castShadow />
-      <mesh geometry={SHIP.hullStern} material={hullMat} position={[0, 0.04, -0.155]} rotation={[-Math.PI / 2, 0, 0]} castShadow />
-      {/* the carved dragon's neck, head and jaw rising from the prow */}
-      <mesh geometry={SHIP.neck} material={trimMat} position={[0, 0.15, 0.24]} rotation={[-0.5, 0, 0]} />
-      <mesh geometry={SHIP.head} material={trimMat} position={[0, 0.26, 0.3]} rotation={[-1.9, 0, 0]} />
-      <mesh geometry={SHIP.jaw} material={trimMat} position={[0, 0.235, 0.33]} rotation={[-0.3, 0, 0]} />
-      {/* a curled tail at the stern */}
-      <mesh geometry={SHIP.tail} material={trimMat} position={[0, 0.13, -0.22]} rotation={[Math.PI - 0.5, 0, 0]} />
-      <mesh geometry={SHIP.mast} material={trimMat} position={[0, 0.21, 0]} />
-      <mesh geometry={SHIP.yard} material={trimMat} position={[0, 0.31, 0]} rotation={[0, 0, Math.PI / 2]} />
-      <mesh geometry={SHIP.sailHalf} material={blackSail} position={[-0.055, 0.26, 0]} />
-      <mesh geometry={SHIP.sailHalf} material={whiteSail} position={[0.055, 0.26, 0]} />
-      {SHIELDS.map((sz, i) => (
-        <group key={`n${i}`}>
-          <mesh geometry={SHIP.shield} material={i % 2 ? shieldA : shieldB} position={[-0.1, 0.07, sz]} rotation={[0, 0, Math.PI / 2]} />
-          <mesh geometry={SHIP.shield} material={i % 2 ? shieldB : shieldA} position={[0.1, 0.07, sz]} rotation={[0, 0, Math.PI / 2]} />
-        </group>
+      <mesh geometry={SHIP.hull} material={hull} castShadow />
+      <mesh geometry={SHIP.stem} material={trim} castShadow />
+      <mesh geometry={SHIP.stern} material={trim} castShadow />
+      {/* the dragon: head, snout forward, two horns and glowing eyes */}
+      <group position={[0, 0.315, 0.26]}>
+        <mesh geometry={SHIP.head} material={trim} />
+        <mesh geometry={SHIP.snout} material={trim} position={[0, -0.004, 0.045]} />
+        {[-0.012, 0.012].map((x) => (
+          <mesh key={x} geometry={SHIP.horn} material={trim} position={[x, 0.03, -0.012]} rotation={[-0.5, 0, 0]} />
+        ))}
+        {[-0.019, 0.019].map((x) => (
+          <mesh key={x} geometry={SHIP.eye} material={mat('#ffcf5a', { emissive: '#ffb020', glow: 0.8 })} position={[x, 0.006, 0.014]} />
+        ))}
+      </group>
+      <mesh geometry={SHIP.mast} material={trim} position={[0, 0.25, 0]} />
+      <mesh geometry={SHIP.yard} material={trim} position={[0, 0.37, 0]} />
+      <mesh geometry={SHIP.sail} material={sail} position={[0, 0.28, 0.005]} castShadow />
+      {[-0.07, 0, 0.07].map((x) => (
+        <mesh key={x} geometry={SHIP.stripe} material={stripe} position={[x, 0.28, 0.006]} />
       ))}
+      {SHIELD_Z.map((z, i) =>
+        [-1, 1].map((side) => (
+          <mesh
+            key={`${z}${side}`}
+            geometry={SHIP.shield}
+            material={shields[(i + (side > 0 ? 1 : 0)) % 2]}
+            position={[side * (hullHalfWidth(z) + 0.006), 0.09, z]}
+          />
+        )),
+      )}
+      {OAR_Z.map((z) =>
+        [-1, 1].map((side) => (
+          <mesh
+            key={`o${z}${side}`}
+            geometry={SHIP.oar}
+            material={trim}
+            position={[side * (hullHalfWidth(z) + 0.07), 0.04, z]}
+            rotation={[0, 0, side * 1.05]}
+          />
+        )),
+      )}
     </group>
   );
 }
