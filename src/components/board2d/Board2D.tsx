@@ -335,16 +335,44 @@ function classicCity({ x, y, color }: { x: number; y: number; color: PlayerColor
 }
 
 /**
- * A city wall (C&K), like colonist's: a deep block under the city in the owner's dark shade, with a
- * battlement tooth at each end and a mortar line so it reads as masonry.
+ * A city wall (C&K), like colonist's: a low slab the city stands on, in the owner's colour, its top
+ * face tapering back and a darker front edge for a slight 3D look.
  */
 function CityWallBlock({ x, y, color }: { x: number; y: number; color: PlayerColor }) {
   const c = PLAYER_COLORS[color];
   return (
     <g stroke="#1f1a14" strokeWidth="3" strokeLinejoin="round">
-      <path d={`M${x - 40} ${y + 28}V${y - 2}h10v7h60v-7h10V${y + 28}Z`} fill={c.dark} />
-      <path d={`M${x - 38} ${y + 18}H${x + 38}`} stroke={c.hex} strokeWidth="2" strokeOpacity="0.7" />
+      <path d={`M${x - 34} ${y + 22}h68v4.5q0 3-3 3h-62q-3 0-3-3Z`} fill={c.dark} />
+      <path d={`M${x - 30} ${y + 11}h60l4 11h-68Z`} fill={c.hex} />
     </g>
+  );
+}
+
+/**
+ * A slight 3D look for settlements and cities (like colonist's pieces): the piece's silhouette
+ * stacked a few steps down-right in the owner's dark shade, as if it had a solid side. One filter
+ * per player colour, so it works on every theme's drawings without redrawing them.
+ */
+function PieceDepthDefs() {
+  const steps = [1, 2, 3, 4];
+  return (
+    <defs>
+      {(Object.keys(PLAYER_COLORS) as PlayerColor[]).map((color) => (
+        <filter key={color} id={`depth-${color}`} x="-25%" y="-25%" width="160%" height="160%">
+          <feFlood floodColor={PLAYER_COLORS[color].dark} result="side" />
+          <feComposite in="side" in2="SourceAlpha" operator="in" result="silhouette" />
+          {steps.map((i) => (
+            <feOffset key={i} in="silhouette" dx={i * 0.9} dy={i * 1.4} result={`s${i}`} />
+          ))}
+          <feMerge>
+            {[...steps].reverse().map((i) => (
+              <feMergeNode key={i} in={`s${i}`} />
+            ))}
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      ))}
+    </defs>
   );
 }
 
@@ -366,7 +394,7 @@ function HousePath({
 }) {
   const glyph = (theme && THEME_PIECES[theme]?.settlement) || classicSettlement;
   return (
-    <g transform={grow(x, y, k)} opacity={ghost ? 0.6 : 1}>
+    <g transform={grow(x, y, k)} opacity={ghost ? 0.6 : 1} filter={ghost ? undefined : `url(#depth-${color})`}>
       {glyph({ x, y, color })}
     </g>
   );
@@ -390,7 +418,7 @@ function CityPath({
 }) {
   const glyph = (theme && THEME_PIECES[theme]?.city) || classicCity;
   return (
-    <g transform={grow(x, y, k)} opacity={ghost ? 0.6 : 1}>
+    <g transform={grow(x, y, k)} opacity={ghost ? 0.6 : 1} filter={ghost ? undefined : `url(#depth-${color})`}>
       {glyph({ x, y, color })}
     </g>
   );
@@ -915,6 +943,7 @@ export default function Board2D({
         onClick={onBackground ? () => onBackground() : undefined}
       >
         {/* The sea itself is painted by the container (.sea-2d) so it spans the whole screen. */}
+        <PieceDepthDefs />
 
         {/* foam, beach & tiles */}
         {scene.board.hexes.map((h) => (
