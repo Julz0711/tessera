@@ -334,10 +334,18 @@ function classicCity({ x, y, color }: { x: number; y: number; color: PlayerColor
   );
 }
 
-/** A city wall (C&K), like colonist's: a low block under the city in the owner's dark shade. */
+/**
+ * A city wall (C&K), like colonist's: a deep block under the city in the owner's dark shade, with a
+ * battlement tooth at each end and a mortar line so it reads as masonry.
+ */
 function CityWallBlock({ x, y, color }: { x: number; y: number; color: PlayerColor }) {
   const c = PLAYER_COLORS[color];
-  return <rect x={x - 34} y={y + 10} width="68" height="15" rx="5" fill={c.dark} stroke="#1f1a14" strokeOpacity="0.45" strokeWidth="2.5" />;
+  return (
+    <g stroke="#1f1a14" strokeWidth="3" strokeLinejoin="round">
+      <path d={`M${x - 40} ${y + 28}V${y - 2}h10v7h60v-7h10V${y + 28}Z`} fill={c.dark} />
+      <path d={`M${x - 38} ${y + 18}H${x + 38}`} stroke={c.hex} strokeWidth="2" strokeOpacity="0.7" />
+    </g>
+  );
 }
 
 /** A settlement: the theme's own drawing (THEME_PIECES) where it has one, else the classic house. */
@@ -389,6 +397,9 @@ function CityPath({
 }
 
 /** A road: the theme's own drawing (THEME_PIECES) where it has one, else the classic two-tone line. */
+/** Roads are drawn a little slimmer than their base size so the settlements and cities stay the focus. */
+const ROAD_WEIGHT = 0.78;
+
 function RoadPath({
   x1,
   y1,
@@ -411,7 +422,7 @@ function RoadPath({
   const glyph = (theme && THEME_PIECES[theme]?.road) || defaultRoad;
   return (
     <g pointerEvents="none" opacity={ghost ? 0.7 : undefined}>
-      {glyph({ x1, y1, x2, y2, color, ghost, k })}
+      {glyph({ x1, y1, x2, y2, color, ghost, k: k * ROAD_WEIGHT })}
     </g>
   );
 }
