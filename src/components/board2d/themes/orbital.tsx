@@ -1,7 +1,62 @@
 import { Glow, Neon } from './glow';
-import type { BarbarianShipGlyph, TileGlyphs } from './types';
+import { alongRoad, pc, RoadBase } from './shared';
+import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
 
 const CYAN = '#7fe3ff';
+
+/** Orbital's settlement: a dome habitat, a glazed dome over a squat ring base. */
+const orbitalSettlement: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
+      <rect x={x - 15} y={y + 6} width="30" height="8" fill={c.dark} />
+      <path d={`M${x - 14} ${y + 7}a14 15 0 0 1 28 0Z`} fill={c.hex} />
+      <circle cx={x} cy={y - 2} r="2" fill={CYAN} />
+    </g>
+  );
+};
+
+/** Orbital's city: a cluster of domes on a shared ring, an antenna mast with a blinking light. */
+const orbitalCity: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="2.5" strokeLinejoin="round">
+      <rect x={x - 22} y={y + 10} width="44" height="7" fill={c.dark} />
+      <path d={`M${x - 20} ${y + 11}a11 12 0 0 1 22 0Z`} fill={c.hex} />
+      <path d={`M${x - 2} ${y + 11}a14 15 0 0 1 28 0Z`} fill={c.hex} />
+      <line x1={x + 12} y1={y - 4} x2={x + 12} y2={y - 20} stroke={c.dark} strokeWidth="2.4" />
+      <circle cx={x + 12} cy={y - 22} r="2.4" fill={CYAN} />
+    </g>
+  );
+};
+
+/** Orbital's road: a lit transit tube, small glowing lights embedded along the coloured tube. */
+const orbitalRoad: RoadGlyph = ({ x1, y1, x2, y2, color, ghost, k = 1 }) => {
+  const seg = { x1, y1, x2, y2 };
+  if (ghost) return <RoadBase {...seg} color={color} ghost k={k} />;
+  return (
+    <>
+      <RoadBase {...seg} color={color} k={k} />
+      {[-0.25, 0, 0.25].map((t) => {
+        const p = alongRoad(seg, t);
+        return <Glow key={t} x={p.x} y={p.y} r={1.8 * k} color={CYAN} />;
+      })}
+    </>
+  );
+};
+
+/** Orbital's knight: an astronaut's rounded helmet, a reflective visor arc. */
+const orbitalKnight: KnightGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="2" strokeLinejoin="round">
+      <circle cx={x} cy={y + 1} r="10" fill={c.hex} />
+      <path d={`M${x - 7} ${y - 1}a7 6 0 0 1 12-2`} fill="none" stroke={CYAN} strokeWidth="2.6" strokeLinecap="round" opacity="0.9" />
+    </g>
+  );
+};
+
+export const orbitalPieces: ThemePieces = { settlement: orbitalSettlement, city: orbitalCity, road: orbitalRoad, knight: orbitalKnight };
 
 /** Orbital on the 2D board: biodomes, a brick printer, helmeted sheep, hydroponic racks, ore crystals and a crater. */
 export const orbitalGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
@@ -150,16 +205,24 @@ export const orbitalGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
   }
 };
 
-/** Orbital on the 2D board: an alien raider craft hovering on a glowing underside. */
+/** Orbital on the 2D board: a menacing alien raider warship, an angular arrowhead hull with swept fins and twin glowing engines. */
 export const orbitalShip: BarbarianShipGlyph = ({ danger }) => {
   const hull = danger ? '#c23a2a' : '#3a3f52';
+  const dark = danger ? '#7a1f14' : '#1c1f2c';
   const glow = danger ? '#ff4d4d' : CYAN;
   return (
     <g pointerEvents="none">
-      <ellipse cx="0" cy="4" rx="27" ry="8" fill={hull} stroke="#1c1f2c" strokeWidth="2.5" />
-      <path d="M-9 4q9-13 18 0Z" fill={hull} stroke="#1c1f2c" strokeWidth="2" strokeLinejoin="round" />
-      <Neon d="M-24 10h48" color={glow} width={2.4} />
-      <Glow x={0} y={10} r={3} color={glow} />
+      {/* faint tractor-beam cone, projected from the belly */}
+      <path d="M-6 9L6 9L15 26L-15 26Z" fill={glow} opacity="0.14" />
+      {/* angular arrowhead hull, nose forward, a notched tail */}
+      <path d="M0-22L24 10L8 3L0 10L-8 3L-24 10Z" fill={hull} stroke="#101218" strokeWidth="2.2" strokeLinejoin="round" />
+      {/* cockpit canopy */}
+      <path d="M0-14L4-3L0 0L-4-3Z" fill={dark} stroke="#101218" strokeWidth="1.3" strokeLinejoin="round" />
+      {/* swept fins off both wingtips */}
+      <path d="M24 10L31 17L19 13Z M-24 10L-31 17L-19 13Z" fill={hull} stroke="#101218" strokeWidth="1.4" strokeLinejoin="round" />
+      {/* twin glowing engines at the stern */}
+      <Glow x={-5} y={9} r={2.6} color={glow} />
+      <Glow x={5} y={9} r={2.6} color={glow} />
     </g>
   );
 };

@@ -1,4 +1,5 @@
-import type { BarbarianShipGlyph, TileGlyphs } from './types';
+import { alongRoad, pc, RoadBase } from './shared';
+import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
 
 /** A folded peak: its left face in `light`, its right face in `dark`, standing on (x, y). */
 function Fold({ x, y, w, h, light, dark }: { x: number; y: number; w: number; h: number; light: string; dark: string }) {
@@ -11,6 +12,59 @@ function Fold({ x, y, w, h, light, dark }: { x: number; y: number; w: number; h:
 }
 
 const PINWHEEL = ['#f28aa6', '#f0cf6a', '#6fb3dc', '#8fd08a'];
+
+/** Origami's settlement: a folded paper house, a two-tone creased roof over a paper box. */
+const origamiSettlement: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="2.5" strokeLinejoin="round">
+      <rect x={x - 13} y={y - 1} width="26" height="16" fill={c.hex} />
+      <Fold x={x} y={y - 1} w={17} h={17} light={c.hex} dark={c.dark} />
+    </g>
+  );
+};
+
+/** Origami's city: a paper tower, a tall creased fold over a vertical seam down its face. */
+const origamiCity: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="2.5" strokeLinejoin="round">
+      <rect x={x - 15} y={y - 10} width="30" height="27" fill={c.hex} />
+      <line x1={x} y1={y - 10} x2={x} y2={y + 17} stroke={c.dark} strokeWidth="1.4" opacity="0.6" />
+      <Fold x={x} y={y - 10} w={19} h={20} light={c.hex} dark={c.dark} />
+    </g>
+  );
+};
+
+/** Origami's road: a folded paper strip, alternating light and dark pleats crossing the coloured lane. */
+const origamiRoad: RoadGlyph = ({ x1, y1, x2, y2, color, ghost, k = 1 }) => {
+  const seg = { x1, y1, x2, y2 };
+  const c = pc(color);
+  if (ghost) return <RoadBase {...seg} color={color} ghost k={k} />;
+  return (
+    <>
+      <RoadBase {...seg} color={color} k={k} />
+      {[-0.28, -0.09, 0.09, 0.28].map((t, i) => {
+        const a = alongRoad(seg, t, 6 * k);
+        const b = alongRoad(seg, t, -6 * k);
+        return <line key={t} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={i % 2 ? c.dark : '#ffffff'} strokeOpacity={i % 2 ? 0.5 : 0.35} strokeWidth={1.6 * k} />;
+      })}
+    </>
+  );
+};
+
+/** Origami's knight: a folded paper cap, its two triangular faces creased down the middle. */
+const origamiKnight: KnightGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="2" strokeLinejoin="round">
+      <path d={`M${x - 9} ${y + 8}L${x} ${y - 8}L${x + 9} ${y + 8}Z`} fill={c.hex} />
+      <path d={`M${x} ${y - 8}L${x + 9} ${y + 8}H${x}Z`} fill={c.dark} />
+    </g>
+  );
+};
+
+export const origamiPieces: ThemePieces = { settlement: origamiSettlement, city: origamiCity, road: origamiRoad, knight: origamiKnight };
 
 /**
  * Origami on the 2D board: every tile is a sheet of paper folded down the middle, and the drawings

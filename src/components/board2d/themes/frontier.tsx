@@ -1,4 +1,65 @@
-import type { BarbarianShipGlyph, TileGlyphs } from './types';
+import { alongRoad, pc, RoadBase } from './shared';
+import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
+
+/** Frontier's settlement: a ranch house, a gable roof over a porch awning. */
+const frontierSettlement: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
+      <rect x={x - 16} y={y - 1} width="32" height="16" fill={c.hex} />
+      <path d={`M${x - 18} ${y - 1}L${x} ${y - 15}L${x + 18} ${y - 1}Z`} fill={c.dark} />
+      <rect x={x - 20} y={y + 9} width="40" height="4" fill={c.dark} />
+    </g>
+  );
+};
+
+/** Frontier's city: a saloon, a false front rising square above the roofline with a sign rail and swinging doors. */
+const frontierCity: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
+      <rect x={x - 22} y={y - 16} width="44" height="33" fill={c.hex} />
+      <rect x={x - 24} y={y - 19} width="48" height="4" fill={c.dark} />
+      <rect x={x - 8} y={y + 5} width="16" height="12" fill={c.dark} />
+    </g>
+  );
+};
+
+/** Frontier's road: a railroad track, dark ties under a pair of thin rails. */
+const frontierRoad: RoadGlyph = ({ x1, y1, x2, y2, color, ghost, k = 1 }) => {
+  const seg = { x1, y1, x2, y2 };
+  if (ghost) return <RoadBase {...seg} color={color} ghost k={k} />;
+  const railA1 = alongRoad(seg, -0.46, 3 * k);
+  const railA2 = alongRoad(seg, 0.46, 3 * k);
+  const railB1 = alongRoad(seg, -0.46, -3 * k);
+  const railB2 = alongRoad(seg, 0.46, -3 * k);
+  return (
+    <>
+      <RoadBase {...seg} color={color} k={k} />
+      {[-0.3, -0.1, 0.1, 0.3].map((t) => {
+        const a = alongRoad(seg, t, 7 * k);
+        const b = alongRoad(seg, t, -7 * k);
+        return <line key={t} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#2a2018" strokeWidth={2.6 * k} />;
+      })}
+      <line x1={railA1.x} y1={railA1.y} x2={railA2.x} y2={railA2.y} stroke="#c9c2b0" strokeWidth={1.2 * k} opacity="0.85" />
+      <line x1={railB1.x} y1={railB1.y} x2={railB2.x} y2={railB2.y} stroke="#c9c2b0" strokeWidth={1.2 * k} opacity="0.85" />
+    </>
+  );
+};
+
+/** Frontier's knight: a cowboy's wide-brim hat. */
+const frontierKnight: KnightGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="2" strokeLinejoin="round">
+      <ellipse cx={x} cy={y + 3} rx="12" ry="3.4" fill={c.hex} />
+      <path d={`M${x - 6} ${y + 3}a6 8 0 0 1 12 0Z`} fill={c.hex} />
+      <line x1={x - 4} y1={y - 3} x2={x + 4} y2={y - 3} stroke={c.dark} strokeWidth="2" />
+    </g>
+  );
+};
+
+export const frontierPieces: ThemePieces = { settlement: frontierSettlement, city: frontierCity, road: frontierRoad, knight: frontierKnight };
 
 /** Two rows of bricks drying in the sun, centred on (x, y). */
 function Bricks({ x, y, fill, stroke }: { x: number; y: number; fill: string; stroke: string }) {

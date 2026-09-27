@@ -1,16 +1,16 @@
 import type { BoardThemeId } from '@/client/themes';
-import { cyberpunkGlyphs, cyberpunkShip } from './cyberpunk';
-import { frontierGlyphs, frontierShip } from './frontier';
-import { nightShip } from './night';
-import { nileGlyphs, nileShip } from './nile';
-import { nordicGlyphs, nordicShip } from './nordic';
-import { orbitalGlyphs, orbitalShip } from './orbital';
-import { origamiGlyphs, origamiShip } from './origami';
-import { sakuraGlyphs, sakuraShip } from './sakura';
-import { skyportGlyphs, skyportShip } from './skyport';
-import type { BarbarianShipGlyph, TileGlyphs } from './types';
+import { cyberpunkGlyphs, cyberpunkPieces, cyberpunkShip } from './cyberpunk';
+import { frontierGlyphs, frontierPieces, frontierShip } from './frontier';
+import { nightPieces, nightShip } from './night';
+import { nileGlyphs, nilePieces, nileShip } from './nile';
+import { nordicGlyphs, nordicPieces, nordicShip } from './nordic';
+import { orbitalGlyphs, orbitalPieces, orbitalShip } from './orbital';
+import { origamiGlyphs, origamiPieces, origamiShip } from './origami';
+import { sakuraGlyphs, sakuraPieces, sakuraShip } from './sakura';
+import { skyportGlyphs, skyportPieces, skyportShip } from './skyport';
+import type { BarbarianShipGlyph, ThemePieces, TileGlyphs } from './types';
 
-export type { BarbarianShipGlyph, TileGlyphs } from './types';
+export type { BarbarianShipGlyph, ThemePieces, TileGlyphs } from './types';
 
 /** Themes that draw their own 2D tiles; the others only recolour the classic drawings. */
 export const THEME_GLYPHS: Partial<Record<BoardThemeId, TileGlyphs>> = {
@@ -35,4 +35,20 @@ export const THEME_BARBARIAN_SHIPS: Partial<Record<BoardThemeId, BarbarianShipGl
   cyberpunk: cyberpunkShip,
   orbital: orbitalShip,
   origami: origamiShip,
+};
+
+/**
+ * Themes that draw their own settlements, cities, roads and/or knights; anything a theme leaves
+ * out (any single piece, or the whole theme, like classic) keeps the classic drawing for it.
+ */
+export const THEME_PIECES: Partial<Record<BoardThemeId, ThemePieces>> = {
+  night: nightPieces,
+  sakura: sakuraPieces,
+  nordic: nordicPieces,
+  frontier: frontierPieces,
+  nile: nilePieces,
+  skyport: skyportPieces,
+  cyberpunk: cyberpunkPieces,
+  orbital: orbitalPieces,
+  origami: origamiPieces,
 };

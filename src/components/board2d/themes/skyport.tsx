@@ -1,7 +1,65 @@
-import type { BarbarianShipGlyph, TileGlyphs } from './types';
+import { alongRoad, pc, RoadBase } from './shared';
+import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
 
 const BRASS = '#b08d57';
 const SMOKE = '#f3ece4';
+
+/** Skyport's settlement: a brass cottage, a riveted dome roof over a snug cabin. */
+const skyportSettlement: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
+      <rect x={x - 14} y={y + 1} width="28" height="14" fill={c.hex} />
+      <path d={`M${x - 16} ${y + 1}a16 15 0 0 1 32 0Z`} fill={c.dark} />
+      <circle cx={x - 9} cy={y - 6} r="1.6" fill={BRASS} />
+      <circle cx={x} cy={y - 11} r="1.6" fill={BRASS} />
+      <circle cx={x + 9} cy={y - 6} r="1.6" fill={BRASS} />
+    </g>
+  );
+};
+
+/** Skyport's city: a steampunk tower, a domed cap over a riveted shaft with a gauge and vent pipe. */
+const skyportCity: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
+      <rect x={x - 13} y={y - 24} width="26" height="41" rx="2" fill={c.hex} />
+      <path d={`M${x - 15} ${y - 24}a15 8 0 0 1 30 0Z`} fill={c.dark} />
+      <circle cx={x} cy={y - 8} r="7" fill="none" stroke={BRASS} strokeWidth="2.4" />
+      <path d={`M${x + 13} ${y + 2}q10 0 10-10v-8`} stroke={BRASS} strokeWidth="3" fill="none" strokeLinecap="round" />
+    </g>
+  );
+};
+
+/** Skyport's road: a copper pipe, brass rivets studding the coloured line. */
+const skyportRoad: RoadGlyph = ({ x1, y1, x2, y2, color, ghost, k = 1 }) => {
+  const seg = { x1, y1, x2, y2 };
+  if (ghost) return <RoadBase {...seg} color={color} ghost k={k} />;
+  return (
+    <>
+      <RoadBase {...seg} color={color} k={k} />
+      {[-0.3, -0.1, 0.1, 0.3].map((t) => {
+        const p = alongRoad(seg, t);
+        return <circle key={t} cx={p.x} cy={p.y} r={2.2 * k} fill={BRASS} stroke="#5a4527" strokeWidth={0.8 * k} />;
+      })}
+    </>
+  );
+};
+
+/** Skyport's knight: a sky-marine's flight cap and round brass-rimmed goggles. */
+const skyportKnight: KnightGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="2" strokeLinejoin="round">
+      <path d={`M${x - 9} ${y + 8}q-1-14 9-14t9 14q-9 3-18 0Z`} fill={c.hex} />
+      <circle cx={x - 5} cy={y - 1} r="3.4" fill="#dce7ea" stroke="#3a3a3a" strokeWidth="1.4" />
+      <circle cx={x + 5} cy={y - 1} r="3.4" fill="#dce7ea" stroke="#3a3a3a" strokeWidth="1.4" />
+      <line x1={x - 1.6} y1={y - 1} x2={x + 1.6} y2={y - 1} stroke="#3a3a3a" strokeWidth="1.4" />
+    </g>
+  );
+};
+
+export const skyportPieces: ThemePieces = { settlement: skyportSettlement, city: skyportCity, road: skyportRoad, knight: skyportKnight };
 
 /** Puffs of smoke, as [x, y, r]. */
 function Smoke({ puffs }: { puffs: [number, number, number][] }) {

@@ -1,5 +1,44 @@
 import { Glow } from './glow';
-import type { BarbarianShipGlyph } from './types';
+import { pc } from './shared';
+import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, ThemePieces } from './types';
+
+const LANTERN = '#ffc15a';
+
+/** Night's settlement: the classic house, a warm light glowing behind one window. */
+const nightSettlement: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g>
+      <path d={`M${x - 17} ${y + 14}v-17l17-14 17 14v17Z`} fill={c.hex} stroke={c.dark} strokeWidth="4.5" strokeLinejoin="round" />
+      <Glow x={x} y={y + 5} r={2.2} color={LANTERN} />
+    </g>
+  );
+};
+
+/** Night's city: the classic city, warm light glowing in a couple of its windows. */
+const nightCity: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g>
+      <path d={`M${x - 26} ${y + 17}v-18l12-9 12 9v-18h9v-8h8v8h9v36Z`} fill={c.hex} stroke={c.dark} strokeWidth="4.5" strokeLinejoin="round" />
+      <Glow x={x - 14} y={y + 8} r={2} color={LANTERN} />
+      <Glow x={x + 16} y={y + 5} r={2} color={LANTERN} />
+    </g>
+  );
+};
+
+/** Night's knight: the classic crest, a lit lantern glowing beside it. */
+const nightKnight: KnightGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g>
+      <path d={`M${x - 13} ${y - 12}h26v9c0 9-5 14-13 17-8-2.5-13-8-13-17Z`} fill={c.hex} stroke={c.dark} strokeWidth="2.5" strokeLinejoin="round" />
+      <Glow x={x + 13} y={y + 2} r={2.4} color={LANTERN} />
+    </g>
+  );
+};
+
+export const nightPieces: ThemePieces = { settlement: nightSettlement, city: nightCity, knight: nightKnight };
 
 /** Night on the 2D board: the classic longship hull under a dark sail, with two lanterns glowing on it. */
 export const nightShip: BarbarianShipGlyph = ({ danger, wood }) => {

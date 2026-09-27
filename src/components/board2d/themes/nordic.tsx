@@ -1,4 +1,59 @@
-import type { BarbarianShipGlyph, TileGlyphs } from './types';
+import { alongRoad, pc, RoadBase } from './shared';
+import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
+
+/** Nordic Fjords' settlement: a longhouse, a bowed ridge roof with crossed finials at both gables. */
+const nordicSettlement: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
+      <rect x={x - 18} y={y + 1} width="36" height="14" fill={c.hex} />
+      <path d={`M${x - 20} ${y + 1}Q${x} ${y - 15} ${x + 20} ${y + 1}Z`} fill={c.dark} />
+      <path d={`M${x - 20} ${y + 1}l-3-8M${x - 20} ${y + 1}l5-6M${x + 20} ${y + 1}l3-8M${x + 20} ${y + 1}l-5-6`} stroke={c.dark} strokeWidth="2" fill="none" />
+    </g>
+  );
+};
+
+/** Nordic Fjords' city: a great hall (a bigger longhouse) beside a peaked watchtower. */
+const nordicCity: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
+      <rect x={x - 24} y={y + 5} width="48" height="14" fill={c.hex} />
+      <path d={`M${x - 26} ${y + 5}Q${x - 2} ${y - 13} ${x + 22} ${y + 5}Z`} fill={c.dark} />
+      <path d={`M${x - 26} ${y + 5}l-3-8M${x - 26} ${y + 5}l5-6M${x + 22} ${y + 5}l3-8M${x + 22} ${y + 5}l-5-6`} stroke={c.dark} strokeWidth="2" fill="none" />
+      <rect x={x + 10} y={y - 20} width="14" height="20" fill={c.hex} />
+      <path d={`M${x + 8} ${y - 20}L${x + 17} ${y - 32}L${x + 26} ${y - 20}Z`} fill={c.dark} />
+    </g>
+  );
+};
+
+/** Nordic Fjords' road: split log planks, dark rings at intervals showing the cut log ends. */
+const nordicRoad: RoadGlyph = ({ x1, y1, x2, y2, color, ghost, k = 1 }) => {
+  const seg = { x1, y1, x2, y2 };
+  if (ghost) return <RoadBase {...seg} color={color} ghost k={k} />;
+  return (
+    <>
+      <RoadBase {...seg} color={color} k={k} />
+      {[-0.3, -0.1, 0.1, 0.3].map((t) => {
+        const p = alongRoad(seg, t);
+        return <circle key={t} cx={p.x} cy={p.y} r={2.6 * k} fill="#3a2a1a" opacity="0.85" />;
+      })}
+    </>
+  );
+};
+
+/** Nordic Fjords' knight: a viking's horned helmet. */
+const nordicKnight: KnightGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="2" strokeLinejoin="round">
+      <path d={`M${x - 9} ${y + 8}a9 9 0 0 1 18 0Z`} fill={c.hex} />
+      <path d={`M${x - 9} ${y + 2}q-8-2-10-10M${x + 9} ${y + 2}q8-2 10-10`} stroke={c.dark} strokeWidth="2.6" fill="none" strokeLinecap="round" />
+    </g>
+  );
+};
+
+export const nordicPieces: ThemePieces = { settlement: nordicSettlement, city: nordicCity, road: nordicRoad, knight: nordicKnight };
 
 /** Nordic Fjords on the 2D board: dense spruce and birch, heather, snow drifts and rune stones. */
 export const nordicGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {

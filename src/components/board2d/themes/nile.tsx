@@ -1,4 +1,60 @@
-import type { BarbarianShipGlyph, TileGlyphs } from './types';
+import { alongRoad, pc, RoadBase } from './shared';
+import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
+
+/** Nile's settlement: a mud-brick house, tapered walls under a flat parapet roof. */
+const nileSettlement: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
+      <path d={`M${x - 14} ${y + 15}L${x - 11} ${y - 8}H${x + 11}L${x + 14} ${y + 15}Z`} fill={c.hex} />
+      <rect x={x - 13} y={y - 13} width="26" height="6" fill={c.dark} />
+      <path d={`M${x - 12} ${y - 17}h4v4h-4Z M${x - 4} ${y - 17}h4v4h-4Z M${x + 4} ${y - 17}h4v4h-4Z`} fill={c.dark} />
+    </g>
+  );
+};
+
+/** Nile's city: a temple, twin battered pylon towers flanking a doorway, an obelisk beside it. */
+const nileCity: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
+      <path d={`M${x - 26} ${y + 17}L${x - 20} ${y - 14}H${x - 6}V${y + 17}Z`} fill={c.hex} />
+      <path d={`M${x + 26} ${y + 17}L${x + 20} ${y - 14}H${x + 6}V${y + 17}Z`} fill={c.hex} />
+      <rect x={x - 6} y={y - 2} width="12" height="19" fill={c.dark} />
+      <rect x={x + 14} y={y - 28} width="4" height="24" fill={c.hex} />
+      <path d={`M${x + 14} ${y - 28}L${x + 16} ${y - 34}L${x + 18} ${y - 28}Z`} fill={c.dark} />
+    </g>
+  );
+};
+
+/** Nile's road: cut stone slabs, seam lines crossing the coloured causeway. */
+const nileRoad: RoadGlyph = ({ x1, y1, x2, y2, color, ghost, k = 1 }) => {
+  const seg = { x1, y1, x2, y2 };
+  if (ghost) return <RoadBase {...seg} color={color} ghost k={k} />;
+  return (
+    <>
+      <RoadBase {...seg} color={color} k={k} />
+      {[-0.3, -0.1, 0.1, 0.3].map((t) => {
+        const a = alongRoad(seg, t, 6 * k);
+        const b = alongRoad(seg, t, -6 * k);
+        return <line key={t} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#5a4a34" strokeWidth={1.6 * k} opacity="0.7" />;
+      })}
+    </>
+  );
+};
+
+/** Nile's knight: a guard's nemes headdress, its lappets falling past the shoulders. */
+const nileKnight: KnightGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="2" strokeLinejoin="round">
+      <path d={`M${x - 9} ${y + 9}q-2-14 9-14t9 14q-9 3-18 0Z`} fill={c.hex} />
+      <path d={`M${x - 9} ${y + 3}l-4 8M${x + 9} ${y + 3}l4 8`} stroke={c.dark} strokeWidth="2.4" fill="none" />
+    </g>
+  );
+};
+
+export const nilePieces: ThemePieces = { settlement: nileSettlement, city: nileCity, road: nileRoad, knight: nileKnight };
 
 /** A date palm with its trunk's foot at (x, y + 14). */
 function Palm({ x, y, leaf }: { x: number; y: number; leaf: string }) {

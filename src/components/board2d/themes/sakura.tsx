@@ -1,4 +1,71 @@
-import type { BarbarianShipGlyph, TileGlyphs } from './types';
+import { alongRoad, pc, RoadBase } from './shared';
+import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
+
+/** A wide overhanging pagoda roof: a flat-topped triangle with small upturned eave flares. */
+function PagodaRoof({ x, apexY, eaveY, half, color }: { x: number; apexY: number; eaveY: number; half: number; color: string }) {
+  return (
+    <g fill={color}>
+      <path d={`M${x - half} ${eaveY}L${x} ${apexY}L${x + half} ${eaveY}Z`} />
+      <path d={`M${x - half} ${eaveY}l-5 -2 3 6Z M${x + half} ${eaveY}l5 -2 -3 6Z`} />
+    </g>
+  );
+}
+
+/** Sakura Isle's settlement: a single-storey house under one wide, upturned pagoda roof. */
+const sakuraSettlement: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
+      <rect x={x - 12} y={y - 1} width="24" height="16" fill={c.hex} />
+      <PagodaRoof x={x} apexY={y - 19} eaveY={y - 1} half={22} color={c.dark} />
+    </g>
+  );
+};
+
+/** Sakura Isle's city: a two-tiered pagoda, each storey under its own overhanging roof, with a finial. */
+const sakuraCity: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="2.5" strokeLinejoin="round">
+      <rect x={x - 17} y={y + 3} width="34" height="14" fill={c.hex} />
+      <PagodaRoof x={x} apexY={y - 9} eaveY={y + 3} half={24} color={c.dark} />
+      <rect x={x - 11} y={y - 13} width="22" height="12" fill={c.hex} />
+      <PagodaRoof x={x} apexY={y - 25} eaveY={y - 13} half={16} color={c.dark} />
+      <circle cx={x} cy={y - 29} r="2.6" fill={c.dark} />
+    </g>
+  );
+};
+
+/** Sakura Isle's road: a wooden boardwalk, a few plank ties crossing the coloured deck. */
+const sakuraRoad: RoadGlyph = ({ x1, y1, x2, y2, color, ghost, k = 1 }) => {
+  const seg = { x1, y1, x2, y2 };
+  if (ghost) return <RoadBase {...seg} color={color} ghost k={k} />;
+  return (
+    <>
+      <RoadBase {...seg} color={color} k={k} />
+      {[-0.27, 0, 0.27].map((t) => {
+        const p = alongRoad(seg, t);
+        const g = alongRoad(seg, t, 7 * k);
+        const g2 = alongRoad(seg, t, -7 * k);
+        return <line key={t} x1={g.x} y1={g.y} x2={g2.x} y2={g2.y} stroke="#6b4a2b" strokeWidth={2.4 * k} strokeLinecap="round" opacity="0.85" />;
+      })}
+    </>
+  );
+};
+
+/** Sakura Isle's knight: a samurai's kabuto helmet, a crescent crest over a flared neck-guard. */
+const sakuraKnight: KnightGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="2" strokeLinejoin="round">
+      <path d={`M${x - 10} ${y + 8}q-2-13 10-13t10 13q-10 4-20 0Z`} fill={c.hex} />
+      <path d={`M${x - 4} ${y - 11}q4-4 8 0M${x - 4} ${y - 11}q4 5 8 0`} fill="none" stroke={c.dark} strokeWidth="2" />
+      <circle cx={x} cy={y - 2} r="2" fill={c.dark} />
+    </g>
+  );
+};
+
+export const sakuraPieces: ThemePieces = { settlement: sakuraSettlement, city: sakuraCity, road: sakuraRoad, knight: sakuraKnight };
 
 /** Sakura Isle on the 2D board: blossom groves, paddies, a single peak and a rock garden. */
 export const sakuraGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {

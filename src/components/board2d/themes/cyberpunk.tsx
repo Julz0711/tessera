@@ -1,10 +1,67 @@
 import type { ReactNode } from 'react';
 import { Glow, Neon } from './glow';
-import type { BarbarianShipGlyph, TileGlyphs } from './types';
+import { pc, RoadBase } from './shared';
+import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
 
 const PINK = '#ff3d9a';
 const CYAN = '#3de8ff';
 const MINT = '#3dffb0';
+
+/** Cyberpunk's settlement: a neon-edged block, a crisp glow line traced round the coloured body. */
+const cyberpunkSettlement: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g>
+      <rect x={x - 14} y={y - 12} width="28" height="27" fill={c.hex} stroke={c.dark} strokeWidth="2.5" />
+      <Neon d={`M${x - 14} ${y - 12}h28v27h-28Z`} color={c.hex} width={1.6} />
+      <rect x={x - 9} y={y - 6} width="6" height="6" fill="#0d0b14" />
+      <rect x={x + 3} y={y - 6} width="6" height="6" fill="#0d0b14" />
+    </g>
+  );
+};
+
+/** Cyberpunk's city: a skyscraper, a neon-edged tower with a grid of lit windows. */
+const cyberpunkCity: PieceGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g>
+      <rect x={x - 14} y={y - 28} width="28" height="45" fill={c.hex} stroke={c.dark} strokeWidth="2.5" />
+      <Neon d={`M${x - 14} ${y - 28}h28v45h-28Z`} color={c.hex} width={1.6} />
+      {[-18, -8, 2, 12].flatMap((dy) =>
+        [-8, 4].map((dx) => (
+          <rect key={`${dx}${dy}`} x={x + dx} y={y + dy} width="5" height="6" fill={(dx + dy) % 3 === 0 ? MINT : CYAN} opacity="0.9" />
+        )),
+      )}
+    </g>
+  );
+};
+
+/** Cyberpunk's road: a glowing neon strip, a soft colour halo under the crisp coloured lane. */
+const cyberpunkRoad: RoadGlyph = ({ x1, y1, x2, y2, color, ghost, k = 1 }) => {
+  const seg = { x1, y1, x2, y2 };
+  const c = pc(color);
+  if (ghost) return <RoadBase {...seg} color={color} ghost k={k} />;
+  return (
+    <>
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.hex} strokeWidth={26 * k} strokeOpacity="0.22" strokeLinecap="round" />
+      <RoadBase {...seg} color={color} k={k} />
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#ffffff" strokeWidth={2 * k} strokeOpacity="0.35" strokeLinecap="round" />
+    </>
+  );
+};
+
+/** Cyberpunk's knight: a street samurai's helmet, a glowing cyan visor slit. */
+const cyberpunkKnight: KnightGlyph = ({ x, y, color }) => {
+  const c = pc(color);
+  return (
+    <g stroke={c.dark} strokeWidth="2" strokeLinejoin="round">
+      <path d={`M${x - 9} ${y + 9}q-2-15 9-15t9 15q-9 3-18 0Z`} fill={c.hex} />
+      <rect x={x - 7} y={y - 2} width="14" height="3" fill={CYAN} opacity="0.9" />
+    </g>
+  );
+};
+
+export const cyberpunkPieces: ThemePieces = { settlement: cyberpunkSettlement, city: cyberpunkCity, road: cyberpunkRoad, knight: cyberpunkKnight };
 
 /** Cyberpunk on the 2D board: a fenced grove, a scrapyard press, robot sheep, grow racks, ore veins and a dead zone. */
 export const cyberpunkGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {

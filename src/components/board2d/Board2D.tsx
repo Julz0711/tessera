@@ -8,7 +8,7 @@ import { getTopology, type Topology } from "@/engine/board/topology";
 import type { PlayerColor, Terrain } from "@/engine/types";
 import { CARD_COLORS } from "@/client/palette";
 import { PALETTES, type BoardPalette, type BoardThemeId, type TileColors } from "@/client/themes";
-import { THEME_BARBARIAN_SHIPS, THEME_GLYPHS, type BarbarianShipGlyph } from "./themes";
+import { THEME_BARBARIAN_SHIPS, THEME_GLYPHS, THEME_PIECES, type BarbarianShipGlyph } from "./themes";
 import { PLAYER_COLORS } from "@/shared/colors";
 import { harborAnchor } from "@/components/board/harbor";
 import { BARBARIAN_HEADER_H, barbarianTrackLayout, type BarbarianLayout } from "@/components/board/barbarian";
@@ -306,58 +306,167 @@ function grow(x: number, y: number, k: number): string | undefined {
     : `translate(${x} ${y}) scale(${k}) translate(${-x} ${-y})`;
 }
 
+/** The classic settlement: a simple gabled house, filled in the owner's colour. */
+function classicSettlement({ x, y, color }: { x: number; y: number; color: PlayerColor }) {
+  const c = PLAYER_COLORS[color];
+  return (
+    <path
+      d={`M${x - 17} ${y + 14}v-17l17-14 17 14v17Z`}
+      fill={c.hex}
+      stroke={c.dark}
+      strokeWidth="4.5"
+      strokeLinejoin="round"
+    />
+  );
+}
+
+/** The classic city: a keep beside a tower, filled in the owner's colour. */
+function classicCity({ x, y, color }: { x: number; y: number; color: PlayerColor }) {
+  const c = PLAYER_COLORS[color];
+  return (
+    <path
+      d={`M${x - 26} ${y + 17}v-18l12-9 12 9v-18h9v-8h8v8h9v36Z`}
+      fill={c.hex}
+      stroke={c.dark}
+      strokeWidth="4.5"
+      strokeLinejoin="round"
+    />
+  );
+}
+
+/** A settlement: the theme's own drawing (THEME_PIECES) where it has one, else the classic house. */
 function HousePath({
   x,
   y,
   color,
   ghost,
   k = 1,
+  theme,
 }: {
   x: number;
   y: number;
   color: PlayerColor;
   ghost?: boolean;
   k?: number;
+  theme?: BoardThemeId;
 }) {
-  const c = PLAYER_COLORS[color];
+  const glyph = (theme && THEME_PIECES[theme]?.settlement) || classicSettlement;
   return (
-    <path
-      transform={grow(x, y, k)}
-      d={`M${x - 17} ${y + 14}v-17l17-14 17 14v17Z`}
-      fill={c.hex}
-      stroke={c.dark}
-      strokeWidth="4.5"
-      strokeLinejoin="round"
-      opacity={ghost ? 0.6 : 1}
-    />
+    <g transform={grow(x, y, k)} opacity={ghost ? 0.6 : 1}>
+      {glyph({ x, y, color })}
+    </g>
   );
 }
 
+/** A city: the theme's own drawing (THEME_PIECES) where it has one, else the classic keep and tower. */
 function CityPath({
   x,
   y,
   color,
   ghost,
   k = 1,
+  theme,
 }: {
   x: number;
   y: number;
   color: PlayerColor;
   ghost?: boolean;
   k?: number;
+  theme?: BoardThemeId;
 }) {
+  const glyph = (theme && THEME_PIECES[theme]?.city) || classicCity;
+  return (
+    <g transform={grow(x, y, k)} opacity={ghost ? 0.6 : 1}>
+      {glyph({ x, y, color })}
+    </g>
+  );
+}
+
+/** A road: the theme's own drawing (THEME_PIECES) where it has one, else the classic two-tone line. */
+function RoadPath({
+  x1,
+  y1,
+  x2,
+  y2,
+  color,
+  ghost,
+  k = 1,
+  theme,
+}: {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  color: PlayerColor;
+  ghost?: boolean;
+  k?: number;
+  theme?: BoardThemeId;
+}) {
+  const glyph = (theme && THEME_PIECES[theme]?.road) || defaultRoad;
+  return (
+    <g pointerEvents="none" opacity={ghost ? 0.7 : undefined}>
+      {glyph({ x1, y1, x2, y2, color, ghost, k })}
+    </g>
+  );
+}
+
+/** The classic road: a dark outline under the owner's colour, or a single thinner line as a ghost preview. */
+function defaultRoad({
+  x1,
+  y1,
+  x2,
+  y2,
+  color,
+  ghost,
+  k = 1,
+}: {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  color: PlayerColor;
+  ghost?: boolean;
+  k?: number;
+}) {
+  const c = PLAYER_COLORS[color];
+  if (ghost) {
+    return <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.hex} strokeWidth={11 * k} strokeLinecap="round" />;
+  }
+  return (
+    <>
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.dark} strokeWidth={20 * k} strokeLinecap="round" />
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.hex} strokeWidth={12 * k} strokeLinecap="round" />
+    </>
+  );
+}
+
+/** The classic knight's emblem: a small crest, filled in the owner's colour (the crossed-swords look). */
+function classicKnightEmblem({ x, y, color }: { x: number; y: number; color: PlayerColor }) {
   const c = PLAYER_COLORS[color];
   return (
     <path
-      transform={grow(x, y, k)}
-      d={`M${x - 26} ${y + 17}v-18l12-9 12 9v-18h9v-8h8v8h9v36Z`}
+      d={`M${x - 13} ${y - 12}h26v9c0 9-5 14-13 17-8-2.5-13-8-13-17Z`}
       fill={c.hex}
       stroke={c.dark}
-      strokeWidth="4.5"
-      strokeLinejoin="round"
-      opacity={ghost ? 0.6 : 1}
+      strokeWidth="2.5"
     />
   );
+}
+
+/** A knight's emblem: the theme's own drawing (THEME_PIECES) where it has one, else the classic crest. */
+function KnightEmblem({
+  x,
+  y,
+  color,
+  theme,
+}: {
+  x: number;
+  y: number;
+  color: PlayerColor;
+  theme?: BoardThemeId;
+}) {
+  const glyph = (theme && THEME_PIECES[theme]?.knight) || classicKnightEmblem;
+  return <>{glyph({ x, y, color })}</>;
 }
 
 /** The robber, standing below the hex's number token; a ghost previews a move waiting for confirmation. */
@@ -1028,33 +1137,22 @@ export default function Board2D({
           const e = topo.edges[eid];
           const a = topo.vertices[e.a];
           const b = topo.vertices[e.b];
-          const c = PLAYER_COLORS[scene.colors[owner]];
           const k = 0.16;
           const x1 = (a.x + (b.x - a.x) * k) * S;
           const y1 = (a.y + (b.y - a.y) * k) * S;
           const x2 = (b.x + (a.x - b.x) * k) * S;
           const y2 = (b.y + (a.y - b.y) * k) * S;
           return (
-            <g key={`r${eid}`} pointerEvents="none">
-              <line
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke={c.dark}
-                strokeWidth={20 * ps}
-                strokeLinecap="round"
-              />
-              <line
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke={c.hex}
-                strokeWidth={12 * ps}
-                strokeLinecap="round"
-              />
-            </g>
+            <RoadPath
+              key={`r${eid}`}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              color={scene.colors[owner]}
+              k={ps}
+              theme={theme}
+            />
           );
         })}
 
@@ -1069,7 +1167,7 @@ export default function Board2D({
               pointerEvents="none"
               transform={grow(p.x * S, p.y * S, ps)}
             >
-              <CityPath x={p.x * S} y={p.y * S} color={color} />
+              <CityPath x={p.x * S} y={p.y * S} color={color} theme={theme} />
               {b.wall && (
                 <g>
                   {/* dark outline first so the ring reads on every hex colour, incl. grey mountains */}
@@ -1119,6 +1217,7 @@ export default function Board2D({
               y={p.y * S}
               color={color}
               k={ps}
+              theme={theme}
             />
           );
         })}
@@ -1142,12 +1241,7 @@ export default function Board2D({
                 stroke="#1f1a14"
                 strokeWidth={k.active ? 4.5 : 3}
               />
-              <path
-                d={`M${p.x * S - 13} ${p.y * S - 12}h26v9c0 9-5 14-13 17-8-2.5-13-8-13-17Z`}
-                fill={c.hex}
-                stroke={c.dark}
-                strokeWidth="2.5"
-              />
+              <KnightEmblem x={p.x * S} y={p.y * S} color={scene.colors[k.owner]} theme={theme} />
               {Array.from({ length: k.level }, (_, i) => (
                 <circle
                   key={i}
@@ -1245,15 +1339,15 @@ export default function Board2D({
                   // Build hints only show on hover: a preview of the road.
                   isHover &&
                   myColor && (
-                    <line
+                    <RoadPath
                       x1={x1}
                       y1={y1}
                       x2={x2}
                       y2={y2}
-                      stroke={PLAYER_COLORS[myColor].hex}
-                      strokeWidth={11 * ps}
-                      strokeLinecap="round"
-                      opacity="0.7"
+                      color={myColor}
+                      ghost
+                      k={ps}
+                      theme={theme}
                     />
                   )
                 ) : (
@@ -1325,6 +1419,7 @@ export default function Board2D({
                     color={myColor}
                     ghost
                     k={ps}
+                    theme={theme}
                   />
                 )}
                 {isHover && myColor && kind === "city" && (
@@ -1334,6 +1429,7 @@ export default function Board2D({
                     color={myColor}
                     ghost
                     k={ps}
+                    theme={theme}
                   />
                 )}
                 {kind === "knightAction" ? (
@@ -1417,16 +1513,15 @@ export default function Board2D({
               const b = topo.vertices[e.b];
               const k = 0.2;
               return (
-                <line
+                <RoadPath
                   x1={(a.x + (b.x - a.x) * k) * S}
                   y1={(a.y + (b.y - a.y) * k) * S}
                   x2={(b.x + (a.x - b.x) * k) * S}
                   y2={(b.y + (a.y - b.y) * k) * S}
-                  stroke={PLAYER_COLORS[myColor].hex}
-                  strokeWidth={11 * ps}
-                  strokeLinecap="round"
-                  opacity="0.7"
-                  pointerEvents="none"
+                  color={myColor}
+                  ghost
+                  k={ps}
+                  theme={theme}
                 />
               );
             }
@@ -1440,6 +1535,7 @@ export default function Board2D({
                     color={myColor}
                     ghost
                     k={ps}
+                    theme={theme}
                   />
                 ) : armed.what === "city" ? (
                   <CityPath
@@ -1448,6 +1544,7 @@ export default function Board2D({
                     color={myColor}
                     ghost
                     k={ps}
+                    theme={theme}
                   />
                 ) : (
                   <HintRing

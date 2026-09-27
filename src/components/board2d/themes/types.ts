@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { Terrain } from '@/engine/types';
+import type { PlayerColor, Terrain } from '@/engine/types';
 import type { TileColors } from '@/client/themes';
 
 /**
@@ -19,3 +19,36 @@ export type PierColors = { deck: string; plank: string; post: string };
  * the classic ship does. `wood` is the theme's pier palette (the neutral wood tones when unset).
  */
 export type BarbarianShipGlyph = (p: { danger: boolean; wood: PierColors }) => ReactNode;
+
+/**
+ * A theme's own settlement or city on the 2D board, drawn at its vertex (`x`/`y`, board units,
+ * already scaled by `k` — the caller wraps the glyph in the grow/ghost-opacity transform, so the
+ * glyph itself just draws around (x, y) at scale 1). Same footprint as the classic house (~34
+ * wide, ~31 tall) or city (~52 wide, ~43 tall) so it doesn't crowd its neighbours. Fill with the
+ * owner's colour (`color`, looked up via PLAYER_COLORS) so it stays instantly readable — the
+ * colour must stay dominant, with a dark outline like the classic pieces.
+ */
+export type PieceGlyph = (p: { x: number; y: number; color: PlayerColor }) => ReactNode;
+
+/**
+ * A theme's own road on the 2D board: the segment's two (already-inset) endpoints. Ghost roads
+ * (build hints, placement previews) pass `ghost: true` — keep those cheap (the owner-colour line
+ * alone is enough; skip decoration) since the classic `RoadBase` helper already handles it.
+ */
+export type RoadGlyph = (p: { x1: number; y1: number; x2: number; y2: number; color: PlayerColor; ghost?: boolean; k?: number }) => ReactNode;
+
+/**
+ * A theme's own knight emblem (C&K), replacing the crossed swords inside the classic knight's
+ * disc. Board2D keeps the disc itself (active/inactive colour, the owner-colour ring) and the
+ * level pips below unthemed, so those states keep working automatically — the glyph only draws
+ * the ~26×29 emblem centred on (x, y), filled with the owner's colour.
+ */
+export type KnightGlyph = (p: { x: number; y: number; color: PlayerColor }) => ReactNode;
+
+/** What a theme changes about the pieces standing on the 2D board; anything left out keeps the classic drawing. */
+export type ThemePieces = {
+  settlement?: PieceGlyph;
+  city?: PieceGlyph;
+  road?: RoadGlyph;
+  knight?: KnightGlyph;
+};
