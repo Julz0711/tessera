@@ -348,34 +348,6 @@ function CityWallBlock({ x, y, color }: { x: number; y: number; color: PlayerCol
   );
 }
 
-/**
- * A slight 3D look for settlements and cities (like colonist's pieces): the piece's silhouette
- * stacked a few steps down-right in the owner's dark shade, as if it had a solid side. One filter
- * per player colour, so it works on every theme's drawings without redrawing them.
- */
-function PieceDepthDefs() {
-  const steps = [1, 2, 3, 4];
-  return (
-    <defs>
-      {(Object.keys(PLAYER_COLORS) as PlayerColor[]).map((color) => (
-        <filter key={color} id={`depth-${color}`} x="-25%" y="-25%" width="160%" height="160%">
-          <feFlood floodColor={PLAYER_COLORS[color].dark} result="side" />
-          <feComposite in="side" in2="SourceAlpha" operator="in" result="silhouette" />
-          {steps.map((i) => (
-            <feOffset key={i} in="silhouette" dx={i * 0.9} dy={i * 1.4} result={`s${i}`} />
-          ))}
-          <feMerge>
-            {[...steps].reverse().map((i) => (
-              <feMergeNode key={i} in={`s${i}`} />
-            ))}
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      ))}
-    </defs>
-  );
-}
-
 /** A settlement: the theme's own drawing (THEME_PIECES) where it has one, else the classic house. */
 function HousePath({
   x,
@@ -394,7 +366,7 @@ function HousePath({
 }) {
   const glyph = (theme && THEME_PIECES[theme]?.settlement) || classicSettlement;
   return (
-    <g transform={grow(x, y, k)} opacity={ghost ? 0.6 : 1} filter={ghost ? undefined : `url(#depth-${color})`}>
+    <g transform={grow(x, y, k)} opacity={ghost ? 0.6 : 1}>
       {glyph({ x, y, color })}
     </g>
   );
@@ -418,7 +390,7 @@ function CityPath({
 }) {
   const glyph = (theme && THEME_PIECES[theme]?.city) || classicCity;
   return (
-    <g transform={grow(x, y, k)} opacity={ghost ? 0.6 : 1} filter={ghost ? undefined : `url(#depth-${color})`}>
+    <g transform={grow(x, y, k)} opacity={ghost ? 0.6 : 1}>
       {glyph({ x, y, color })}
     </g>
   );
@@ -943,7 +915,6 @@ export default function Board2D({
         onClick={onBackground ? () => onBackground() : undefined}
       >
         {/* The sea itself is painted by the container (.sea-2d) so it spans the whole screen. */}
-        <PieceDepthDefs />
 
         {/* foam, beach & tiles */}
         {scene.board.hexes.map((h) => (
