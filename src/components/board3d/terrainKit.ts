@@ -74,6 +74,8 @@ export interface Prop {
   metal?: boolean;
   /** Glows in this colour (lit windows, lanterns, lava). */
   emissive?: string;
+  /** See-through (glass domes, helmets). */
+  opacity?: number;
 }
 
 export function seeded(seed: number) {

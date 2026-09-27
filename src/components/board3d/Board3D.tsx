@@ -11,7 +11,7 @@ import type { BoardProps, BoardScene, BoardTargets } from '@/components/board/ty
 import { City, CityWall, HarborPiece, Merchant, MetropolisTower, NumberToken, Road, Robber, Settlement } from './pieces';
 import { Targets } from './targets';
 import { HexTile } from './terrain';
-import { Ocean } from './ocean';
+import { Sea } from './ocean';
 import { displayFont, resetTextureCache } from './textures';
 import { KnightPieces } from './knights';
 import { PieceScale } from './pieceScale';
@@ -233,7 +233,7 @@ export default function Board3D({
         <hemisphereLight args={[palette.light.sky, palette.light.ground, palette.light.hemi]} />
         <ambientLight intensity={palette.light.ambient} />
         <directionalLight
-          position={[5, 12, 6]}
+          position={palette.light.sunPosition ?? [5, 12, 6]}
           intensity={palette.light.sunIntensity}
           color={palette.light.sun}
           castShadow={shadows}
@@ -248,7 +248,7 @@ export default function Board3D({
           shadow-bias={-0.0006}
           shadow-normalBias={0.02}
         />
-        <Ocean shelfRadius={frame.extent + 2} />
+        <Sea shelfRadius={frame.extent + 2} />
         <FitCamera showcase={showcase} scale={scale} />
         {showcase ? (
           <Spin>{island}</Spin>

@@ -60,7 +60,7 @@ export function Road({ x, z, angle, color, ghost = false }: { x: number; z: numb
     <group ref={ref} position={[x, TILE_TOP + 0.06, z]} rotation={[0, -angle, 0]} scale={ghost ? 1 : 0.001}>
       {/* Thicker or thinner, never longer: the road still spans exactly one edge. */}
       <mesh geometry={GEO.road} material={mat(c.hex, ghost ? { opacity: 0.55 } : {})} position={[0, 0.045 * (k - 1), 0]} scale={[1, k, k]} castShadow={!ghost} />
-      {Decor && <Decor ghost={ghost} />}
+      {Decor && <Decor ghost={ghost} c={c} />}
     </group>
   );
 }
@@ -194,12 +194,16 @@ export function Robber({ x, z, ghost = false }: { x: number; z: number; ghost?: 
 /** Height of a harbor's rate sign above the water (times the Board size scale). */
 const SIGN_Y = 0.3;
 
+/** The classic wooden pier (themes may paint it: a metal gantry, paper strips…). */
+const WOOD_PIER = { deck: '#9c6f42', plank: '#8a6139', post: '#6b4a2b' };
+
 /** A little wooden pier out at sea with its rate sign on a pole. */
 export function HarborPiece({ harbor, topo }: { harbor: Harbor; topo: Topology }) {
   const face = useMemo(() => new THREE.MeshBasicMaterial({ map: harborTexture(harbor.kind) }), [harbor.kind]);
   const label = useRef<THREE.Group>(null);
   const k = usePieceScale();
   const Decor = useBoardKit().Harbor;
+  const pier = useBoardPalette().pier ?? WOOD_PIER;
   useFrame((state) => {
     if (label.current) faceCamera(label.current, state.camera);
   });
@@ -217,16 +221,16 @@ export function HarborPiece({ harbor, topo }: { harbor: Harbor; topo: Topology }
   return (
     <group>
       {planks.map((p, i) => (
-        <mesh key={i} geometry={GEO.plank} material={mat('#8a6139')} position={[p.mx, 0.03, p.mz]} rotation={[0, p.rot, 0]} scale={[1, 1, p.l]} />
+        <mesh key={i} geometry={GEO.plank} material={mat(pier.plank)} position={[p.mx, 0.03, p.mz]} rotation={[0, p.rot, 0]} scale={[1, 1, p.l]} />
       ))}
-      <mesh geometry={GEO.pier} material={mat('#9c6f42')} position={[px, 0.04, pz]} rotation={[0, Math.atan2(ox, oz), 0]} castShadow />
+      <mesh geometry={GEO.pier} material={mat(pier.deck)} position={[px, 0.04, pz]} rotation={[0, Math.atan2(ox, oz), 0]} castShadow />
       {Decor && <Decor x={px} z={pz} rot={Math.atan2(ox, oz)} />}
-      <mesh geometry={GEO.post} material={mat('#6b4a2b')} position={[px + oz * 0.2, 0.05, pz - ox * 0.2]} />
-      <mesh geometry={GEO.post} material={mat('#6b4a2b')} position={[px - oz * 0.2, 0.05, pz + ox * 0.2]} />
+      <mesh geometry={GEO.post} material={mat(pier.post)} position={[px + oz * 0.2, 0.05, pz - ox * 0.2]} />
+      <mesh geometry={GEO.post} material={mat(pier.post)} position={[px - oz * 0.2, 0.05, pz + ox * 0.2]} />
       {/* The sign stands on a pole from the pier, up to the underside of its disc. */}
       <mesh
         geometry={GEO.post}
-        material={mat('#6b4a2b')}
+        material={mat(pier.post)}
         position={[px + ox * 0.05, (0.065 + SIGN_Y * k) / 2, pz + oz * 0.05]}
         scale={[0.7, (SIGN_Y * k - 0.065) / 0.3, 0.7]}
       />

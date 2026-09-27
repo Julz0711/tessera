@@ -190,11 +190,14 @@ export const TerrainProps = memo(function TerrainProps({ terrain, seed, shadows 
         <mesh
           key={i}
           geometry={typeof p.geo === 'string' ? TG[p.geo] : p.geo}
-          material={mat(p.color, p.metal ? { metal: 0.35, rough: 0.3, emissive: p.emissive ?? '#ff9d00' } : p.emissive ? { emissive: p.emissive, glow: 0.9 } : {})}
+          material={mat(p.color, {
+            ...(p.metal ? { metal: 0.35, rough: 0.3, emissive: p.emissive ?? '#ff9d00' } : p.emissive ? { emissive: p.emissive, glow: 0.9 } : {}),
+            opacity: p.opacity,
+          })}
           position={p.p}
           rotation={p.r ?? [0, 0, 0]}
           scale={p.s ?? 1}
-          castShadow={shadows}
+          castShadow={shadows && p.opacity === undefined}
         />
       ))}
     </group>
@@ -318,6 +321,11 @@ export function HexTile({
       {!hex.fog && kit.Tile && (
         <group position={[0, TILE_TOP, 0]}>
           <kit.Tile terrain={hex.terrain} seed={hex.id + 1} />
+        </group>
+      )}
+      {kit.Base && (
+        <group position={[0, TILE_TOP, 0]}>
+          <kit.Base seed={hex.id + 1} />
         </group>
       )}
       {producing && <HexRing color="#f2b33d" />}

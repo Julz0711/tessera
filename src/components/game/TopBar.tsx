@@ -63,7 +63,7 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
             <Menu size={18} />
           </button>
           {menu && (
-            <div className="paper animate-pop absolute left-0 top-12 z-40 grid w-64 gap-3 p-3">
+            <div className="paper animate-pop scroll-thin absolute left-0 top-12 z-40 grid max-h-[calc(100dvh-5rem)] w-64 gap-3 overflow-y-auto p-3">
               <div className="grid gap-1.5">
                 <span className="label">Board</span>
                 <div className="grid grid-cols-2 gap-1.5">

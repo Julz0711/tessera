@@ -2,7 +2,13 @@
 
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
-import { useBoardPalette } from './themes';
+import { useBoardKit, useBoardPalette } from './themes';
+
+/** What surrounds the island: the theme's own sea (clouds, space…) or the classic ocean. */
+export function Sea({ shelfRadius }: { shelfRadius: number }) {
+  const ThemeSea = useBoardKit().Sea;
+  return ThemeSea ? <ThemeSea shelfRadius={shelfRadius} /> : <Ocean shelfRadius={shelfRadius} />;
+}
 
 /**
  * Faceted low-poly sea; a lighter shelf shows through around the island. The swells are baked in
