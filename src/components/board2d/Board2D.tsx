@@ -517,7 +517,7 @@ function BarbarianShipGlyph({
   const sail = danger ? "#f3d9d3" : "#f6eddb";
   const stripe = danger ? "#8a1f14" : "#a83b2e";
   return (
-    <g transform={`translate(${x} ${y}) scale(${1.8 * ps})`} pointerEvents="none">
+    <g transform={`translate(${x} ${y}) scale(${1.15 * ps})`} pointerEvents="none">
       <path d="M-26 8h52l-10 14h-32Z" fill={hull} stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
       {/* curled prow */}
       <path d="M26 8q14-2 14-14q0-8-8-8" fill="none" stroke={wood.post} strokeWidth="3.5" strokeLinecap="round" />
@@ -548,7 +548,7 @@ function BarbarianBadge({
 }) {
   const rim = ok ? "#2f6b45" : "#e0503a";
   return (
-    <g transform={`translate(${x} ${y}) scale(1.35)`} pointerEvents="none">
+    <g transform={`translate(${x} ${y}) scale(1.15)`} pointerEvents="none">
       <circle r="17" fill="#f6eddb" stroke={rim} strokeWidth="4" />
       {icon === "ship" ? (
         <path d="M-8 3h16l-3 5h-10Z M0 3v-9 M0-8l6 3-6 3Z" fill={rim} />
@@ -569,8 +569,9 @@ function BarbarianBadge({
 }
 
 /**
- * The barbarian ship's voyage (C&K): a column of small hex sea-steps west of the island, the
- * landing (last step) glowing warm orange, and the ship on its current step with its two badges.
+ * The barbarian ship's voyage (C&K): a zigzag strip of touching hex steps on a dark panel west of
+ * the island, the landing (last step) warm orange, and the ship on its current step with its two
+ * badges beside it.
  */
 function BarbarianTrack2D({
   barbarian,
@@ -586,28 +587,43 @@ function BarbarianTrack2D({
   const wood = palette.pier ?? { deck: "#9c6f42", plank: "#8a6139", post: "#6b4a2b" };
   const danger = barbarian.position >= barbarian.distance - 2;
   const ok = barbarian.defense >= barbarian.strength;
-  const shipX = layout.x * S;
-  const shipY = layout.y(barbarian.position) * S;
+  const r = layout.r * S;
+  const steps = Array.from({ length: barbarian.distance + 1 }, (_, i) => layout.at(i));
+  const xs = steps.map((p) => p.x * S);
+  const top = steps[0].y * S - r - 10;
+  const bottom = steps[steps.length - 1].y * S + r + 10;
+  const ship = steps[barbarian.position];
+  const shipX = ship.x * S;
+  const shipY = ship.y * S;
+  const badgeX = Math.max(...xs) + r + 22;
   return (
-    <g>
-      {Array.from({ length: barbarian.distance + 1 }, (_, i) => {
+    <g pointerEvents="none">
+      <rect
+        x={Math.min(...xs) - r - 10}
+        y={top}
+        width={Math.max(...xs) - Math.min(...xs) + 2 * r + 20}
+        height={bottom - top}
+        rx="16"
+        fill="#0b2233"
+        opacity="0.38"
+      />
+      {steps.map((p, i) => {
         const landing = i === barbarian.distance;
-        const fill = landing ? (danger ? "#e0503a" : "#f2b33d") : wood.deck;
         return (
           <polygon
             key={i}
-            points={hexStepPoints(layout.x * S, layout.y(i) * S, 25)}
-            fill={fill}
-            stroke={wood.post}
-            strokeWidth="3"
+            points={hexStepPoints(p.x * S, p.y * S, r * 0.94)}
+            fill={landing ? (danger ? "#e0503a" : "#f2994a") : wood.deck}
+            stroke={landing ? "#8a3a14" : wood.post}
+            strokeWidth="2.5"
             strokeLinejoin="round"
-            opacity={landing ? 0.95 : 0.82}
+            opacity={landing ? 1 : 0.7}
           />
         );
       })}
-      <BarbarianShipGlyph x={shipX} y={shipY} danger={danger} wood={wood} ps={ps} />
-      <BarbarianBadge x={shipX - 62} y={shipY - 26} value={barbarian.strength} icon="ship" ok={ok} />
-      <BarbarianBadge x={shipX - 62} y={shipY + 26} value={barbarian.defense} icon="swords" ok={ok} />
+      <BarbarianShipGlyph x={shipX} y={shipY} danger={danger} wood={wood} ps={1} />
+      <BarbarianBadge x={badgeX} y={shipY - 22} value={barbarian.strength} icon="ship" ok={ok} />
+      <BarbarianBadge x={badgeX + 48} y={shipY - 22} value={barbarian.defense} icon="swords" ok={ok} />
     </g>
   );
 }
@@ -642,9 +658,9 @@ export default function Board2D({
     let minY = Math.min(...ys) - pad;
     // Room for the barbarian track's steps and badges, west of the island.
     if (barbLayout) {
-      minX = Math.min(minX, barbLayout.x * S - 95);
+      minX = Math.min(minX, (barbLayout.at(0).x - barbLayout.r) * S - 30);
       // The ship's sail stands above the first step.
-      minY = Math.min(minY, barbLayout.y(0) * S - 75);
+      minY = Math.min(minY, barbLayout.at(0).y * S - 70);
     }
     return {
       minX,

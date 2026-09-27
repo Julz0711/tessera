@@ -4,7 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { Topology } from '@/engine/board/topology';
-import { barbarianTrackLayout } from '../board/barbarian';
+import { BARBARIAN_STEP_R, barbarianTrackLayout } from '../board/barbarian';
 import { faceCamera } from './faceCamera';
 import { mat } from './materials';
 import { usePieceScale } from './pieceScale';
@@ -27,10 +27,9 @@ const HULL_CLEAR = 0.075;
 
 /** Shared, cheap low-poly geometry for the whole track — built once at module load. */
 const GEO = {
-  // a low hexagonal plate/buoy floating on the sea
-  plate: new THREE.CylinderGeometry(0.21, 0.24, 0.07, 6),
-  plateRim: new THREE.TorusGeometry(0.215, 0.022, 4, 6),
-  glow: new THREE.CylinderGeometry(0.32, 0.32, 0.012, 16),
+  // a low hexagonal raft plate; neighbours nearly touch, with a thin seam of sea between them
+  plate: new THREE.CylinderGeometry(BARBARIAN_STEP_R * 0.93, BARBARIAN_STEP_R * 0.96, 0.07, 6),
+  plateTop: new THREE.CylinderGeometry(BARBARIAN_STEP_R * 0.74, BARBARIAN_STEP_R * 0.74, 0.012, 6),
   // the longship: a tapered hull, mast, striped sail and a shield-wall along the gunwales
   hullMid: new THREE.BoxGeometry(0.16, 0.08, 0.2),
   hullBow: new THREE.ConeGeometry(0.085, 0.16, 4),
@@ -47,25 +46,23 @@ const GEO = {
 };
 
 /** A hexagonal sea-step; the landing (last) step glows warm orange, red when the barbarians are close. */
-function Step({ x, z, landing, danger, wood, k }: { x: number; z: number; landing: boolean; danger: boolean; wood: typeof NEUTRAL_WOOD; k: number }) {
-  const ref = useRef<THREE.Group>(null);
-  const phase = useMemo(() => x * 3 + z * 5, [x, z]);
-  useFrame((state) => {
-    if (!ref.current) return;
-    ref.current.position.y = Math.sin(state.clock.elapsedTime * 1.4 + phase) * 0.02;
-  });
-  const glowColor = landing ? (danger ? DANGER : LANDING) : null;
+function Step({ x, z, landing, danger, wood }: { x: number; z: number; landing: boolean; danger: boolean; wood: typeof NEUTRAL_WOOD }) {
+  const glow = landing ? (danger ? DANGER : LANDING) : null;
   return (
-    <group position={[x, 0, z]} scale={k}>
-      <group ref={ref}>
-        <mesh geometry={GEO.plate} material={mat(wood.deck)} castShadow />
-        <mesh geometry={GEO.plateRim} material={mat(wood.post)} position={[0, 0.036, 0]} rotation={[Math.PI / 2, 0, 0]} />
-        {glowColor && (
-          <mesh geometry={GEO.glow} material={mat(glowColor, { emissive: glowColor, glow: 0.75 })} position={[0, 0.045, 0]} />
-        )}
-      </group>
+    <group position={[x, 0, z]}>
+      <mesh geometry={GEO.plate} material={glow ? mat(glow, { emissive: glow, glow: 0.6 }) : mat(wood.post)} castShadow />
+      <mesh geometry={GEO.plateTop} material={glow ? mat('#fbe3b0', { emissive: glow, glow: 0.4 }) : mat(wood.deck)} position={[0, 0.041, 0]} />
     </group>
   );
+}
+
+/** The steps rise and fall together on the swell, so the strip stays joined. */
+function Swell({ children }: { children: React.ReactNode }) {
+  const ref = useRef<THREE.Group>(null);
+  useFrame((state) => {
+    if (ref.current) ref.current.position.y = Math.sin(state.clock.elapsedTime * 1.2) * 0.015;
+  });
+  return <group ref={ref}>{children}</group>;
 }
 
 /** A camera-facing round badge showing a number and a small glyph (ship strength / crossed-swords defense). */
@@ -136,11 +133,11 @@ function Ship({ x, z, danger, strength, defense, wood, k }: { x: number; z: numb
   });
   return (
     <group ref={anchor} position={[x, HULL_CLEAR, z]} scale={k}>
-      <group ref={tilt} scale={2.2}>
+      <group ref={tilt} scale={1.7}>
         <Longship danger={danger} wood={wood} />
       </group>
-      <Badge x={-0.44} y={0.5} z={-0.26} value={strength} icon="ship" ok={defense >= strength} />
-      <Badge x={-0.44} y={0.5} z={0.26} value={defense} icon="swords" ok={defense >= strength} />
+      <Badge x={0.5} y={0.45} z={-0.12} value={strength} icon="ship" ok={defense >= strength} />
+      <Badge x={0.95} y={0.45} z={-0.12} value={defense} icon="swords" ok={defense >= strength} />
     </group>
   );
 }
@@ -159,10 +156,12 @@ export function Barbarians({ barbarian, topo }: { barbarian: BarbarianInfo; topo
   const danger = barbarian.position >= barbarian.distance - 2;
   return (
     <group>
-      {Array.from({ length: steps }, (_, i) => (
-        <Step key={i} x={layout.x} z={layout.y(i)} landing={i === barbarian.distance} danger={danger} wood={wood} k={k} />
-      ))}
-      <Ship x={layout.x} z={layout.y(barbarian.position)} danger={danger} strength={barbarian.strength} defense={barbarian.defense} wood={wood} k={k} />
+      <Swell>
+        {Array.from({ length: steps }, (_, i) => (
+          <Step key={i} x={layout.at(i).x} z={layout.at(i).y} landing={i === barbarian.distance} danger={danger} wood={wood} />
+        ))}
+      </Swell>
+      <Ship x={layout.at(barbarian.position).x} z={layout.at(barbarian.position).y} danger={danger} strength={barbarian.strength} defense={barbarian.defense} wood={wood} k={k} />
     </group>
   );
 }
