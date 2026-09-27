@@ -7,7 +7,7 @@ import type { PlayerView } from '@/engine/view';
 import { DEV_NAMES, PROGRESS_NAMES } from '@/client/describe';
 import { CARD_COLORS } from '@/client/palette';
 import { BOARD_SCALE, usePrefs } from '@/client/prefs';
-import { PALETTES } from '@/client/themes';
+import { PALETTES, type BoardPalette } from '@/client/themes';
 import { play } from '@/client/sound';
 import { api, toast, useGame } from '@/client/store';
 import { computeTargets, handlePick } from '@/client/interaction';
@@ -208,9 +208,10 @@ function useUiSounds(view: PlayerView | null) {
   }, [panel]);
 }
 
-/** The 2D sea's gradient colours for the board theme (read by .sea-2d). */
-function seaVars([centre, middle, edge]: [string, string, string]): React.CSSProperties {
-  return { '--sea-centre': centre, '--sea-middle': middle, '--sea-edge': edge } as React.CSSProperties;
+/** The 2D sea for the board theme: its gradient colours and pattern (read by .sea-2d). */
+function seaVars(palette: BoardPalette): React.CSSProperties {
+  const [centre, middle, edge] = palette.sea2d;
+  return { '--sea-centre': centre, '--sea-middle': middle, '--sea-edge': edge, '--sea-pattern': palette.sea2dPattern } as React.CSSProperties;
 }
 
 export function GameScreen() {
@@ -272,7 +273,7 @@ export function GameScreen() {
   return (
     <div
       className={`fixed inset-0 overflow-hidden ${prefs.view === '2d' ? 'sea-2d' : 'bg-sea-900'}`}
-      style={seaVars(PALETTES[prefs.boardTheme].sea2d)}
+      style={seaVars(PALETTES[prefs.boardTheme])}
     >
       {/* The 3D canvas fills the screen (the camera frames the island above the dock); the flat
           2D board is fitted into the space the panels leave free. */}

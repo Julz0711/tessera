@@ -8,6 +8,7 @@ import { faceCamera } from '../faceCamera';
 import { GEO, mat } from '../materials';
 import { classicProps } from '../terrain';
 import { CORNERS, EDGE, TG, TILE_TOP, TOKEN_CLEAR, inFront, polar, seeded, spread, type Prop } from '../terrainKit';
+import { gableRoof, roofMat } from './shared';
 import type { ModelProps, ThemeKit } from './types';
 
 const y = TILE_TOP;
@@ -24,38 +25,6 @@ const G = {
   // desert: standing rune stones (frozen tundra)
   runeStone: new THREE.BoxGeometry(0.045, 0.26, 0.11),
 };
-
-/** A ridged gable (tent) roof: two sloped rectangular faces meeting at a ridge, closed by two triangular gables at ±z. */
-function gableRoof(width: number, length: number, height: number): THREE.BufferGeometry {
-  const hw = width / 2;
-  const hl = length / 2;
-  const fl: [number, number, number] = [-hw, 0, hl];
-  const fr: [number, number, number] = [hw, 0, hl];
-  const bl: [number, number, number] = [-hw, 0, -hl];
-  const br: [number, number, number] = [hw, 0, -hl];
-  const rf: [number, number, number] = [0, height, hl];
-  const rb: [number, number, number] = [0, height, -hl];
-  const tris = [fl, rb, bl, fl, rf, rb, fr, br, rb, fr, rb, rf, fl, fr, rf, br, bl, rb];
-  const positions = new Float32Array(tris.length * 3);
-  tris.forEach((v, i) => positions.set(v, i * 3));
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geo.computeVertexNormals();
-  return geo;
-}
-
-/** A material for the custom gable roof geometry: double-sided as a safety net for its hand-built winding. */
-const roofMatCache = new Map<string, THREE.MeshStandardMaterial>();
-function roofMat(color: string, o: { opacity?: number }): THREE.MeshStandardMaterial {
-  const op = o.opacity ?? 1;
-  const key = `${color}|${op}`;
-  let m = roofMatCache.get(key);
-  if (!m) {
-    m = new THREE.MeshStandardMaterial({ color, flatShading: true, roughness: 0.82, transparent: op < 1, opacity: op, side: THREE.DoubleSide });
-    roofMatCache.set(key, m);
-  }
-  return m;
-}
 
 const LONGHOUSE = {
   plinth: new THREE.BoxGeometry(0.21, 0.02, 0.36),

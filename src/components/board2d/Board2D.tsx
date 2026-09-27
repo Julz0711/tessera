@@ -370,15 +370,20 @@ function RobberFigure({
   );
 }
 
-/** Night on the 2D board: the island dims, and each tile's lantern and every town cast warm light. */
-function NightGloom({
+/**
+ * Night-time on the 2D board (Night, Cyberpunk): the island dims, and each tile's lamp and every
+ * town cast light again.
+ */
+function Gloom({
   scene,
   topo,
+  gloom,
 }: {
   scene: BoardProps["scene"];
   topo: Topology;
+  gloom: NonNullable<BoardPalette["gloom2d"]>;
 }) {
-  // The lantern stands towards one of the three far corners (up the screen), as in 3D.
+  // The lamp stands towards one of the three far corners (up the screen), as in 3D.
   const spot = (id: number) => {
     const a = Math.PI / 6 + ((3 + ((id * 7 + 3) % 3)) * Math.PI) / 3;
     const t = topo.hexes[id];
@@ -387,14 +392,28 @@ function NightGloom({
       y: (t.y + Math.sin(a) * 0.64) * S,
     };
   };
+  const lights = gloom.lights;
+  // Towns in their owner's colour; a black town borrows a light grey so it still glows.
+  const owners = gloom.ownerGlow ? [...new Set(scene.colors)] : [];
+  const townGlow = (color: PlayerColor) =>
+    color === "black" ? "#b8b0d0" : PLAYER_COLORS[color].hex;
   return (
     <g pointerEvents="none">
       <defs>
-        <radialGradient id="night-glow">
-          <stop offset="0%" stopColor="#ffbe6e" stopOpacity="0.7" />
-          <stop offset="35%" stopColor="#ffa050" stopOpacity="0.3" />
-          <stop offset="100%" stopColor="#ff8c3c" stopOpacity="0" />
-        </radialGradient>
+        {lights.map((l, i) => (
+          <radialGradient key={i} id={`gloom-glow-${i}`}>
+            <stop offset="0%" stopColor={l.glow[0]} stopOpacity="0.7" />
+            <stop offset="35%" stopColor={l.glow[1]} stopOpacity="0.3" />
+            <stop offset="100%" stopColor={l.glow[2]} stopOpacity="0" />
+          </radialGradient>
+        ))}
+        {owners.map((color) => (
+          <radialGradient key={color} id={`gloom-town-${color}`}>
+            <stop offset="0%" stopColor={townGlow(color)} stopOpacity="0.75" />
+            <stop offset="35%" stopColor={townGlow(color)} stopOpacity="0.3" />
+            <stop offset="100%" stopColor={townGlow(color)} stopOpacity="0" />
+          </radialGradient>
+        ))}
       </defs>
       {/* Gold and the tiles paying out after a roll stay bright. */}
       {scene.board.hexes.map((h) =>
@@ -405,23 +424,24 @@ function NightGloom({
           <polygon
             key={h.id}
             points={hexPoints(topo, h.id, 1.12)}
-            fill="#040a1a"
-            opacity="0.45"
+            fill={gloom.shade}
+            opacity={gloom.opacity}
           />
         ),
       )}
       {scene.board.hexes.map((h) => {
         if (h.fog || h.terrain === "gold") return null;
         const { x, y } = spot(h.id);
+        const i = h.id % lights.length;
         return (
           <g key={h.id}>
-            <circle cx={x} cy={y} r="46" fill="url(#night-glow)" />
+            <circle cx={x} cy={y} r="46" fill={`url(#gloom-glow-${i})`} />
             <circle
               cx={x}
               cy={y}
               r="6"
-              fill="#ffc15a"
-              stroke="#2f261c"
+              fill={lights[i].lamp}
+              stroke={gloom.lampRim}
               strokeWidth="2"
             />
           </g>
@@ -434,7 +454,11 @@ function NightGloom({
             cx={topo.vertices[v].x * S}
             cy={topo.vertices[v].y * S}
             r={b.city ? 44 : 32}
-            fill="url(#night-glow)"
+            fill={
+              gloom.ownerGlow
+                ? `url(#gloom-town-${scene.colors[b.owner]})`
+                : "url(#gloom-glow-0)"
+            }
           />
         ) : null,
       )}
@@ -659,7 +683,9 @@ export default function Board2D({
           );
         })}
 
-        {theme === "night" && <NightGloom scene={scene} topo={topo} />}
+        {palette.gloom2d && (
+          <Gloom scene={scene} topo={topo} gloom={palette.gloom2d} />
+        )}
 
         {/* harbors */}
         {scene.board.harbors.map((hb) => {
@@ -682,7 +708,7 @@ export default function Board2D({
                   y1={topo.vertices[v].y * S}
                   x2={px}
                   y2={py + 10}
-                  stroke="#9c6f42"
+                  stroke={palette.pier?.deck ?? "#9c6f42"}
                   strokeWidth="8"
                   strokeDasharray="5 3"
                   strokeLinecap="butt"

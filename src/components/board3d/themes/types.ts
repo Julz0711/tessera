@@ -40,6 +40,20 @@ export interface ThemeKit {
    * tile surface), e.g. a light source. Keep clear of the number token (TOKEN_CLEAR).
    */
   Tile?: FC<{ terrain: Terrain; seed: number }>;
-  /** Extra decoration on a road, in the road's own frame: x runs along the road (0.62 long, 0.13 wide), y = 0 is 0.06 above the tile surface. */
-  Road?: FC<{ ghost: boolean }>;
+  /**
+   * Something under every tile, fog included, in the tile's own frame (y = 0 is the tile surface;
+   * the tile and its beach reach down to y = -0.35): the underside of an island that floats.
+   */
+  Base?: FC<{ seed: number }>;
+  /**
+   * Extra decoration on a road, in the road's own frame: x runs along the road (0.62 long, 0.13
+   * wide, both times the Board size scale in width), y = 0 is 0.06 above the tile surface. `c` is
+   * the owner's colours.
+   */
+  Road?: FC<{ ghost: boolean; c: PieceColors }>;
+  /**
+   * Replaces the ocean around the island (clouds, space…). Like the ocean it sits at the world
+   * origin, under the island; `shelfRadius` is how far out the shallows reach.
+   */
+  Sea?: FC<{ shelfRadius: number }>;
 }
