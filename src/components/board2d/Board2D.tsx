@@ -334,10 +334,10 @@ function classicCity({ x, y, color }: { x: number; y: number; color: PlayerColor
   );
 }
 
-/** A city wall (C&K): a flat hexagonal plinth under the city, in the theme's wall colours. */
-function CityWallPlinth({ x, y, theme }: { x: number; y: number; theme?: BoardThemeId }) {
-  const wall = (theme && THEME_PIECES[theme]?.wall) || { fill: "#e8d9b5", stroke: "#4a3b2a" };
-  return <polygon points={hexStepPoints(x, y + 4, 36)} fill={wall.fill} stroke={wall.stroke} strokeWidth="4" strokeLinejoin="round" />;
+/** A city wall (C&K), like colonist's: a low block under the city in the owner's dark shade. */
+function CityWallBlock({ x, y, color }: { x: number; y: number; color: PlayerColor }) {
+  const c = PLAYER_COLORS[color];
+  return <rect x={x - 34} y={y + 10} width="68" height="15" rx="5" fill={c.dark} stroke="#1f1a14" strokeOpacity="0.45" strokeWidth="2.5" />;
 }
 
 /** A settlement: the theme's own drawing (THEME_PIECES) where it has one, else the classic house. */
@@ -1173,7 +1173,7 @@ export default function Board2D({
               pointerEvents="none"
               transform={grow(p.x * S, p.y * S, ps)}
             >
-              {b.wall && <CityWallPlinth x={p.x * S} y={p.y * S} theme={theme} />}
+              {b.wall && <CityWallBlock x={p.x * S} y={p.y * S} color={color} />}
               <CityPath x={p.x * S} y={p.y * S} color={color} theme={theme} />
               {b.metropolis && (
                 <circle

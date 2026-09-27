@@ -54,7 +54,7 @@ const nileKnight: KnightGlyph = ({ x, y, color }) => {
   );
 };
 
-export const nilePieces: ThemePieces = { settlement: nileSettlement, city: nileCity, road: nileRoad, knight: nileKnight, wall: { fill: "#d9b77a", stroke: "#6b4f2a" } };
+export const nilePieces: ThemePieces = { settlement: nileSettlement, city: nileCity, road: nileRoad, knight: nileKnight };
 
 /** A date palm with its trunk's foot at (x, y + 14). */
 function Palm({ x, y, leaf }: { x: number; y: number; leaf: string }) {

@@ -64,7 +64,7 @@ const origamiKnight: KnightGlyph = ({ x, y, color }) => {
   );
 };
 
-export const origamiPieces: ThemePieces = { settlement: origamiSettlement, city: origamiCity, road: origamiRoad, knight: origamiKnight, wall: { fill: "#fbf8f0", stroke: "#8f887a" } };
+export const origamiPieces: ThemePieces = { settlement: origamiSettlement, city: origamiCity, road: origamiRoad, knight: origamiKnight };
 
 /**
  * Origami on the 2D board: every tile is a sheet of paper folded down the middle, and the drawings

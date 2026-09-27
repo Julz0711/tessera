@@ -61,7 +61,7 @@ const cyberpunkKnight: KnightGlyph = ({ x, y, color }) => {
   );
 };
 
-export const cyberpunkPieces: ThemePieces = { settlement: cyberpunkSettlement, city: cyberpunkCity, road: cyberpunkRoad, knight: cyberpunkKnight, wall: { fill: "#2a2f45", stroke: "#ff3fa4" } };
+export const cyberpunkPieces: ThemePieces = { settlement: cyberpunkSettlement, city: cyberpunkCity, road: cyberpunkRoad, knight: cyberpunkKnight };
 
 /** Cyberpunk on the 2D board: a fenced grove, a scrapyard press, robot sheep, grow racks, ore veins and a dead zone. */
 export const cyberpunkGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {

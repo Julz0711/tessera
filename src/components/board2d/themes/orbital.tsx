@@ -56,7 +56,7 @@ const orbitalKnight: KnightGlyph = ({ x, y, color }) => {
   );
 };
 
-export const orbitalPieces: ThemePieces = { settlement: orbitalSettlement, city: orbitalCity, road: orbitalRoad, knight: orbitalKnight, wall: { fill: "#a9bbd6", stroke: "#2c3a55" } };
+export const orbitalPieces: ThemePieces = { settlement: orbitalSettlement, city: orbitalCity, road: orbitalRoad, knight: orbitalKnight };
 
 /** Orbital on the 2D board: biodomes, a brick printer, helmeted sheep, hydroponic racks, ore crystals and a crater. */
 export const orbitalGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
