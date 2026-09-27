@@ -384,6 +384,30 @@ function City({ c, o, ghost }: ModelProps) {
   );
 }
 
+/** City wall (C&K): a dark precast concrete barrier, ringed at the top by a glowing neon strip. */
+const WALL = {
+  ring: new THREE.CylinderGeometry(0.32, 0.35, 0.13, 6, 1, true),
+  cap: new THREE.CylinderGeometry(0.335, 0.335, 0.02, 6),
+  strip: new THREE.TorusGeometry(0.335, 0.01, 4, 6),
+  panel: new THREE.BoxGeometry(0.09, 0.05, 0.01),
+};
+const PANEL_ANGLES = [0, 1, 2, 3, 4, 5].map((i) => (i * Math.PI) / 3);
+
+/** The city wall: a dark concrete barrier, its top strip glowing in the owner's colour like the road's. */
+function CityWall({ c }: { c: PieceColors }) {
+  const glow = shade(c.hex, 0.3);
+  return (
+    <group rotation={[0, Math.PI / 6, 0]}>
+      <mesh geometry={WALL.ring} material={mat('#2a2d38')} position={[0, 0.065, 0]} castShadow />
+      <mesh geometry={WALL.cap} material={mat('#3a3f4c')} position={[0, 0.14, 0]} />
+      <mesh geometry={WALL.strip} material={lit(glow, 1.6)} position={[0, 0.1, 0]} rotation={[Math.PI / 2, 0, 0]} />
+      {PANEL_ANGLES.map((a, i) => (
+        <mesh key={i} geometry={WALL.panel} material={mat('#1c1f28')} position={[Math.sin(a) * 0.335, 0.065, Math.cos(a) * 0.335]} rotation={[0, a, 0]} />
+      ))}
+    </group>
+  );
+}
+
 const DRONE = {
   body: new THREE.BoxGeometry(0.12, 0.05, 0.12),
   arm: new THREE.BoxGeometry(0.26, 0.012, 0.018),
@@ -540,4 +564,4 @@ function BarbarianShip({ danger }: { danger: boolean }) {
 }
 
 /** Cyberpunk: neon, rain-black water and a megacity skyline. */
-export const cyberpunk: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Tile, Sea, BarbarianShip, Knight };
+export const cyberpunk: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Tile, Sea, BarbarianShip, Knight, CityWall };

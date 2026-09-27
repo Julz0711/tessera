@@ -181,7 +181,7 @@ function Island({
         return (
           <group key={`b${v}`}>
             <City x={p.x} z={p.y} color={scene.colors[b.owner]} />
-            {b.wall && <CityWall x={p.x} z={p.y} />}
+            {b.wall && <CityWall x={p.x} z={p.y} color={scene.colors[b.owner]} />}
             {b.metropolis && <MetropolisTower x={p.x} z={p.y} color={scene.colors[b.owner]} track={b.metropolis} />}
           </group>
         );

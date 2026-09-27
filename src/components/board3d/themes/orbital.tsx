@@ -272,6 +272,34 @@ function City({ c, o, ghost }: ModelProps) {
   );
 }
 
+/** City wall (C&K): a metal ring of light posts glowing in the owner's colour, under a faint shield dome. */
+const WALL = {
+  ring: new THREE.CylinderGeometry(0.32, 0.35, 0.09, 6, 1, true),
+  band: new THREE.TorusGeometry(0.335, 0.012, 4, 6),
+  post: new THREE.CylinderGeometry(0.008, 0.01, 0.09, 5),
+  lamp: new THREE.SphereGeometry(0.014, 8, 6),
+  dome: new THREE.SphereGeometry(0.4, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+};
+const POST_ANGLES = [0, 1, 2, 3, 4, 5].map((i) => (i * Math.PI) / 3);
+
+/** The city wall: a metal ring with a light post glowing in the owner's colour at each corner, under a faint shield dome. */
+function CityWall({ c }: { c: PieceColors }) {
+  const glow = shade(c.hex, 0.4);
+  return (
+    <group rotation={[0, Math.PI / 6, 0]}>
+      <mesh geometry={WALL.ring} material={mat('#4a4f60', { metal: 0.4, rough: 0.4 })} position={[0, 0.045, 0]} castShadow />
+      <mesh geometry={WALL.band} material={mat('#8a93a8', { metal: 0.5, rough: 0.3 })} position={[0, 0.09, 0]} rotation={[Math.PI / 2, 0, 0]} />
+      {POST_ANGLES.map((a, i) => (
+        <group key={i} position={[Math.sin(a) * 0.335, 0.09, Math.cos(a) * 0.335]}>
+          <mesh geometry={WALL.post} material={mat('#8a93a8')} position={[0, 0.045, 0]} />
+          <mesh geometry={WALL.lamp} material={lit(glow, 1.8)} position={[0, 0.095, 0]} />
+        </group>
+      ))}
+      <mesh geometry={WALL.dome} material={mat(CYAN, { opacity: 0.14, rough: 0.2 })} position={[0, 0.09, 0]} scale={[1, 0.5, 1]} />
+    </group>
+  );
+}
+
 const UFO = {
   saucer: new THREE.SphereGeometry(1, 16, 8),
   dome: new THREE.SphereGeometry(0.08, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2),
@@ -503,4 +531,4 @@ function BarbarianShip({ danger }: { danger: boolean }) {
 }
 
 /** Orbital: an asteroid colony in space, with domes, a UFO for a robber and shuttles at the harbors. */
-export const orbital: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Base, Sea, BarbarianShip, Knight };
+export const orbital: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Base, Sea, BarbarianShip, Knight, CityWall };

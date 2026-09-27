@@ -87,4 +87,12 @@ export interface ThemeKit {
   BarbarianShip?: FC<{ danger: boolean }>;
   /** Replaces one knight figure's body (legs through weapon) in the theme's own style. */
   Knight?: FC<KnightFigureProps>;
+  /**
+   * The wall ring around a walled city (C&K), drawn at the city's spot on the tile surface (y = 0
+   * is the tile top) and already scaled for the Board size setting, like a Settlement/City. `c` is
+   * the owner's colours, for a themed touch of player colour (a banner, a painted panel…). Keep the
+   * classic ring's footprint (~0.33 radius) and stay low enough not to hide the city or a nearby
+   * number token.
+   */
+  CityWall?: FC<{ c: PieceColors }>;
 }

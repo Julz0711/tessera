@@ -114,16 +114,15 @@ const TRACK_FLAG = { trade: '#e9c35a', politics: '#3a74d8', science: '#3f9b4f' }
 const CRENEL_ANGLES = [0, 1, 2, 3, 4, 5].map((i) => (i * Math.PI) / 3);
 
 /**
- * Stone wall ringing a city (C&K). Light sandstone with a dark battlement top so it stays
- * readable against every terrain colour, including grey mountains where a plain grey wall
- * used to disappear.
+ * Classic stone wall ringing a city (C&K). Light sandstone with a dark battlement top so it stays
+ * readable against every terrain colour, including grey mountains where a plain grey wall used to
+ * disappear. The fallback for any theme that doesn't supply its own `CityWall`.
  */
-export function CityWall({ x, z }: { x: number; z: number }) {
+function ClassicCityWall() {
   const stone = mat('#e8d9b5');
   const dark = mat('#5b4a36');
-  const k = usePieceScale();
   return (
-    <group position={[x, TILE_TOP, z]} rotation={[0, Math.PI / 6, 0]} scale={k}>
+    <group rotation={[0, Math.PI / 6, 0]}>
       <mesh geometry={CK_GEO.wall} material={stone} position={[0, 0.055, 0]} castShadow />
       <mesh geometry={CK_GEO.wallTop} material={dark} position={[0, 0.11, 0]} rotation={[Math.PI / 2, 0, 0]} />
       {CRENEL_ANGLES.map((a, i) => (
@@ -136,6 +135,18 @@ export function CityWall({ x, z }: { x: number; z: number }) {
           castShadow
         />
       ))}
+    </group>
+  );
+}
+
+/** The wall ring around a walled city (C&K); themes may draw their own (a stockade, a brass ring…). */
+export function CityWall({ x, z, color }: { x: number; z: number; color: PlayerColor }) {
+  const c = PLAYER_COLORS[color];
+  const k = usePieceScale();
+  const Themed = useBoardKit().CityWall;
+  return (
+    <group position={[x, TILE_TOP, z]} scale={k}>
+      {Themed ? <Themed c={c} /> : <ClassicCityWall />}
     </group>
   );
 }

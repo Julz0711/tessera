@@ -369,6 +369,37 @@ function City({ c, o, ghost }: ModelProps) {
   );
 }
 
+/** City wall (C&K): a riveted brass ring with a steam pipe looped around its top and a gauge at the gate. */
+const WALL = {
+  ring: new THREE.CylinderGeometry(0.32, 0.35, 0.1, 6, 1, true),
+  band: new THREE.TorusGeometry(0.335, 0.014, 4, 6),
+  rivet: new THREE.SphereGeometry(0.012, 6, 4),
+  pipe: new THREE.TorusGeometry(0.335, 0.012, 4, 6),
+  gaugeFace: new THREE.CylinderGeometry(0.035, 0.035, 0.01, 14).rotateX(Math.PI / 2),
+  gaugeRim: new THREE.TorusGeometry(0.037, 0.006, 4, 14),
+  needle: new THREE.BoxGeometry(0.005, 0.024, 0.004),
+};
+const RIVET_ANGLES = Array.from({ length: 18 }, (_, i) => (i / 18) * Math.PI * 2);
+
+/** The city wall: riveted brass with a copper steam pipe, a gauge at the gate with a needle in the owner's colour. */
+function CityWall({ c }: { c: PieceColors }) {
+  return (
+    <group rotation={[0, Math.PI / 6, 0]}>
+      <mesh geometry={WALL.ring} material={mat(BRASS, { metal: 0.5, rough: 0.4 })} position={[0, 0.05, 0]} castShadow />
+      <mesh geometry={WALL.band} material={mat('#5a4a3a')} position={[0, 0.1, 0]} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh geometry={WALL.pipe} material={mat(COPPER, { metal: 0.4, rough: 0.45 })} position={[0, 0.065, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[0.94, 0.94, 1]} />
+      {RIVET_ANGLES.map((a, i) => (
+        <mesh key={i} geometry={WALL.rivet} material={mat(BRASS, { metal: 0.5, rough: 0.35 })} position={[Math.sin(a) * 0.335, 0.02, Math.cos(a) * 0.335]} />
+      ))}
+      <group position={[0, 0.1, 0.335]}>
+        <mesh geometry={WALL.gaugeFace} material={mat('#f6eddb')} />
+        <mesh geometry={WALL.gaugeRim} material={mat(BRASS, { metal: 0.5, rough: 0.35 })} />
+        <mesh geometry={WALL.needle} material={mat(c.hex)} position={[0.006, 0.01, 0.006]} rotation={[0, 0, 0.7]} />
+      </group>
+    </group>
+  );
+}
+
 const BRUTE = {
   body: new THREE.CylinderGeometry(0.12, 0.11, 0.2, 8),
   rivets: new THREE.CylinderGeometry(0.123, 0.123, 0.02, 8),
@@ -550,4 +581,4 @@ function BarbarianShip({ danger }: { danger: boolean }) {
 }
 
 /** Skyport: a steampunk island floating over a sea of clouds, with airships at its harbors. */
-export const skyport: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Base, Sea, BarbarianShip, Knight };
+export const skyport: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Base, Sea, BarbarianShip, Knight, CityWall };

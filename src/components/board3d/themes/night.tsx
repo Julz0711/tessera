@@ -9,7 +9,7 @@ import { KNIGHT_STEEL } from '@/shared/knight';
 import { mat } from '../materials';
 import { ClassicCity, ClassicSettlement } from '../models';
 import { CORNERS, polar, seeded } from '../terrainKit';
-import type { KnightFigureProps, ModelProps, ThemeKit } from './types';
+import type { KnightFigureProps, ModelProps, PieceColors, ThemeKit } from './types';
 
 /**
  * Night: the classic island after dark. The palette (src/client/themes.ts) brings dim moonlight
@@ -195,6 +195,43 @@ function City(props: ModelProps) {
   );
 }
 
+/** City wall (C&K): the classic stone ring, three of its corners lit by a small glowing torch. */
+const WALL = {
+  ring: new THREE.CylinderGeometry(0.32, 0.35, 0.11, 6, 1, true),
+  top: new THREE.TorusGeometry(0.335, 0.028, 4, 6),
+  crenel: new THREE.BoxGeometry(0.07, 0.06, 0.045),
+  torchPost: new THREE.CylinderGeometry(0.01, 0.012, 0.07, 5),
+  torchFlame: new THREE.ConeGeometry(0.022, 0.05, 5),
+  banner: new THREE.BoxGeometry(0.05, 0.045, 0.006),
+};
+const WALL_ANGLES = [0, 1, 2, 3, 4, 5].map((i) => (i * Math.PI) / 3);
+
+/** The city wall: the classic ring, a torch glowing at alternating corners, a banner at the gate. */
+function CityWall({ c }: { c: PieceColors }) {
+  const stone = mat('#e8d9b5');
+  const dark = mat('#5b4a36');
+  return (
+    <group rotation={[0, Math.PI / 6, 0]}>
+      <mesh geometry={WALL.ring} material={stone} position={[0, 0.055, 0]} castShadow />
+      <mesh geometry={WALL.top} material={dark} position={[0, 0.11, 0]} rotation={[Math.PI / 2, 0, 0]} />
+      {WALL_ANGLES.map((a, i) => (
+        <mesh key={i} geometry={WALL.crenel} material={dark} position={[Math.sin(a) * 0.335, 0.14, Math.cos(a) * 0.335]} rotation={[0, a, 0]} castShadow />
+      ))}
+      {[0, 2, 4].map((i) => {
+        const a = WALL_ANGLES[i];
+        return (
+          <group key={i} position={[Math.sin(a) * 0.335, 0.14, Math.cos(a) * 0.335]} rotation={[0, a, 0]}>
+            <mesh geometry={WALL.torchPost} material={dark} position={[0, 0.04, 0]} />
+            <mesh geometry={WALL.torchFlame} material={lit(2.4)} position={[0, 0.085, 0]} />
+          </group>
+        );
+      })}
+      {/* A small banner in the owner's colour on the front crenel. */}
+      <mesh geometry={WALL.banner} material={mat(c.hex)} position={[0, 0.185, 0.335]} />
+    </group>
+  );
+}
+
 /** A lantern on a short post beside the road. */
 function Road({ ghost }: { ghost: boolean }) {
   if (ghost) return null;
@@ -259,4 +296,4 @@ function Tile({ terrain, seed }: { terrain: Terrain; seed: number }) {
   );
 }
 
-export const night: ThemeKit = { Settlement, City, Road, Tile, BarbarianShip, Knight };
+export const night: ThemeKit = { Settlement, City, Road, Tile, BarbarianShip, Knight, CityWall };

@@ -388,6 +388,36 @@ function Knight({ metal, trim, cloth, dark, faceMat, faceGeo, shadows, headY }: 
   );
 }
 
+/** City wall (C&K): a palisade of sharpened upright logs, a painted shield hung at the gate. */
+const WALL = {
+  log: new THREE.CylinderGeometry(0.02, 0.024, 0.2, 6),
+  tip: new THREE.ConeGeometry(0.02, 0.05, 6),
+  shield: new THREE.CylinderGeometry(0.05, 0.05, 0.012, 12).rotateZ(Math.PI / 2),
+  boss: new THREE.IcosahedronGeometry(0.014, 0),
+};
+const LOG_COUNT = 14;
+
+/** The city wall: a ring of upright sharpened logs, a small painted shield hung at the gate. */
+function CityWall({ c }: { c: PieceColors }) {
+  return (
+    <group>
+      {Array.from({ length: LOG_COUNT }, (_, i) => {
+        const a = (i / LOG_COUNT) * Math.PI * 2;
+        return (
+          <group key={i} position={[Math.sin(a) * 0.33, 0, Math.cos(a) * 0.33]} rotation={[0, a, 0]}>
+            <mesh geometry={WALL.log} material={mat('#5a3d22')} position={[0, 0.1, 0]} castShadow />
+            <mesh geometry={WALL.tip} material={mat('#4a3320')} position={[0, 0.225, 0]} castShadow />
+          </group>
+        );
+      })}
+      <group position={[0, 0.1, 0.33]}>
+        <mesh geometry={WALL.shield} material={mat(c.hex)} position={[0, 0, 0.03]} castShadow />
+        <mesh geometry={WALL.boss} material={mat('#d8c27a', { metal: 0.4, rough: 0.4 })} position={[0, 0, 0.037]} />
+      </group>
+    </group>
+  );
+}
+
 /** A mooring post at the pier's sea end, flying a small round painted shield. */
 function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
   // A mooring pile just past the end of the pier (the pier runs 0.23 each way along local x),
@@ -433,4 +463,4 @@ function Road({ ghost }: { ghost: boolean; c: PieceColors }) {
 }
 
 /** Nordic Fjords: spruce, heather and longhouses. */
-export const nordic: ThemeKit = { props, Settlement, City, Robber, Harbor, Road, BarbarianShip, Knight };
+export const nordic: ThemeKit = { props, Settlement, City, Robber, Harbor, Road, BarbarianShip, Knight, CityWall };

@@ -216,6 +216,32 @@ function City({ c, o, ghost }: ModelProps) {
   );
 }
 
+/** City wall (C&K): sun-baked mud-brick, its merlons rounded like an adobe wall's. */
+const WALL = {
+  ring: new THREE.CylinderGeometry(0.32, 0.35, 0.11, 6, 1, true),
+  merlonBase: new THREE.CylinderGeometry(0.045, 0.05, 0.05, 8),
+  merlonCap: new THREE.SphereGeometry(0.045, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2),
+  banner: new THREE.BoxGeometry(0.045, 0.08, 0.006),
+};
+const WALL_ANGLES = [0, 1, 2, 3, 4, 5].map((i) => (i * Math.PI) / 3);
+
+/** The city wall: mud-brick with rounded merlons, a painted linen banner in the owner's colour at the gate. */
+function CityWall({ c }: { c: PieceColors }) {
+  const brick = mat('#c98a5a');
+  return (
+    <group rotation={[0, Math.PI / 6, 0]}>
+      <mesh geometry={WALL.ring} material={brick} position={[0, 0.055, 0]} castShadow />
+      {WALL_ANGLES.map((a, i) => (
+        <group key={i} position={[Math.sin(a) * 0.335, 0.11, Math.cos(a) * 0.335]}>
+          <mesh geometry={WALL.merlonBase} material={brick} position={[0, 0.025, 0]} castShadow />
+          <mesh geometry={WALL.merlonCap} material={brick} position={[0, 0.05, 0]} />
+        </group>
+      ))}
+      <mesh geometry={WALL.banner} material={mat(c.hex)} position={[0, 0.09, 0.335]} />
+    </group>
+  );
+}
+
 const MUMMY = {
   body: new THREE.CylinderGeometry(0.085, 0.07, 0.34, 7),
   band: new THREE.CylinderGeometry(0.09, 0.09, 0.018, 7),
@@ -382,4 +408,4 @@ function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
 }
 
 /** Nile: palms and mudbrick, wheat along the canals, pyramids, temples, a mummy and feluccas. */
-export const nile: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, BarbarianShip, Knight };
+export const nile: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, BarbarianShip, Knight, CityWall };

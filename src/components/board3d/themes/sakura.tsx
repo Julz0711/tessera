@@ -273,6 +273,29 @@ function City({ c, o, ghost }: ModelProps) {
   );
 }
 
+/** City wall (C&K): a low red-lacquered wooden fence under a dark tiled coping. */
+const WALL = {
+  fence: new THREE.CylinderGeometry(0.31, 0.34, 0.1, 6, 1, true),
+  coping: new THREE.TorusGeometry(0.325, 0.02, 4, 6),
+  tile: new THREE.BoxGeometry(0.075, 0.02, 0.05),
+  lantern: new THREE.BoxGeometry(0.03, 0.035, 0.03),
+};
+const WALL_ANGLES = [0, 1, 2, 3, 4, 5].map((i) => (i * Math.PI) / 3);
+
+/** The city wall: a red-lacquered fence under dark roof tiles, a paper lantern glowing in the owner's colour at the gate. */
+function CityWall({ c }: { c: PieceColors }) {
+  return (
+    <group rotation={[0, Math.PI / 6, 0]}>
+      <mesh geometry={WALL.fence} material={mat('#a8352a')} position={[0, 0.05, 0]} castShadow />
+      <mesh geometry={WALL.coping} material={mat('#2a221c')} position={[0, 0.1, 0]} rotation={[Math.PI / 2, 0, 0]} />
+      {WALL_ANGLES.map((a, i) => (
+        <mesh key={i} geometry={WALL.tile} material={mat('#332721')} position={[Math.sin(a) * 0.325, 0.115, Math.cos(a) * 0.325]} rotation={[0, a, 0]} />
+      ))}
+      <mesh geometry={WALL.lantern} material={mat(c.hex, { emissive: c.hex, glow: 0.5 })} position={[0, 0.13, 0.325]} />
+    </group>
+  );
+}
+
 /** A samurai in lamellar armour: a kabuto helmet with flared wings and a crescent crest, a katana at the hip. */
 const KNIGHT = {
   leg: new THREE.BoxGeometry(0.05, 0.15, 0.062),
@@ -368,4 +391,4 @@ function Road({ ghost }: { ghost: boolean; c: PieceColors }) {
 }
 
 /** Sakura Isle: blossom groves, rice paddies and pagodas. */
-export const sakura: ThemeKit = { props, Settlement, City, Robber, Road, BarbarianShip, Knight };
+export const sakura: ThemeKit = { props, Settlement, City, Robber, Road, BarbarianShip, Knight, CityWall };

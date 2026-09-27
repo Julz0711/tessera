@@ -258,6 +258,39 @@ function City({ c, o, ghost }: ModelProps) {
   );
 }
 
+/** City wall (C&K): a wooden fort stockade of sharpened pickets, with a gate facing the settlement. */
+const WALL = {
+  picket: new THREE.BoxGeometry(0.05, 0.2, 0.014),
+  pointTip: new THREE.ConeGeometry(0.03, 0.04, 4),
+  gatePost: new THREE.BoxGeometry(0.02, 0.24, 0.02),
+  gateBeam: new THREE.BoxGeometry(0.14, 0.02, 0.02),
+  sign: new THREE.BoxGeometry(0.08, 0.04, 0.01),
+};
+const PICKET_COUNT = 16;
+/** Half the angular width left clear for the gate, centred on the wall's front. */
+const GATE_HALF = 0.28;
+
+/** The city wall: a picket stockade with a gate, the owner's sign hung above it. */
+function CityWall({ c }: { c: PieceColors }) {
+  return (
+    <group>
+      {Array.from({ length: PICKET_COUNT }, (_, i) => (i / PICKET_COUNT) * Math.PI * 2)
+        .filter((a) => Math.abs(a > Math.PI ? a - Math.PI * 2 : a) > GATE_HALF)
+        .map((a, i) => (
+          <group key={i} position={[Math.sin(a) * 0.32, 0, Math.cos(a) * 0.32]} rotation={[0, a, 0]}>
+            <mesh geometry={WALL.picket} material={mat('#8a6139')} position={[0, 0.1, 0]} castShadow />
+            <mesh geometry={WALL.pointTip} material={mat('#6b4a2a')} position={[0, 0.22, 0]} />
+          </group>
+        ))}
+      {[-0.09, 0.09].map((x) => (
+        <mesh key={x} geometry={WALL.gatePost} material={mat('#6b4a2a')} position={[x, 0.12, 0.32]} castShadow />
+      ))}
+      <mesh geometry={WALL.gateBeam} material={mat('#5a3d22')} position={[0, 0.23, 0.32]} />
+      <mesh geometry={WALL.sign} material={mat(c.hex)} position={[0, 0.19, 0.335]} />
+    </group>
+  );
+}
+
 const OUTLAW = {
   coat: new THREE.ConeGeometry(0.14, 0.36, 7),
   head: new THREE.IcosahedronGeometry(0.075, 0),
@@ -404,4 +437,4 @@ function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
 }
 
 /** Frontier: pines and ranches, adobe and silver mines, saloons, railroads and an outlaw. */
-export const frontier: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, BarbarianShip, Knight };
+export const frontier: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, BarbarianShip, Knight, CityWall };

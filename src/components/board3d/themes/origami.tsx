@@ -299,6 +299,37 @@ function City({ c, o, ghost }: ModelProps) {
   );
 }
 
+/** City wall (C&K): a fence of paper panels folded zigzag around the city, a pennant at the gate. */
+const WALL = {
+  panel: new THREE.BoxGeometry(0.1, 0.16, 0.006),
+  pole: new THREE.CylinderGeometry(0.004, 0.004, 0.22, 4),
+};
+const PANEL_COUNT = 12;
+
+/** The city wall: paper panels pleated zigzag around the city, a pennant in the owner's colour at the gate. */
+function CityWall({ c }: { c: PieceColors }) {
+  return (
+    <group>
+      {Array.from({ length: PANEL_COUNT }, (_, i) => {
+        const a = (i / PANEL_COUNT) * Math.PI * 2;
+        const fold = i % 2 ? 0.5 : -0.5;
+        return (
+          <mesh
+            key={i}
+            geometry={WALL.panel}
+            material={mat(i % 2 ? '#f5f1e4' : '#e8e2d2')}
+            position={[Math.sin(a) * 0.33, 0.08, Math.cos(a) * 0.33]}
+            rotation={[0, a + fold, 0]}
+            castShadow
+          />
+        );
+      })}
+      <mesh geometry={WALL.pole} material={mat('#8a8070')} position={[0, 0.11, 0.33]} />
+      <mesh geometry={CASTLE.pennant} material={mat(c.hex)} position={[0, 0.19, 0.33]} />
+    </group>
+  );
+}
+
 const FOX = {
   body: new THREE.ConeGeometry(0.12, 0.3, 3),
   head: new THREE.ConeGeometry(0.075, 0.17, 3),
@@ -406,4 +437,4 @@ function BarbarianShip({ danger }: { danger: boolean }) {
 }
 
 /** Origami: pyramid trees, accordion fields, a crane and a fox, all folded from paper. */
-export const origami: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Sea, BarbarianShip, Knight };
+export const origami: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Sea, BarbarianShip, Knight, CityWall };
