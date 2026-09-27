@@ -65,7 +65,7 @@ const sakuraKnight: KnightGlyph = ({ x, y, color }) => {
   );
 };
 
-export const sakuraPieces: ThemePieces = { settlement: sakuraSettlement, city: sakuraCity, road: sakuraRoad, knight: sakuraKnight };
+export const sakuraPieces: ThemePieces = { settlement: sakuraSettlement, city: sakuraCity, road: sakuraRoad, knight: sakuraKnight, wall: { fill: "#c2412f", stroke: "#4a1810" } };
 
 /** Sakura Isle on the 2D board: blossom groves, paddies, a single peak and a rock garden. */
 export const sakuraGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {

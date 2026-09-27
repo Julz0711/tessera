@@ -38,7 +38,7 @@ const nightKnight: KnightGlyph = ({ x, y, color }) => {
   );
 };
 
-export const nightPieces: ThemePieces = { settlement: nightSettlement, city: nightCity, knight: nightKnight };
+export const nightPieces: ThemePieces = { settlement: nightSettlement, city: nightCity, knight: nightKnight, wall: { fill: "#8a8fa3", stroke: "#2a2d3a" } };
 
 /** Night on the 2D board: the classic longship hull under a dark sail, with two lanterns glowing on it. */
 export const nightShip: BarbarianShipGlyph = ({ danger, wood }) => {

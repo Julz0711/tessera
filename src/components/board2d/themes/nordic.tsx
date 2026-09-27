@@ -53,7 +53,7 @@ const nordicKnight: KnightGlyph = ({ x, y, color }) => {
   );
 };
 
-export const nordicPieces: ThemePieces = { settlement: nordicSettlement, city: nordicCity, road: nordicRoad, knight: nordicKnight };
+export const nordicPieces: ThemePieces = { settlement: nordicSettlement, city: nordicCity, road: nordicRoad, knight: nordicKnight, wall: { fill: "#8a6139", stroke: "#33230f" } };
 
 /** Nordic Fjords on the 2D board: dense spruce and birch, heather, snow drifts and rune stones. */
 export const nordicGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {

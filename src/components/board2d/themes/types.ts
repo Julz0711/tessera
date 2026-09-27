@@ -51,4 +51,6 @@ export type ThemePieces = {
   city?: PieceGlyph;
   road?: RoadGlyph;
   knight?: KnightGlyph;
+  /** City wall (C&K): the plinth the city stands on — its stone/wood/metal and outline colours. */
+  wall?: { fill: string; stroke: string };
 };

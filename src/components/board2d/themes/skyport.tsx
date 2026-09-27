@@ -59,7 +59,7 @@ const skyportKnight: KnightGlyph = ({ x, y, color }) => {
   );
 };
 
-export const skyportPieces: ThemePieces = { settlement: skyportSettlement, city: skyportCity, road: skyportRoad, knight: skyportKnight };
+export const skyportPieces: ThemePieces = { settlement: skyportSettlement, city: skyportCity, road: skyportRoad, knight: skyportKnight, wall: { fill: "#c9a24a", stroke: "#4f3a18" } };
 
 /** Puffs of smoke, as [x, y, r]. */
 function Smoke({ puffs }: { puffs: [number, number, number][] }) {

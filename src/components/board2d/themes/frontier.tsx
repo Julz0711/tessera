@@ -59,7 +59,7 @@ const frontierKnight: KnightGlyph = ({ x, y, color }) => {
   );
 };
 
-export const frontierPieces: ThemePieces = { settlement: frontierSettlement, city: frontierCity, road: frontierRoad, knight: frontierKnight };
+export const frontierPieces: ThemePieces = { settlement: frontierSettlement, city: frontierCity, road: frontierRoad, knight: frontierKnight, wall: { fill: "#b8874f", stroke: "#44301c" } };
 
 /** Two rows of bricks drying in the sun, centred on (x, y). */
 function Bricks({ x, y, fill, stroke }: { x: number; y: number; fill: string; stroke: string }) {

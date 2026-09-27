@@ -334,6 +334,12 @@ function classicCity({ x, y, color }: { x: number; y: number; color: PlayerColor
   );
 }
 
+/** A city wall (C&K): a flat hexagonal plinth under the city, in the theme's wall colours. */
+function CityWallPlinth({ x, y, theme }: { x: number; y: number; theme?: BoardThemeId }) {
+  const wall = (theme && THEME_PIECES[theme]?.wall) || { fill: "#e8d9b5", stroke: "#4a3b2a" };
+  return <polygon points={hexStepPoints(x, y + 4, 36)} fill={wall.fill} stroke={wall.stroke} strokeWidth="4" strokeLinejoin="round" />;
+}
+
 /** A settlement: the theme's own drawing (THEME_PIECES) where it has one, else the classic house. */
 function HousePath({
   x,
@@ -1167,38 +1173,8 @@ export default function Board2D({
               pointerEvents="none"
               transform={grow(p.x * S, p.y * S, ps)}
             >
+              {b.wall && <CityWallPlinth x={p.x * S} y={p.y * S} theme={theme} />}
               <CityPath x={p.x * S} y={p.y * S} color={color} theme={theme} />
-              {b.wall && (
-                <g>
-                  {/* dark outline first so the ring reads on every hex colour, incl. grey mountains */}
-                  <circle
-                    cx={p.x * S}
-                    cy={p.y * S}
-                    r="35"
-                    fill="none"
-                    stroke="#3a2f22"
-                    strokeWidth="9"
-                  />
-                  <circle
-                    cx={p.x * S}
-                    cy={p.y * S}
-                    r="35"
-                    fill="none"
-                    stroke="#e8d9b5"
-                    strokeWidth="6"
-                  />
-                  {/* battlement notches: dark teeth dashed over the light stone ring */}
-                  <circle
-                    cx={p.x * S}
-                    cy={p.y * S}
-                    r="35"
-                    fill="none"
-                    stroke="#5b4a36"
-                    strokeWidth="6"
-                    strokeDasharray="8 6"
-                  />
-                </g>
-              )}
               {b.metropolis && (
                 <circle
                   cx={p.x * S + 21}
