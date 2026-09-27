@@ -281,6 +281,35 @@ const FELUCCA = {
   yard: new THREE.CylinderGeometry(0.004, 0.004, 0.36, 4),
 };
 
+const SHIP_DANGER = '#c23a2a';
+/** The lateen sail's danger tint: same double-sided material as SAIL_MAT, but pale red. */
+const SAIL_MAT_DANGER = new THREE.MeshStandardMaterial({ color: '#f3d9d3', flatShading: true, roughness: 0.9, side: THREE.DoubleSide });
+
+/** A reed boat: a papyrus-bundle hull curling up at both ends, under a triangular lateen sail. */
+const SHIP = {
+  hull: new THREE.CylinderGeometry(0.065, 0.065, 0.34, 7),
+  curl: new THREE.TorusGeometry(0.06, 0.02, 4, 8, Math.PI * 1.1),
+  mast: new THREE.CylinderGeometry(0.009, 0.011, 0.32, 5),
+  yard: new THREE.CylinderGeometry(0.006, 0.006, 0.34, 4),
+};
+
+/** The barbarian ship as a reed boat: a papyrus hull curling up at bow and stern, a lateen sail. */
+function BarbarianShip({ danger }: { danger: boolean }) {
+  const hullMat = mat(danger ? SHIP_DANGER : '#d4a84a', danger ? { emissive: SHIP_DANGER, glow: 0.3 } : {});
+  const trimMat = mat(danger ? '#8a4a2a' : '#5a3d22');
+  const sailMat = danger ? SAIL_MAT_DANGER : SAIL_MAT;
+  return (
+    <group>
+      <mesh geometry={SHIP.hull} material={hullMat} position={[0, 0.06, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow />
+      <mesh geometry={SHIP.curl} material={hullMat} position={[0, 0.13, 0.17]} rotation={[0, Math.PI / 2, 0]} />
+      <mesh geometry={SHIP.curl} material={hullMat} position={[0, 0.13, -0.17]} rotation={[0, -Math.PI / 2, Math.PI]} />
+      <mesh geometry={SHIP.mast} material={trimMat} position={[0, 0.22, 0]} />
+      <mesh geometry={SHIP.yard} material={trimMat} position={[0, 0.24, 0]} rotation={[0, 0, -0.72]} />
+      <mesh geometry={SAIL} material={sailMat} position={[0, 0.07, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.1} castShadow />
+    </group>
+  );
+}
+
 /** A felucca moored beside the pier, its white lateen sail up (clear of the floating rate sign). */
 function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
   return (
@@ -297,4 +326,4 @@ function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
 }
 
 /** Nile: palms and mudbrick, wheat along the canals, pyramids, temples, a mummy and feluccas. */
-export const nile: ThemeKit = { props, Settlement, City, Robber, Road, Harbor };
+export const nile: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, BarbarianShip };

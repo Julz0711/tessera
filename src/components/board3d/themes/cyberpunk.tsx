@@ -464,5 +464,31 @@ function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
   );
 }
 
+const SHIP = {
+  hull: new THREE.BoxGeometry(0.19, 0.08, 0.42),
+  deck: new THREE.BoxGeometry(0.15, 0.02, 0.36),
+  cockpit: new THREE.BoxGeometry(0.1, 0.05, 0.14),
+  fin: new THREE.BoxGeometry(0.02, 0.06, 0.1),
+  strip: new THREE.BoxGeometry(0.014, 0.016, 0.34),
+};
+
+/** The barbarian ship as a neon hover-speedboat: a low dark hull with cyan and magenta glow strips. */
+function BarbarianShip({ danger }: { danger: boolean }) {
+  const hullTone = danger ? '#4a1a22' : '#2a2f42';
+  const hullMat = mat(hullTone, { metal: 0.35, rough: 0.35, emissive: hullTone, glow: 0.5 });
+  const deckMat = mat(danger ? '#3a161c' : '#1c1f2c', { metal: 0.3, rough: 0.4 });
+  const stripColor = danger ? '#ff2d4a' : undefined;
+  return (
+    <group>
+      <mesh geometry={SHIP.hull} material={hullMat} position={[0, 0.06, 0]} castShadow />
+      <mesh geometry={SHIP.deck} material={deckMat} position={[0, 0.105, 0]} castShadow />
+      <mesh geometry={SHIP.cockpit} material={mat('#0d0b18', { opacity: 0.85 })} position={[0, 0.135, 0.02]} />
+      <mesh geometry={SHIP.fin} material={hullMat} position={[0, 0.12, -0.18]} />
+      <mesh geometry={SHIP.strip} material={lit(stripColor ?? CYAN, 2.2)} position={[-0.096, 0.045, 0]} />
+      <mesh geometry={SHIP.strip} material={lit(stripColor ?? PINK, 2.2)} position={[0.096, 0.045, 0]} />
+    </group>
+  );
+}
+
 /** Cyberpunk: neon, rain-black water and a megacity skyline. */
-export const cyberpunk: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Tile, Sea };
+export const cyberpunk: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Tile, Sea, BarbarianShip };

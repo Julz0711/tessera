@@ -1,4 +1,4 @@
-import type { TileGlyphs } from './types';
+import type { BarbarianShipGlyph, TileGlyphs } from './types';
 
 /** A folded peak: its left face in `light`, its right face in `dark`, standing on (x, y). */
 function Fold({ x, y, w, h, light, dark }: { x: number; y: number; w: number; h: number; light: string; dark: string }) {
@@ -165,4 +165,18 @@ export const origamiGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
     default:
       return null;
   }
+};
+
+/** Origami on the 2D board: a folded black paper boat, its two faces shaded like every other fold, flying a red paper flag. */
+export const origamiShip: BarbarianShipGlyph = ({ danger }) => {
+  const light = danger ? '#c23a2a' : '#3a3942';
+  const dark = danger ? '#8a1f14' : '#1f1e22';
+  return (
+    <g pointerEvents="none">
+      <path d="M-24 10L0-2L24 10L14 18H-14Z" fill={light} stroke="#0d0c0f" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M0-2L24 10L14 18H0Z" fill={dark} />
+      <line x1="0" y1="-2" x2="0" y2="-26" stroke="#0d0c0f" strokeWidth="2" />
+      <path d="M0-26l17 7-17 7Z" fill={danger ? '#ffdede' : '#e0503a'} stroke="#0d0c0f" strokeWidth="1.5" strokeLinejoin="round" />
+    </g>
+  );
 };

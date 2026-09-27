@@ -52,6 +52,57 @@ const MOOR = {
   boss: new THREE.SphereGeometry(0.022, 8, 6),
 };
 
+const SHIP_DANGER = '#c23a2a';
+
+/** A dragon-headed drakkar: a longship hull under a black-and-white sail, a carved head at the prow. */
+const SHIP = {
+  hullMid: new THREE.BoxGeometry(0.16, 0.08, 0.2),
+  hullBow: new THREE.ConeGeometry(0.085, 0.16, 4),
+  hullStern: new THREE.ConeGeometry(0.075, 0.11, 4),
+  neck: new THREE.CylinderGeometry(0.02, 0.028, 0.14, 6),
+  head: new THREE.ConeGeometry(0.045, 0.1, 5),
+  jaw: new THREE.BoxGeometry(0.03, 0.02, 0.06),
+  tail: new THREE.ConeGeometry(0.03, 0.13, 4),
+  mast: new THREE.CylinderGeometry(0.011, 0.011, 0.32, 5),
+  yard: new THREE.CylinderGeometry(0.008, 0.008, 0.22, 4),
+  sailHalf: new THREE.BoxGeometry(0.11, 0.16, 0.012),
+  shield: new THREE.CylinderGeometry(0.032, 0.032, 0.016, 8),
+};
+const SHIELDS = [-0.06, 0, 0.06];
+
+/** The barbarian ship as a Nordic drakkar: a carved dragon head at the prow, and a black-and-white sail. */
+function BarbarianShip({ danger }: { danger: boolean }) {
+  const hullMat = mat(danger ? SHIP_DANGER : '#2f2418', danger ? { emissive: SHIP_DANGER, glow: 0.35 } : {});
+  const trimMat = mat(danger ? '#5a2a24' : '#1c1712');
+  const blackSail = mat(danger ? '#4a2624' : '#1f1a17');
+  const whiteSail = mat(danger ? '#f3d9d3' : '#e8e2d2');
+  const shieldA = mat(danger ? '#8a1f14' : '#3a3530');
+  const shieldB = mat('#e8e2d2');
+  return (
+    <group>
+      <mesh geometry={SHIP.hullMid} material={hullMat} position={[0, 0.04, 0]} castShadow />
+      <mesh geometry={SHIP.hullBow} material={hullMat} position={[0, 0.04, 0.18]} rotation={[Math.PI / 2, 0, 0]} castShadow />
+      <mesh geometry={SHIP.hullStern} material={hullMat} position={[0, 0.04, -0.155]} rotation={[-Math.PI / 2, 0, 0]} castShadow />
+      {/* the carved dragon's neck, head and jaw rising from the prow */}
+      <mesh geometry={SHIP.neck} material={trimMat} position={[0, 0.15, 0.24]} rotation={[-0.5, 0, 0]} />
+      <mesh geometry={SHIP.head} material={trimMat} position={[0, 0.26, 0.3]} rotation={[-1.9, 0, 0]} />
+      <mesh geometry={SHIP.jaw} material={trimMat} position={[0, 0.235, 0.33]} rotation={[-0.3, 0, 0]} />
+      {/* a curled tail at the stern */}
+      <mesh geometry={SHIP.tail} material={trimMat} position={[0, 0.13, -0.22]} rotation={[Math.PI - 0.5, 0, 0]} />
+      <mesh geometry={SHIP.mast} material={trimMat} position={[0, 0.21, 0]} />
+      <mesh geometry={SHIP.yard} material={trimMat} position={[0, 0.31, 0]} rotation={[0, 0, Math.PI / 2]} />
+      <mesh geometry={SHIP.sailHalf} material={blackSail} position={[-0.055, 0.26, 0]} />
+      <mesh geometry={SHIP.sailHalf} material={whiteSail} position={[0.055, 0.26, 0]} />
+      {SHIELDS.map((sz, i) => (
+        <group key={`n${i}`}>
+          <mesh geometry={SHIP.shield} material={i % 2 ? shieldA : shieldB} position={[-0.1, 0.07, sz]} rotation={[0, 0, Math.PI / 2]} />
+          <mesh geometry={SHIP.shield} material={i % 2 ? shieldB : shieldA} position={[0.1, 0.07, sz]} rotation={[0, 0, Math.PI / 2]} />
+        </group>
+      ))}
+    </group>
+  );
+}
+
 /** Nordic Fjords' own props per terrain; falls back to the classic look where it isn't listed. */
 function props(terrain: Terrain, seed: number): Prop[] | null {
   const rand = seeded(seed * 7919 + terrain.length * 31 + 211);
@@ -277,4 +328,4 @@ function Road({ ghost }: { ghost: boolean; c: PieceColors }) {
 }
 
 /** Nordic Fjords: spruce, heather and longhouses. */
-export const nordic: ThemeKit = { props, Settlement, City, Robber, Harbor, Road };
+export const nordic: ThemeKit = { props, Settlement, City, Robber, Harbor, Road, BarbarianShip };

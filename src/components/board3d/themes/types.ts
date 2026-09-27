@@ -56,4 +56,11 @@ export interface ThemeKit {
    * origin, under the island; `shelfRadius` is how far out the shallows reach.
    */
   Sea?: FC<{ shelfRadius: number }>;
+  /**
+   * The barbarian ship's craft (C&K), drawn at the ship's own position: bow towards +z, sized like
+   * the classic longship (about 0.75 long along z and 0.55 tall once the wrapper's 1.7 scale is
+   * applied — see `Ship` in barbarians.tsx). `danger` is true once the barbarians are two steps
+   * from landing; show it with red tints/glow, like the classic longship does.
+   */
+  BarbarianShip?: FC<{ danger: boolean }>;
 }

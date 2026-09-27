@@ -1,4 +1,4 @@
-import type { TileGlyphs } from './types';
+import type { BarbarianShipGlyph, TileGlyphs } from './types';
 
 /** Nordic Fjords on the 2D board: dense spruce and birch, heather, snow drifts and rune stones. */
 export const nordicGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
@@ -96,4 +96,26 @@ export const nordicGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
     default:
       return null;
   }
+};
+
+/** Nordic Fjords on the 2D board: a dragon-headed drakkar under a black-and-white sail. */
+export const nordicShip: BarbarianShipGlyph = ({ danger }) => {
+  const hull = danger ? '#c23a2a' : '#2f2418';
+  const black = danger ? '#4a2624' : '#1f1a17';
+  const white = danger ? '#f3d9d3' : '#e8e2d2';
+  return (
+    <g pointerEvents="none">
+      <path d="M-26 8h52l-10 14h-32Z" fill={hull} stroke="#0d0a07" strokeWidth="2.5" strokeLinejoin="round" />
+      {/* the carved dragon head rearing up from the prow, on a curved neck */}
+      <path d="M22 6q2-14 13-20" fill="none" stroke="#1c1712" strokeWidth="5" strokeLinecap="round" />
+      <path d="M29-13q11-6 16 0q2 4-3 7q-7 3-13-1Z" fill="#1c1712" stroke="#0d0a07" strokeWidth="1.6" strokeLinejoin="round" />
+      <circle cx="40" cy="-13" r="2" fill={white} />
+      <rect x="-1.5" y="-36" width="3" height="45" fill="#1c1712" />
+      <path d="M-18-32h17v32h-17Z" fill={black} stroke="#0d0a07" strokeWidth="2.5" strokeLinejoin="round" />
+      <path d="M-1-32h17v32h-17Z" fill={white} stroke="#0d0a07" strokeWidth="2.5" strokeLinejoin="round" />
+      <circle cx="-14" cy="15" r="4" fill={black} stroke="#0d0a07" strokeWidth="1.2" />
+      <circle cx="0" cy="16" r="4" fill={white} stroke="#0d0a07" strokeWidth="1.2" />
+      <circle cx="14" cy="15" r="4" fill={black} stroke="#0d0a07" strokeWidth="1.2" />
+    </g>
+  );
 };

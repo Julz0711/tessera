@@ -1,4 +1,4 @@
-import type { TileGlyphs } from './types';
+import type { BarbarianShipGlyph, TileGlyphs } from './types';
 
 /** Two rows of bricks drying in the sun, centred on (x, y). */
 function Bricks({ x, y, fill, stroke }: { x: number; y: number; fill: string; stroke: string }) {
@@ -160,4 +160,29 @@ export const frontierGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
     default:
       return null;
   }
+};
+
+/** Frontier on the 2D board: an outlaws' paddle steamer, twin smokestacks and a big stern wheel. */
+export const frontierShip: BarbarianShipGlyph = ({ danger }) => {
+  const hull = danger ? '#c23a2a' : '#efe8d8';
+  const deck = danger ? '#8a1f14' : '#b3402e';
+  const smoke = danger ? '#f3ddd3' : '#e4dccb';
+  return (
+    <g pointerEvents="none">
+      <path d="M-28 6h56l-6 14h-44Z" fill={hull} stroke="#2a2018" strokeWidth="2.5" strokeLinejoin="round" />
+      <rect x="-13" y="-6" width="26" height="14" fill={deck} stroke="#2a2018" strokeWidth="2" />
+      {[-8, 4].map((sx) => (
+        <g key={sx}>
+          <rect x={sx} y="-24" width="4" height="20" fill="#2a2622" />
+          <circle cx={sx + 2} cy="-28" r="4" fill={smoke} opacity="0.9" />
+          <circle cx={sx + 5} cy="-33" r="5" fill={smoke} opacity="0.75" />
+        </g>
+      ))}
+      {/* the stern wheel, at the back */}
+      <circle cx="-24" cy="8" r="11" fill="none" stroke="#8a4a2a" strokeWidth="2.6" />
+      {[0, 45, 90, 135].map((a) => (
+        <line key={a} x1="-24" y1="8" x2={-24 + 11 * Math.cos((a * Math.PI) / 180)} y2={8 + 11 * Math.sin((a * Math.PI) / 180)} stroke="#8a4a2a" strokeWidth="2" />
+      ))}
+    </g>
+  );
 };

@@ -7,8 +7,8 @@ import { PIPS } from "@/engine/constants";
 import { getTopology, type Topology } from "@/engine/board/topology";
 import type { PlayerColor, Terrain } from "@/engine/types";
 import { CARD_COLORS } from "@/client/palette";
-import { PALETTES, type BoardPalette, type TileColors } from "@/client/themes";
-import { THEME_GLYPHS } from "./themes";
+import { PALETTES, type BoardPalette, type BoardThemeId, type TileColors } from "@/client/themes";
+import { THEME_BARBARIAN_SHIPS, THEME_GLYPHS, type BarbarianShipGlyph } from "./themes";
 import { PLAYER_COLORS } from "@/shared/colors";
 import { harborAnchor } from "@/components/board/harbor";
 import { barbarianTrackLayout, type BarbarianLayout } from "@/components/board/barbarian";
@@ -499,25 +499,13 @@ function hexStepPoints(cx: number, cy: number, r: number): string {
 
 type PierColors = { deck: string; plank: string; post: string };
 
-/** The barbarian longship: hull, curled prow, a striped sail and a few shields along the gunwale. */
-function BarbarianShipGlyph({
-  x,
-  y,
-  danger,
-  wood,
-  ps,
-}: {
-  x: number;
-  y: number;
-  danger: boolean;
-  wood: PierColors;
-  ps: number;
-}) {
+/** The classic barbarian longship: hull, curled prow, a striped sail and a few shields along the gunwale. */
+const classicShip: BarbarianShipGlyph = ({ danger, wood }) => {
   const hull = danger ? "#8a1f14" : wood.deck;
   const sail = danger ? "#f3d9d3" : "#f6eddb";
   const stripe = danger ? "#8a1f14" : "#a83b2e";
   return (
-    <g transform={`translate(${x} ${y}) scale(${1.15 * ps})`} pointerEvents="none">
+    <g pointerEvents="none">
       <path d="M-26 8h52l-10 14h-32Z" fill={hull} stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
       {/* curled prow */}
       <path d="M26 8q14-2 14-14q0-8-8-8" fill="none" stroke={wood.post} strokeWidth="3.5" strokeLinecap="round" />
@@ -530,6 +518,26 @@ function BarbarianShipGlyph({
       <circle cx="14" cy="15" r="4" fill={stripe} stroke="#1f1a14" strokeWidth="1.2" />
     </g>
   );
+};
+
+/** The ship for the barbarian track's current step: the theme's own glyph, or the classic longship. */
+function BarbarianShipGlyph({
+  x,
+  y,
+  danger,
+  wood,
+  ps,
+  theme,
+}: {
+  x: number;
+  y: number;
+  danger: boolean;
+  wood: PierColors;
+  ps: number;
+  theme: BoardThemeId;
+}) {
+  const glyph = THEME_BARBARIAN_SHIPS[theme] ?? classicShip;
+  return <g transform={`translate(${x} ${y}) scale(${1.15 * ps})`}>{glyph({ danger, wood })}</g>;
 }
 
 /** A round badge (always screen-facing in 2D): a glyph, with its number in a dark bubble on the rim. */
@@ -578,11 +586,13 @@ function BarbarianTrack2D({
   layout,
   palette,
   ps,
+  theme,
 }: {
   barbarian: NonNullable<BoardScene["barbarian"]>;
   layout: BarbarianLayout;
   palette: BoardPalette;
   ps: number;
+  theme: BoardThemeId;
 }) {
   const wood = palette.pier ?? { deck: "#9c6f42", plank: "#8a6139", post: "#6b4a2b" };
   const danger = barbarian.position >= barbarian.distance - 2;
@@ -621,7 +631,7 @@ function BarbarianTrack2D({
           />
         );
       })}
-      <BarbarianShipGlyph x={shipX} y={shipY} danger={danger} wood={wood} ps={1} />
+      <BarbarianShipGlyph x={shipX} y={shipY} danger={danger} wood={wood} ps={1} theme={theme} />
       <BarbarianBadge x={badgeX} y={shipY - 22} value={barbarian.strength} icon="ship" ok={ok} />
       <BarbarianBadge x={badgeX + 48} y={shipY - 22} value={barbarian.defense} icon="swords" ok={ok} />
     </g>
@@ -1199,7 +1209,7 @@ export default function Board2D({
 
         {/* barbarian ship's voyage (C&K) */}
         {barbarian && barbLayout && (
-          <BarbarianTrack2D barbarian={barbarian} layout={barbLayout} palette={palette} ps={ps} />
+          <BarbarianTrack2D barbarian={barbarian} layout={barbLayout} palette={palette} ps={ps} theme={theme} />
         )}
 
         {/* targets */}

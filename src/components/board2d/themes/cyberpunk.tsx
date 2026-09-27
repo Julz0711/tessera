@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Glow, Neon } from './glow';
-import type { TileGlyphs } from './types';
+import type { BarbarianShipGlyph, TileGlyphs } from './types';
 
 const PINK = '#ff3d9a';
 const CYAN = '#3de8ff';
@@ -179,4 +179,19 @@ export const cyberpunkGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
     default:
       return null;
   }
+};
+
+/** Cyberpunk on the 2D board: a low, dark hover-speedboat with cyan and magenta glow strips. */
+export const cyberpunkShip: BarbarianShipGlyph = ({ danger }) => {
+  const hull = danger ? '#c23a2a' : '#141220';
+  const stripColor = danger ? '#ff2d4a' : undefined;
+  return (
+    <g pointerEvents="none">
+      <path d="M-28 10h56l-9 6h-38Z" fill={hull} stroke="#05030a" strokeWidth="2.5" strokeLinejoin="round" />
+      <path d="M-10-4h20l5 12h-30Z" fill="#0d0b18" stroke="#05030a" strokeWidth="2" strokeLinejoin="round" />
+      <rect x="-20" y="-24" width="5" height="18" fill={hull} />
+      <Neon d="M-25 6h48" color={stripColor ?? CYAN} width={2.6} />
+      <Neon d="M-25 13h48" color={stripColor ?? PINK} width={2.6} />
+    </g>
+  );
 };

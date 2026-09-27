@@ -42,6 +42,39 @@ const G = {
   ring2: new THREE.TorusGeometry(0.68, 0.011, 4, 28),
 };
 
+const SHIP_DANGER = '#c23a2a';
+
+/** A Japanese junk: a broad hull with a raised, boxy stern castle and a red battened sail. */
+const SHIP = {
+  hull: new THREE.BoxGeometry(0.22, 0.07, 0.4),
+  bowBlock: new THREE.BoxGeometry(0.16, 0.08, 0.07),
+  sternCastle: new THREE.BoxGeometry(0.17, 0.1, 0.09),
+  mast: new THREE.CylinderGeometry(0.012, 0.012, 0.34, 5),
+  sail: new THREE.BoxGeometry(0.2, 0.22, 0.012),
+  batten: new THREE.BoxGeometry(0.2, 0.012, 0.014),
+};
+const BATTENS = [-0.075, -0.025, 0.025, 0.075];
+
+/** The barbarian ship as a red-sailed junk: a wide hull, a raised stern castle and battened sail. */
+function BarbarianShip({ danger }: { danger: boolean }) {
+  const hullMat = mat(danger ? SHIP_DANGER : '#5a3a26', danger ? { emissive: SHIP_DANGER, glow: 0.35 } : {});
+  const trimMat = mat('#3a271a');
+  const sailMat = mat(danger ? '#f3d9d3' : '#b8362a');
+  const battenMat = mat('#2a1f18');
+  return (
+    <group>
+      <mesh geometry={SHIP.hull} material={hullMat} position={[0, 0.035, 0]} castShadow />
+      <mesh geometry={SHIP.bowBlock} material={hullMat} position={[0, 0.06, 0.21]} rotation={[0.35, 0, 0]} castShadow />
+      <mesh geometry={SHIP.sternCastle} material={trimMat} position={[0, 0.1, -0.16]} castShadow />
+      <mesh geometry={SHIP.mast} material={trimMat} position={[0, 0.2, -0.02]} />
+      <mesh geometry={SHIP.sail} material={sailMat} position={[0, 0.24, -0.02]} />
+      {BATTENS.map((by) => (
+        <mesh key={by} geometry={SHIP.batten} material={battenMat} position={[0, 0.24 + by, -0.013]} />
+      ))}
+    </group>
+  );
+}
+
 /**
  * The volcano's size and place: towards a back corner, 0.6 out, its foot (radius 0.34 × 0.62 ≈ 0.21)
  * stays 0.27 inside the tile's edges (apothem 0.81) and comes no nearer the centre than ~0.39.
@@ -283,4 +316,4 @@ function Road({ ghost }: { ghost: boolean; c: PieceColors }) {
 }
 
 /** Sakura Isle: blossom groves, rice paddies and pagodas. */
-export const sakura: ThemeKit = { props, Settlement, City, Robber, Road };
+export const sakura: ThemeKit = { props, Settlement, City, Robber, Road, BarbarianShip };

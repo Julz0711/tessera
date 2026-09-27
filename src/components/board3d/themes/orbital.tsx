@@ -344,5 +344,24 @@ function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
   );
 }
 
+const RAIDER = {
+  hull: new THREE.SphereGeometry(1, 14, 8),
+  fin: new THREE.ConeGeometry(0.05, 0.12, 4),
+  underGlow: new THREE.CylinderGeometry(0.17, 0.19, 0.014, 16),
+};
+
+/** The barbarian ship as an alien raider craft: a flattened hull hovering over a glowing underside. */
+function BarbarianShip({ danger }: { danger: boolean }) {
+  const hullMat = mat(danger ? '#5a1a2a' : '#4a4f68', { metal: 0.45, rough: 0.35 });
+  const glow = danger ? '#ff4d4d' : CYAN;
+  return (
+    <group>
+      <mesh geometry={RAIDER.hull} material={hullMat} scale={[0.13, 0.06, 0.23]} position={[0, 0.1, 0]} castShadow />
+      <mesh geometry={RAIDER.fin} material={hullMat} position={[0, 0.17, -0.1]} rotation={[Math.PI, 0, 0]} />
+      <mesh geometry={RAIDER.underGlow} material={lit(glow, 2.6)} position={[0, 0.05, 0]} />
+    </group>
+  );
+}
+
 /** Orbital: an asteroid colony in space, with domes, a UFO for a robber and shuttles at the harbors. */
-export const orbital: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Base, Sea };
+export const orbital: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Base, Sea, BarbarianShip };

@@ -1,4 +1,4 @@
-import type { TileGlyphs } from './types';
+import type { BarbarianShipGlyph, TileGlyphs } from './types';
 
 /** A date palm with its trunk's foot at (x, y + 14). */
 function Palm({ x, y, leaf }: { x: number; y: number; leaf: string }) {
@@ -130,4 +130,20 @@ export const nileGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
     default:
       return null;
   }
+};
+
+/** Nile on the 2D board: a reed boat, its papyrus hull curling up at both ends, under a lateen sail. */
+export const nileShip: BarbarianShipGlyph = ({ danger }) => {
+  const hull = danger ? '#c23a2a' : '#d4a84a';
+  const sail = danger ? '#f3d9d3' : '#f4efe0';
+  return (
+    <g pointerEvents="none">
+      <path d="M-24 12q4-10 24-10t24 10q-4 8-24 8t-24-8Z" fill={hull} stroke="#5a3d22" strokeWidth="2.5" strokeLinejoin="round" />
+      {/* the papyrus bundle curls up at both bow and stern */}
+      <path d="M-24 12q-10-4-9-16q1-8 8-8" fill="none" stroke={hull} strokeWidth="5" strokeLinecap="round" />
+      <path d="M24 12q10-4 9-16q-1-8-8-8" fill="none" stroke={hull} strokeWidth="5" strokeLinecap="round" />
+      <rect x="-1.5" y="-30" width="3" height="30" fill="#5a3d22" />
+      <path d="M-1-28l16 4 2 26h-18Z" fill={sail} stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
+    </g>
+  );
 };

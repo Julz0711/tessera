@@ -344,5 +344,16 @@ function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
   );
 }
 
+/** The barbarian ship as a folded black paper boat, flying a small red paper flag. */
+function BarbarianShip({ danger }: { danger: boolean }) {
+  return (
+    <group rotation={[0, Math.PI / 2, 0]} scale={2.2}>
+      <PaperBoat color={danger ? '#8a1f14' : '#2a2a2e'} />
+      <mesh geometry={CASTLE.pole} material={mat('#1f1a14')} position={[0, 0.15, 0]} scale={[1, 0.55, 1]} />
+      <mesh geometry={CASTLE.pennant} material={mat(danger ? '#ffdede' : '#e0503a')} position={[0, 0.19, 0]} />
+    </group>
+  );
+}
+
 /** Origami: pyramid trees, accordion fields, a crane and a fox, all folded from paper. */
-export const origami: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Sea };
+export const origami: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Sea, BarbarianShip };

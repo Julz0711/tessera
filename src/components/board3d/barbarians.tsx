@@ -8,7 +8,7 @@ import { BARBARIAN_STEP_R, barbarianTrackLayout } from '../board/barbarian';
 import { faceCamera } from './faceCamera';
 import { mat } from './materials';
 import { usePieceScale } from './pieceScale';
-import { useBoardPalette } from './themes';
+import { useBoardKit, useBoardPalette } from './themes';
 import { barbarianBadgeTexture } from './textures';
 
 export interface BarbarianInfo {
@@ -120,6 +120,7 @@ function Ship({ x, z, danger, strength, defense, wood, k }: { x: number; z: numb
   const tilt = useRef<THREE.Group>(null);
   const target = useRef(new THREE.Vector3(x, HULL_CLEAR, z));
   target.current.set(x, HULL_CLEAR, z);
+  const ShipModel = useBoardKit().BarbarianShip;
   useFrame((state) => {
     const g = anchor.current;
     if (!g) return;
@@ -134,7 +135,7 @@ function Ship({ x, z, danger, strength, defense, wood, k }: { x: number; z: numb
   return (
     <group ref={anchor} position={[x, HULL_CLEAR, z]} scale={k}>
       <group ref={tilt} scale={1.7}>
-        <Longship danger={danger} wood={wood} />
+        {ShipModel ? <ShipModel danger={danger} /> : <Longship danger={danger} wood={wood} />}
       </group>
       <Badge x={0.5} y={0.45} z={-0.12} value={strength} icon="ship" ok={defense >= strength} />
       <Badge x={0.95} y={0.45} z={-0.12} value={defense} icon="swords" ok={defense >= strength} />

@@ -309,6 +309,41 @@ const BOAT = {
   wheel: new THREE.CylinderGeometry(0.055, 0.055, 0.06, 10),
 };
 
+const SHIP_DANGER = '#c23a2a';
+
+/** An outlaws' paddle steamer: a white hull, a red-roofed deck cabin, twin smokestacks and a big stern wheel. */
+const SHIP = {
+  hull: new THREE.BoxGeometry(0.18, 0.07, 0.44),
+  deck: new THREE.BoxGeometry(0.14, 0.08, 0.24),
+  stack: new THREE.CylinderGeometry(0.014, 0.016, 0.16, 6),
+  wheel: new THREE.CylinderGeometry(0.09, 0.09, 0.08, 12),
+  puff: new THREE.IcosahedronGeometry(0.035, 0),
+};
+const STACKS: [number, number][] = [
+  [-0.03, 0.05],
+  [0.03, 0.05],
+];
+
+/** The barbarian ship as an outlaws' paddle steamer: twin smokestacks fore, a big stern wheel aft. */
+function BarbarianShip({ danger }: { danger: boolean }) {
+  const hullMat = mat(danger ? SHIP_DANGER : '#efe8d8', danger ? { emissive: SHIP_DANGER, glow: 0.3 } : {});
+  const deckMat = mat(danger ? '#8a1f14' : '#b3402e');
+  const smoke = mat(danger ? '#f3ddd3' : '#efe8d8', { opacity: 0.9 });
+  return (
+    <group>
+      <mesh geometry={SHIP.hull} material={hullMat} position={[0, 0.035, 0]} castShadow />
+      <mesh geometry={SHIP.deck} material={deckMat} position={[0, 0.11, 0.06]} castShadow />
+      {STACKS.map(([sx, sz]) => (
+        <mesh key={sx} geometry={SHIP.stack} material={mat('#2a2622')} position={[sx, 0.24, sz]} castShadow />
+      ))}
+      {STACKS.map(([sx, sz]) => (
+        <mesh key={`p${sx}`} geometry={SHIP.puff} material={smoke} position={[sx, 0.34, sz - 0.02]} />
+      ))}
+      <mesh geometry={SHIP.wheel} material={mat('#8a4a2a')} position={[0, 0.07, -0.24]} rotation={[Math.PI / 2, 0, 0]} castShadow />
+    </group>
+  );
+}
+
 /** A paddle steamer tied up beside the pier (along it, clear of the floating rate sign). */
 function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
   return (
@@ -326,4 +361,4 @@ function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
 }
 
 /** Frontier: pines and ranches, adobe and silver mines, saloons, railroads and an outlaw. */
-export const frontier: ThemeKit = { props, Settlement, City, Robber, Road, Harbor };
+export const frontier: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, BarbarianShip };

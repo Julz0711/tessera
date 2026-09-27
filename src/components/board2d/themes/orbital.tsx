@@ -1,5 +1,5 @@
 import { Glow, Neon } from './glow';
-import type { TileGlyphs } from './types';
+import type { BarbarianShipGlyph, TileGlyphs } from './types';
 
 const CYAN = '#7fe3ff';
 
@@ -148,4 +148,18 @@ export const orbitalGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
     default:
       return null;
   }
+};
+
+/** Orbital on the 2D board: an alien raider craft hovering on a glowing underside. */
+export const orbitalShip: BarbarianShipGlyph = ({ danger }) => {
+  const hull = danger ? '#c23a2a' : '#3a3f52';
+  const glow = danger ? '#ff4d4d' : CYAN;
+  return (
+    <g pointerEvents="none">
+      <ellipse cx="0" cy="4" rx="27" ry="8" fill={hull} stroke="#1c1f2c" strokeWidth="2.5" />
+      <path d="M-9 4q9-13 18 0Z" fill={hull} stroke="#1c1f2c" strokeWidth="2" strokeLinejoin="round" />
+      <Neon d="M-24 10h48" color={glow} width={2.4} />
+      <Glow x={0} y={10} r={3} color={glow} />
+    </g>
+  );
 };

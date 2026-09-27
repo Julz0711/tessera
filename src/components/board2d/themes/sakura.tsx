@@ -1,4 +1,4 @@
-import type { TileGlyphs } from './types';
+import type { BarbarianShipGlyph, TileGlyphs } from './types';
 
 /** Sakura Isle on the 2D board: blossom groves, paddies, a single peak and a rock garden. */
 export const sakuraGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
@@ -70,4 +70,22 @@ export const sakuraGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
       );
   }
   return null;
+};
+
+/** Sakura Isle on the 2D board: a Japanese junk, a wide hull under a red battened sail. */
+export const sakuraShip: BarbarianShipGlyph = ({ danger }) => {
+  const hull = danger ? '#c23a2a' : '#5a3a26';
+  const sail = danger ? '#f3d9d3' : '#b8362a';
+  return (
+    <g pointerEvents="none">
+      <path d="M-27 10h54l-7 12h-40Z" fill={hull} stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
+      {/* raised, boxy stern castle */}
+      <rect x="-25" y="-4" width="14" height="16" fill="#3a271a" stroke="#1f1a14" strokeWidth="2" />
+      <rect x="-1.5" y="-34" width="3" height="34" fill="#3a271a" />
+      <path d="M-15-30h28v24h-28Z" fill={sail} stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
+      {[-24, -16, -8, 0, 8].map((by) => (
+        <line key={by} x1="-15" y1={by} x2="13" y2={by} stroke="#2a1f18" strokeWidth="1.6" />
+      ))}
+    </g>
+  );
 };

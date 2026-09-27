@@ -1,4 +1,4 @@
-import type { TileGlyphs } from './types';
+import type { BarbarianShipGlyph, TileGlyphs } from './types';
 
 const BRASS = '#b08d57';
 const SMOKE = '#f3ece4';
@@ -161,4 +161,21 @@ export const skyportGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
     default:
       return null;
   }
+};
+
+/** Skyport on the 2D board: a dark pirate airship, drawn a little higher above its step. */
+export const skyportShip: BarbarianShipGlyph = ({ danger }) => {
+  const envelope = danger ? '#c23a2a' : '#2b241e';
+  const trim = danger ? '#e0503a' : BRASS;
+  return (
+    <g pointerEvents="none" transform="translate(0 -14)">
+      <ellipse cx="0" cy="0" rx="26" ry="11" fill={envelope} stroke="#171310" strokeWidth="2.5" />
+      <path d="M-26 0q4 6 14 7M26 0q-4 6-14 7" fill="none" stroke={trim} strokeWidth="2" />
+      <rect x="-9" y="9" width="18" height="7" rx="2" fill="#241c14" stroke="#171310" strokeWidth="2" />
+      {[-5, 5].map((px) => (
+        <line key={px} x1={px} y1="16" x2={px} y2="21" stroke={trim} strokeWidth="2" />
+      ))}
+      <path d="M18 4l9-3-2 6Z M18-4l9 3-2-6Z" fill={trim} />
+    </g>
+  );
 };

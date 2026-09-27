@@ -32,6 +32,47 @@ const GEO = {
   pool: new THREE.CircleGeometry(1, 24),
 };
 
+const DANGER = '#c23a2a';
+
+/** The barbarian longship after dark: the same hull under a dark sail, two lanterns glowing on posts fore and aft. */
+const SHIP = {
+  hullMid: new THREE.BoxGeometry(0.16, 0.08, 0.2),
+  hullBow: new THREE.ConeGeometry(0.085, 0.16, 4),
+  hullStern: new THREE.ConeGeometry(0.075, 0.11, 4),
+  prowCurl: new THREE.TorusGeometry(0.06, 0.015, 4, 8, Math.PI * 1.4),
+  mast: new THREE.CylinderGeometry(0.011, 0.011, 0.32, 5),
+  yard: new THREE.CylinderGeometry(0.008, 0.008, 0.22, 4),
+  sail: new THREE.BoxGeometry(0.22, 0.16, 0.012),
+  lanternPost: new THREE.CylinderGeometry(0.007, 0.009, 0.09, 5),
+  lantern: new THREE.BoxGeometry(0.042, 0.048, 0.042),
+};
+
+/** The barbarian ship by night: a dark-sailed longship with lanterns glowing fore and aft. */
+function BarbarianShip({ danger }: { danger: boolean }) {
+  const hullMat = mat(danger ? DANGER : '#3a2c1c', danger ? { emissive: DANGER, glow: 0.35 } : {});
+  const trimMat = mat('#4a3a28');
+  const sailMat = mat(danger ? '#5a2e2c' : '#3a3f52');
+  const lanternMat = lit(2.4);
+  return (
+    <group>
+      <mesh geometry={SHIP.hullMid} material={hullMat} position={[0, 0.04, 0]} castShadow />
+      <mesh geometry={SHIP.hullBow} material={hullMat} position={[0, 0.04, 0.18]} rotation={[Math.PI / 2, 0, 0]} castShadow />
+      <mesh geometry={SHIP.hullStern} material={hullMat} position={[0, 0.04, -0.155]} rotation={[-Math.PI / 2, 0, 0]} castShadow />
+      <mesh geometry={SHIP.prowCurl} material={trimMat} position={[0, 0.1, 0.27]} rotation={[0.3, 0, 0]} />
+      <mesh geometry={SHIP.mast} material={trimMat} position={[0, 0.21, 0]} />
+      <mesh geometry={SHIP.yard} material={trimMat} position={[0, 0.31, 0]} rotation={[0, 0, Math.PI / 2]} />
+      <mesh geometry={SHIP.sail} material={sailMat} position={[0, 0.26, 0]} />
+      {/* Lanterns on short posts at the bow and stern, glowing warm against the dark sail. */}
+      {[0.16, -0.13].map((z) => (
+        <group key={z} position={[0, 0.09, z]}>
+          <mesh geometry={SHIP.lanternPost} material={trimMat} position={[0, 0.03, 0]} />
+          <mesh geometry={SHIP.lantern} material={lanternMat} position={[0, 0.08, 0]} />
+        </group>
+      ))}
+    </group>
+  );
+}
+
 let glowTexture: THREE.CanvasTexture | null = null;
 
 /** A soft warm disc, bright in the middle and fading out: light falling on the ground. */
@@ -161,4 +202,4 @@ function Tile({ terrain, seed }: { terrain: Terrain; seed: number }) {
   );
 }
 
-export const night: ThemeKit = { Settlement, City, Road, Tile };
+export const night: ThemeKit = { Settlement, City, Road, Tile, BarbarianShip };

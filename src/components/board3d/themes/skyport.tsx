@@ -458,5 +458,43 @@ function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
   );
 }
 
+const SHIP_DANGER = '#e0503a';
+
+/** A propeller blade, and its hub. */
+const PROP = {
+  blade: new THREE.BoxGeometry(0.09, 0.012, 0.02),
+  hub: new THREE.SphereGeometry(0.012, 6, 4),
+};
+
+/**
+ * The barbarian ship as a dark pirate airship, floating well above the sea-steps: a soot-dark
+ * envelope, a gondola slung beneath, tail fins and two side propellers.
+ */
+function BarbarianShip({ danger }: { danger: boolean }) {
+  const envelopeMat = mat(danger ? SHIP_DANGER : '#2b241e', danger ? { emissive: SHIP_DANGER, glow: 0.35 } : {});
+  const trimMat = mat(danger ? '#e0503a' : '#7a6a5a', danger ? { emissive: SHIP_DANGER, glow: 0.2 } : { metal: 0.3, rough: 0.5 });
+  const gondolaMat = mat('#241c14');
+  return (
+    <group position={[0, 0.3, 0]}>
+      {/* the envelope, its long axis along z (bow and stern both taper, like a blimp) */}
+      <mesh geometry={AIRSHIP.envelope} material={envelopeMat} scale={[0.075, 0.07, 0.19]} castShadow />
+      <mesh geometry={AIRSHIP.gondola} material={gondolaMat} position={[0, -0.085, 0.02]} castShadow />
+      {/* tail fins at the stern */}
+      {[0.045, -0.045].map((fy) => (
+        <mesh key={fy} geometry={AIRSHIP.fin} material={trimMat} position={[0, fy, -0.16]} />
+      ))}
+      <mesh geometry={AIRSHIP.fin} material={trimMat} position={[0, 0, -0.16]} rotation={[Math.PI / 2, 0, 0]} />
+      {/* two side propellers on the gondola */}
+      {[-0.05, 0.05].map((px) => (
+        <group key={px} position={[px, -0.09, 0]}>
+          <mesh geometry={PROP.hub} material={gondolaMat} />
+          <mesh geometry={PROP.blade} material={mat('#3a2f26')} rotation={[0, 0, Math.PI / 2]} />
+          <mesh geometry={PROP.blade} material={mat('#3a2f26')} />
+        </group>
+      ))}
+    </group>
+  );
+}
+
 /** Skyport: a steampunk island floating over a sea of clouds, with airships at its harbors. */
-export const skyport: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Base, Sea };
+export const skyport: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Base, Sea, BarbarianShip };
