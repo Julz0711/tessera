@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction } from '../apply';
+import { relocationSpots } from '../ck/queries';
 import { handLimit, topo } from '../queries';
 import type { GameState, ProgressCardType } from '../types';
 import { victoryPoints } from '../vp';
@@ -101,6 +102,39 @@ describe('knights', () => {
     s.knights[vs[0]] = { id: 3, owner: 0, level: 1, active: true, activatedOn: 0, promotedOn: -1 };
     s.knights[vs[2]] = { id: 4, owner: 1, level: 2, active: true, activatedOn: 0, promotedOn: -1 };
     expect(reject(s, 0, { type: 'moveKnight', from: vs[0], to: vs[2] })).toMatch(/cannot reach/);
+  });
+
+  it('Intrigue clears the spot: the displaced knight cannot go back there', () => {
+    let s = ck();
+    const vs = withRoads(s);
+    // Player 1's knight stands on player 0's road; player 0 needs no knight of their own.
+    s.knights[vs[3]] = { id: 2, owner: 1, level: 2, active: true, activatedOn: 0, promotedOn: -1 };
+    s = act(s, 0, { type: 'playProgress', card: giveCard(s, 0, 'intrigue', 1), params: { vertex: vs[3] } });
+    expect(s.knights[vs[3]]).toBeNull();
+    expect(s.pending[0]).toMatchObject({ kind: 'relocateKnight', seat: 1, from: vs[3] });
+    expect(reject(s, 1, { type: 'relocateKnight', vertex: vs[3] })).toMatch(/along your roads/);
+    s = act(s, 1, { type: 'relocateKnight', vertex: vs[4] });
+    expect(s.knights[vs[4]]).toMatchObject({ owner: 1, level: 2, active: true });
+    expect(s.knights[vs[3]]).toBeNull();
+  });
+
+  it('relocates a displaced knight only along its own roads, or loses it', () => {
+    const s = ck();
+    const vs = withRoads(s);
+    const t = topo(s);
+    const far = t.edges[t.coast[10]];
+    s.roads[t.coast[10]] = 1; // player 1's other road, not connected to vs[3]
+    s.knights[vs[1]] = { id: 1, owner: 0, level: 2, active: true, activatedOn: 0, promotedOn: -1 };
+    s.knights[vs[3]] = { id: 2, owner: 1, level: 1, active: true, activatedOn: 0, promotedOn: -1 };
+    const moved = act(s, 0, { type: 'moveKnight', from: vs[1], to: vs[3] });
+    expect(relocationSpots(moved, 1, vs[3])).toEqual([vs[4]]);
+    expect(reject(moved, 1, { type: 'relocateKnight', vertex: far.a })).toMatch(/along your roads/);
+    // With the only connected spot taken, the knight is lost although far.a and far.b are free.
+    s.buildings[vs[4]] = { owner: 2, city: false, wall: false, metropolis: null };
+    const lost = act(s, 0, { type: 'moveKnight', from: vs[1], to: vs[3] });
+    expect(lost.pending).toEqual([]);
+    expect(lost.knights.some((k) => k?.owner === 1)).toBe(false);
+    expect(lost.log).toContainEqual(expect.objectContaining({ type: 'knightRemoved', seat: 1, at: vs[3] }));
   });
 
   it('needs a Fortress (politics 3) for mighty knights', () => {

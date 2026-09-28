@@ -19,6 +19,7 @@ import {
   metropolisSpots,
   ownKnightAt,
   promotableKnights,
+  relocationSpots,
   robberActive,
   wallSpots,
   wouldGainMetropolis,
@@ -180,7 +181,7 @@ export function resolveCkPrompt(ctx: Ctx, prompt: Prompt, action: Action): void 
       if (action.vertex === null) {
         emit(ctx, { type: 'knightRemoved', seat: ctx.seat, at: prompt.from });
       } else {
-        assertRule(legalKnightSpots(s, ctx.seat).includes(action.vertex), 'Move it to an empty spot next to your roads');
+        assertRule(relocationSpots(s, ctx.seat, prompt.from).includes(action.vertex), 'Move it along your roads to another empty spot');
         s.knights[action.vertex] = { ...prompt.knight };
         emit(ctx, { type: 'knightMoved', seat: ctx.seat, from: prompt.from, to: action.vertex });
       }

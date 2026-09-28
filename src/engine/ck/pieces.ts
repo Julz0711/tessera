@@ -4,7 +4,7 @@ import { assertRule } from '../errors';
 import { transfer } from '../hand';
 import { emit, type Ctx } from '../state';
 import type { Knight, KnightLevel } from '../types';
-import { legalKnightSpots, promotableKnights, wallSpots } from './queries';
+import { promotableKnights, relocationSpots, wallSpots } from './queries';
 
 export function promoteKnightAt(ctx: Ctx, vertex: number, free = false): void {
   const s = ctx.s;
@@ -19,7 +19,7 @@ export function promoteKnightAt(ctx: Ctx, vertex: number, free = false): void {
 /** The displaced knight's owner must move it; with nowhere to go it is lost. */
 export function displaceKnight(ctx: Ctx, from: number, knight: Knight): void {
   const s = ctx.s;
-  if (legalKnightSpots(s, knight.owner).length) s.pending.push({ kind: 'relocateKnight', seat: knight.owner, from, knight });
+  if (relocationSpots(s, knight.owner, from).length) s.pending.push({ kind: 'relocateKnight', seat: knight.owner, from, knight });
   else emit(ctx, { type: 'knightRemoved', seat: knight.owner, at: from });
 }
 

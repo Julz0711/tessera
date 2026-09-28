@@ -64,6 +64,15 @@ export function knightMoveTargets(s: Q, seat: number, from: number): { moves: nu
   return { moves, displaces };
 }
 
+/**
+ * Where the owner may move a knight displaced from `from`: an empty intersection their roads connect
+ * to that spot, reached the way a knight moves. Never `from` itself: a displaced knight must leave,
+ * even when no knight took its place (Intrigue).
+ */
+export function relocationSpots(s: Q, seat: number, from: number): number[] {
+  return [...knightReach(s, seat, from)].filter((v) => isVertexFree(s, v));
+}
+
 export function robberActive(s: Q): boolean {
   return s.barbarian.attacks > 0;
 }
