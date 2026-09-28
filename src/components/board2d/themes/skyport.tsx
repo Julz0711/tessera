@@ -1,4 +1,4 @@
-import { alongRoad, pc, RoadBase } from './shared';
+import { alongRoad, OUTLINE, pc, RoadBase } from './shared';
 import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
 
 const BRASS = '#b08d57';
@@ -8,7 +8,7 @@ const SMOKE = '#f3ece4';
 const skyportSettlement: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
       <rect x={x - 14} y={y + 1} width="28" height="14" fill={c.hex} />
       <path d={`M${x - 16} ${y + 1}a16 15 0 0 1 32 0Z`} fill={c.dark} />
       <circle cx={x - 9} cy={y - 6} r="1.6" fill={BRASS} />
@@ -22,11 +22,11 @@ const skyportSettlement: PieceGlyph = ({ x, y, color }) => {
 const skyportCity: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
-      <rect x={x - 13} y={y - 24} width="26" height="41" rx="2" fill={c.hex} />
-      <path d={`M${x - 15} ${y - 24}a15 8 0 0 1 30 0Z`} fill={c.dark} />
-      <circle cx={x} cy={y - 8} r="7" fill="none" stroke={BRASS} strokeWidth="2.4" />
-      <path d={`M${x + 13} ${y + 2}q10 0 10-10v-8`} stroke={BRASS} strokeWidth="3" fill="none" strokeLinecap="round" />
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
+      <rect x={x - 21} y={y - 22} width="42" height="40" rx="2" fill={c.hex} />
+      <path d={`M${x - 21} ${y - 22}a21 10 0 0 1 42 0Z`} fill={c.dark} />
+      <circle cx={x} cy={y - 6} r="9" fill="none" stroke={BRASS} strokeWidth="2.8" />
+      <path d={`M${x + 21} ${y + 5}q11 0 11-11v-10`} stroke={BRASS} strokeWidth="3.4" fill="none" strokeLinecap="round" />
     </g>
   );
 };

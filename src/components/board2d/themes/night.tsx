@@ -1,5 +1,5 @@
 import { Glow } from './glow';
-import { pc } from './shared';
+import { OUTLINE, pc } from './shared';
 import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, ThemePieces } from './types';
 
 const LANTERN = '#ffc15a';
@@ -9,7 +9,7 @@ const nightSettlement: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
     <g>
-      <path d={`M${x - 17} ${y + 14}v-17l17-14 17 14v17Z`} fill={c.hex} stroke={c.dark} strokeWidth="4.5" strokeLinejoin="round" />
+      <path d={`M${x - 17} ${y + 14}v-17l17-14 17 14v17Z`} fill={c.hex} stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round" />
       <Glow x={x} y={y + 5} r={2.2} color={LANTERN} />
     </g>
   );
@@ -20,7 +20,7 @@ const nightCity: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
     <g>
-      <path d={`M${x - 26} ${y + 17}v-18l12-9 12 9v-18h9v-8h8v8h9v36Z`} fill={c.hex} stroke={c.dark} strokeWidth="4.5" strokeLinejoin="round" />
+      <path d={`M${x - 26} ${y + 17}v-18l12-9 12 9v-18h9v-8h8v8h9v36Z`} fill={c.hex} stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round" />
       <Glow x={x - 14} y={y + 8} r={2} color={LANTERN} />
       <Glow x={x + 16} y={y + 5} r={2} color={LANTERN} />
     </g>

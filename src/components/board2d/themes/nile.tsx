@@ -1,14 +1,14 @@
-import { alongRoad, pc, RoadBase } from './shared';
+import { alongRoad, OUTLINE, pc, RoadBase } from './shared';
 import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
 
 /** Nile's settlement: a mud-brick house, tapered walls under a flat parapet roof. */
 const nileSettlement: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
       <path d={`M${x - 14} ${y + 15}L${x - 11} ${y - 8}H${x + 11}L${x + 14} ${y + 15}Z`} fill={c.hex} />
       <rect x={x - 13} y={y - 13} width="26" height="6" fill={c.dark} />
-      <path d={`M${x - 12} ${y - 17}h4v4h-4Z M${x - 4} ${y - 17}h4v4h-4Z M${x + 4} ${y - 17}h4v4h-4Z`} fill={c.dark} />
+      <path d={`M${x - 10} ${y - 17}h4v4h-4Z M${x - 2} ${y - 17}h4v4h-4Z M${x + 6} ${y - 17}h4v4h-4Z`} fill={c.dark} />
     </g>
   );
 };
@@ -17,7 +17,7 @@ const nileSettlement: PieceGlyph = ({ x, y, color }) => {
 const nileCity: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
       <path d={`M${x - 26} ${y + 17}L${x - 20} ${y - 14}H${x - 6}V${y + 17}Z`} fill={c.hex} />
       <path d={`M${x + 26} ${y + 17}L${x + 20} ${y - 14}H${x + 6}V${y + 17}Z`} fill={c.hex} />
       <rect x={x - 6} y={y - 2} width="12" height="19" fill={c.dark} />
@@ -68,7 +68,7 @@ function Palm({ x, y, leaf }: { x: number; y: number; leaf: string }) {
   );
 }
 
-/** Nile on the 2D board: date palms, mudbrick, a shaduf, canals, a quarry and the pyramids. */
+/** Nile on the 2D board: date palms, mudbrick, a shaduf, wheat, a quarry and the pyramids. */
 export const nileGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
   const spots = [
     [-40, -34],
@@ -129,7 +129,6 @@ export const nileGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
           <path d={`M${s.x - 14} ${s.y - 2}L${s.x + 18} ${s.y - 14}`} stroke="#8a6a44" strokeWidth="2.5" />
           <rect x={s.x - 17} y={s.y} width="6" height="6" fill="#6b4a2a" />
           <circle cx={s.x + 18} cy={s.y - 14} r="3.5" fill="#9a948a" />
-          <path d={`M${s.x - 20} ${s.y + 14}h20`} stroke="#3fa3b8" strokeWidth="3" />
           {[2, 4].map((i) => {
             const { x, y } = at(i);
             return <path key={i} d={`M${x - 6} ${y + 6}l3-10 3 10 3-12 3 12`} stroke={c.side} strokeWidth="2.5" fill="none" />;
@@ -138,10 +137,9 @@ export const nileGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
       );
     }
     case 'fields':
-      // Wheat between blue irrigation canals.
+      // Rows of wheat.
       return (
         <g>
-          <path d={`M${cx - 62} ${cy + 40}H${cx + 62}M${cx - 46} ${cy - 60}H${cx + 46}`} stroke={c.accent} strokeWidth="4" strokeLinecap="round" />
           <g stroke={c.side} strokeWidth="3" strokeLinecap="round" opacity="0.85">
             {[0, 1, 2, 3].map((i) => {
               const { x, y } = at(i);

@@ -9,6 +9,7 @@ import type { PlayerColor, Terrain } from "@/engine/types";
 import { CARD_COLORS } from "@/client/palette";
 import { PALETTES, type BoardPalette, type BoardThemeId, type TileColors } from "@/client/themes";
 import { THEME_BARBARIAN_SHIPS, THEME_GLYPHS, THEME_PIECES, type BarbarianShipGlyph } from "./themes";
+import { OUTLINE, ROAD_WEIGHT, RoadBase } from "./themes/shared";
 import { PLAYER_COLORS } from "@/shared/colors";
 import { harborAnchor } from "@/components/board/harbor";
 import { BARBARIAN_HEADER_H, barbarianTrackLayout, type BarbarianLayout } from "@/components/board/barbarian";
@@ -314,7 +315,7 @@ function classicSettlement({ x, y, color }: { x: number; y: number; color: Playe
       d={`M${x - 17} ${y + 14}v-17l17-14 17 14v17Z`}
       fill={c.hex}
       stroke={c.dark}
-      strokeWidth="4.5"
+      strokeWidth={OUTLINE}
       strokeLinejoin="round"
     />
   );
@@ -328,23 +329,27 @@ function classicCity({ x, y, color }: { x: number; y: number; color: PlayerColor
       d={`M${x - 26} ${y + 17}v-18l12-9 12 9v-18h9v-8h8v8h9v36Z`}
       fill={c.hex}
       stroke={c.dark}
-      strokeWidth="4.5"
+      strokeWidth={OUTLINE}
       strokeLinejoin="round"
     />
   );
 }
 
 /**
- * A city wall (C&K), like colonist's: a low slab the city stands on, in the owner's colour, its top
- * face tapering back and a darker front edge for a slight 3D look.
+ * A city wall (C&K), flat like every other piece: a rampart behind the city in the owner's colour
+ * and outline, a low band along its foot with a merlon standing up at each end, so a walled city
+ * reads as a wider, battlemented silhouette.
  */
 function CityWallBlock({ x, y, color }: { x: number; y: number; color: PlayerColor }) {
   const c = PLAYER_COLORS[color];
   return (
-    <g stroke="#1f1a14" strokeWidth="3" strokeLinejoin="round">
-      <path d={`M${x - 34} ${y + 22}h68v4.5q0 3-3 3h-62q-3 0-3-3Z`} fill={c.dark} />
-      <path d={`M${x - 30} ${y + 11}h60l4 11h-68Z`} fill={c.hex} />
-    </g>
+    <path
+      d={`M${x - 40} ${y + 25}V${y - 3}h8v8h64v-8h8V${y + 25}Z`}
+      fill={c.hex}
+      stroke={c.dark}
+      strokeWidth={OUTLINE}
+      strokeLinejoin="round"
+    />
   );
 }
 
@@ -397,9 +402,6 @@ function CityPath({
 }
 
 /** A road: the theme's own drawing (THEME_PIECES) where it has one, else the classic two-tone line. */
-/** Roads are drawn a little slimmer than their base size so the settlements and cities stay the focus. */
-const ROAD_WEIGHT = 0.78;
-
 function RoadPath({
   x1,
   y1,
@@ -419,41 +421,11 @@ function RoadPath({
   k?: number;
   theme?: BoardThemeId;
 }) {
-  const glyph = (theme && THEME_PIECES[theme]?.road) || defaultRoad;
+  const glyph = (theme && THEME_PIECES[theme]?.road) || RoadBase;
   return (
     <g pointerEvents="none" opacity={ghost ? 0.7 : undefined}>
       {glyph({ x1, y1, x2, y2, color, ghost, k: k * ROAD_WEIGHT })}
     </g>
-  );
-}
-
-/** The classic road: a dark outline under the owner's colour, or a single thinner line as a ghost preview. */
-function defaultRoad({
-  x1,
-  y1,
-  x2,
-  y2,
-  color,
-  ghost,
-  k = 1,
-}: {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  color: PlayerColor;
-  ghost?: boolean;
-  k?: number;
-}) {
-  const c = PLAYER_COLORS[color];
-  if (ghost) {
-    return <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.hex} strokeWidth={11 * k} strokeLinecap="round" />;
-  }
-  return (
-    <>
-      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.dark} strokeWidth={20 * k} strokeLinecap="round" />
-      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.hex} strokeWidth={12 * k} strokeLinecap="round" />
-    </>
   );
 }
 

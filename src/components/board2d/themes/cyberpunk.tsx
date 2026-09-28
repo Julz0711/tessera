@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Glow, Neon } from './glow';
-import { pc, RoadBase } from './shared';
+import { OUTLINE, pc, RoadBase } from './shared';
 import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
 
 const PINK = '#ff3d9a';
@@ -12,7 +12,7 @@ const cyberpunkSettlement: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
     <g>
-      <rect x={x - 14} y={y - 12} width="28" height="27" fill={c.hex} stroke={c.dark} strokeWidth="2.5" />
+      <rect x={x - 14} y={y - 12} width="28" height="27" fill={c.hex} stroke={c.dark} strokeWidth={OUTLINE} />
       <Neon d={`M${x - 14} ${y - 12}h28v27h-28Z`} color={c.hex} width={1.6} />
       <rect x={x - 9} y={y - 6} width="6" height="6" fill="#0d0b14" />
       <rect x={x + 3} y={y - 6} width="6" height="6" fill="#0d0b14" />
@@ -25,7 +25,7 @@ const cyberpunkCity: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
     <g>
-      <rect x={x - 14} y={y - 28} width="28" height="45" fill={c.hex} stroke={c.dark} strokeWidth="2.5" />
+      <rect x={x - 14} y={y - 28} width="28" height="45" fill={c.hex} stroke={c.dark} strokeWidth={OUTLINE} />
       <Neon d={`M${x - 14} ${y - 28}h28v45h-28Z`} color={c.hex} width={1.6} />
       {[-18, -8, 2, 12].flatMap((dy) =>
         [-8, 4].map((dx) => (
