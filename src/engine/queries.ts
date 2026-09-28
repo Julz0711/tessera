@@ -115,13 +115,14 @@ export function canPlaceSettlement(s: Q, seat: number, v: number, setup = false)
 
 /**
  * Where starting settlements may stand. Never next to fog: what it hides is found by building out
- * later (their roads may lead into it). Black Forest starts in the forest, on corners touching only
- * forest (or the lake). A map with starting areas (Vulcan) starts on any corner touching one of
- * their tiles, right up to the desert that borders them.
+ * later (their roads may lead into it). What a starting road uncovers stays out of bounds until setup
+ * is over, so every player picks from the same corners. Black Forest starts in the forest, on corners
+ * touching only forest (or the lake). A map with starting areas (Vulcan) starts on any corner touching
+ * one of their tiles, right up to the desert that borders them.
  */
 function startingCorner(s: Q, v: number): boolean {
   const hexes = topo(s).vertices[v].hexes.map((h) => s.board.hexes[h]);
-  if (hexes.some((h) => h.fog)) return false;
+  if (hexes.some((h) => h.fog || s.setup?.fog?.includes(h.id))) return false;
   if (s.settings.map === 'blackForest') return hexes.every((h) => h.terrain === 'forest');
   if (hasStartAreas(s)) return hexes.some((h) => h.start) && hexes.every((h) => h.start || h.terrain === 'desert');
   return true;

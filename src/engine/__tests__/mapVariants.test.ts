@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { simulateGame } from '@/bots/simulate';
+import { applyAction } from '../apply';
 import { generateBoard } from '../board/generate';
 import { VULCAN_TILES, getTopology } from '../board/topology';
 import { FOUR_LAKES_TERRAIN_COUNTS, GOLD_RUSH_TERRAIN_COUNTS, HEARTLAKE_NUMBER_TOKENS, HEARTLAKE_TERRAIN_COUNTS, TERRAIN_COUNTS } from '../constants';
-import { legalSettlementSpots } from '../queries';
+import { legalSettlementSpots, legalSetupRoads } from '../queries';
 import { createGame } from '../state';
+import { viewFor } from '../view';
 import { victoryPoints } from '../vp';
-import { MAP_IDS, type Board, type Terrain } from '../types';
+import { MAP_IDS, type Action, type Board, type GameState, type Terrain } from '../types';
 
 const seeds = Array.from({ length: 100 }, (_, i) => i * 7919 + 3);
 
@@ -34,10 +36,52 @@ describe('map variants', () => {
       for (const h of fog) expect(Math.max(Math.abs(h.q), Math.abs(h.r), Math.abs(h.q + h.r))).toBeLessThanOrEqual(1);
       expect(fog.filter((h) => h.terrain === 'gold')).toHaveLength(1);
       expect(board.hexes.filter((h) => h.terrain === 'gold')).toHaveLength(1);
-      for (const h of board.hexes.filter((x) => x.terrain === 'gold')) expect([6, 8]).not.toContain(h.token);
+      // The gold is always a 6 or an 8, and the fog hides nothing worse than a 4 or a 10.
+      for (const h of board.hexes.filter((x) => x.terrain === 'gold')) expect([6, 8], `seed ${seed}`).toContain(h.token);
+      for (const h of fog) expect([4, 5, 6, 8, 9, 10], `seed ${seed} hex ${h.id}`).toContain(h.token);
+      // The ring is numbered like an island of its own.
+      const ringTokens = board.hexes.filter((h) => !h.fog && h.token !== null).map((h) => h.token!);
+      expect(ringTokens.sort((a, b) => a - b)).toEqual([2, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 8, 8, 9, 9, 9, 10, 10, 10, 11, 11, 12]);
       expect(counts({ ...board, hexes: board.hexes.filter((h) => !h.fog) })).toEqual(nonZero(GOLD_RUSH_TERRAIN_COUNTS));
       expect(board.harbors).toHaveLength(9);
       expect(harborsValid(board)).toBe(true);
+    }
+  });
+
+  it('keeps everyone to the same starting corners, whatever the starting roads uncover', () => {
+    const touchesFog = (s: GameState, v: number) => getTopology(s.board.hexes).vertices[v].hexes.some((h) => s.board.hexes[h].fog);
+    for (const map of ['goldRush', 'blackForest', 'vulcan'] as const) {
+      for (const seed of [1, 2, 3]) {
+        const players = ['a', 'b', 'c', 'd'].map((id) => ({ id, name: id, color: 'red' as const, isBot: false }));
+        let s = createGame({ seed, mode: 'classic', players, settings: { map } });
+        const t = getTopology(s.board.hexes);
+        const corners = new Set(legalSettlementSpots(s, 0, true));
+        const fogged = new Set(s.board.hexes.filter((h) => h.fog).map((h) => h.id));
+        const act = (seat: number, action: Action) => {
+          const r = applyAction(s, seat, action);
+          if (!r.ok) throw new Error(`${map} seed ${seed}: ${action.type} rejected: ${r.error}`);
+          s = r.state;
+        };
+        const intoFog = (e: number) => [t.edges[e].a, t.edges[e].b].some((w) => touchesFog(s, w));
+        while (s.phase === 'setup') {
+          const seat = s.setup!.order[s.setup!.index];
+          const spots = legalSettlementSpots(s, seat, true);
+          for (const v of spots) expect(corners.has(v), `${map} seed ${seed}: corner ${v} opened up`).toBe(true);
+          // Players' own views agree (the board shows what was uncovered).
+          expect(legalSettlementSpots(viewFor(s, seat), seat, true)).toEqual(spots);
+          // Settle where a road can run into the fog, and send the road there.
+          const v = spots.find((x) => t.vertices[x].edges.some((e) => s.roads[e] === null && intoFog(e))) ?? spots[0];
+          act(seat, { type: 'buildSettlement', vertex: v });
+          const roads = legalSetupRoads(s);
+          act(seat, { type: 'buildRoad', edge: roads.find(intoFog) ?? roads[0] });
+          for (const p of s.pending) if (p.kind === 'goldPick') act(p.seat, { type: 'pickGold', cards: { brick: p.count } });
+        }
+        // The starting roads did uncover tiles, yet no starting settlement touches one.
+        expect(s.board.hexes.some((h) => fogged.has(h.id) && !h.fog), `${map} seed ${seed}`).toBe(true);
+        for (const [v, b] of s.buildings.entries()) {
+          if (b) expect(t.vertices[v].hexes.some((h) => fogged.has(h)), `${map} seed ${seed}: settlement ${v}`).toBe(false);
+        }
+      }
     }
   });
 
