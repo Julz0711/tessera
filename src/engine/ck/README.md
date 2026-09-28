@@ -8,7 +8,7 @@ an online game needs a precise answer, these are the interpretations used:
 - Activate for 1 grain. A knight **cannot move, displace or chase the robber on the turn it was activated** (Warlord counts as activation).
 - Promote for 1 wool + 1 ore, once per knight per turn, only if a piece of the next level is in your supply. Mighty knights need Politics level 3 (Fortress).
 - Moving travels along **your own roads**; it may pass your own pieces but not opponents' buildings or knights. Any action deactivates the knight.
-- Displacing needs a strictly weaker opponent knight at the destination. The displaced knight's owner moves it (keeping level and active state) to any empty intersection touching their roads; with no such spot it is removed.
+- Displacing needs a strictly weaker opponent knight at the destination. The displaced knight's owner moves it (keeping level and active state) along their own roads to another empty intersection connected to the spot it was displaced from, passing their own pieces but not opponents'; with no such spot it is removed.
 - Opponent knights block your roads and break your longest road, like settlements. No settlement may be built where a knight stands.
 
 ## Barbarians & robber
@@ -36,7 +36,7 @@ an online game needs a precise answer, these are the interpretations used:
 - Spy: look at an opponent's progress cards and take one.
 - Deserter: the victim removes one of their knights; you may place a knight of the same strength from your supply.
 - Diplomat: remove an open road (one end connects to nothing of its owner's); if it was yours you may place it again immediately.
-- Intrigue: displace an opponent's knight standing on an intersection touching your roads (no knight of yours needed).
+- Intrigue: displace an opponent's knight standing on an intersection touching your roads (no knight of yours needed). The intersection is left empty: its owner relocates the knight as for any displacement and can't put it back.
 - Inventor: swap two number tokens other than 2, 12, 6 and 8.
 - Merchant: place the merchant on a land hex next to your settlement or city — 2:1 trades for that hex's resource and +1 VP while you hold it.
 - Merchant Fleet: 2:1 trades for one card type of your choice for the rest of the turn.
