@@ -97,6 +97,11 @@ export const BIG_MAPS: ReadonlySet<MapId> = new Set<MapId>(['large', 'blackFores
 export const GOLD_RUSH_TERRAIN_COUNTS: Record<Terrain, number> = { forest: 5, hills: 4, pasture: 5, fields: 5, mountains: 4, desert: 1, gold: 0 };
 /** Gold Rush's fogged middle: one gold field, one of each resource and one more of a random resource. */
 export const GOLD_RUSH_FOG: Terrain[] = ['gold', 'forest', 'hills', 'pasture', 'fields', 'mountains'];
+/**
+ * The fog only hides good numbers: the gold is always a 6 or an 8, and the other six are drawn from
+ * these (a 6 or 8 only where it touches no other).
+ */
+export const GOLD_RUSH_FOG_TOKENS = [4, 4, 5, 5, 6, 8, 9, 9, 10, 10];
 
 /** What Vulcan's 18 fogged tiles hide (dealt at random; the rest of the map is fixed). Never desert: exploring should pay. */
 export const VULCAN_FOG_TERRAINS: Partial<Record<Terrain, number>> = { forest: 4, hills: 4, pasture: 4, fields: 4, mountains: 2 };

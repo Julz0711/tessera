@@ -20,6 +20,7 @@ import {
   metropolisSpots,
   openRoads,
   promotableKnights,
+  relocationSpots,
   robberTargets,
   robberVictims,
   wallSpots,
@@ -143,6 +144,7 @@ function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): Boa
           vertices: view.buildings.flatMap((b, v) => (b && b.owner === me && b.city && !b.metropolis ? [v] : [])),
         };
       case 'relocateKnight':
+        return { ...NO_TARGETS, kind: 'knight', vertices: relocationSpots(view, me, prompt.from) };
       case 'deserterPlace':
         return { ...NO_TARGETS, kind: 'knight', vertices: legalKnightSpots(view, me) };
       case 'deserterRemove':

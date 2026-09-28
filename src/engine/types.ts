@@ -211,6 +211,12 @@ export interface SetupState {
   index: number;
   placing: 'settlement' | 'road';
   lastVertex: number | null;
+  /**
+   * Fog maps: the hexes under fog when the game began. Starting settlements never touch them, not even
+   * once a starting road has uncovered one, so everyone picks from the same corners. Missing in games
+   * from before.
+   */
+  fog?: number[];
 }
 
 export type Phase = 'setup' | 'play' | 'ended';
