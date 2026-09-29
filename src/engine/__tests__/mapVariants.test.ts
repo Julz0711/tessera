@@ -3,8 +3,9 @@ import { simulateGame } from '@/bots/simulate';
 import { applyAction } from '../apply';
 import { generateBoard } from '../board/generate';
 import { VULCAN_TILES, getTopology } from '../board/topology';
-import { FOUR_LAKES_TERRAIN_COUNTS, GOLD_RUSH_TERRAIN_COUNTS, HEARTLAKE_NUMBER_TOKENS, HEARTLAKE_TERRAIN_COUNTS, TERRAIN_COUNTS } from '../constants';
+import { FOUR_LAKES_TERRAIN_COUNTS, GOLD_RUSH_TERRAIN_COUNTS, HEARTLAKE_NUMBER_TOKENS, HEARTLAKE_TERRAIN_COUNTS, MAX_PLAYERS, TERRAIN_COUNTS } from '../constants';
 import { legalSettlementSpots, legalSetupRoads } from '../queries';
+import { MAPS, mapSupports } from '../maps';
 import { createGame } from '../state';
 import { viewFor } from '../view';
 import { victoryPoints } from '../vp';
@@ -27,6 +28,19 @@ function harborsValid(board: Board): boolean {
 }
 
 describe('map variants', () => {
+  it('keeps map metadata complete and enforces compatibility tags', () => {
+    expect(Object.keys(MAPS)).toEqual([...MAP_IDS]);
+    for (const map of MAP_IDS) {
+      expect(MAPS[map].id).toBe(map);
+      expect(MAPS[map].name).not.toBe('');
+      expect(MAPS[map].blurb).not.toBe('');
+      expect(MAPS[map].requires).toContain('base');
+      expect(mapSupports(map, 'classic')).toBe(true);
+      expect(mapSupports(map, 'ck')).toBe(true);
+      expect(MAX_PLAYERS[map]).toBe(MAPS[map].maxPlayers);
+    }
+  });
+
   it('Gold Rush rings seven fogged hexes, one of them gold', () => {
     for (const seed of seeds) {
       const board = generateBoard({ rng: seed }, 'goldRush');

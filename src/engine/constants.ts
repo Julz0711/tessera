@@ -12,6 +12,7 @@ import type {
   Terrain,
   Track,
 } from './types';
+import { MAPS } from './maps';
 
 export const COSTS = {
   road: { brick: 1, lumber: 1 },
@@ -81,14 +82,14 @@ export const LARGE_DEV_DECK: Record<DevCardType, number> = { knight: 20, victory
 
 /** Seats each map has room for. */
 export const MAX_PLAYERS: Record<MapId, number> = {
-  standard: 4,
-  large: 6,
-  blackForest: 6,
-  goldRush: 6,
-  vulcan: 4,
-  heartlake: 4,
-  longIsle: 4,
-  fourLakes: 6,
+  standard: MAPS.standard.maxPlayers,
+  large: MAPS.large.maxPlayers,
+  blackForest: MAPS.blackForest.maxPlayers,
+  goldRush: MAPS.goldRush.maxPlayers,
+  vulcan: MAPS.vulcan.maxPlayers,
+  heartlake: MAPS.heartlake.maxPlayers,
+  longIsle: MAPS.longIsle.maxPlayers,
+  fourLakes: MAPS.fourLakes.maxPlayers,
 };
 /** Maps that use the 5–6 player extension's bigger bank and development deck. */
 export const BIG_MAPS: ReadonlySet<MapId> = new Set<MapId>(['large', 'blackForest', 'goldRush', 'vulcan', 'fourLakes']);

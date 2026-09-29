@@ -7,6 +7,7 @@ import { FEATURES } from '@/config/features';
 import { usePrefs } from '@/client/prefs';
 import { api, toast, useGame } from '@/client/store';
 import { MAX_PLAYERS } from '@/engine/constants';
+import { MAPS } from '@/engine/maps';
 import { MAP_IDS, type MapId, type PlayerColor } from '@/engine/types';
 import { TURN_TIMER_OPTIONS, type RoomDTO, type RoomSettings, type SeatDTO } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
@@ -154,27 +155,6 @@ function Segmented<T extends string | number>({
 }
 
 const MAP_OPTIONS: readonly MapId[] = MAP_IDS;
-const MAP_LABELS: Record<MapId, string> = {
-  standard: 'Standard',
-  large: 'Large (5–6)',
-  blackForest: 'Black Forest',
-  goldRush: 'Gold Rush',
-  vulcan: 'Vulcan',
-  heartlake: 'Heartlake',
-  longIsle: 'Long Isle',
-  fourLakes: 'Four Lakes',
-};
-const MAP_BLURBS: Record<MapId, string> = {
-  standard: 'The classic 19-hex island.',
-  large: 'A bigger island for 5–6 players, with a bigger bank and deck.',
-  blackForest: 'Start inside a ring of forest; the rest of the island is hidden under fog until you explore it.',
-  goldRush: 'A ring island around seven hexes of fog, one of them a gold field on a 6 or 8. Build inward to find it.',
-  vulcan: 'Start in the four far corners. Ore lies only around the volcano, a gold 6 in the fog-covered middle.',
-  heartlake: 'A ring island around a lake. Three 3:1 harbors line the lake shore, reachable from the middle.',
-  longIsle: 'A long, thin island: more coast, more harbors within reach, and tighter races for the long road.',
-  fourLakes: 'A big pinwheel island with four lakes cut into it, and harbors on their shores. For up to 6.',
-};
-
 function MapSegmented({ value, onChange, disabled }: { value: MapId; onChange: (v: MapId) => void; disabled?: boolean }) {
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -190,7 +170,7 @@ function MapSegmented({ value, onChange, disabled }: { value: MapId; onChange: (
           } ${disabled && value !== o ? 'opacity-40' : ''}`}
         >
           <MapPreview map={o} size={64} />
-          {MAP_LABELS[o]}
+          {MAPS[o].name}
         </button>
       ))}
     </div>
@@ -234,7 +214,17 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
       <div className="grid gap-1.5">
         <span className="label">Map</span>
         <MapSegmented value={s.map ?? 'standard'} onChange={(map) => set({ map })} disabled={!host} />
-        <p className="text-xs font-semibold text-ink-soft">{MAP_BLURBS[s.map ?? 'standard']}</p>
+        <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-ink-soft">
+          {MAPS[s.map ?? 'standard'].requires.map((tag) => (
+            <span key={tag} className="rounded-full bg-ink/10 px-2 py-0.5 font-black uppercase tracking-wide">{tag}</span>
+          ))}
+          {MAPS[s.map ?? 'standard'].modes.map((mode) => (
+            <span key={mode} className="rounded-full bg-amber/25 px-2 py-0.5 font-black uppercase tracking-wide">
+              {mode === 'ck' ? 'K&B' : mode}
+            </span>
+          ))}
+          <span>{MAPS[s.map ?? 'standard'].blurb}</span>
+        </div>
         {s.map === 'blackForest' && (
           <div className="mt-1">
             <Toggle label="Gold fields in the fog" checked={s.gold ?? true} onChange={(gold) => set({ gold })} disabled={!host} />

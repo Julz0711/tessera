@@ -1,4 +1,5 @@
 export * from './types';
+export * from './maps';
 export * from './constants';
 export { applyAction } from './apply';
 export { createGame, type CreateGameOptions, type NewPlayer } from './state';

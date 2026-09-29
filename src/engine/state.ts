@@ -14,6 +14,7 @@ import {
   PROGRESS_DECKS,
 } from './constants';
 import { emptyHand } from './hand';
+import { mapSupports } from './maps';
 import { normalizeSeed, shuffle } from './rng';
 import { newStats, recordStats } from './stats';
 import {
@@ -92,6 +93,7 @@ function fullBank(mode: Mode, map: MapId): Hand {
 export function createGame(opts: CreateGameOptions): GameState {
   const { mode, players } = opts;
   const map: MapId = opts.settings?.map ?? 'standard';
+  if (!mapSupports(map, mode)) throw new Error(`Map ${map} is not compatible with ${mode} mode`);
   if (players.length < 2 || players.length > MAX_PLAYERS[map]) throw new Error(`This map seats 2–${MAX_PLAYERS[map]} players`);
   const rng = { rng: normalizeSeed(opts.seed) };
   const gold = opts.settings?.gold ?? true;

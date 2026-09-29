@@ -16,6 +16,7 @@ import {
   type GameState,
   type PlayerColor,
 } from '@/engine';
+import { mapSupports } from '@/engine/maps';
 import { COLOR_ORDER, isPlayerColor } from '@/shared/colors';
 import { DEFAULT_COSMETICS, sanitizeCosmetics, type Cosmetics } from '@/shared/cosmetics';
 import { DEFAULT_KNIGHT, sanitizeKnight, type KnightCustomization } from '@/shared/knight';
@@ -294,11 +295,13 @@ export class Room {
   private applySettings(patch: Partial<RoomSettings>): void {
     const next = { ...this.settings };
     if (patch.mode === 'classic' || patch.mode === 'ck') {
+      if (!mapSupports(next.map ?? 'standard', patch.mode)) throw new UserError('That map is not available in this mode');
       if (patch.mode !== next.mode) next.vpToWin = DEFAULT_VP[patch.mode];
       next.mode = patch.mode;
     }
     next.map ??= 'standard'; // rooms saved before maps existed
     if (isMapId(patch.map)) {
+      if (!mapSupports(patch.map, next.mode)) throw new UserError('That map is not available in this mode');
       const seats = MAX_PLAYERS[patch.map];
       if (this.seats.length > seats) throw new UserError(`That map seats at most ${seats} players`);
       // The big island is for bigger tables: open its extra seats by default.
