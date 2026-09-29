@@ -30,6 +30,7 @@ export const PATCH_NOTES: PatchNote[] = [
           'A starting settlement on the coast may launch a ship instead of its road, and Road Building places roads or ships.',
           'Longest Road becomes the longest trade route: roads and ships count together.',
           'The pirate: on a 7 or a knight you may move it instead of the robber. It robs a player with a ship beside it and blocks new ships on its hex and ships sailing away from it.',
+          'Every board theme has its own ships, pirate and treasure: longships in Nordic, junks in Sakura, feluccas on the Nile, paddle steamers in Frontier, airships in Skyport, hover-boats in Cyberpunk, shuttles in Orbital and paper boats in Origami.',
         ],
       },
       {
