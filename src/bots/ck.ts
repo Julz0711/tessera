@@ -31,6 +31,7 @@ import {
   wouldGainMetropolis,
   piecesLeft,
   promotableKnights,
+  relocationSpots,
   robberActive,
   robberVictims,
   topo,
@@ -147,7 +148,7 @@ function resolvePrompt(view: PlayerView, seat: number, prompt: Prompt): Action |
       return { type: 'loseCity', vertex: argmax(cities, (v) => -cityValue(view, seat, v))! };
     }
     case 'relocateKnight': {
-      const spots = legalKnightSpots(view, seat);
+      const spots = relocationSpots(view, seat, prompt.from);
       return { type: 'relocateKnight', vertex: spots[0] ?? null };
     }
     case 'rewardDeck':

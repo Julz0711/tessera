@@ -161,7 +161,7 @@ export function createGame(opts: CreateGameOptions): GameState {
     barbarian: { position: 0, attacks: 0 },
     metropolis: { trade: null, politics: null, science: null },
     phase: 'setup',
-    setup: { order, index: 0, placing: 'settlement', lastVertex: null },
+    setup: { order, index: 0, placing: 'settlement', lastVertex: null, fog: board.hexes.filter((h) => h.fog).map((h) => h.id) },
     turn: {
       seat: order[0],
       n: 0,

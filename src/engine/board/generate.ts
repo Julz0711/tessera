@@ -1,6 +1,7 @@
 import {
   FOUR_LAKES_TERRAIN_COUNTS,
   GOLD_RUSH_FOG,
+  GOLD_RUSH_FOG_TOKENS,
   GOLD_RUSH_TERRAIN_COUNTS,
   HEARTLAKE_COAST_HARBORS,
   HEARTLAKE_LAKE_HARBORS,
@@ -121,14 +122,14 @@ function bag(counts: Partial<Record<Terrain, number>>): Terrain[] {
 const ringOf = (h: HexCoord) => Math.max(Math.abs(h.q), Math.abs(h.r), Math.abs(h.q + h.r));
 
 /**
- * Numbers for groups of hexes, each dealt from its own pool, re-dealt until no 6/8 touch, gold stays
- * off them and, unless `allowEqual`, no equal numbers touch. `fixed` holds the numbers that don't
- * move. If equal numbers can't be kept apart after many deals, keeping the 6s and 8s apart will do.
+ * Numbers for groups of hexes, each dealt from its own pool (the first as many as it has hexes),
+ * re-dealt until no 6/8 touch and, unless `allowEqual`, no equal numbers touch. `fixed` holds the
+ * numbers that don't move. If equal numbers can't be kept apart after many deals, keeping the 6s and
+ * 8s apart will do.
  */
 function dealTokens(
   rng: RngHolder,
   topo: Topology,
-  terrains: Terrain[],
   groups: [ids: number[], pool: number[]][],
   fixed: (number | null)[],
   allowEqual = true,
@@ -142,7 +143,7 @@ function dealTokens(
       const deal = shuffle(rng, [...pool]);
       ids.forEach((id, i) => (tokens[id] = deal[i]));
     }
-    if (tokensValid(topo, tokens, allowEqual || attempt >= 3000, terrains) && (!extra || extra(tokens))) break;
+    if (tokensValid(topo, tokens, allowEqual || attempt >= 3000) && (!extra || extra(tokens))) break;
   }
   return tokens;
 }
@@ -182,7 +183,8 @@ function spreadRedTokens(rng: RngHolder, topo: Topology, groups: [ids: number[],
 
 /**
  * Gold Rush: a ring island (rings 2 and 3) around seven hexes under fog; one of them, anywhere
- * among the seven, is a gold field. Nine harbors on the outer coast.
+ * among the seven, is a gold field. The ring is numbered like an island of its own; the fog hides
+ * only 4s to 10s, and the gold is always a 6 or an 8. Nine harbors on the outer coast.
  */
 function goldRushBoard(rng: RngHolder): Board {
   const topo = getTopology(GOLD_RUSH_HEX_COORDS);
@@ -195,8 +197,13 @@ function goldRushBoard(rng: RngHolder): Board {
   const hidden = shuffle(rng, [...GOLD_RUSH_FOG, resources[randomInt(rng, resources.length)]]);
   middle.forEach((id, i) => (terrains[id] = hidden[i]));
 
-  const numbered = topo.hexes.filter((h) => terrains[h.id] !== 'desert').map((h) => h.id);
-  const tokens = dealTokens(rng, topo, terrains, [[numbered, balancedTokens(numbered.length)]], topo.hexes.map(() => null), false);
+  const gold = middle.find((id) => terrains[id] === 'gold')!;
+  const fixed: (number | null)[] = topo.hexes.map(() => null);
+  fixed[gold] = randomInt(rng, 2) ? 6 : 8;
+  // The middle first (it is tight: its centre touches the other six), then the ring around it.
+  const hiddenTokens = dealTokens(rng, topo, [[middle.filter((id) => id !== gold), [...GOLD_RUSH_FOG_TOKENS]]], fixed, false);
+  const land = ring.filter((id) => terrains[id] !== 'desert');
+  const tokens = dealTokens(rng, topo, [[land, balancedTokens(land.length)]], hiddenTokens, false);
 
   const hexes: Hex[] = topo.hexes.map((h) => ({ id: h.id, q: h.q, r: h.r, terrain: terrains[h.id], token: tokens[h.id] }));
   for (const id of middle) hexes[id].fog = true;
@@ -250,12 +257,9 @@ function vulcanBoard(rng: RngHolder): Board {
 
   shuffle(rng, bag(VULCAN_FOG_TERRAINS)).forEach((t, i) => (terrains[fogged[i]] = t));
   const hiddenNumbered = fogged.filter((id) => terrains[id] !== 'desert');
-  // Gold normally stays off the 6 and 8; the volcano is the exception, so it is checked as a mountain.
-  const checked = terrains.map((t) => (t === 'gold' ? 'mountains' : t));
   const dealt = dealTokens(
     rng,
     topo,
-    checked,
     [
       [home, homeNumbers],
       [ring, ringNumbers],
@@ -279,15 +283,11 @@ function vulcanBoard(rng: RngHolder): Board {
   return { hexes, harbors };
 }
 
-/**
- * No neighbouring 6/8 and, unless `allowEqual`, no neighbouring equal numbers. With `terrains`,
- * gold fields also stay off the 6 and 8 (Gold Rush — they pay out anything, so that'd be too rich).
- */
-function tokensValid(topo: Topology, tokens: (number | null)[], allowEqual = false, terrains?: Terrain[]): boolean {
+/** No neighbouring 6/8 and, unless `allowEqual`, no neighbouring equal numbers. */
+function tokensValid(topo: Topology, tokens: (number | null)[], allowEqual = false): boolean {
   for (const h of topo.hexes) {
     const t = tokens[h.id];
     if (t === null) continue;
-    if (terrains?.[h.id] === 'gold' && isRed(t)) return false;
     for (const n of h.neighbors) {
       const u = tokens[n];
       if (u === null) continue;
@@ -366,7 +366,7 @@ export function generateBoard(rng: RngHolder, map: MapId = 'standard', opts: { g
 
   const terrains = shuffle(rng, bag(spec.terrains));
   const landIds = topo.hexes.filter((h) => terrains[h.id] !== 'desert').map((h) => h.id);
-  const tokens = dealTokens(rng, topo, terrains, [[landIds, [...spec.tokens]]], topo.hexes.map(() => null), !!spec.allowEqual);
+  const tokens = dealTokens(rng, topo, [[landIds, [...spec.tokens]]], topo.hexes.map(() => null), !!spec.allowEqual);
 
   const hexes: Hex[] = topo.hexes.map((h) => ({
     id: h.id,

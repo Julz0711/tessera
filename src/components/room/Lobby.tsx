@@ -168,7 +168,7 @@ const MAP_BLURBS: Record<MapId, string> = {
   standard: 'The classic 19-hex island.',
   large: 'A bigger island for 5–6 players, with a bigger bank and deck.',
   blackForest: 'Start inside a ring of forest; the rest of the island is hidden under fog until you explore it.',
-  goldRush: 'A ring island around seven hexes of fog, one of them a gold field. Build inward to find it.',
+  goldRush: 'A ring island around seven hexes of fog, one of them a gold field on a 6 or 8. Build inward to find it.',
   vulcan: 'Start in the four far corners. Ore lies only around the volcano, a gold 6 in the fog-covered middle.',
   heartlake: 'A ring island around a lake. Three 3:1 harbors line the lake shore, reachable from the middle.',
   longIsle: 'A long, thin island: more coast, more harbors within reach, and tighter races for the long road.',
