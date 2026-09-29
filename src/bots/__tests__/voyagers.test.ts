@@ -43,7 +43,7 @@ describe('Voyagers self-play', () => {
       if (result.error) throw new Error(`seed ${seed} (${players}p): ${result.error}`);
       const s = result.state;
       expect(s.phase).toBe('ended');
-      revealed += 12 - s.board.hexes.filter((h) => h.fog).length;
+      revealed += 15 - s.board.hexes.filter((h) => h.fog).length;
       treasures += s.board.treasures!.filter((t) => t.takenBy !== undefined).length;
     }
     console.log(`veiledIsles: ${revealed} fog hexes revealed, ${treasures} treasures`);

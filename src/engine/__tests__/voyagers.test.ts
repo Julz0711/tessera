@@ -78,7 +78,7 @@ describe('Veiled Isles', () => {
     for (const seed of seeds) {
       const board = generateBoard({ rng: seed }, 'veiledIsles');
       const fog = board.hexes.filter((h) => h.fog);
-      expect(fog).toHaveLength(12);
+      expect(fog).toHaveLength(15);
       expect(fog.filter((h) => h.terrain === 'sea').length).toBeLessThanOrEqual(2);
       expect(fog.filter((h) => h.terrain === 'gold').length).toBeLessThanOrEqual(1);
       expect(fog.filter((h) => h.terrain === 'desert')).toHaveLength(0);
@@ -223,10 +223,13 @@ describe('Veiled Isles rewards', () => {
   it('scores 1 point per foreign island', () => {
     const s = autoSetup(game('veiledIsles', 'ck', 3));
     const t = getTopology(s.board.hexes);
+    // Every isle starts under the fog: uncover one land hex and settle next to it.
+    const found = s.board.hexes.find((h) => h.fog && h.terrain !== 'sea')!;
+    found.fog = false;
     const islands = islandsOf(s.board, t);
     const home = s.homeIslands![0];
     const base = victoryPoints(s, 0);
-    const v = t.vertices.find((vx) => vx.hexes.some((h) => islands[h] >= 0 && !home.includes(islands[h]) && !s.board.hexes[h].fog))!;
+    const v = t.vertices.find((vx) => vx.hexes.includes(found.id) && !vx.hexes.some((h) => home.includes(islands[h])))!;
     s.buildings[v.id] = { owner: 0, city: false, wall: false, metropolis: null };
     expect(victoryPoints(s, 0)).toBe(base + 1 + 1);
   });

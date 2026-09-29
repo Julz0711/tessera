@@ -102,3 +102,38 @@ export function mapsByCategory(): { id: MapCategory; label: string; maps: MapDef
     (g) => g.maps.length > 0,
   );
 }
+
+/**
+ * What the lobby's Mode picker offers: the two base-game rule sets plus the map categories that bring
+ * their own rules. Derived from `mode` and the map's category, never stored.
+ */
+export type GameType = 'classic' | 'ck' | 'voyagers' | 'special';
+
+export const GAME_TYPES: readonly { id: GameType; label: string }[] = [
+  { id: 'classic', label: 'Classic' },
+  { id: 'ck', label: 'Knights & Barbarians' },
+  { id: 'voyagers', label: 'Voyagers' },
+  { id: 'special', label: 'Special' },
+];
+
+export function gameTypeOf(map: MapId, mode: Mode): GameType {
+  const { category } = MAPS[map];
+  return category === 'base' ? mode : category;
+}
+
+/** Maps listed under a game type, in definition order. */
+export function mapsForType(type: GameType): MapDefinition[] {
+  const category: MapCategory = type === 'classic' || type === 'ck' ? 'base' : type;
+  return Object.values(MAPS).filter((m) => m.category === category && (category !== 'base' || m.modes.includes(type as Mode)));
+}
+
+/**
+ * Settings that switch to a game type: keeps the current map when it belongs to the type, otherwise
+ * picks the type's first map, and keeps the current rules when that map supports them.
+ */
+export function gameTypeSettings(type: GameType, current: { map: MapId; mode: Mode }): { map: MapId; mode: Mode } {
+  const maps = mapsForType(type);
+  const map = maps.some((m) => m.id === current.map) ? current.map : maps[0].id;
+  const mode: Mode = type === 'classic' || type === 'ck' ? type : MAPS[map].modes.includes(current.mode) ? current.mode : MAPS[map].modes[0];
+  return { map, mode };
+}

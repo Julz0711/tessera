@@ -295,7 +295,9 @@ export class Room {
   private applySettings(patch: Partial<RoomSettings>): void {
     const next = { ...this.settings };
     if (patch.mode === 'classic' || patch.mode === 'ck') {
-      if (!mapSupports(next.map ?? 'standard', patch.mode)) throw new UserError('That map is not available in this mode');
+      // Mode and map may change together (the lobby's game type picker): check against the new map.
+      const map = isMapId(patch.map) ? patch.map : (next.map ?? 'standard');
+      if (!mapSupports(map, patch.mode)) throw new UserError('That map is not available in this mode');
       if (patch.mode !== next.mode) next.vpToWin = defaultVP(next.map ?? 'standard', patch.mode, DEFAULT_VP[patch.mode]);
       next.mode = patch.mode;
     }

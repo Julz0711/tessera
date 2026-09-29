@@ -40,7 +40,7 @@ export const PATCH_NOTES: PatchNote[] = [
           'Far Shores: start on the big island and sail for the small isles and their gold. 2 points for your first settlement on each small isle. First to 14.',
           'Four Realms: four islands. Start on one or two; each other island you settle is worth 2 points. First to 13.',
           'Veiled Isles (Special, Knights & Barbarians): sail into the fog to uncover land and claim 15 hidden treasures. Hidden sea pays a bonus treasure, and each foreign isle you settle is worth a point. First to 14.',
-          'The map picker is grouped into Base game, Voyagers and Special.',
+          'Pick Classic, Knights & Barbarians, Voyagers or Special as the mode, then one of its maps.',
         ],
       },
     ],

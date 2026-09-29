@@ -8,27 +8,36 @@ import { getTopology, type HexCoord, type Topology } from './topology';
  * Voyagers boards (Seafarers rules). Layouts are drawn as rows of one character per hex, odd rows
  * shifted half a hex right (as on a printed frame):
  *   ~ sea   P sea where the pirate starts   M main (starting) island   i small-island slot
- *   A–D one of four islands   f fog   o outer island
+ *   A–D one of four islands   f fog
  * Terrain and numbers are dealt per game; only the shapes are fixed.
  */
 interface Layout {
   coords: HexCoord[];
   codes: string[];
+  /** Hex id at a row and character column of the drawing. */
+  at: (row: number, col: number) => number;
 }
 
 function parseLayout(rows: string[]): Layout {
   const centre = Math.floor(rows.length / 2);
   const coords: HexCoord[] = [];
   const codes: string[] = [];
+  const ids = new Map<string, number>();
   rows.forEach((row, j) => {
     const r = j - centre;
     [...row].forEach((code, c) => {
       if (code === ' ') return;
+      ids.set(`${j},${c}`, coords.length);
       coords.push({ q: c - (r - (r & 1)) / 2, r });
       codes.push(code);
     });
   });
-  return { coords, codes };
+  const at = (row: number, col: number) => {
+    const id = ids.get(`${row},${col}`);
+    if (id === undefined) throw new Error(`No hex at row ${row}, column ${col}`);
+    return id;
+  };
+  return { coords, codes, at };
 }
 
 // Far Shores (after "Heading for New Shores"): a standard-sized main island, a strait, and three
@@ -54,16 +63,38 @@ const FOUR_REALMS = parseLayout([
   '~~~~~~~~~~',
 ]);
 
-// Veiled Isles: the home island in the west, a fog-covered sea in the middle, outer isles in the east.
+// Veiled Isles: the base game's island in a wide frame of sea, with fog-covered hexes scattered all
+// around it (the islands waiting to be found). Laid out after the reference board, 9 rows, 8–12 wide.
 const VEILED_ISLES = parseLayout([
-  '~~~~~~~~~~oo',
-  '~~MMM~ff~~~o',
-  '~MMMM~ff~f~~',
-  '~MMMMMPff~oo',
-  '~MMMM~ff~f~~',
-  '~~MMM~ff~~~o',
-  '~~~~~~~~~~oo',
+  '  ~~~~~~~~',
+  ' ~f~MMM~f~',
+  ' ~f~MMMM~f~',
+  '~~~MMMMM~~~',
+  '~Pf~MMMM~f~~',
+  '~f~~MMM~~f~',
+  ' ~~f~~~~f~~',
+  ' ~f~fff~f~',
+  '  ~~~~~~~~',
 ]);
+
+/** The 15 treasure chests of the reference board, each on the corner shared by three hexes (row, column). */
+const VEILED_TREASURES: [number, number][][] = [
+  [[0, 8], [0, 9], [1, 8]],
+  [[1, 7], [1, 8], [2, 8]],
+  [[1, 9], [2, 9], [2, 10]],
+  [[2, 8], [2, 9], [3, 8]],
+  [[1, 2], [2, 2], [2, 3]],
+  [[3, 1], [4, 1], [4, 2]],
+  [[4, 2], [4, 3], [5, 2]],
+  [[4, 9], [4, 10], [5, 9]],
+  [[5, 9], [5, 10], [6, 10]],
+  [[6, 5], [6, 6], [7, 5]],
+  [[6, 8], [6, 9], [7, 8]],
+  [[7, 2], [7, 3], [8, 3]],
+  [[7, 6], [7, 7], [8, 7]],
+  [[7, 5], [8, 5], [8, 6]],
+  [[7, 8], [8, 8], [8, 9]],
+];
 
 const RESOURCES_TERRAIN: LandTerrain[] = ['forest', 'hills', 'pasture', 'fields', 'mountains'];
 
@@ -150,12 +181,11 @@ export function fourRealmsBoard(rng: RngHolder): Board {
 }
 
 /**
- * Veiled Isles: the home island is dealt like the base game's; the outer isles get a random terrain
- * each and numbers from 3–11 (no 7). Under the fog: 0–2 sea, 0–1 gold, the rest random resource
- * terrain, numbered at random from 3, 4, 5, 6, 8, 9, 10, 11 (repeats allowed: the rules call it
- * completely random). The contents are drawn now with the game's seeded RNG and kept server-side
- * until revealed, the same as Black Forest. Fifteen treasures lie on sea corners away from home,
- * one reward each from a shuffled 5/4/3/3 deck.
+ * Veiled Isles: the home island is dealt like the base game's. Under the fog: 0–2 sea, 0–1 gold,
+ * the rest random resource terrain, numbered at random from 3, 4, 5, 6, 8, 9, 10, 11 (repeats
+ * allowed: the rules call it completely random). The contents are drawn now with the game's seeded
+ * RNG and kept server-side until revealed, the same as Black Forest. Fifteen treasures lie on the
+ * reference board's chest corners, one reward each from a shuffled 5/4/3/3 deck.
  */
 export function veiledIslesBoard(rng: RngHolder): Board {
   const L = VEILED_ISLES;
@@ -163,11 +193,7 @@ export function veiledIslesBoard(rng: RngHolder): Board {
   const terrains: Terrain[] = L.codes.map(() => 'sea');
   const main = idsOf(L, (c) => c === 'M');
   const fog = idsOf(L, (c) => c === 'f');
-  const outer = idsOf(L, (c) => c === 'o');
   dealMain(rng, main, terrains);
-
-  const outerBag: Terrain[] = [...RESOURCES_TERRAIN, 'hills', 'mountains', 'pasture'];
-  shuffle(rng, outerBag).forEach((t, i) => (terrains[outer[i]] = t));
 
   const seas = randomInt(rng, 3);
   const golds = randomInt(rng, 2);
@@ -178,35 +204,22 @@ export function veiledIslesBoard(rng: RngHolder): Board {
   ];
   shuffle(rng, hidden).forEach((t, i) => (terrains[fog[i]] = t));
 
-  const tokens: (number | null)[] = topo.hexes.map(() => null);
   const mainLand = main.filter((id) => terrains[id] !== 'desert');
-  const dealt = dealTokens(rng, topo, [[mainLand, [...NUMBER_TOKENS]]], tokens, false);
-  const outerNumbers = shuffle(rng, [...VEILED_NUMBERS]);
-  outer.forEach((id, i) => (dealt[id] = outerNumbers[i % outerNumbers.length]));
+  const dealt = dealTokens(rng, topo, [[mainLand, [...NUMBER_TOKENS]]], topo.hexes.map(() => null), false);
   for (const id of fog) if (terrains[id] !== 'sea') dealt[id] = VEILED_NUMBERS[randomInt(rng, VEILED_NUMBERS.length)];
 
   const hexes = hexesOf(topo, terrains, dealt);
   for (const id of main) hexes[id].start = true;
   for (const id of fog) hexes[id].fog = true;
 
-  // Treasure spots: corners touching open (visible) sea, off the home island, never next to each other.
-  const home = new Set(main);
-  const visibleSea = (h: number) => terrains[h] === 'sea' && !hexes[h].fog;
-  const candidates = shuffle(
-    rng,
-    topo.vertices.filter((v) => v.hexes.some(visibleSea) && !v.hexes.some((h) => home.has(h)) && v.hexes.length > 1).map((v) => v.id),
-  );
-  const picked: number[] = [];
-  const taken = new Set<number>();
-  for (const v of candidates) {
-    if (picked.length === TREASURE_DECK.length) break;
-    if (taken.has(v)) continue;
-    picked.push(v);
-    taken.add(v);
-    for (const n of topo.vertices[v].vertices) taken.add(n);
-  }
+  const corners = VEILED_TREASURES.map((spot) => {
+    const ids = spot.map(([row, col]) => L.at(row, col));
+    const v = topo.vertices.find((x) => ids.every((h) => x.hexes.includes(h)));
+    if (!v) throw new Error('Treasure spot is not a corner');
+    return v.id;
+  });
   const deck = shuffle(rng, [...TREASURE_DECK]);
-  const treasures: Treasure[] = picked.map((vertex, i) => ({ vertex, kind: deck[i] }));
+  const treasures: Treasure[] = corners.map((vertex, i) => ({ vertex, kind: deck[i] }));
 
   // Nine harbors, all on the home island's coast.
   const harbors = harborsOn(rng, topo, terrains, [main], [9]);

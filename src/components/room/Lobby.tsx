@@ -7,7 +7,7 @@ import { FEATURES } from '@/config/features';
 import { usePrefs } from '@/client/prefs';
 import { api, toast, useGame } from '@/client/store';
 import { MAX_PLAYERS } from '@/engine/constants';
-import { MAPS, mapsByCategory } from '@/engine/maps';
+import { GAME_TYPES, MAPS, gameTypeOf, gameTypeSettings, mapsForType, type GameType } from '@/engine/maps';
 import { type MapId, type PlayerColor } from '@/engine/types';
 import { TURN_TIMER_OPTIONS, type RoomDTO, type RoomSettings, type SeatDTO } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
@@ -174,31 +174,23 @@ function MapInfo({ map }: { map: MapId }) {
   );
 }
 
-function MapSegmented({ value, onChange, disabled }: { value: MapId; onChange: (v: MapId) => void; disabled?: boolean }) {
-  const groups = mapsByCategory();
+function MapSegmented({ type, value, onChange, disabled }: { type: GameType; value: MapId; onChange: (v: MapId) => void; disabled?: boolean }) {
   return (
-    <div className="grid gap-2">
-      {groups.map((g) => (
-        <div key={g.id} className="grid gap-1">
-          {groups.length > 1 && <span className="text-[11px] font-black uppercase tracking-wide text-ink-soft">{g.label}</span>}
-          <div className="flex flex-wrap gap-1.5">
-            {g.maps.map(({ id: o }) => (
-              <button
-                key={o}
-                type="button"
-                disabled={disabled}
-                onClick={() => onChange(o)}
-                aria-pressed={value === o}
-                className={`flex flex-col items-center gap-1 rounded-lg border-2 px-3 py-1.5 text-sm font-bold transition disabled:cursor-default ${
-                  value === o ? 'border-ink bg-ink text-paper' : 'border-ink/20 bg-white/40 enabled:hover:border-ink/60'
-                } ${disabled && value !== o ? 'opacity-40' : ''}`}
-              >
-                <MapPreview map={o} size={64} />
-                {MAPS[o].name}
-              </button>
-            ))}
-          </div>
-        </div>
+    <div className="flex flex-wrap gap-1.5">
+      {mapsForType(type).map(({ id: o }) => (
+        <button
+          key={o}
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange(o)}
+          aria-pressed={value === o}
+          className={`flex flex-col items-center gap-1 rounded-lg border-2 px-3 py-1.5 text-sm font-bold transition disabled:cursor-default ${
+            value === o ? 'border-ink bg-ink text-paper' : 'border-ink/20 bg-white/40 enabled:hover:border-ink/60'
+          } ${disabled && value !== o ? 'opacity-40' : ''}`}
+        >
+          <MapPreview map={o} size={64} />
+          {MAPS[o].name}
+        </button>
       ))}
     </div>
   );
@@ -226,22 +218,29 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
   const host = room.you.isHost;
   const s = room.settings;
   const set = (patch: Partial<RoomSettings>) => api.settings(patch);
+  const map = s.map ?? 'standard';
+  const type = gameTypeOf(map, s.mode);
   return (
     <div className="grid gap-4">
       <div className="grid gap-1.5">
         <span className="label">Mode</span>
         <Segmented
-          value={s.mode}
-          options={FEATURES.citiesAndKnights ? (['classic', 'ck'] as const) : (['classic'] as const)}
-          format={(m) => (m === 'classic' ? 'Classic' : 'Knights & Barbarians')}
-          onChange={(mode) => set({ mode })}
+          value={type}
+          options={GAME_TYPES.map((t) => t.id).filter((t) => FEATURES.citiesAndKnights || (t !== 'ck' && mapsForType(t).some((m) => m.modes.includes('classic'))))}
+          format={(t) => GAME_TYPES.find((g) => g.id === t)!.label}
+          onChange={(t) => set(gameTypeSettings(t, { map, mode: s.mode }))}
           disabled={!host}
         />
       </div>
       <div className="grid gap-1.5">
         <span className="label">Map</span>
-        <MapSegmented value={s.map ?? 'standard'} onChange={(map) => set({ map })} disabled={!host} />
-        <MapInfo map={s.map ?? 'standard'} />
+        <MapSegmented type={type} value={map} onChange={(next) => set({ map: next })} disabled={!host} />
+        <MapInfo map={map} />
+        {type === 'voyagers' && FEATURES.citiesAndKnights && MAPS[map].modes.includes('ck') && MAPS[map].modes.includes('classic') && (
+          <div className="mt-1">
+            <Toggle label="Play with Knights & Barbarians rules" checked={s.mode === 'ck'} onChange={(ck) => set({ mode: ck ? 'ck' : 'classic' })} disabled={!host} />
+          </div>
+        )}
         {s.map === 'blackForest' && (
           <div className="mt-1">
             <Toggle label="Gold fields in the fog" checked={s.gold ?? true} onChange={(gold) => set({ gold })} disabled={!host} />
@@ -252,7 +251,7 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
         <span className="label">Seats</span>
         <Segmented
           value={s.maxPlayers}
-          options={Array.from({ length: MAX_PLAYERS[s.map ?? 'standard'] - 1 }, (_, i) => i + 2)}
+          options={Array.from({ length: MAX_PLAYERS[map] - 1 }, (_, i) => i + 2)}
           onChange={(maxPlayers) => set({ maxPlayers })}
           disabled={!host}
         />

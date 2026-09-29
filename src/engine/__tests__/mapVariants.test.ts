@@ -5,7 +5,7 @@ import { generateBoard } from '../board/generate';
 import { VULCAN_TILES, getTopology } from '../board/topology';
 import { BIG_MAPS, FOUR_LAKES_TERRAIN_COUNTS, GOLD_RUSH_TERRAIN_COUNTS, HEARTLAKE_NUMBER_TOKENS, HEARTLAKE_TERRAIN_COUNTS, MAX_PLAYERS, TERRAIN_COUNTS } from '../constants';
 import { legalSettlementSpots, legalSetupRoads } from '../queries';
-import { MAPS, mapSupports, mapsByCategory } from '../maps';
+import { GAME_TYPES, MAPS, gameTypeOf, gameTypeSettings, mapSupports, mapsByCategory, mapsForType } from '../maps';
 import { createGame } from '../state';
 import { viewFor } from '../view';
 import { victoryPoints } from '../vp';
@@ -44,6 +44,26 @@ describe('map variants', () => {
     // Every map appears in exactly one lobby group.
     const grouped = mapsByCategory().flatMap((g) => g.maps.map((m) => m.id));
     expect([...grouped].sort()).toEqual([...MAP_IDS].sort());
+  });
+
+  it('offers every map under a game type, and switching type lands on a playable map', () => {
+    expect(mapsForType('voyagers').map((m) => m.id)).toEqual(['farShores', 'fourRealms']);
+    expect(mapsForType('special').map((m) => m.id)).toEqual(['veiledIsles']);
+    for (const map of MAP_IDS) {
+      for (const mode of MAPS[map].modes) expect(mapsForType(gameTypeOf(map, mode)).map((m) => m.id)).toContain(map);
+    }
+    for (const { id } of GAME_TYPES) {
+      for (const map of MAP_IDS) {
+        for (const mode of MAPS[map].modes) {
+          const next = gameTypeSettings(id, { map, mode });
+          expect(mapSupports(next.map, next.mode)).toBe(true);
+          expect(gameTypeOf(next.map, next.mode)).toBe(id);
+        }
+      }
+    }
+    // Staying within a type keeps the chosen map and rules.
+    expect(gameTypeSettings('voyagers', { map: 'fourRealms', mode: 'ck' })).toEqual({ map: 'fourRealms', mode: 'ck' });
+    expect(gameTypeSettings('classic', { map: 'veiledIsles', mode: 'ck' })).toEqual({ map: 'standard', mode: 'classic' });
   });
 
   it('Gold Rush rings seven fogged hexes, one of them gold', () => {

@@ -225,6 +225,20 @@ describe('realtime server', () => {
     host.close();
   });
 
+  it('switches game type by changing mode and map together', async () => {
+    const host = client(await guestCookie());
+    let room: RoomDTO | null = null;
+    host.on('room:state', (r) => (room = r));
+    expect((await call((ack) => host.emit('room:create', { profile: profile('Sam', 'red'), settings: { map: 'veiledIsles', mode: 'ck' } }, ack))).ok).toBe(true);
+    expect(room!.settings).toMatchObject({ map: 'veiledIsles', mode: 'ck', vpToWin: 14 });
+    // Veiled Isles is K&B only, so going back to Classic must move the map in the same patch.
+    expect((await call((ack) => host.emit('room:settings', { map: 'standard', mode: 'classic' }, ack))).ok).toBe(true);
+    expect(room!.settings).toMatchObject({ map: 'standard', mode: 'classic', vpToWin: 10 });
+    expect((await call((ack) => host.emit('room:settings', { map: 'farShores', mode: 'classic' }, ack))).ok).toBe(true);
+    expect(room!.settings).toMatchObject({ map: 'farShores', mode: 'classic', vpToWin: 14 });
+    host.close();
+  });
+
   it('flashes quick reactions to the table, rate-limited, and blocks repeated chat', async () => {
     const a = client(await guestCookie());
     const b = client(await guestCookie());

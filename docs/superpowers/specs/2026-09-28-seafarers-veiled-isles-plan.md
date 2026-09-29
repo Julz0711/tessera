@@ -14,8 +14,10 @@ Built on branch `codex/find-rules-for-treasure-islands-mode`:
 - **Maps:** Far Shores (14 VP classic / 17 C&K, 2 VP per small isle), Four Realms (13 / 16, 2 VP per foreign
   island, robber starts on the 12), Veiled Isles (Special, C&K only, 14 VP, 1 VP per foreign isle). Each is our
   own layout after the rulebook's scenario; terrain and numbers are dealt per game.
-- **Veiled Isles:** 12 fog hexes (0–2 sea, 0–1 gold, numbers 3–11 without 7, repeats allowed), discovery pays the
-  terrain's resource (gold: a pick), 15 treasures from a shuffled 5/4/3/3 deck on sea corners, collected by a
+- **Veiled Isles:** laid out after the reference board: the base island in a 9-row frame (8–12 wide) with 15 fog
+  hexes scattered around it and no visible outer isles (0–2 sea, 0–1 gold, numbers 3–11 without 7, repeats
+  allowed), discovery pays the terrain's resource (gold: a pick), 15 treasures from a shuffled 5/4/3/3 deck on the
+  reference board's fixed chest corners, collected by a
   ship reaching the corner; hidden sea pays an independent random bonus treasure. Treasure contents and fog are
   redacted from views.
 - **Clients:** open water, ships, the pirate and treasure chests on the 2D and 3D boards; Ship and Sail buttons;
