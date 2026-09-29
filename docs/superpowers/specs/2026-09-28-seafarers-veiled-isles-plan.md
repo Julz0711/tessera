@@ -6,15 +6,46 @@ Date: 2026-09-29 · Working name: **Veiled Isles** · Status: discovery plan (co
 
 - **Scenario name:** keep the working title **Veiled Isles** (`veiledIsles`); it must not copy the source game's title.
 - **Seafarers boards:** ship **two default Seafarers maps** (non-fog starters, `requires: ['seafarers']`) plus **one**
-  Veiled Isles board. Rules for the two default maps come from the official Seafarers rulebook, not from memory.
+  Veiled Isles board. Confirmed: the two defaults are non-fog starters. Rules come from the official rulebook (§0.1).
+- **Own names, not the source game's:** the expansion is called **Voyagers** (id `seafarers` stays internal); the two
+  starters are **Far Shores** (rulebook scenario 1, "Heading for New Shores") and **Four Realms** (scenario 2,
+  "The Four Islands"). Layouts are re-created from the diagrams; names, art and text are our own.
 - **Veiled Isles is Seafarers + Cities & Knights merged.** It is not a third rules module; it is a scenario that
   requires both.
+- **Category recommendation (accepted default):** keep `Mode` as-is and add `category` to map metadata, because
+  `Mode` means "card and city rules" and is used across ~20 files. Voyagers and Special maps set the rule flags
+  they need (`requires`, `modes`); the lobby groups by category.
 - **Lobby categories:** `Classic`, `C&K`, `Seafarers` and `Special`. Category is a *presentation/selection* concept
   layered over the existing rule flags, so `Mode` (`classic` | `ck`) keeps meaning "card and city rules" and is not
   extended. Veiled Isles lives under `Special`; its `requires` is `['seafarers']` and its `modes` is `['ck']`.
   Implementation: add `category` to `MapDefinition` and group the lobby map picker by it.
 - Remaining Phase 0 items are resolved from the official rulebook wherever it covers them; anything it does not cover
   stays a labelled Tessera interpretation.
+
+### 0.1 Rules decision table (source: Catan Seafarers 2021 rulebook, 5th English ed., Dec 2020 rules take precedence)
+
+| Topic | Rule (rulebook) | Engine note |
+| --- | --- | --- |
+| Ship cost / supply | 1 wool + 1 lumber; 15 ships per player | New `COSTS.ship`, per-player piece limit 15 |
+| Placement | Only on edges between sea/sea or sea/land (never land/land); never on an edge that has a road, and vice versa; one piece per edge | Needs sea terrain and coastal edge queries |
+| Ship connectivity | Adjacent to own settlement/city on the coast, or to another own ship; branching allowed | Same graph rule as roads |
+| Road/ship junction | Roads and ships connect only through an own settlement/city at the shared vertex | Route graph splits at joints without a building |
+| Closed route | Unbroken ships joining two of the owner's settlements/cities; never movable | Derived, not stored |
+| Moving ships | 1 per turn, build phase only, not one built this turn, must follow placement rules, only if one end touches none of the owner's other pieces (open-route end) | New `moveShip` action + legality query |
+| Longest Trade Route | Replaces Longest Road; counts roads and ships, open or closed; single longest branch; 2 VP; road/ship link needs a building | Generalize longest-road |
+| Road Building card | Two pieces, each a road or a ship | Reuses Road Building prompt |
+| Gold fields | On a roll, each adjacent settlement takes 1 (city 2) of any resources, any mix | Choice prompt; no gold resource |
+| Start with a ship | A coastal starting settlement may take a ship instead of a road | Setup rule |
+| Pirate | Placed on sea hexes only; on a 7 move robber **or** pirate; a knight may move either; the pirate steals one random card from one player with an adjacent ship; it blocks new ships on its hex borders and blocks moving away ships on those borders; scenarios with no desert start the robber off-board | Robber/pirate choice on 7 and knight |
+| Special VP | Scenario-defined chits placed under the earning settlement/city | `Far Shores`: 2 VP per small island; `Four Realms`: 2 VP per foreign island; Veiled Isles: 1 VP per foreign island |
+| Harbors | Use the large Seafarers harbor tokens, placed randomly on the marked coasts | Existing harbor logic per layout |
+| `Far Shores` | 3-4 players; main island + small islands; 14 VP; main-island and small-island terrain and numbers randomized (red numbers not adjacent); setup on the main island; pirate + robber | Slot-based generation |
+| `Four Realms` | 3-4 players; four fixed island contours, terrain and numbers freely redistributed; start on one or two islands; 13 VP; pirate + robber | Slot-based generation |
+
+Open item found while reading: the 3-player `Far Shores` text says the pirate starts on the hills hex marked "12", which
+conflicts with a sea-only pirate rule; treat as a rulebook typo and start the pirate on the marked sea hex until the
+diagram is checked. The rulebook does not cover Cities & Knights, so C&K interactions for Veiled Isles remain
+Tessera interpretations.
 
 ## 1. What we can decide now
 
