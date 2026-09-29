@@ -26,7 +26,9 @@ export function isCard(card: unknown): card is Card {
 
 // ── Board ───────────────────────────────────────────────────────────────────
 /** `gold` (Black Forest) pays out a resource of the owner's choice. */
-export type Terrain = 'forest' | 'hills' | 'pasture' | 'fields' | 'mountains' | 'desert' | 'gold';
+export type Terrain = 'forest' | 'hills' | 'pasture' | 'fields' | 'mountains' | 'desert' | 'gold' | 'sea';
+/** Every terrain that carries a number token or resource; `sea` is open water (Voyagers). */
+export type LandTerrain = Exclude<Terrain, 'sea'>;
 export type HarborKind = 'any' | Resource;
 
 export interface Hex {

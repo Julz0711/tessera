@@ -9,6 +9,7 @@ export const TERRAIN_COLORS: Record<Terrain, { top: string; side: string; accent
   mountains: { top: '#8f939c', side: '#5d616a', accent: '#eef1f4', label: 'Mountains' },
   desert: { top: '#e2cc97', side: '#a99264', accent: '#c7ad72', label: 'Desert' },
   gold: { top: '#e8870a', side: '#6e3f05', accent: '#fff0a6', label: 'Gold' },
+  sea: { top: '#3e97ad', side: '#2c7d93', accent: '#d4ece6', label: 'Sea' },
 };
 
 /** Number tokens (3D and 2D): a sea-blue rim around a paper face; 6 and 8 in red. */

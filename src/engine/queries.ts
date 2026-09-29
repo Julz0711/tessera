@@ -2,6 +2,7 @@
  * Read-only rule queries. They accept anything shaped like the public part of the game state,
  * so the client can call them on a redacted PlayerView to highlight legal moves.
  */
+import { canHoldRoad, canHoldSettlement } from './board/sea';
 import { getTopology, type Topology } from './board/topology';
 import { KNIGHTS_PER_LEVEL, PIECE_LIMITS, TERRAIN_RESOURCE } from './constants';
 import { handTotal } from './hand';
@@ -108,6 +109,7 @@ export const isHex = (s: Q, h: unknown): h is number =>
 export function canPlaceSettlement(s: Q, seat: number, v: number, setup = false): boolean {
   if (!isVertex(s, v)) return false;
   if (s.knights[v]) return false;
+  if (!canHoldSettlement(s.board, topo(s), v)) return false;
   if (!distanceRuleOk(s, v)) return false;
   if (setup && !startingCorner(s, v)) return false;
   return setup || touchesOwnRoad(s, seat, v);
@@ -146,6 +148,7 @@ export function legalSettlementSpots(s: Q, seat: number, setup = false): number[
 export function canPlaceRoad(s: Q, seat: number, e: number): boolean {
   if (!isEdge(s, e) || s.roads[e] !== null) return false;
   const t = topo(s);
+  if (!canHoldRoad(s.board, t, e)) return false;
   const edge = t.edges[e];
   for (const v of [edge.a, edge.b]) {
     const b = s.buildings[v];
@@ -165,7 +168,8 @@ export function legalRoadSpots(s: Q, seat: number): number[] {
 export function legalSetupRoads(s: Q): number[] {
   if (!s.setup || s.setup.placing !== 'road' || s.setup.lastVertex === null) return [];
   // Black Forest too: the settlement stands in the forest, but its road may already lead out into the fog.
-  return topo(s).vertices[s.setup.lastVertex].edges.filter((e) => s.roads[e] === null);
+  const t = topo(s);
+  return t.vertices[s.setup.lastVertex].edges.filter((e) => s.roads[e] === null && canHoldRoad(s.board, t, e));
 }
 
 export function legalCitySpots(s: Q, seat: number): number[] {
@@ -256,7 +260,7 @@ export function hexNeighbours(s: Q, seat: number, hex: number): number[] {
 
 export function robberTargets(s: Q, seat: number, publicVP: (seat: number) => number): number[] {
   // Fogged hexes (Black Forest) can't be targeted until they're discovered.
-  const all = s.board.hexes.filter((h) => h.id !== s.robber && !h.fog).map((h) => h.id);
+  const all = s.board.hexes.filter((h) => h.id !== s.robber && !h.fog && h.terrain !== 'sea').map((h) => h.id);
   if (!s.settings.friendlyRobber) return all;
   const friendly = all.filter((hex) => hexNeighbours(s, seat, hex).every((o) => publicVP(o) > 2));
   return friendly.length ? friendly : all;

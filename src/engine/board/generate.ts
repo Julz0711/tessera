@@ -21,7 +21,7 @@ import {
   VULCAN_HARBOR_KINDS,
 } from '../constants';
 import { randomInt, shuffle, type RngHolder } from '../rng';
-import type { Board, Harbor, HarborKind, Hex, MapId, Terrain } from '../types';
+import type { Board, Harbor, HarborKind, Hex, LandTerrain, MapId, Terrain } from '../types';
 import {
   BLACK_FOREST_HEX_COORDS,
   FOUR_LAKES_HEX_COORDS,
@@ -39,7 +39,7 @@ import {
 
 interface MapSpec {
   coords: readonly HexCoord[];
-  terrains: Record<Terrain, number>;
+  terrains: Record<LandTerrain, number>;
   tokens: readonly number[];
   harbors: readonly HarborKind[];
   /** Harbor positions as indices into the clockwise coast; spread evenly when omitted. */
@@ -115,7 +115,7 @@ function balancedTokens(n: number): number[] {
   return out;
 }
 
-function bag(counts: Partial<Record<Terrain, number>>): Terrain[] {
+function bag(counts: Partial<Record<LandTerrain, number>>): Terrain[] {
   return (Object.entries(counts) as [Terrain, number][]).flatMap(([t, n]) => Array.from({ length: n }, () => t));
 }
 

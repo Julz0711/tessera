@@ -18,7 +18,7 @@ function counts(board: Board): Partial<Record<Terrain, number>> {
   for (const h of board.hexes) out[h.terrain] = (out[h.terrain] ?? 0) + 1;
   return out;
 }
-const nonZero = (c: Record<Terrain, number>) => Object.fromEntries(Object.entries(c).filter(([, n]) => n > 0));
+const nonZero = (c: Partial<Record<Terrain, number>>) => Object.fromEntries(Object.entries(c).filter(([, n]) => n > 0));
 
 /** Harbors never share a corner, and every harbor sits on a coastal edge. */
 function harborsValid(board: Board): boolean {
