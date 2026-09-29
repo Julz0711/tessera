@@ -9,10 +9,11 @@ import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightGlyph } from '@/components/ui/Glyphs';
 import { CardList } from './cards';
 
-const LABEL: Record<BuildWhat, string> = { road: 'Road', settlement: 'Settlement', city: 'City', knight: 'Knight', wall: 'City wall' };
+const LABEL: Record<BuildWhat, string> = { road: 'Road', ship: 'Ship', settlement: 'Settlement', city: 'City', knight: 'Knight', wall: 'City wall' };
 
 const SHAPE: Partial<Record<BuildWhat, string>> = {
   road: 'M11 3h6v22h-6Z',
+  ship: 'M3 17h22l-4 7H7ZM13 3v14h2V3ZM15 4q7 5 0 11Z',
   settlement: 'M4 25V13l10-9 10 9v12Z',
   city: 'M2 25V14l7-6 7 6V6h4V3h4v3h2v19Z',
 };
@@ -34,7 +35,7 @@ export function BuildPopup({ view, armed }: { view: PlayerView; armed: Armed }) 
   if (me === null) return null;
   const color = PLAYER_COLORS[view.players[me].color];
   const left = piecesLeft(view, me);
-  const count: Record<BuildWhat, number> = { road: left.roads, settlement: left.settlements, city: left.cities, knight: left.knights[1], wall: left.walls };
+  const count: Record<BuildWhat, number> = { road: left.roads, ship: left.ships, settlement: left.settlements, city: left.cities, knight: left.knights[1], wall: left.walls };
   return (
     <div className="flex gap-2">
       {armed.options.map((o, i) => (

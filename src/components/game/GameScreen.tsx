@@ -2,7 +2,7 @@
 
 import { ChartColumn, MessageSquare, ScrollText, Trophy } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CARDS, type Card, type DevCardType, type GameEvent, type PartialHand, type ProgressCardType } from '@/engine';
+import { CARDS, shipsInPlay, type Card, type DevCardType, type GameEvent, type PartialHand, type ProgressCardType } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { DEV_NAMES, PROGRESS_NAMES } from '@/client/describe';
 import { CARD_COLORS } from '@/client/palette';
@@ -345,7 +345,7 @@ export function GameScreen() {
         <div className="pointer-events-none mt-1 flex flex-col items-center gap-2">
           {myPrompt?.kind === 'freeRoads' && (
             <div className="pointer-events-auto">
-              <FreeRoadsBanner count={myPrompt.count} />
+              <FreeRoadsBanner count={myPrompt.count} ships={shipsInPlay(view)} />
             </div>
           )}
           <div className="pointer-events-auto">

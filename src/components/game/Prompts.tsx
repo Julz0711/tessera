@@ -77,11 +77,11 @@ export function DiscardDialog({ view, prompt }: { view: PlayerView; prompt: Extr
   );
 }
 
-export function FreeRoadsBanner({ count }: { count: number }) {
+export function FreeRoadsBanner({ count, ships = false }: { count: number; ships?: boolean }) {
   return (
     <div className="paper animate-pop flex items-center gap-3 px-4 py-2">
       <span className="font-extrabold">
-        Place {count} free road{count === 1 ? '' : 's'}
+        Place {count} free road{count === 1 ? '' : 's'}{ships ? ' or ship' + (count === 1 ? '' : 's') : ''}
       </span>
       <button type="button" className="btn btn-ghost px-2 py-1 text-sm" onClick={() => api.act({ type: 'skipFreeRoads' })}>
         <SkipForward size={14} /> Skip

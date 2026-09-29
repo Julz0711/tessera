@@ -1,4 +1,5 @@
 import { CARDS, type Card, type DevCardType, type Dice, type GameEvent, type PartialHand, type ProgressCardType, type Track, type TreasureKind } from '@/engine/types';
+import { legalSetupShips } from '@/engine/queries';
 import type { PlayerView } from '@/engine/view';
 import { TERRAIN_COLORS } from './palette';
 
@@ -97,6 +98,7 @@ export function describe(ev: GameEvent, view: PlayerView): Part[][] {
     case 'shipMoved':
       return [[P(ev.seat), ' sailed a ship to a new route']];
     case 'robberMoved': {
+      if (ev.pirate) return [[P(ev.seat), ' sailed the pirate to a new sea hex']];
       const hex = view.board.hexes[ev.hex];
       return [[P(ev.seat), ` moved the robber to ${TERRAIN_COLORS[hex.terrain].label.toLowerCase()}${hex.token ? ` (${hex.token})` : ''}`]];
     }
@@ -213,7 +215,7 @@ export function statusLine(view: PlayerView): { text: string; mine: boolean } {
   if (view.phase === 'setup' && view.setup) {
     const seat = view.setup.order[view.setup.index];
     const second = view.setup.index >= view.players.length;
-    const what = view.setup.placing === 'road' ? 'a road' : second ? (view.mode === 'ck' ? 'a city' : 'a second settlement') : 'a settlement';
+    const what = view.setup.placing === 'road' ? (legalSetupShips(view).length ? 'a road or ship' : 'a road') : second ? (view.mode === 'ck' ? 'a city' : 'a second settlement') : 'a settlement';
     return seat === me ? { text: `Place ${what}`, mine: true } : { text: `${name(seat)} is placing ${what}…`, mine: false };
   }
   const seat = view.turn.seat;

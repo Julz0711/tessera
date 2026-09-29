@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeftRight, BrickWall, Eye, Hammer, Hourglass, Landmark, Sparkles } from 'lucide-react';
+import { ArrowLeftRight, BrickWall, Eye, Hammer, Hourglass, Landmark, Sailboat, Ship, Sparkles } from 'lucide-react';
 import { useEffect } from 'react';
 import {
   COSTS,
@@ -9,7 +9,10 @@ import {
   legalKnightSpots,
   legalRoadSpots,
   legalSettlementSpots,
+  legalShipSpots,
   piecesLeft,
+  sailableShips,
+  shipsInPlay,
   wallSpots,
   type PartialHand,
 } from '@/engine';
@@ -124,6 +127,9 @@ export function Dock({ view }: { view: PlayerView }) {
   const building = buildMode(ui.mode);
   const roadOk = canBuild && left.roads > 0 && has(COSTS.road) && legalRoadSpots(view, me).length > 0;
   const settlementOk = canBuild && left.settlements > 0 && has(COSTS.settlement) && legalSettlementSpots(view, me).length > 0;
+  const voyage = shipsInPlay(view);
+  const shipOk = canBuild && left.ships > 0 && has(COSTS.ship) && legalShipSpots(view, me).length > 0;
+  const sailOk = canBuild && sailableShips(view, me).length > 0;
   const cityOk = canBuild && left.cities > 0 && has(COSTS.city) && legalCitySpots(view, me).length > 0;
   const devOk = canBuild && !ck && view.devDeckCount > 0 && has(COSTS.devCard);
   const knightOk = canBuild && ck && left.knights[1] > 0 && has(COSTS.knight) && legalKnightSpots(view, me).length > 0;
@@ -144,6 +150,28 @@ export function Dock({ view }: { view: PlayerView }) {
           cost={COSTS.road}
           left={left.roads}
         />
+        {voyage && (
+          <>
+            <ActionButton
+              label="Ship"
+              icon={<Ship size={20} />}
+              onClick={() => ui.toggleBuild('ship')}
+              active={building === 'ship'}
+              disabled={!shipOk}
+              cost={COSTS.ship}
+              left={left.ships}
+              hint="Build a ship on a sea or coast edge"
+            />
+            <ActionButton
+              label="Sail"
+              icon={<Sailboat size={20} />}
+              onClick={() => ui.setMode(ui.mode?.t === 'shipMove' ? null : { t: 'shipMove', from: null })}
+              active={ui.mode?.t === 'shipMove'}
+              disabled={!sailOk}
+              hint="Move the ship at the open end of a route (once a turn)"
+            />
+          </>
+        )}
         <ActionButton
           label="Settle"
           icon={<SettlementGlyph size={20} />}

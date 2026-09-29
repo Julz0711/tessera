@@ -12,6 +12,7 @@ import { barbarianTrackLayout } from '@/components/board/barbarian';
 import { Barbarians } from './barbarians';
 import { City, CityWall, HarborPiece, Merchant, MetropolisTower, NumberToken, Road, Robber, Settlement } from './pieces';
 import { Targets } from './targets';
+import { Pirate, Ship, TreasureChest } from './voyage';
 import { HexTile } from './terrain';
 import { Sea } from './ocean';
 import { displayFont, resetTextureCache } from './textures';
@@ -174,6 +175,17 @@ function Island({
           <Road key={`r${e}`} x={topo.edges[e].x} z={topo.edges[e].y} angle={topo.edges[e].angle} color={scene.colors[owner]} />
         ),
       )}
+      {(scene.ships ?? []).map((owner, e) =>
+        owner === null ? null : (
+          <Ship key={`s${e}`} x={topo.edges[e].x} z={topo.edges[e].y} angle={topo.edges[e].angle} color={scene.colors[owner]} selected={targets.selectedEdge === e} />
+        ),
+      )}
+      {(scene.board.treasures ?? []).map((tr) =>
+        tr.takenBy !== undefined ? null : (
+          <TreasureChest key={`t${tr.vertex}`} x={topo.vertices[tr.vertex].x} y={0.02} z={topo.vertices[tr.vertex].y} />
+        ),
+      )}
+      {scene.pirate != null && <Pirate x={topo.hexes[scene.pirate].x} z={topo.hexes[scene.pirate].y} />}
       {scene.buildings.map((b, v) => {
         if (!b) return null;
         const p = topo.vertices[v];
@@ -192,7 +204,7 @@ function Island({
       <KnightPieces scene={scene} topo={topo} />
       <Robber x={robberHex.x} z={robberHex.y + 0.46} />
       {scene.barbarian && <Barbarians barbarian={scene.barbarian} topo={topo} />}
-      <Targets targets={targets} topo={topo} color={scene.myColor} popup={popup} onVertex={onVertex} onEdge={onEdge} onHex={onHex} />
+      <Targets targets={targets} topo={topo} board={scene.board} color={scene.myColor} popup={popup} onVertex={onVertex} onEdge={onEdge} onHex={onHex} />
     </group>
   );
 }

@@ -6,6 +6,7 @@ import type { KnightCustomization } from '@/shared/knight';
 export type TargetKind =
   | 'settlement'
   | 'road'
+  | 'ship'
   | 'city'
   | 'robber'
   | 'knight'
@@ -26,6 +27,10 @@ export interface BoardTargets {
   selectedVertex?: number | null;
   /** Per-vertex kind, overriding `kind` (build hints mix settlement, city and knight spots). */
   vertexKinds?: Partial<Record<number, TargetKind>>;
+  /** Per-edge kind, overriding `kind` (Voyagers: a coast edge may take a road or a ship). */
+  edgeKinds?: Partial<Record<number, TargetKind>>;
+  /** Edge selected as the source of a two-step action (moving a ship). */
+  selectedEdge?: number | null;
   /** Build hints: spots offered without a build mode, only shown on hover. */
   hint?: boolean;
   /**
@@ -33,7 +38,7 @@ export interface BoardTargets {
    * piece there and anchor the popup to it.
    */
   armed?:
-    | { target: 'vertex' | 'edge'; at: number; what: 'road' | 'settlement' | 'city' | 'knight' | 'wall' }
+    | { target: 'vertex' | 'edge'; at: number; what: 'road' | 'ship' | 'settlement' | 'city' | 'knight' | 'wall' }
     | { target: 'hex'; at: number; what: 'robber' };
 }
 
@@ -45,6 +50,10 @@ export interface BoardScene {
   robber: number;
   buildings: (Building | null)[];
   roads: (number | null)[];
+  /** Voyagers: ships by edge (all null, or missing, on maps without sea). */
+  ships?: (number | null)[];
+  /** Voyagers: the pirate's sea hex. */
+  pirate?: number | null;
   knights: (Knight | null)[];
   merchant: { hex: number; owner: number } | null;
   /** Player colors by seat. */

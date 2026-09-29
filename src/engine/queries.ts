@@ -234,6 +234,19 @@ export function freeRouteCount(s: Q, seat: number): number {
   return Math.min(2, left.roads + (shipsInPlay(s) ? left.ships : 0));
 }
 
+/** Ships the seat may sail this turn (none after one has sailed; never one built this turn). */
+export function sailableShips(s: Q, seat: number): number[] {
+  if (s.turn.shipsMoved || s.turn.seat !== seat || s.phase !== 'play' || !s.turn.rolled) return [];
+  return movableShips(s, seat).filter((e) => !s.turn.shipsBuilt.includes(e));
+}
+
+/** Where the ship on `from` could sail to: anywhere a new ship could go once it has left. */
+export function shipDestinations(s: Q, seat: number, from: number): number[] {
+  const ships = s.ships.slice();
+  ships[from] = null;
+  return legalShipSpots({ ...s, ships }, seat).filter((e) => e !== from);
+}
+
 export function legalRoadSpots(s: Q, seat: number): number[] {
   const out: number[] = [];
   for (let e = 0; e < s.roads.length; e++) if (canPlaceRoad(s, seat, e)) out.push(e);

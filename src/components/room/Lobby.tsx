@@ -162,7 +162,7 @@ function MapInfo({ map }: { map: MapId }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-ink-soft">
       {needs.map((tag) => (
-        <span key={tag} className="rounded-full bg-ink/10 px-2 py-0.5 font-black uppercase tracking-wide">{tag}</span>
+        <span key={tag} className="rounded-full bg-ink/10 px-2 py-0.5 font-black uppercase tracking-wide">{tag === 'seafarers' ? 'Voyagers' : tag}</span>
       ))}
       {onlyModes.map((mode) => (
         <span key={mode} className="rounded-full bg-amber/25 px-2 py-0.5 font-black uppercase tracking-wide">

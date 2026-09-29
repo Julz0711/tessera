@@ -160,9 +160,10 @@ export function PickBanner({ view }: { view: PlayerView }) {
     }
   } else if (!prompt && ui.mode) {
     const m = ui.mode;
-    if (m.t === 'build') text = { road: 'Pick where to build the road', settlement: 'Pick a spot for the settlement', city: 'Pick a settlement to upgrade', knight: 'Pick an empty spot next to your roads', wall: 'Pick a city to protect' }[m.what];
+    if (m.t === 'build') text = { road: 'Pick where to build the road', ship: 'Pick where to launch the ship', settlement: 'Pick a spot for the settlement', city: 'Pick a settlement to upgrade', knight: 'Pick an empty spot next to your roads', wall: 'Pick a city to protect' }[m.what];
     if (m.t === 'knightMove') text = 'Pick where your knight goes (a weaker enemy knight gets displaced)';
     if (m.t === 'knightChase') text = 'Pick where to send the robber';
+    if (m.t === 'shipMove') text = m.from === null ? 'Pick a ship at the open end of a route' : 'Pick where the ship sails to';
     if (m.t === 'progress') {
       const spec = progressPickSpec(view, m.cardType);
       text = `${PROGRESS_NAMES[m.cardType]}: ${spec?.hint ?? ''}${spec && spec.need > 1 ? ` (${m.picked.length}/${spec.need})` : ''}`;
