@@ -4,7 +4,8 @@ import { ChartColumn, MessageSquare, ScrollText, Trophy } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CARDS, shipsInPlay, type Card, type DevCardType, type GameEvent, type PartialHand, type ProgressCardType } from '@/engine';
 import type { PlayerView } from '@/engine/view';
-import { DEV_NAMES, PROGRESS_NAMES } from '@/client/describe';
+import { DEV_NAMES, PROGRESS_NAMES, TRACK_NAMES } from '@/client/describe';
+import { PLAYER_COLORS } from '@/shared/colors';
 import { CARD_COLORS } from '@/client/palette';
 import { BOARD_SCALE, usePrefs } from '@/client/prefs';
 import { HUD_PANELS, HUD_SCALE, slotPanels, useZoomHost, type HudPanel } from '@/client/hud';
@@ -38,6 +39,7 @@ import { cardList, fly, type Place } from '@/client/fx';
 import { TERRAIN_COMMODITY, TERRAIN_RESOURCE } from '@/engine/constants';
 import { FlyLayer } from './FlyLayer';
 import { DesktopHud, type HudSide } from './HudLayout';
+import { EventBanner, pushBanner } from './EventBanner';
 
 function cardsText(h: PartialHand): string {
   return CARDS.filter((c) => (h[c] ?? 0) > 0)
@@ -51,6 +53,8 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
     if (!view || !events.length) return;
     const me = view.viewer;
     const name = (s: number) => view.players[s]?.name ?? '?';
+    const who = (s: number) => (s === me ? 'You' : name(s));
+    const color = (s: number) => (view.players[s] ? PLAYER_COLORS[view.players[s].color].hex : '#8a7a62');
     for (const ev of events) {
       const secret = ev.secret as Record<string, unknown> | undefined;
       switch (ev.type) {
@@ -77,9 +81,20 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
         case 'built':
           play(ev.piece === 'wall' ? 'wall' : ev.piece === 'ship' ? 'road' : ev.piece);
           break;
-        case 'robberMoved':
+        case 'robberMoved': {
           play('robber');
+          const token = view.board.hexes[ev.hex]?.token;
+          const robbed = events.find((e) => e.type === 'stole' && e.seat === ev.seat);
+          const victim = robbed && robbed.type === 'stole' ? (robbed.victim === me ? 'you' : name(robbed.victim)) : null;
+          pushBanner({
+            icon: ev.pirate ? 'pirate' : 'robber',
+            title: ev.pirate ? 'The pirate strikes' : 'The robber strikes',
+            text: `${who(ev.seat)} moved the ${ev.pirate ? 'pirate' : 'robber'}${!ev.pirate && token ? ` onto a ${token}` : ''}${victim ? ` and robbed ${victim}` : ''}`,
+            color: color(ev.seat),
+            tone: robbed && robbed.type === 'stole' && robbed.victim === me ? 'bad' : 'info',
+          });
           break;
+        }
         case 'stole':
           play(ev.victim === me ? 'stolen' : 'steal');
           fly({ seat: ev.victim }, { seat: ev.seat }, [(secret?.card as Card | undefined) ?? null], me);
@@ -132,11 +147,15 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
           break;
         case 'longestRoad':
           if (ev.seat !== null) play(ev.seat === me ? 'award' : 'card');
-          if (ev.seat !== null) toast(`${ev.seat === me ? 'You' : name(ev.seat)} took the Longest Road`);
+          if (ev.seat !== null) {
+            pushBanner({ icon: 'road', title: 'Longest Road', text: `${who(ev.seat)} took the Longest Road (${ev.length})`, color: color(ev.seat), tone: ev.seat === me ? 'good' : 'info' });
+          }
           break;
         case 'largestArmy':
           if (ev.seat !== null) play(ev.seat === me ? 'award' : 'card');
-          if (ev.seat !== null) toast(`${ev.seat === me ? 'You' : name(ev.seat)} took the Largest Army`);
+          if (ev.seat !== null) {
+            pushBanner({ icon: 'army', title: 'Largest Army', text: `${who(ev.seat)} took the Largest Army (${ev.knights} knights)`, color: color(ev.seat), tone: ev.seat === me ? 'good' : 'info' });
+          }
           break;
         case 'gameOver':
           play(me === null || ev.winner === me ? 'win' : 'lose');
@@ -147,12 +166,13 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
         case 'barbarianAttack':
           play('barbarianAttack');
           if (ev.won) setTimeout(() => play('repelled'), 1300);
-          toast(
-            ev.won
-              ? `The barbarians attacked (${ev.strength}): the knights (${ev.defense}) held the island!`
-              : `The barbarians (${ev.strength}) overran the knights (${ev.defense})!`,
-            ev.won ? 'good' : 'error',
-          );
+          pushBanner({
+            icon: 'barbarians',
+            title: ev.won ? 'Barbarians repelled!' : 'Barbarians overran the island',
+            text: ev.won ? `The knights (${ev.defense}) held off the barbarians (${ev.strength})` : `The barbarians (${ev.strength}) beat the knights (${ev.defense})`,
+            color: ev.won ? '#3f7d3a' : '#8f2a22',
+            tone: ev.won ? 'good' : 'bad',
+          });
           break;
         case 'cityLost':
           if (ev.seat === me) play('stolen');
@@ -160,14 +180,20 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
           break;
         case 'defenderAwarded':
           if (ev.seat === me) play('award');
-          toast(`${ev.seat === me ? 'You are' : `${name(ev.seat)} is`} the Defender of the island (+1 VP)`, 'good');
+          pushBanner({ icon: 'defender', title: 'Defender of the island', text: `${ev.seat === me ? 'You are' : `${name(ev.seat)} is`} the Defender (+1 VP)`, color: color(ev.seat), tone: 'good' });
           break;
         case 'progressDrawn':
           if (ev.seat === me) play('card');
           if (ev.seat === me && secret?.card) toast(`New progress card: ${PROGRESS_NAMES[secret.card as ProgressCardType]}`);
           break;
         case 'metropolis':
-          toast(`${ev.seat === me ? 'You' : name(ev.seat)} founded a metropolis`, ev.seat === me ? 'good' : 'info');
+          pushBanner({
+            icon: 'metropolis',
+            title: 'Metropolis!',
+            text: `${who(ev.seat)} founded the ${TRACK_NAMES[ev.track]} metropolis${ev.from !== null ? ` (taken from ${ev.from === me ? 'you' : name(ev.from)})` : ''}`,
+            color: color(ev.seat),
+            tone: ev.from === me ? 'bad' : ev.seat === me ? 'good' : 'info',
+          });
           play(ev.seat === me ? 'metropolis' : 'award');
           break;
         case 'improved':
@@ -326,6 +352,7 @@ export function GameScreen() {
           quality={prefs.graphics}
           pieceScale={BOARD_SCALE[prefs.boardScale]}
           theme={prefs.boardTheme}
+          weather={prefs.weather}
           scene={scene}
           targets={targets}
           popup={ui.armed ? <BuildPopup view={view} armed={ui.armed} /> : ui.robber ? <RobberPopup view={view} pick={ui.robber} /> : null}
@@ -392,6 +419,7 @@ export function GameScreen() {
       </div>
 
       <FlyLayer />
+      <EventBanner />
 
       {/* dialogs */}
       {myPrompt?.kind === 'discard' && <DiscardDialog view={view} prompt={myPrompt} />}

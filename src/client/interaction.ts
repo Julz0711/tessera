@@ -25,6 +25,7 @@ import {
   openRoads,
   promotableKnights,
   relocationSpots,
+  roadMoveTargets,
   robberTargets,
   robberVictims,
   wallSpots,
@@ -64,7 +65,7 @@ export function progressPickSpec(view: PlayerView, type: ProgressCardType): Pick
     case 'inventor':
       return { target: 'hex', allowed: inventorHexes(view), need: 2, hint: 'Pick two number tokens to swap' };
     case 'diplomat':
-      return { target: 'edge', allowed: openRoads(view), need: 1, hint: 'Pick an open road to remove' };
+      return { target: 'edge', allowed: openRoads(view), need: 1, hint: "Pick an open road: an opponent's is removed, yours moves" };
     default:
       return null;
   }
@@ -152,6 +153,8 @@ function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): Boa
         return { ...NO_TARGETS, kind: 'knight', vertices: relocationSpots(view, me, prompt.from) };
       case 'deserterPlace':
         return { ...NO_TARGETS, kind: 'knight', vertices: legalKnightSpots(view, me) };
+      case 'moveRoad':
+        return { ...NO_TARGETS, kind: 'road', edges: roadMoveTargets(view, me, prompt.from), selectedEdge: prompt.from };
       case 'deserterRemove':
         return { ...NO_TARGETS, kind: 'vertexPick', vertices: ownKnights(view) };
       case 'placeMetropolis':
@@ -201,9 +204,16 @@ function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): Boa
       hexes: spec.target === 'hex' ? allowed : [],
     };
   }
-  // Cities & Knights: your knights are clickable for their action menu.
+  // Cities & Knights: your knights are clickable for their action menu. Voyagers: a ship that can
+  // sail is clickable too, and picks itself for the move.
   const knights = view.mode === 'ck' ? ownKnights(view) : [];
-  if (!hints) return knights.length ? { ...NO_TARGETS, kind: 'knightAction', vertices: knights } : NO_TARGETS;
+  const sail = sailableShips(view, me);
+  const sailKinds: Partial<Record<number, TargetKind>> = {};
+  for (const e of sail) sailKinds[e] = 'shipAction';
+  if (!hints) {
+    if (!knights.length && !sail.length) return NO_TARGETS;
+    return { ...NO_TARGETS, kind: 'knightAction', vertices: knights, edges: sail, edgeKinds: sailKinds };
+  }
   const spots = affordableSpots(view, me);
   const vertexKinds: Partial<Record<number, TargetKind>> = {};
   for (const v of spots.knights) vertexKinds[v] = 'knight';
@@ -214,8 +224,17 @@ function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): Boa
   for (const v of knights) vertexKinds[v] = 'knightAction';
   const vertices = Object.keys(vertexKinds).map(Number);
   const routes = routeTargets(spots.roads, spots.ships);
-  if (!vertices.length && !routes.edges.length) return NO_TARGETS;
-  return { ...routes, kind: routes.edges.length ? routes.kind : 'settlement', vertices, hexes: [], vertexKinds, hint: true };
+  if (!vertices.length && !routes.edges.length && !sail.length) return NO_TARGETS;
+  return {
+    ...routes,
+    kind: routes.edges.length ? routes.kind : 'settlement',
+    edges: [...routes.edges, ...sail],
+    edgeKinds: { ...routes.edgeKinds, ...sailKinds },
+    vertices,
+    hexes: [],
+    vertexKinds,
+    hint: true,
+  };
 }
 
 /** Road and ship spots together; an edge that only takes a ship is marked as one. */
@@ -269,6 +288,8 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
         return send({ type: 'relocateKnight', vertex: id });
       case 'deserterPlace':
         return send({ type: 'placeKnight', vertex: id });
+      case 'moveRoad':
+        return send({ type: 'buildRoad', edge: id });
       case 'deserterRemove':
         return send({ type: 'removeKnight', vertex: id });
       case 'placeMetropolis':
@@ -295,6 +316,7 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
     return ui.setMode({ ...mode, picked });
   }
   if (target === 'vertex' && view.knights[id]?.owner === me) return ui.setKnightMenu(id);
+  if (target === 'edge' && sailableShips(view, me).includes(id)) return ui.setMode({ t: 'shipMove', from: id });
   // Build hints: offer whatever the spot can take.
   const spots = affordableSpots(view, me);
   if (target === 'edge') {

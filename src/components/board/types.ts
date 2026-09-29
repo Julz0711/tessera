@@ -12,6 +12,8 @@ export type TargetKind =
   | 'knight'
   | 'knightAction'
   | 'knightDestination'
+  /** One of your ships that can sail: clicking it starts the move. */
+  | 'shipAction'
   | 'wall'
   | 'merchant'
   | 'hexPick'
@@ -89,4 +91,6 @@ export interface BoardProps extends BoardHandlers {
   pieceScale?: number;
   /** How the island looks (the "Board theme" setting); classic when unset. */
   theme?: BoardThemeId;
+  /** Themed weather over the 3D board (the "Weather" setting). */
+  weather?: boolean;
 }

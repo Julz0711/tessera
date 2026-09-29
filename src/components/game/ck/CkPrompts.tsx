@@ -132,8 +132,11 @@ const PROMPT_HINT: Partial<Record<Prompt['kind'], string>> = {
   relocateKnight: 'Your knight was displaced: pick where it goes',
   deserterRemove: 'A deserter! Pick one of your knights to leave',
   deserterPlace: 'Place the deserting knight next to your roads',
+  moveRoad: 'Diplomat: pick a new spot for your road',
   placeMetropolis: 'Pick a city for your metropolis',
 };
+
+const KNIGHT_NAMES = { 1: 'basic', 2: 'strong', 3: 'mighty' } as const;
 
 /** Instruction strip for board picks, with cancel/done/give-up buttons where they make sense. */
 export function PickBanner({ view }: { view: PlayerView }) {
@@ -153,7 +156,16 @@ export function PickBanner({ view }: { view: PlayerView }) {
         </button>
       );
     }
+    if (prompt.kind === 'moveRoad') {
+      extra = (
+        <button type="button" className="btn btn-ghost px-2 py-1 text-xs" onClick={() => api.act({ type: 'skipFreeRoads' })}>
+          Keep it here
+        </button>
+      );
+    }
     if (prompt.kind === 'deserterPlace') {
+      // It may be weaker than the knight that deserted, when the thief has none of that strength left.
+      text = `Place your ${KNIGHT_NAMES[prompt.level]} knight (the deserter) next to your roads`;
       extra = (
         <button type="button" className="btn btn-ghost px-2 py-1 text-xs" onClick={() => api.act({ type: 'placeKnight', vertex: null })}>
           Skip

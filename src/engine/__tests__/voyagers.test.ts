@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { generateBoard } from '../board/generate';
 import { canHoldShip, islandsOf } from '../board/sea';
 import { getTopology } from '../board/topology';
-import { TREASURE_DECK } from '../constants';
+import { HARBOR_KINDS, TREASURE_DECK } from '../constants';
 import { MAPS } from '../maps';
-import { legalSettlementSpots, legalShipSpots } from '../queries';
+import { legalSettlementSpots, legalShipSpots, movableShips } from '../queries';
+import { knightReach, legalKnightSpots } from '../ck/queries';
 import { createGame } from '../state';
 import type { GameState, MapId, Mode, PlayerColor, TreasureKind } from '../types';
 import { viewFor } from '../view';
@@ -103,6 +104,25 @@ describe('Veiled Isles', () => {
     }
   });
 
+  it('puts the 9 harbors in the same spots on the home coast every game, kinds shuffled', () => {
+    const spots = (seed: number) => generateBoard({ rng: seed }, 'veiledIsles').harbors.map((h) => h.edge).sort((a, b) => a - b);
+    const first = spots(seeds[0]);
+    const kinds = new Set<string>();
+    for (const seed of seeds) {
+      const board = generateBoard({ rng: seed }, 'veiledIsles');
+      const t = getTopology(board.hexes);
+      expect(spots(seed)).toEqual(first);
+      expect(board.harbors.map((h) => h.kind).sort()).toEqual([...HARBOR_KINDS].sort());
+      for (const h of board.harbors) {
+        const [a, b] = t.edges[h.edge].hexes.map((x) => board.hexes[x]);
+        expect([a.start, b.start].filter(Boolean)).toHaveLength(1);
+        expect([a.terrain, b.terrain]).toContain('sea');
+      }
+      kinds.add(board.harbors.map((h) => h.kind).join());
+    }
+    expect(kinds.size).toBeGreaterThan(1);
+  });
+
   it('keeps treasure contents and fog secret in views', () => {
     const s = game('veiledIsles', 'ck');
     const view = viewFor(s, 0);
@@ -137,6 +157,33 @@ describe('Veiled Isles', () => {
   });
 });
 
+describe('Knights and ships', () => {
+  it('recruits and moves knights along ships, and a knight holds its ship in place', () => {
+    const s = autoSetup(game('veiledIsles', 'ck', 4));
+    const t = getTopology(s.board.hexes);
+    // A lone ship route of seat 0: building → e0 → e1, open at the far end.
+    for (const e0 of t.edges.filter((e) => canHoldShip(s.board, t, e.id)).map((e) => e.id)) {
+      const [home, mid] = [t.edges[e0].a, t.edges[e0].b];
+      const e1 = t.vertices[mid].edges.find((e) => e !== e0 && canHoldShip(s.board, t, e) && s.roads[e] === null);
+      if (e1 === undefined || s.buildings[home] || s.buildings[mid]) continue;
+      const end = t.edges[e1].a === mid ? t.edges[e1].b : t.edges[e1].a;
+      if (s.buildings[end] || [home, mid, end].some((v) => t.vertices[v].edges.some((e) => s.roads[e] !== null || s.ships[e] !== null))) continue;
+      s.buildings[home] = { owner: 0, city: false, wall: false, metropolis: null };
+      s.ships[e0] = 0;
+      s.ships[e1] = 0;
+      expect(legalKnightSpots(s, 0)).toEqual(expect.arrayContaining([mid, end]));
+      s.knights[mid] = { id: 1, owner: 0, level: 1, active: true, activatedOn: 0, promotedOn: 0 };
+      expect(knightReach(s, 0, mid).has(end)).toBe(true);
+      expect(movableShips(s, 0)).toContain(e1);
+      s.knights[end] = s.knights[mid];
+      s.knights[mid] = null;
+      expect(movableShips(s, 0)).not.toContain(e1);
+      return;
+    }
+    throw new Error('no free spot for a two-ship route');
+  });
+});
+
 describe('Veiled Isles rewards', () => {
   /** Setup done, seat 0 to act, with a ship next to treasure `i` ready to be finished off. */
   function nearTreasure(kind: TreasureKind) {
@@ -148,6 +195,8 @@ describe('Veiled Isles rewards', () => {
     s.steps = [];
     s.players[0].hand.lumber = 5;
     s.players[0].hand.wool = 5;
+    // Lift the fog so the ship pays only its treasure, not a discovery too.
+    for (const h of s.board.hexes) delete h.fog;
     // A lone settlement of seat 0 two edges from a treasure corner, with a ship on the first edge.
     for (const tr of s.board.treasures!) {
       for (const e1 of t.vertices[tr.vertex].edges) {

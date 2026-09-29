@@ -1,9 +1,11 @@
 /** Cities & Knights actions and prompt resolution. */
-import { COSTS, KNIGHTS_PER_LEVEL, TRACK_COMMODITY } from '../constants';
+import { COSTS, KNIGHTS_PER_LEVEL, MAX_PROGRESS_IN_HAND, TRACK_COMMODITY } from '../constants';
 import { RuleError, assertRule } from '../errors';
 import { cardList, handTotal, hasCards, parseHand, removeCards, transfer } from '../hand';
 import { isVertex, piecesLeft, topo } from '../queries';
 import { removePrompt, requireMode, requireRolled } from '../rules/common';
+import { revealAround } from '../rules/fog';
+import { endTurn } from '../rules/flow';
 import { relocateRobber } from '../rules/robber';
 import { emit, nextId, type Ctx } from '../state';
 import { COMMODITIES, TRACKS, isCommodity, isResource, type Action, type Knight, type KnightLevel, type PartialHand, type Prompt, type Track } from '../types';
@@ -20,6 +22,7 @@ import {
   ownKnightAt,
   promotableKnights,
   relocationSpots,
+  roadMoveTargets,
   robberActive,
   wallSpots,
   wouldGainMetropolis,
@@ -210,7 +213,10 @@ export function resolveCkPrompt(ctx: Ctx, prompt: Prompt, action: Action): void 
       const [card] = me.progress.splice(i, 1);
       s.progressDecks[card.track].push(card);
       emit(ctx, { type: 'progressDiscarded', seat: ctx.seat, track: card.track });
-      if (me.progress.length <= 4) removePrompt(ctx, prompt);
+      if (me.progress.length > MAX_PROGRESS_IN_HAND) return;
+      removePrompt(ctx, prompt);
+      // Asked on the way out of the turn: finish ending it.
+      if (prompt.endTurn) endTurn(ctx);
       return;
     }
     case 'giveCards': {
@@ -237,11 +243,23 @@ export function resolveCkPrompt(ctx: Ctx, prompt: Prompt, action: Action): void 
       s.knights[action.vertex] = null;
       emit(ctx, { type: 'knightRemoved', seat: ctx.seat, at: action.vertex });
       removePrompt(ctx, prompt);
+      // The thief places a knight of the same strength, or failing that the strongest weaker one they have left.
       const thief = prompt.to;
-      if (piecesLeft(s, thief).knights[k.level] > 0 && legalKnightSpots(s, thief).length) {
-        s.pending.push({ kind: 'deserterPlace', seat: thief, level: k.level });
-      }
+      const left = piecesLeft(s, thief).knights;
+      const level = ([3, 2, 1] as KnightLevel[]).find((l) => l <= k.level && left[l] > 0 && KNIGHTS_PER_LEVEL[l] > 0);
+      if (level && legalKnightSpots(s, thief).length) s.pending.push({ kind: 'deserterPlace', seat: thief, level });
       return;
+    }
+    case 'moveRoad': {
+      if (action.type === 'skipFreeRoads') return removePrompt(ctx, prompt);
+      if (action.type !== 'buildRoad') break;
+      assertRule(roadMoveTargets(s, ctx.seat, prompt.from).includes(action.edge), 'Your road cannot go there');
+      s.roads[prompt.from] = null;
+      s.roads[action.edge] = ctx.seat;
+      emit(ctx, { type: 'roadRemoved', seat: ctx.seat, owner: ctx.seat, at: prompt.from });
+      emit(ctx, { type: 'built', seat: ctx.seat, piece: 'road', at: action.edge, free: true });
+      revealAround(ctx, [topo(s).edges[action.edge].a, topo(s).edges[action.edge].b]);
+      return removePrompt(ctx, prompt);
     }
     case 'deserterPlace': {
       if (action.type !== 'placeKnight') break;

@@ -63,10 +63,6 @@ export function touchesOwnRoute(s: Q, seat: number, v: number): boolean {
   return topo(s).vertices[v].edges.some((e) => s.roads[e] === seat || s.ships[e] === seat);
 }
 
-export function touchesOwnRoad(s: Q, seat: number, v: number): boolean {
-  return topo(s).vertices[v].edges.some((e) => s.roads[e] === seat);
-}
-
 // ── Pieces ──────────────────────────────────────────────────────────────────
 
 export interface PieceCount {
@@ -205,7 +201,7 @@ export function legalShipSpots(s: Q, seat: number): number[] {
 
 /**
  * Ships that may sail: one end must touch none of the owner's other pieces, which rules out every ship
- * of a closed route (its ends meet a building or another ship).
+ * of a closed route (its ends meet a building or another ship) and one carrying the owner's knight.
  */
 export function movableShips(s: Q, seat: number): number[] {
   const t = topo(s);
@@ -215,6 +211,7 @@ export function movableShips(s: Q, seat: number): number[] {
     const free = [t.edges[e].a, t.edges[e].b].some((v) => {
       const b = s.buildings[v];
       if (b && b.owner === seat) return false;
+      if (s.knights[v]?.owner === seat) return false;
       return !t.vertices[v].edges.some((o) => o !== e && (s.ships[o] === seat || s.roads[o] === seat));
     });
     if (free) out.push(e);

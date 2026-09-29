@@ -12,7 +12,7 @@ Built on branch `codex/find-rules-for-treasure-islands-mode`:
   of a starting road; Road Building places roads or ships; island special points; settlements may stand at the
   end of a ship route.
 - **Maps:** Far Shores (14 VP classic / 17 C&K, 2 VP per small isle), Four Realms (13 / 16, 2 VP per foreign
-  island, robber starts on the 12), Veiled Isles (Special, C&K only, 14 VP, 1 VP per foreign isle). Each is our
+  island, robber starts on the 12), Veiled Isles (Special, C&K only, 16 VP, 1 VP per foreign isle). Each is our
   own layout after the rulebook's scenario; terrain and numbers are dealt per game.
 - **Veiled Isles:** laid out after the reference board: the base island in a 9-row frame (8–12 wide) with 15 fog
   hexes scattered around it and no visible outer isles (0–2 sea, 0–1 gold, numbers 3–11 without 7, repeats
@@ -34,10 +34,11 @@ Tessera interpretations made while building (change them in one place if the ori
 4. "Development card of choice" in Knights & Barbarians draws a progress card from a deck of the player's choice.
 5. In Knights & Barbarians the pirate, like the robber, stays put until the first barbarian attack; the Bishop and
    knight chases move only the robber.
-6. Knights stand and move along roads only, not ships.
+6. Knights are recruited on, and move along, roads and ships alike (as in the combined rules); a ship whose open
+   end holds its owner's knight can't sail. Intrigue reaches knights beside your roads or ships.
 7. Home islands are the islands a player built on during setup; special points count each other island once.
 8. Maps use one layout for 2–4 players (the rulebook has separate 3- and 4-player boards).
-9. Veiled Isles wins at 14 (C&K's 13 plus the isles); Far Shores and Four Realms add C&K's +3 to their target.
+9. Veiled Isles wins at 16 (owner's call); Far Shores and Four Realms add C&K's +3 to their target.
 
 ## 0. Product decisions (confirmed by the owner)
 

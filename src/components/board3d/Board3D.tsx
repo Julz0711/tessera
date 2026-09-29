@@ -14,11 +14,12 @@ import { City, CityWall, HarborPiece, Merchant, MetropolisTower, NumberToken, Ro
 import { Targets } from './targets';
 import { Pirate, Ship, TreasureChest } from './voyage';
 import { HexTile } from './terrain';
-import { Sea } from './ocean';
+import { HORIZON_HALF, Sea } from './ocean';
 import { displayFont, resetTextureCache } from './textures';
 import { KnightPieces } from './knights';
 import { PieceScale } from './pieceScale';
 import { BoardThemeContext } from './themes';
+import { Weather } from './weather';
 
 /** Aiming the camera slightly "below" the island centre lifts it above the bottom dock. */
 const GAME_TARGET_Z = 1.3;
@@ -167,7 +168,7 @@ function Island({
           ) : null,
         )}
         {scene.board.harbors.map((h) => (
-          <HarborPiece key={h.edge} harbor={h} topo={topo} />
+          <HarborPiece key={h.edge} harbor={h} topo={topo} hexes={scene.board.hexes} />
         ))}
       </group>
       {scene.roads.map((owner, e) =>
@@ -221,6 +222,7 @@ export default function Board3D({
   quality = 'high',
   pieceScale = 1,
   theme = 'classic',
+  weather = false,
 }: BoardProps) {
   const shadows = quality === 'high';
   const palette = PALETTES[theme];
@@ -253,7 +255,7 @@ export default function Board3D({
     <Canvas
       shadows={shadows ? 'percentage' : false}
       dpr={[1, quality === 'high' ? 2 : 1.25]}
-      camera={{ position: [0, 11, 8.5], fov: 38, near: 0.1, far: 120 }}
+      camera={{ position: [0, 11, 8.5], fov: 38, near: 0.1, far: HORIZON_HALF }}
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       onPointerDown={(e) => {
         pressed.current = { x: e.clientX, y: e.clientY };
@@ -286,6 +288,7 @@ export default function Board3D({
           shadow-normalBias={0.02}
         />
         <Sea shelfRadius={frame.extent + 2} />
+        {weather && !showcase && <Weather theme={theme} radius={frame.extent + 1.5} quality={quality} />}
         <FitCamera showcase={showcase} scale={scale} />
         {showcase ? (
           <Spin>{island}</Spin>

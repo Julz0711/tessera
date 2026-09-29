@@ -81,7 +81,7 @@ export const MAPS: Record<MapId, MapDefinition> = {
     bigBank: false,
     requires: ['seafarers'],
     modes: ['ck'],
-    vpToWin: { ck: 14 },
+    vpToWin: { ck: 16 },
     islandVP: 1,
   },
 };

@@ -276,27 +276,25 @@ const skyport: VoyageGlyphs = {
 
 // ── Cyberpunk: neon hover-boats ──────────────────────────────────────────────
 
-function hoverboat(hull: string, trim: string, neon: string) {
+/** A hover speedboat in side view: raked hull, glass canopy, a stern engine and a glow on the water. */
+function hoverboat(hull: string, trim: string, glow: string, stripe: string) {
   return (
     <g>
-      <path d="M-30 12h54" stroke={neon} strokeWidth="9" strokeOpacity="0.25" strokeLinecap="round" />
-      <path d="M-30 2h48l12 6-8 6h-50Z" fill={hull} stroke={trim} strokeWidth="3" strokeLinejoin="round" />
-      <path d="M-14 2l4-12h18l8 12Z" fill="#1d2233" stroke={trim} strokeWidth="2.5" strokeLinejoin="round" />
-      <Neon d="M-26 11h44" color={neon} width={2} />
-      <Neon d="M-8-6h14" color={neon} width={1.6} />
+      <path d="M-26 15h46" stroke={glow} strokeWidth="7" strokeOpacity="0.3" strokeLinecap="round" />
+      <path d="M-27-3l4-9h6l-2 9Z" fill={trim} stroke="#05060a" strokeWidth="2" strokeLinejoin="round" />
+      <rect x="-35" y="-1" width="9" height="8" rx="2.5" fill={trim} stroke="#05060a" strokeWidth="2" />
+      <Glow x={-36} y={3} r={2} color={glow} />
+      <path d="M-30-3H8l24 8-6 5h-56Z" fill={hull} stroke={trim} strokeWidth="2.5" strokeLinejoin="round" />
+      <path d="M-12-3c2-8 8-11 14-11s10 5 12 11Z" fill="#1d2233" stroke={trim} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M-4-11c3-1 6-1 8 1" stroke="#9fb3d9" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+      <Neon d="M-26 4H14l12 3" color={stripe} width={1.8} />
     </g>
   );
 }
 
 const cyberpunk: VoyageGlyphs = {
-  ship: ({ color }) => hoverboat(pcol(color).hex, pcol(color).dark, pcol(color).hex),
-  pirate: () => (
-    <g>
-      {hoverboat('#15161d', '#050508', PIRATE_RED)}
-      <Glow x={-24} y={6} r={2.2} color={PIRATE_RED} />
-      <Glow x={20} y={6} r={2.2} color={PIRATE_RED} />
-    </g>
-  ),
+  ship: ({ color }) => hoverboat(pcol(color).hex, pcol(color).dark, pcol(color).hex, '#dff6ff'),
+  pirate: () => hoverboat('#15161d', '#050508', PIRATE_RED, PIRATE_RED),
   treasure: () => (
     <g>
       <rect x="-14" y="-8" width="28" height="16" rx="3" fill="#1d2233" stroke="#05060a" strokeWidth="2.5" />

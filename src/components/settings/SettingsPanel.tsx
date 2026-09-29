@@ -140,6 +140,15 @@ export function SettingsPanel() {
                 ))}
               </div>
             </Section>
+            <Section title="Weather" hint="Rain, blossom, snow, fireflies and more over the 3D board, to suit the theme. Stays off while animations are reduced.">
+              <div className="flex flex-wrap gap-2">
+                {([true, false] as const).map((on) => (
+                  <button key={String(on)} type="button" className={`btn px-4 py-2 ${prefs.weather === on ? 'btn-primary' : ''}`} onClick={() => prefs.set({ weather: on })}>
+                    {on ? 'On' : 'Off'}
+                  </button>
+                ))}
+              </div>
+            </Section>
             <Section title="Board size" hint="Size of the pieces, number tokens and harbors on the board.">
               <div className="flex flex-wrap gap-2">
                 {(['small', 'medium', 'large'] as const).map((s) => (

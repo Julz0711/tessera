@@ -508,10 +508,9 @@ const DOCK = {
   beam: new THREE.BoxGeometry(0.02, 0.02, 0.2),
   boom: new THREE.BoxGeometry(0.02, 0.02, 0.3),
   container: new THREE.BoxGeometry(0.12, 0.05, 0.05),
-  barge: new THREE.BoxGeometry(0.17, 0.035, 0.09),
 };
 
-/** Container docks: a gantry crane over the water beside the pier, and containers stacked on a barge. */
+/** Container docks: a gantry crane over the water beside the pier. */
 function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
   return (
     <group position={[x, 0, z]} rotation={[0, rot, 0]}>
@@ -529,10 +528,6 @@ function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
         <mesh geometry={DOCK.boom} material={mat('#b08a20')} position={[0, 0.24, 0.1]} />
         <mesh geometry={DOCK.container} material={mat('#3aa0a0')} position={[0, 0.1, 0.18]} castShadow />
       </group>
-      <mesh geometry={DOCK.barge} material={mat('#2a2d38')} position={[-0.4, -0.085, 0.03]} />
-      {['#b3402e', '#3a74d8', '#8a93a3'].map((col, i) => (
-        <mesh key={col} geometry={DOCK.container} material={mat(col)} position={[-0.4 + (i % 2) * 0.015, -0.043 + i * 0.05, 0.03]} castShadow />
-      ))}
     </group>
   );
 }

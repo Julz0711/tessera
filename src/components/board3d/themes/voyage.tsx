@@ -212,9 +212,11 @@ function Felucca({ hull, trim, sail, o }: { hull: string; trim: string; sail: st
       <Block s={[0.42, 0.07, 0.13]} p={[0, 0.05, 0]} m={mat(hull, o)} />
       <Block s={[0.1, 0.05, 0.13]} p={[0.22, 0.09, 0]} m={mat(hull, o)} r={[0, 0, 0.45]} />
       <Block s={[0.1, 0.05, 0.13]} p={[-0.22, 0.09, 0]} m={mat(hull, o)} r={[0, 0, -0.45]} />
-      <Mast h={0.14} x={-0.03} m={mat(trim, o)} />
-      <mesh geometry={G.cyl} material={mat(trim, o)} scale={[0.008, 0.5, 0.008]} position={[0.02, 0.28, 0]} rotation={[0, 0, -0.9]} />
-      <mesh geometry={G.tri} material={sided(sail, o)} scale={[0.36, 0.36, 1]} position={[-0.16, 0.1, 0]} castShadow />
+      {/* A lateen rig: the sail's long edge hangs from a slanted yard, low at the bow and high at the
+          stern, hoisted to the top of a short mast. */}
+      <Mast h={0.28} x={-0.03} m={mat(trim, o)} />
+      <mesh geometry={G.cyl} material={mat(trim, o)} scale={[0.008, 0.58, 0.008]} position={[0.02, 0.28, 0]} rotation={[0, 0, Math.PI / 4]} />
+      <mesh geometry={G.tri} material={sided(sail, o)} scale={[0.36, 0.36, 1]} position={[-0.16, 0.1, 0.014]} castShadow />
     </group>
   );
 }
@@ -261,20 +263,46 @@ const skyport: VoyageKit = {
 
 // ── Cyberpunk: neon hover-boats ──────────────────────────────────────────────
 
-function Hoverboat({ hull, cabin, neon, o }: { hull: string; cabin: string; neon: string; o: O }) {
+/** A hull outline seen from above (bow at +x), extruded upward from y = 0. */
+function hullFromAbove(points: [number, number][], depth: number, bevel: number): THREE.BufferGeometry {
+  const shape = new THREE.Shape(points.map(([x, z]) => new THREE.Vector2(x, z)));
+  const g = bevel
+    ? new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 1 })
+    : new THREE.ShapeGeometry(shape);
+  return g.rotateX(-Math.PI / 2);
+}
+
+const SPEEDBOAT: [number, number][] = [[-0.21, -0.07], [0.05, -0.08], [0.25, 0], [0.05, 0.08], [-0.21, 0.07]];
+const HOVER_HULL = hullFromAbove(SPEEDBOAT, 0.04, 0.012);
+const UNDERGLOW = hullFromAbove(SPEEDBOAT.map(([x, z]) => [x * 0.85, z * 0.85]), 0, 0);
+
+/** A hover speedboat: pointed hull, glass canopy, neon side strips, twin engines and an underglow. */
+function Hoverboat({ hull, trim, neon, o }: { hull: string; trim: string; neon: string; o: O }) {
+  const body = mat(hull, { ...o, rough: 0.35, metal: 0.5 });
+  const dark = mat(trim, { ...o, rough: 0.4, metal: 0.5 });
   return (
-    <group position={[0, 0.03, 0]}>
-      <Block s={[0.44, 0.06, 0.16]} p={[0, 0.05, 0]} m={mat(hull, { ...o, rough: 0.4, metal: 0.4 })} />
-      <mesh geometry={G.cone} material={mat(hull, { ...o, rough: 0.4, metal: 0.4 })} scale={[0.1, 0.12, 0.08]} position={[0.27, 0.05, 0]} rotation={[0, Math.PI / 4, -Math.PI / 2]} />
-      <Block s={[0.16, 0.07, 0.1]} p={[-0.02, 0.11, 0]} m={mat(cabin, { ...o, rough: 0.3 })} />
-      <Block s={[0.44, 0.012, 0.17]} p={[0, 0.018, 0]} m={lit(neon, 2.2, o)} />
-    </group>
+    <Hover height={0.06} amount={0.008}>
+      <mesh geometry={HOVER_HULL} material={body} castShadow />
+      <mesh geometry={UNDERGLOW} material={lit(neon, 1.8, { opacity: Math.min(0.7, o.opacity ?? 1) })} position={[0, -0.03, 0]} />
+      {[-0.084, 0.084].map((z) => (
+        <Block key={z} s={[0.26, 0.012, 0.006]} p={[-0.04, 0.03, z]} m={lit(neon, 2.2, o)} />
+      ))}
+      <mesh geometry={G.sphere} material={mat('#1d2233', { ...o, rough: 0.15, metal: 0.6 })} scale={[0.11, 0.045, 0.055]} position={[0, 0.055, 0]} castShadow />
+      <Block s={[0.012, 0.02, 0.1]} p={[0.1, 0.06, 0]} m={lit(neon, 2, o)} />
+      {[-0.045, 0.045].map((z) => (
+        <group key={z}>
+          <mesh geometry={G.cyl} material={dark} scale={[0.026, 0.07, 0.026]} position={[-0.225, 0.03, z]} rotation={[0, 0, Math.PI / 2]} />
+          <mesh geometry={G.sphere} material={lit(neon, 2.4, o)} scale={[0.01, 0.022, 0.022]} position={[-0.262, 0.03, z]} />
+        </group>
+      ))}
+      <Block s={[0.05, 0.06, 0.008]} p={[-0.19, 0.085, 0]} m={dark} r={[0, 0, 0.35]} />
+    </Hover>
   );
 }
 
 const cyberpunk: VoyageKit = {
-  Ship: ({ c, o }) => <Hoverboat hull={c.hex} cabin="#1d2233" neon={c.hex} o={o} />,
-  Pirate: ({ o }) => <Hoverboat hull="#15161d" cabin="#050508" neon={PIRATE.red} o={o} />,
+  Ship: ({ c, o }) => <Hoverboat hull={c.hex} trim={c.dark} neon={c.hex} o={o} />,
+  Pirate: ({ o }) => <Hoverboat hull="#15161d" trim="#050508" neon={PIRATE.red} o={o} />,
   Treasure: () => (
     <group>
       <Block s={[0.2, 0.09, 0.13]} p={[0, 0.045, 0]} m={mat('#1d2233', { rough: 0.35, metal: 0.5 })} />

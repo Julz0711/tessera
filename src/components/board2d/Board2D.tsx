@@ -1068,7 +1068,7 @@ export default function Board2D({
         {/* harbors */}
         {scene.board.harbors.map((hb) => {
           const e = topo.edges[hb.edge];
-          const at = harborAnchor(topo, hb.edge, 0.66);
+          const at = harborAnchor(topo, scene.board.hexes, hb.edge, 0.66);
           const px = at.x * S;
           const py = at.y * S;
           const label =
@@ -1378,7 +1378,21 @@ export default function Board2D({
                   stroke="transparent"
                   strokeWidth="26"
                 />
-                {targets.hint ? (
+                {targets.edgeKinds?.[eid] === "shipAction" ? (
+                  // A ship that can sail: a soft glow on hover says it can be picked up.
+                  isHover && (
+                    <line
+                      x1={x1}
+                      y1={y1}
+                      x2={x2}
+                      y2={y2}
+                      stroke="#f2b33d"
+                      strokeOpacity="0.45"
+                      strokeWidth="26"
+                      strokeLinecap="round"
+                    />
+                  )
+                ) : targets.hint ? (
                   // Build hints only show on hover: a preview of the road (or ship).
                   isHover &&
                   myColor && ((targets.edgeKinds?.[eid] ?? targets.kind) === "ship" ? (

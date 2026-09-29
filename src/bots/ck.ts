@@ -180,6 +180,9 @@ function resolvePrompt(view: PlayerView, seat: number, prompt: Prompt): Action |
       const spots = legalKnightSpots(view, seat);
       return { type: 'placeKnight', vertex: spots[0] ?? null };
     }
+    case 'moveRoad':
+      // Bots don't aim the Diplomat at their own roads; if one ever does, the road stays.
+      return { type: 'skipFreeRoads' };
     case 'spy': {
       const card = argmax(prompt.cards, (c) => CARD_VALUE[c.type] ?? 3);
       return card ? { type: 'takeProgress', card: card.id } : null;

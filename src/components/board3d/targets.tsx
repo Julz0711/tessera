@@ -100,6 +100,7 @@ function EdgeTarget({
   color,
   onPick,
   ship,
+  sail,
 }: {
   x: number;
   z: number;
@@ -109,17 +110,19 @@ function EdgeTarget({
   color: PlayerColor | null;
   onPick: (id: number) => void;
   ship?: boolean;
+  /** One of your ships that can sail: no ghost, just a glow on hover. */
+  sail?: boolean;
 }) {
   const [hover, setHover] = useState(false);
   const bar = usePulse(id * 0.7);
   return (
     <group>
-      {hover && color && (ship ? <Ship x={x} z={z} angle={angle} color={color} ghost /> : <Road x={x} z={z} angle={angle} color={color} ghost />)}
-      {hint ? null : (
+      {hover && color && !sail && (ship ? <Ship x={x} z={z} angle={angle} color={color} ghost /> : <Road x={x} z={z} angle={angle} color={color} ghost />)}
+      {(sail ? !hover : hint) ? null : (
         <mesh
           ref={bar}
           geometry={GEO.road}
-          material={mat(hover ? '#fff3cf' : AMBER, { opacity: hover ? 0.2 : 0.75, emissive: AMBER })}
+          material={mat(hover && !sail ? '#fff3cf' : AMBER, { opacity: hover && !sail ? 0.2 : 0.75, emissive: AMBER })}
           position={[x, TILE_TOP + 0.08, z]}
           rotation={[0, -angle, 0]}
           scale={[0.7, 0.6, 0.6]}
@@ -236,6 +239,7 @@ export function Targets({
             color={color}
             onPick={onEdge}
             ship={(targets.edgeKinds?.[id] ?? targets.kind) === 'ship'}
+            sail={targets.edgeKinds?.[id] === 'shipAction'}
           />
         ))}
       {onHex && targets.hexes.map((id) => <HexTarget key={`h${id}`} id={id} x={topo.hexes[id].x} z={topo.hexes[id].y} onPick={onHex} />)}

@@ -276,11 +276,14 @@ export type Prompt =
   | { kind: 'relocateKnight'; seat: number; from: number; knight: Knight }
   | { kind: 'rewardDeck'; seat: number; reason?: 'treasure' }
   | { kind: 'aqueduct'; seat: number }
-  | { kind: 'discardProgress'; seat: number }
+  /** Over the progress card limit; `endTurn`: asked when ending the turn, which then carries on. */
+  | { kind: 'discardProgress'; seat: number; endTurn?: boolean }
   | { kind: 'giveCards'; seat: number; to: number; count: number }
   | { kind: 'commercialHarbor'; seat: number; from: number }
   | { kind: 'deserterRemove'; seat: number; to: number }
   | { kind: 'deserterPlace'; seat: number; level: KnightLevel }
+  /** Diplomat on your own open road: pick where it moves (it stays put until then). */
+  | { kind: 'moveRoad'; seat: number; from: number }
   | { kind: 'spy'; seat: number; victim: number; cards: ProgressCard[] }
   | { kind: 'masterMerchant'; seat: number; victim: number; hand: Hand; count: number }
   | { kind: 'placeMetropolis'; seat: number; track: Track }

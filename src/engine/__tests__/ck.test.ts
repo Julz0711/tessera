@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction } from '../apply';
-import { relocationSpots } from '../ck/queries';
+import { checkProgressLimit } from '../ck/events';
+import { relocationSpots, roadMoveTargets } from '../ck/queries';
 import { handLimit, topo } from '../queries';
 import type { GameState, ProgressCardType } from '../types';
+import { makeCtx } from '../state';
 import { victoryPoints } from '../vp';
 import { act, autoSetup, clearBoard, newGame, reject, rollTotal, setHand } from './kit';
 
@@ -283,6 +285,17 @@ describe('improvements and progress cards', () => {
     expect(handLimit(s, 0)).toBe(9);
   });
 
+  it('rolls the chosen dice as soon as the Alchemist is played', () => {
+    const s = ck();
+    s.turn.rolled = false;
+    s.turn.dice = null;
+    const after = act(s, 0, { type: 'playProgress', card: giveCard(s, 0, 'alchemist', 1), params: { red: 2, yellow: 4 } });
+    expect(after.turn.rolled).toBe(true);
+    expect(after.turn.dice).toMatchObject({ red: 2, yellow: 4 });
+    expect(after.turn.alchemist).toBeNull();
+    expect(after.log.some((e) => e.type === 'diceRolled')).toBe(true);
+  });
+
   it('plays a selection of progress cards', () => {
     let s = ck();
     const t = topo(s);
@@ -314,9 +327,78 @@ describe('improvements and progress cards', () => {
     expect(s.pending[0]).toMatchObject({ kind: 'spy', seat: 0, victim: 2 });
     s = act(s, 0, { type: 'takeProgress', card: 50 });
     expect(s.players[0].progress.map((p) => p.type)).toContain('warlord');
-    // Diplomat on my own open road lets me place it again.
+    // Diplomat on my own open road moves it: it stays until I pick the new spot, and only a road will do.
     s = act(s, 0, { type: 'playProgress', card: giveCard(s, 0, 'diplomat', 6), params: { edge: t.coast[0] } });
+    expect(s.roads[t.coast[0]]).toBe(0);
+    expect(s.pending[0]).toEqual({ kind: 'moveRoad', seat: 0, from: t.coast[0] });
+    const to = roadMoveTargets(s, 0, t.coast[0])[0];
+    expect(to).toBeDefined();
+    expect(reject(s, 0, { type: 'buildRoad', edge: t.coast[0] })).toMatch(/cannot go there/);
+    s = act(s, 0, { type: 'buildRoad', edge: to });
     expect(s.roads[t.coast[0]]).toBeNull();
-    expect(s.pending[0]).toMatchObject({ kind: 'freeRoads', seat: 0, count: 1 });
+    expect(s.roads[to]).toBe(0);
+    expect(s.pending).toHaveLength(0);
+  });
+
+  it('lets a 5th progress card be played on your own turn; the limit applies when the turn ends', () => {
+    let s = ck();
+    (['warlord', 'wedding', 'saboteur', 'crane', 'bishop'] as const).forEach((type, i) => giveCard(s, 0, type, 10 + i));
+    checkProgressLimit(makeCtx(s, 0), 0);
+    expect(s.pending).toHaveLength(0);
+    // Still five at the end of the turn: discard one, then the turn passes on its own.
+    s = act(s, 0, { type: 'endTurn' });
+    expect(s.pending).toEqual([{ kind: 'discardProgress', seat: 0, endTurn: true }]);
+    expect(s.turn.seat).toBe(0);
+    s = act(s, 0, { type: 'discardProgress', card: 10 });
+    expect(s.pending).toHaveLength(0);
+    expect(s.players[0].progress).toHaveLength(4);
+    expect(s.turn.seat).toBe(1);
+  });
+
+  it('ends the turn straight away once the 5th progress card has been played', () => {
+    let s = ck();
+    (['warlord', 'wedding', 'saboteur', 'crane', 'bishop'] as const).forEach((type, i) => giveCard(s, 0, type, 10 + i));
+    s = act(s, 0, { type: 'playProgress', card: 13 });
+    s = act(s, 0, { type: 'endTurn' });
+    expect(s.pending).toHaveLength(0);
+    expect(s.turn.seat).toBe(1);
+  });
+
+  it('asks for a discard at once when a 5th progress card arrives on someone else’s turn', () => {
+    const s = ck();
+    (['warlord', 'wedding', 'saboteur', 'crane', 'bishop'] as const).forEach((type, i) => giveCard(s, 1, type, 10 + i));
+    checkProgressLimit(makeCtx(s, 0), 1);
+    expect(s.pending).toEqual([{ kind: 'discardProgress', seat: 1 }]);
+  });
+
+  it('Diplomat can keep your own road where it is', () => {
+    let s = ck();
+    const t = topo(s);
+    city(s, 0, t.edges[t.coast[0]].a);
+    s.roads[t.coast[0]] = 0;
+    s = act(s, 0, { type: 'playProgress', card: giveCard(s, 0, 'diplomat', 1), params: { edge: t.coast[0] } });
+    s = act(s, 0, { type: 'skipFreeRoads' });
+    expect(s.roads[t.coast[0]]).toBe(0);
+    expect(s.pending).toHaveLength(0);
+  });
+
+  it('Deserter gives a weaker knight when none of the same strength is left', () => {
+    let s = ck();
+    const t = topo(s);
+    // Seat 0: both strong knights and one basic knight already out, plus a road with room for more.
+    const home = t.edges[t.coast[0]].a;
+    city(s, 0, home);
+    s.roads[t.coast[0]] = 0;
+    const spare = t.coast.slice(6, 9).map((e) => t.edges[e].a);
+    spare.forEach((v, i) => (s.knights[v] = { id: 100 + i, owner: 0, level: i < 2 ? 2 : 1, active: false, activatedOn: -1, promotedOn: -1 }));
+    // Seat 1: one strong knight.
+    const theirs = t.edges[t.coast[12]].a;
+    s.knights[theirs] = { id: 200, owner: 1, level: 2, active: true, activatedOn: -1, promotedOn: -1 };
+    s = act(s, 0, { type: 'playProgress', card: giveCard(s, 0, 'deserter', 1), params: { victim: 1 } });
+    s = act(s, 1, { type: 'removeKnight', vertex: theirs });
+    expect(s.pending).toEqual([{ kind: 'deserterPlace', seat: 0, level: 1 }]);
+    const spot = t.edges[t.coast[0]].b;
+    s = act(s, 0, { type: 'placeKnight', vertex: spot });
+    expect(s.knights[spot]).toMatchObject({ owner: 0, level: 1 });
   });
 });

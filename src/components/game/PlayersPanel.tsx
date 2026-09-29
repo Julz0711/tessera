@@ -3,7 +3,7 @@
 import { Ban, Bot, Crown, Route, ShieldHalf, Swords, WifiOff } from 'lucide-react';
 import { useState } from 'react';
 import { api } from '@/client/store';
-import { TRACKS, type Track } from '@/engine';
+import { TRACKS, handLimit, type Track } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { TRACK_STYLE } from '@/client/progressText';
 import type { RoomDTO } from '@/shared/protocol';
@@ -28,16 +28,36 @@ function CardBack({ bg }: { bg: string }) {
 }
 
 /** A face-down card at the table with its count in a badge, as on colonist. */
-function CardIcon({ bg, ink = '#f6eddb', n, title, glyph = '?', small }: { bg: string; ink?: string; n: number; title: string; glyph?: React.ReactNode; small?: boolean }) {
+function CardIcon({
+  bg,
+  ink = '#f6eddb',
+  n,
+  title,
+  glyph = '?',
+  small,
+  warn,
+}: {
+  bg: string;
+  ink?: string;
+  n: number;
+  title: string;
+  glyph?: React.ReactNode;
+  small?: boolean;
+  /** Shown in red, with this explanation added to the tooltip. */
+  warn?: string;
+}) {
+  const label = `${title}: ${n}${warn ? ` (${warn})` : ''}`;
   return (
     <span
       className={`relative grid shrink-0 place-items-center rounded-md border-2 border-ink font-black shadow-[0_2px_0_0_#1f1a14] ${small ? 'h-7.5 w-5 text-[11px]' : 'h-9 w-6.5 text-sm'} ${n ? '' : 'opacity-45'}`}
-      style={{ background: bg, color: ink }}
-      title={`${title}: ${n}`}
-      aria-label={`${title}: ${n}`}
+      style={{ background: warn ? WARN_BG : bg, color: warn ? '#5a1510' : ink }}
+      title={label}
+      aria-label={label}
     >
       {glyph}
-      <span className="absolute -right-2 -top-2 grid h-4.5 min-w-4.5 place-items-center rounded-full border-2 border-ink bg-paper px-0.5 text-[10px] leading-none text-ink tabular">
+      <span
+        className={`absolute -right-2 -top-2 grid h-4.5 min-w-4.5 place-items-center rounded-full border-2 border-ink px-0.5 text-[10px] leading-none tabular ${warn ? 'bg-danger text-paper' : 'bg-paper text-ink'}`}
+      >
         {n}
       </span>
     </span>
@@ -45,6 +65,8 @@ function CardIcon({ bg, ink = '#f6eddb', n, title, glyph = '?', small }: { bg: s
 }
 
 const HAND_BG = 'repeating-linear-gradient(135deg, #ecdfc4 0 3px, #dccaa6 3px 6px)';
+/** A hand over the limit: a 7 now would cost that player half their cards. */
+const WARN_BG = 'repeating-linear-gradient(135deg, #f3b1a8 0 3px, #e5897d 3px 6px)';
 const DEV_BG = '#1d5a6b';
 
 /** Progress cards per track, the way their coloured backs show at the table (what a Spy would find). */
@@ -179,7 +201,14 @@ export function PlayersPanel({
         const contents = (
           <>
             <div className={`flex items-center gap-2.5 ${compact ? '' : 'pt-1'}`}>
-              <CardIcon bg={HAND_BG} ink="#1f1a14" n={p.handCount} title="Cards in hand" small={compact} />
+              <CardIcon
+                bg={HAND_BG}
+                ink="#1f1a14"
+                n={p.handCount}
+                title="Cards in hand"
+                small={compact}
+                warn={view.phase === 'play' && p.handCount > handLimit(view, seat) ? `over ${handLimit(view, seat)}: a 7 costs half` : undefined}
+              />
               {ck ? (
                 <span className="flex items-center gap-2.5">
                   {TRACKS.map((t) => (

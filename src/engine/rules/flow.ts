@@ -1,4 +1,4 @@
-import { ABILITY_LEVEL, EVENT_DIE, TERRAIN_COMMODITY, TERRAIN_RESOURCE } from '../constants';
+import { ABILITY_LEVEL, EVENT_DIE, MAX_PROGRESS_IN_HAND, TERRAIN_COMMODITY, TERRAIN_RESOURCE } from '../constants';
 import { runBarbarians, runProgressDraw } from '../ck/events';
 import { assertRule } from '../errors';
 import { compactHand, emptyHand, handTotal } from '../hand';
@@ -140,6 +140,11 @@ export function endTurn(ctx: Ctx): void {
   requireActive(ctx);
   const s = ctx.s;
   assertRule(s.turn.rolled, 'Roll the dice first');
+  if (s.players[s.turn.seat].progress.length > MAX_PROGRESS_IN_HAND) {
+    // Progress cards over the limit could be played until now; one has to go before the turn passes.
+    s.pending.push({ kind: 'discardProgress', seat: s.turn.seat, endTurn: true });
+    return;
+  }
   s.trades = [];
   const next = (s.turn.seat + 1) % s.players.length;
   s.turn = {

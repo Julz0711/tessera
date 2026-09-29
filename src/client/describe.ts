@@ -170,7 +170,8 @@ export function describe(ev: GameEvent, view: PlayerView): Part[][] {
     case 'merchantPlaced':
       return [[P(ev.seat), ' placed the merchant']];
     case 'roadRemoved':
-      return [[P(ev.seat), ' removed a road of ', P(ev.owner)]];
+      // Your own road only leaves to be placed again (Diplomat): the next entry says where.
+      return ev.owner === ev.seat ? [[P(ev.seat), ' moved one of their roads']] : [[P(ev.seat), ' removed a road of ', P(ev.owner)]];
     case 'tokensSwapped':
       return [[P(ev.seat), ' swapped two number tokens']];
   }
@@ -202,6 +203,7 @@ export function statusLine(view: PlayerView): { text: string; mine: boolean } {
       commercialHarbor: 'Commercial Harbor: give a commodity',
       deserterRemove: 'Choose a knight to desert',
       deserterPlace: 'Place the deserted knight',
+      moveRoad: 'Diplomat: pick where your road goes',
       spy: 'Spy: take a progress card',
       masterMerchant: 'Master Merchant: take 2 cards',
       placeMetropolis: 'Place your metropolis on a city',

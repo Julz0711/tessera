@@ -356,13 +356,6 @@ const SAIL = (() => {
 })();
 const SAIL_MAT = new THREE.MeshStandardMaterial({ color: '#f4efe0', flatShading: true, roughness: 0.9, side: THREE.DoubleSide });
 
-const FELUCCA = {
-  hull: new THREE.BoxGeometry(0.26, 0.045, 0.08),
-  bow: new THREE.ConeGeometry(0.04, 0.08, 4).rotateZ(-Math.PI / 2),
-  mast: new THREE.CylinderGeometry(0.006, 0.008, 0.3, 5),
-  yard: new THREE.CylinderGeometry(0.004, 0.004, 0.36, 4),
-};
-
 const SHIP_DANGER = '#c23a2a';
 /** The lateen sail's danger tint: same double-sided material as SAIL_MAT, but pale red. */
 const SAIL_MAT_DANGER = new THREE.MeshStandardMaterial({ color: '#f3d9d3', flatShading: true, roughness: 0.9, side: THREE.DoubleSide });
@@ -392,20 +385,5 @@ function BarbarianShip({ danger }: { danger: boolean }) {
   );
 }
 
-/** A felucca moored beside the pier, its white lateen sail up (clear of the floating rate sign). */
-function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
-  return (
-    <group position={[x, 0, z]} rotation={[0, rot, 0]}>
-      <group position={[0.44, -0.08, 0.07]}>
-        <mesh geometry={FELUCCA.hull} material={mat('#8a6139')} castShadow />
-        <mesh geometry={FELUCCA.bow} material={mat('#8a6139')} position={[0.17, 0, 0]} castShadow />
-        <mesh geometry={FELUCCA.mast} material={mat('#5a3d22')} position={[0.02, 0.17, 0]} />
-        <mesh geometry={FELUCCA.yard} material={mat('#5a3d22')} position={[0.02, 0.19, 0]} rotation={[0, 0, -0.72]} />
-        <mesh geometry={SAIL} material={SAIL_MAT} castShadow />
-      </group>
-    </group>
-  );
-}
-
 /** Nile: palms and mudbrick, wheat along the canals, pyramids, temples, a mummy and feluccas. */
-export const nile: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, BarbarianShip, Knight, CityWall };
+export const nile: ThemeKit = { props, Settlement, City, Robber, Road, BarbarianShip, Knight, CityWall };

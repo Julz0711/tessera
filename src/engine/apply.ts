@@ -16,9 +16,9 @@ import type { Action, ActionType, ApplyResult, GameState, Prompt, PromptKind } f
 const PROMPT_ACTIONS: Partial<Record<ActionType, PromptKind[]>> = {
   discard: ['discard'],
   moveRobber: ['robber'],
-  buildRoad: ['freeRoads'],
+  buildRoad: ['freeRoads', 'moveRoad'],
   buildShip: ['freeRoads'],
-  skipFreeRoads: ['freeRoads'],
+  skipFreeRoads: ['freeRoads', 'moveRoad'],
   loseCity: ['loseCity'],
   relocateKnight: ['relocateKnight'],
   chooseDeck: ['rewardDeck'],

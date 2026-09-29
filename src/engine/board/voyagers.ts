@@ -77,24 +77,50 @@ const VEILED_ISLES = parseLayout([
   '  ~~~~~~~~',
 ]);
 
-/** The 15 treasure chests of the reference board, each on the corner shared by three hexes (row, column). */
+/**
+ * The 15 treasure chests, fixed every game, each on the corner shared by three hexes (row, column).
+ * Mirror-symmetric left to right, as on the reference board, with one chest on the centre line.
+ */
 const VEILED_TREASURES: [number, number][][] = [
-  [[0, 8], [0, 9], [1, 8]],
-  [[1, 7], [1, 8], [2, 8]],
-  [[1, 9], [2, 9], [2, 10]],
-  [[2, 8], [2, 9], [3, 8]],
-  [[1, 2], [2, 2], [2, 3]],
-  [[3, 1], [4, 1], [4, 2]],
-  [[4, 2], [4, 3], [5, 2]],
-  [[4, 9], [4, 10], [5, 9]],
-  [[5, 9], [5, 10], [6, 10]],
-  [[6, 5], [6, 6], [7, 5]],
-  [[6, 8], [6, 9], [7, 8]],
-  [[7, 2], [7, 3], [8, 3]],
-  [[7, 6], [7, 7], [8, 7]],
+  // left                          // right
+  [[0, 2], [0, 3], [1, 2]],        [[0, 8], [0, 9], [1, 8]],
+  [[1, 1], [2, 1], [2, 2]],        [[1, 9], [2, 9], [2, 10]],
+  [[3, 1], [3, 2], [4, 2]],        [[3, 8], [3, 9], [4, 9]],
+  [[5, 1], [5, 2], [6, 2]],        [[5, 8], [5, 9], [6, 9]],
+  [[6, 2], [7, 1], [7, 2]],        [[6, 9], [7, 8], [7, 9]],
+  [[6, 4], [7, 3], [7, 4]],        [[6, 7], [7, 6], [7, 7]],
+  [[7, 2], [7, 3], [8, 3]],        [[7, 7], [7, 8], [8, 8]],
+  // centre, below the bottom fog
   [[7, 5], [8, 5], [8, 6]],
-  [[7, 8], [8, 8], [8, 9]],
 ];
+
+/**
+ * The home island's 9 harbors, fixed as on the reference board (only which kind goes where is
+ * shuffled): a hex (row, column of the drawing above) and the side facing the sea, as a screen
+ * angle with y pointing down (0 east, 60 south-east, 120 south-west, 180 west, 240 north-west,
+ * 300 north-east).
+ */
+const VEILED_HARBORS: [number, number, number][] = [
+  [1, 4, 300],
+  [1, 6, 300],
+  [2, 7, 0],
+  [4, 7, 0],
+  [5, 6, 60],
+  [5, 4, 60],
+  [4, 4, 120],
+  [3, 3, 180],
+  [2, 4, 240],
+];
+
+/** The edge of `hex` on the side facing `angle` (degrees, y down). */
+function sideOf(topo: Topology, hex: number, angle: number): number {
+  const h = topo.hexes[hex];
+  const [dx, dy] = [Math.cos((angle * Math.PI) / 180), Math.sin((angle * Math.PI) / 180)];
+  return h.edges.reduce((best, e) => {
+    const score = (edge: number) => (topo.edges[edge].x - h.x) * dx + (topo.edges[edge].y - h.y) * dy;
+    return score(e) > score(best) ? e : best;
+  });
+}
 
 const RESOURCES_TERRAIN: LandTerrain[] = ['forest', 'hills', 'pasture', 'fields', 'mountains'];
 
@@ -221,7 +247,8 @@ export function veiledIslesBoard(rng: RngHolder): Board {
   const deck = shuffle(rng, [...TREASURE_DECK]);
   const treasures: Treasure[] = corners.map((vertex, i) => ({ vertex, kind: deck[i] }));
 
-  // Nine harbors, all on the home island's coast.
-  const harbors = harborsOn(rng, topo, terrains, [main], [9]);
+  // Nine harbors in fixed spots on the home island's coast; their kinds are shuffled.
+  const kinds = shuffle(rng, [...HARBOR_KINDS]);
+  const harbors: Harbor[] = VEILED_HARBORS.map(([row, col, angle], i) => ({ edge: sideOf(topo, L.at(row, col), angle), kind: kinds[i] }));
   return { hexes, harbors, pirateStart: L.codes.indexOf('P'), treasures };
 }
