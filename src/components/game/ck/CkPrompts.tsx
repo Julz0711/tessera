@@ -22,8 +22,10 @@ export function CkPromptDialog({ view, prompt }: { view: PlayerView; prompt: Pro
   switch (prompt.kind) {
     case 'rewardDeck':
       return (
-        <Modal open dismissable={false} title="Defender's reward">
-          <p className="mb-3 text-sm text-ink-soft">You tied for the strongest defense. Draw a progress card from a deck of your choice:</p>
+        <Modal open dismissable={false} title={prompt.reason === 'treasure' ? 'Treasure!' : "Defender's reward"}>
+          <p className="mb-3 text-sm text-ink-soft">
+            {prompt.reason === 'treasure' ? 'Your ship found a treasure' : 'You tied for the strongest defense'}. Draw a progress card from a deck of your choice:
+          </p>
           <div className="grid gap-2 sm:grid-cols-3">
             {TRACKS.map((t) => (
               <button

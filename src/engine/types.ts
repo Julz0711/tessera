@@ -274,7 +274,7 @@ export type Prompt =
   | { kind: 'freeRoads'; seat: number; count: number }
   | { kind: 'loseCity'; seat: number }
   | { kind: 'relocateKnight'; seat: number; from: number; knight: Knight }
-  | { kind: 'rewardDeck'; seat: number }
+  | { kind: 'rewardDeck'; seat: number; reason?: 'treasure' }
   | { kind: 'aqueduct'; seat: number }
   | { kind: 'discardProgress'; seat: number }
   | { kind: 'giveCards'; seat: number; to: number; count: number }
@@ -285,7 +285,7 @@ export type Prompt =
   | { kind: 'masterMerchant'; seat: number; victim: number; hand: Hand; count: number }
   | { kind: 'placeMetropolis'; seat: number; track: Track }
   /** Gold (Black Forest): pick `count` resources of your choice. */
-  | { kind: 'goldPick'; seat: number; count: number };
+  | { kind: 'goldPick'; seat: number; count: number; reason?: 'treasure' };
 
 export type PromptKind = Prompt['kind'];
 

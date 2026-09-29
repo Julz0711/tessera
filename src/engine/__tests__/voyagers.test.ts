@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { generateBoard } from '../board/generate';
-import { islandsOf } from '../board/sea';
+import { canHoldShip, islandsOf } from '../board/sea';
 import { getTopology } from '../board/topology';
 import { TREASURE_DECK } from '../constants';
 import { MAPS } from '../maps';
 import { legalSettlementSpots, legalShipSpots } from '../queries';
 import { createGame } from '../state';
-import type { GameState, MapId, Mode, PlayerColor } from '../types';
+import type { GameState, MapId, Mode, PlayerColor, TreasureKind } from '../types';
 import { viewFor } from '../view';
 import { foreignIslands, victoryPoints } from '../vp';
 import { act, autoSetup } from './kit';
@@ -134,5 +134,100 @@ describe('Veiled Isles', () => {
     expect(taken.length).toBeGreaterThan(0);
     expect(s.log.some((e) => e.type === 'treasure')).toBe(true);
     expect(legalSettlementSpots(s, 0).length).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('Veiled Isles rewards', () => {
+  /** Setup done, seat 0 to act, with a ship next to treasure `i` ready to be finished off. */
+  function nearTreasure(kind: TreasureKind) {
+    const s = autoSetup(game('veiledIsles', 'ck', 9));
+    const t = getTopology(s.board.hexes);
+    s.turn.seat = 0;
+    s.turn.rolled = true;
+    s.pending = [];
+    s.steps = [];
+    s.players[0].hand.lumber = 5;
+    s.players[0].hand.wool = 5;
+    // A lone settlement of seat 0 two edges from a treasure corner, with a ship on the first edge.
+    for (const tr of s.board.treasures!) {
+      for (const e1 of t.vertices[tr.vertex].edges) {
+        if (!canHoldShip(s.board, t, e1)) continue;
+        const mid = t.edges[e1].a === tr.vertex ? t.edges[e1].b : t.edges[e1].a;
+        const e0 = t.vertices[mid].edges.find((e) => e !== e1 && canHoldShip(s.board, t, e));
+        if (e0 === undefined) continue;
+        const home = t.edges[e0].a === mid ? t.edges[e0].b : t.edges[e0].a;
+        if (s.buildings[home] || t.vertices[home].hexes.every((h) => s.board.hexes[h].terrain === 'sea')) continue;
+        s.buildings[home] = { owner: 0, city: false, wall: false, metropolis: null };
+        s.ships[e0] = 0;
+        tr.kind = kind;
+        return { s, e1, tr };
+      }
+    }
+    throw new Error('no treasure reachable in two edges');
+  }
+
+  it.each([
+    ['resource', 'goldPick'],
+    ['devCard', 'rewardDeck'],
+    ['roadBuilding', 'freeRoads'],
+  ] as const)('a %s treasure asks for %s', (kind, prompt) => {
+    const { s, e1, tr } = nearTreasure(kind);
+    const after = act(s, 0, { type: 'buildShip', edge: e1 });
+    expect(after.board.treasures!.find((x) => x.vertex === tr.vertex)!.takenBy).toBe(0);
+    expect(after.pending.some((p) => p.kind === prompt && p.seat === 0)).toBe(true);
+    expect(after.log.some((ev) => ev.type === 'treasure' && ev.kind === kind)).toBe(true);
+  });
+
+  it('a three-resource treasure pays wool, grain and brick', () => {
+    const { s, e1 } = nearTreasure('bundle');
+    const before = { ...s.players[0].hand };
+    const after = act(s, 0, { type: 'buildShip', edge: e1 });
+    expect(after.players[0].hand.wool).toBe(before.wool - 1 + 1);
+    expect(after.players[0].hand.grain).toBe(before.grain + 1);
+    expect(after.players[0].hand.brick).toBe(before.brick + 1);
+  });
+
+  it('shows a treasure only once collected', () => {
+    const { s, e1, tr } = nearTreasure('bundle');
+    const after = act(s, 0, { type: 'buildShip', edge: e1 });
+    const seen = viewFor(after, 1).board.treasures!;
+    expect(seen.find((x) => x.vertex === tr.vertex)!.kind).toBe('bundle');
+    expect(seen.filter((x) => x.takenBy === undefined).every((x) => x.kind === null)).toBe(true);
+  });
+
+  it('pays a random bonus treasure for revealing hidden sea, without touching the placed ones', () => {
+    const s = autoSetup(game('veiledIsles', 'ck', 21));
+    const t = getTopology(s.board.hexes);
+    s.turn.seat = 0;
+    s.turn.rolled = true;
+    s.pending = [];
+    s.steps = [];
+    s.players[0].hand.lumber = 5;
+    s.players[0].hand.wool = 5;
+    // Make one fog hex hidden sea and give seat 0 a ship route ending next to it.
+    const fog = s.board.hexes.find((h) => h.fog && t.hexes[h.id].neighbors.some((n) => s.board.hexes[n].terrain === 'sea' && !s.board.hexes[n].fog))!;
+    fog.terrain = 'sea';
+    fog.token = null;
+    const edge = t.hexes[fog.id].edges.find((e) => t.edges[e].hexes.some((h) => h !== fog.id && s.board.hexes[h].terrain === 'sea' && !s.board.hexes[h].fog))!;
+    const v = t.edges[edge].a;
+    const e0 = t.vertices[v].edges.find((e) => e !== edge && canHoldShip(s.board, t, e) && !t.edges[e].hexes.includes(fog.id))!;
+    const home = t.edges[e0].a === v ? t.edges[e0].b : t.edges[e0].a;
+    s.buildings[home] = { owner: 0, city: false, wall: false, metropolis: null };
+    s.ships[e0] = 0;
+    const kinds = s.board.treasures!.map((x) => x.kind);
+    const after = act(s, 0, { type: 'buildShip', edge });
+    expect(after.log.some((ev) => ev.type === 'treasure' && ev.at === null)).toBe(true);
+    expect(after.board.treasures!.map((x) => x.kind)).toEqual(kinds);
+  });
+
+  it('scores 1 point per foreign island', () => {
+    const s = autoSetup(game('veiledIsles', 'ck', 3));
+    const t = getTopology(s.board.hexes);
+    const islands = islandsOf(s.board, t);
+    const home = s.homeIslands![0];
+    const base = victoryPoints(s, 0);
+    const v = t.vertices.find((vx) => vx.hexes.some((h) => islands[h] >= 0 && !home.includes(islands[h]) && !s.board.hexes[h].fog))!;
+    s.buildings[v.id] = { owner: 0, city: false, wall: false, metropolis: null };
+    expect(victoryPoints(s, 0)).toBe(base + 1 + 1);
   });
 });

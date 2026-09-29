@@ -29,7 +29,7 @@ function grantTreasure(ctx: Ctx, kind: TreasureKind, at: number | null): void {
   switch (kind) {
     case 'resource':
       // A resource of choice, taken like a gold field's.
-      s.pending.push({ kind: 'goldPick', seat, count: 1 });
+      s.pending.push({ kind: 'goldPick', seat, count: 1, reason: 'treasure' });
       return;
     case 'roadBuilding':
       if (freeRouteLeft(s, seat)) s.pending.push({ kind: 'freeRoads', seat, count: freeRouteCount(s, seat) });
@@ -48,7 +48,7 @@ function grantTreasure(ctx: Ctx, kind: TreasureKind, at: number | null): void {
     }
     case 'devCard':
       // Knights & Barbarians: a progress card from the deck of your choice. Classic: the top development card.
-      if (s.mode === 'ck') s.pending.push({ kind: 'rewardDeck', seat });
+      if (s.mode === 'ck') s.pending.push({ kind: 'rewardDeck', seat, reason: 'treasure' });
       else if (s.devDeck.length) {
         const type = s.devDeck.pop()!;
         s.players[seat].devCards.push({ type, boughtOn: s.turn.n });

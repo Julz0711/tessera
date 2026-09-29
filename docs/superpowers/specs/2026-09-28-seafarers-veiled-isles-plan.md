@@ -1,6 +1,41 @@
 # Seafarers foundation and Veiled Isles discovery plan
 
-Date: 2026-09-29 · Working name: **Veiled Isles** · Status: discovery plan (core discovery and treasure rules captured; remaining details open)
+Date: 2026-09-29 · Working name: **Veiled Isles** · Status: **implemented** (see "Implementation status" below)
+
+## Implementation status (2026-09-29)
+
+Built on branch `codex/find-rules-for-treasure-islands-mode`:
+
+- **Engine:** sea terrain; ships (cost, 15 per player, placement, road/ship links only at own buildings, one
+  move per turn of an open-route end, never a ship built this turn); pirate (sea only, chosen instead of the
+  robber on a 7 or knight, robs ship owners, blocks placing and sailing away); longest trade route; ship instead
+  of a starting road; Road Building places roads or ships; island special points; settlements may stand at the
+  end of a ship route.
+- **Maps:** Far Shores (14 VP classic / 17 C&K, 2 VP per small isle), Four Realms (13 / 16, 2 VP per foreign
+  island, robber starts on the 12), Veiled Isles (Special, C&K only, 14 VP, 1 VP per foreign isle). Each is our
+  own layout after the rulebook's scenario; terrain and numbers are dealt per game.
+- **Veiled Isles:** 12 fog hexes (0–2 sea, 0–1 gold, numbers 3–11 without 7, repeats allowed), discovery pays the
+  terrain's resource (gold: a pick), 15 treasures from a shuffled 5/4/3/3 deck on sea corners, collected by a
+  ship reaching the corner; hidden sea pays an independent random bonus treasure. Treasure contents and fog are
+  redacted from views.
+- **Clients:** open water, ships, the pirate and treasure chests on the 2D and 3D boards; Ship and Sail buttons;
+  road-or-ship popups in setup, Road Building and build hints; lobby map groups (Base game / Voyagers / Special).
+- **Bots:** plan ships toward settlement spots, foreign islands, treasures and fog; move the pirate; handle every
+  new prompt. Self-play covers all three maps.
+
+Tessera interpretations made while building (change them in one place if the original differs):
+
+1. Fog contents are drawn at game creation with the seeded RNG and kept server-side (as Black Forest does),
+   rather than at reveal time. Players see the same thing: nothing leaks until a reveal.
+2. A fogged hex counts as land for placement legality until revealed, so move legality never leaks the fog.
+3. A ship reveals fog on every hex touching its two corners (the existing Black Forest rule for roads).
+4. "Development card of choice" in Knights & Barbarians draws a progress card from a deck of the player's choice.
+5. In Knights & Barbarians the pirate, like the robber, stays put until the first barbarian attack; the Bishop and
+   knight chases move only the robber.
+6. Knights stand and move along roads only, not ships.
+7. Home islands are the islands a player built on during setup; special points count each other island once.
+8. Maps use one layout for 2–4 players (the rulebook has separate 3- and 4-player boards).
+9. Veiled Isles wins at 14 (C&K's 13 plus the isles); Far Shores and Four Realms add C&K's +3 to their target.
 
 ## 0. Product decisions (confirmed by the owner)
 

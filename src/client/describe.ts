@@ -196,7 +196,7 @@ export function statusLine(view: PlayerView): { text: string; mine: boolean } {
       relocateKnight: 'Move your displaced knight',
       rewardDeck: 'Choose a progress card deck',
       aqueduct: 'Aqueduct: choose a resource',
-      goldPick: `Gold! Choose ${'count' in mine ? mine.count : ''} resource${'count' in mine && mine.count === 1 ? '' : 's'}`,
+      goldPick: `${mine.kind === 'goldPick' && mine.reason === 'treasure' ? 'Treasure' : 'Gold'}! Choose ${'count' in mine ? mine.count : ''} resource${'count' in mine && mine.count === 1 ? '' : 's'}`,
       discardProgress: 'Discard a progress card (max 4)',
       giveCards: 'Choose cards to give',
       commercialHarbor: 'Commercial Harbor: give a commodity',

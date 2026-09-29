@@ -15,7 +15,7 @@ export function GoldDialog({ view, prompt }: { view: PlayerView; prompt: Extract
   const total = handTotal(sel);
   const need = Math.min(prompt.count, RESOURCES.reduce((n, r) => n + view.bank[r], 0));
   return (
-    <Modal open dismissable={false} title="Gold!">
+    <Modal open dismissable={false} title={prompt.reason === 'treasure' ? 'Treasure!' : 'Gold!'}>
       <p className="mb-4 text-sm text-ink-soft">
         Choose {need} resource{need === 1 ? '' : 's'} from the bank.
       </p>

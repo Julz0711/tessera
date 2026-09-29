@@ -16,6 +16,35 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '1.2',
+    date: '2026-09-29',
+    summary: 'Voyagers: open sea, ships, the pirate and three new maps, including Veiled Isles.',
+    sections: [
+      {
+        title: 'Voyagers',
+        icon: 'board',
+        items: [
+          'Ships cost a wool and a lumber. Build them on sea or coast edges, from your coastal settlements or your other ships. Each player has 15.',
+          'Roads and ships only connect through one of your settlements or cities, and a settlement can stand at the end of either.',
+          'Once a turn you can sail the ship at the open end of a route (not one you built this turn). Use Sail in the build bar.',
+          'A starting settlement on the coast may launch a ship instead of its road, and Road Building places roads or ships.',
+          'Longest Road becomes the longest trade route: roads and ships count together.',
+          'The pirate: on a 7 or a knight you may move it instead of the robber. It robs a player with a ship beside it and blocks new ships on its hex and ships sailing away from it.',
+        ],
+      },
+      {
+        title: 'New maps',
+        icon: 'map',
+        items: [
+          'Far Shores: start on the big island and sail for the small isles and their gold. 2 points for your first settlement on each small isle. First to 14.',
+          'Four Realms: four islands. Start on one or two; each other island you settle is worth 2 points. First to 13.',
+          'Veiled Isles (Special, Knights & Barbarians): sail into the fog to uncover land and claim 15 hidden treasures. Hidden sea pays a bonus treasure, and each foreign isle you settle is worth a point. First to 14.',
+          'The map picker is grouped into Base game, Voyagers and Special.',
+        ],
+      },
+    ],
+  },
+  {
     version: '1.1',
     date: '2026-09-26',
     summary: 'Everything from the first play-test round: clearer player cards, embargoes, dice stats and a fairer Vulcan.',
