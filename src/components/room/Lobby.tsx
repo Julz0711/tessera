@@ -155,6 +155,26 @@ function Segmented<T extends string | number>({
 }
 
 const MAP_OPTIONS: readonly MapId[] = MAP_IDS;
+/** Blurb plus badges for anything beyond the base game or a subset of modes. */
+function MapInfo({ map }: { map: MapId }) {
+  const { blurb, requires, modes } = MAPS[map];
+  const needs = requires.filter((tag) => tag !== 'base');
+  const onlyModes = modes.length < 2 ? modes : [];
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-ink-soft">
+      {needs.map((tag) => (
+        <span key={tag} className="rounded-full bg-ink/10 px-2 py-0.5 font-black uppercase tracking-wide">{tag}</span>
+      ))}
+      {onlyModes.map((mode) => (
+        <span key={mode} className="rounded-full bg-amber/25 px-2 py-0.5 font-black uppercase tracking-wide">
+          {mode === 'ck' ? 'K&B only' : 'Classic only'}
+        </span>
+      ))}
+      <span>{blurb}</span>
+    </div>
+  );
+}
+
 function MapSegmented({ value, onChange, disabled }: { value: MapId; onChange: (v: MapId) => void; disabled?: boolean }) {
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -214,17 +234,7 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
       <div className="grid gap-1.5">
         <span className="label">Map</span>
         <MapSegmented value={s.map ?? 'standard'} onChange={(map) => set({ map })} disabled={!host} />
-        <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-ink-soft">
-          {MAPS[s.map ?? 'standard'].requires.map((tag) => (
-            <span key={tag} className="rounded-full bg-ink/10 px-2 py-0.5 font-black uppercase tracking-wide">{tag}</span>
-          ))}
-          {MAPS[s.map ?? 'standard'].modes.map((mode) => (
-            <span key={mode} className="rounded-full bg-amber/25 px-2 py-0.5 font-black uppercase tracking-wide">
-              {mode === 'ck' ? 'K&B' : mode}
-            </span>
-          ))}
-          <span>{MAPS[s.map ?? 'standard'].blurb}</span>
-        </div>
+        <MapInfo map={s.map ?? 'standard'} />
         {s.map === 'blackForest' && (
           <div className="mt-1">
             <Toggle label="Gold fields in the fog" checked={s.gold ?? true} onChange={(gold) => set({ gold })} disabled={!host} />

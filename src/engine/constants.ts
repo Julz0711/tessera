@@ -81,16 +81,9 @@ export const LARGE_BANK_PER_COMMODITY = 16;
 export const LARGE_DEV_DECK: Record<DevCardType, number> = { knight: 20, victoryPoint: 5, roadBuilding: 3, yearOfPlenty: 3, monopoly: 3 };
 
 /** Seats each map has room for. */
-export const MAX_PLAYERS: Record<MapId, number> = {
-  standard: MAPS.standard.maxPlayers,
-  large: MAPS.large.maxPlayers,
-  blackForest: MAPS.blackForest.maxPlayers,
-  goldRush: MAPS.goldRush.maxPlayers,
-  vulcan: MAPS.vulcan.maxPlayers,
-  heartlake: MAPS.heartlake.maxPlayers,
-  longIsle: MAPS.longIsle.maxPlayers,
-  fourLakes: MAPS.fourLakes.maxPlayers,
-};
+export const MAX_PLAYERS = Object.fromEntries(
+  Object.values(MAPS).map((m) => [m.id, m.maxPlayers]),
+) as Record<MapId, number>;
 /** Maps that use the 5–6 player extension's bigger bank and development deck. */
 export const BIG_MAPS: ReadonlySet<MapId> = new Set<MapId>(['large', 'blackForest', 'goldRush', 'vulcan', 'fourLakes']);
 
