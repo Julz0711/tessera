@@ -11,6 +11,7 @@ import { handleHttp } from './src/server/http';
 import { createPrismaPersistence } from './src/server/prismaPersistence';
 import { findFreePort } from './src/server/port';
 import { attachRealtime } from './src/server/realtime';
+import { acquirePrivacyLock } from './src/server/privacyMaintenance';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = process.env.HOST || undefined; // default: all interfaces (dual-stack)
@@ -54,6 +55,11 @@ if (db) {
 }
 if (db) console.log('> Persistence: PostgreSQL (profiles, history and game recovery enabled)');
 else if (!process.env.DATABASE_URL) console.log('> Persistence: off (no DATABASE_URL) — games live in memory; sign-in is disabled');
+// Keep a direct connection for this session lock, even when Prisma uses a pooled URL.
+const privacyLock = db ? await acquirePrivacyLock(process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL!, 'server', () => {
+  console.error('> Lost the privacy maintenance lock. Stopping to prevent unsafe writes.');
+  process.exit(1);
+}) : undefined;
 const persistence = db ? createPrismaPersistence(db) : undefined;
 const realtime = attachRealtime(server, { persistence });
 
@@ -75,6 +81,9 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     // A deploy stops the old server: write out the moves still queued (a few seconds at most), so
     // running games come back exactly where they were on the new one.
     await Promise.race([persistence?.flush(), new Promise((r) => setTimeout(r, 5000))]).catch(() => undefined);
+    // Process exit closes the lock connection after all server work has stopped.
+    // Do not release it while HTTP requests or timed-out persistence writes can still run.
+    void privacyLock;
     process.exit(0);
   });
 }

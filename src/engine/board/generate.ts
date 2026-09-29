@@ -36,7 +36,7 @@ import {
   type HexCoord,
   type Topology,
 } from './topology';
-import { farShoresBoard, fourRealmsBoard, veiledIslesBoard } from './voyagers';
+import { citadelBoard, farShoresBoard, fourRealmsBoard, veiledIslesBoard } from './voyagers';
 
 interface MapSpec {
   coords: readonly HexCoord[];
@@ -51,7 +51,7 @@ interface MapSpec {
   allowEqual?: boolean;
 }
 
-const MAPS: Record<Exclude<MapId, 'blackForest' | 'goldRush' | 'vulcan' | 'farShores' | 'fourRealms' | 'veiledIsles'>, MapSpec> = {
+const MAPS: Record<Exclude<MapId, 'blackForest' | 'goldRush' | 'vulcan' | 'crossroads' | 'farShores' | 'fourRealms' | 'veiledIsles' | 'citadel'>, MapSpec> = {
   standard: { coords: STANDARD_HEX_COORDS, terrains: TERRAIN_COUNTS, tokens: NUMBER_TOKENS, harbors: HARBOR_KINDS, slots: HARBOR_COAST_SLOTS },
   large: { coords: LARGE_HEX_COORDS, terrains: LARGE_TERRAIN_COUNTS, tokens: LARGE_NUMBER_TOKENS, harbors: LARGE_HARBOR_KINDS },
   fourLakes: {
@@ -121,6 +121,42 @@ export function bag(counts: Partial<Record<LandTerrain, number>>): Terrain[] {
 }
 
 const ringOf = (h: HexCoord) => Math.max(Math.abs(h.q), Math.abs(h.r), Math.abs(h.q + h.r));
+
+/** Four seven-hex home regions, linked to a desert center by two weakly numbered hexes each. */
+function crossroadsBoard(rng: RngHolder): Board {
+  const centers: HexCoord[] = [{ q: -4, r: 0 }, { q: 4, r: 0 }, { q: 0, r: -4 }, { q: 0, r: 4 }];
+  const key = (q: number, r: number) => `${q},${r}`;
+  const homes = new Set<string>();
+  for (const center of centers) {
+    for (let dr = -1; dr <= 1; dr++) for (let dq = -1; dq <= 1; dq++) {
+      if (ringOf({ q: dq, r: dr }) <= 1) homes.add(key(center.q + dq, center.r + dr));
+    }
+  }
+  const necks: HexCoord[] = [-2, -1, 1, 2].flatMap((n) => [{ q: n, r: 0 }, { q: 0, r: n }]);
+  const coords = [...[...homes].map((s) => { const [q, r] = s.split(',').map(Number); return { q, r }; }), ...necks, { q: 0, r: 0 }]
+    .sort((a, b) => a.r - b.r || a.q - b.q);
+  const topo = getTopology(coords);
+  const homeIds = topo.hexes.filter((h) => homes.has(key(h.q, h.r))).map((h) => h.id);
+  const homeGroups = centers.map((center) => homeIds.filter((id) =>
+    ringOf({ q: topo.hexes[id].q - center.q, r: topo.hexes[id].r - center.r }) <= 1,
+  ));
+  const neckIds = topo.hexes.filter((h) => ringOf(h) !== 0 && !homes.has(key(h.q, h.r))).map((h) => h.id);
+  const terrains: Terrain[] = topo.hexes.map(() => 'desert');
+  const homeBag: Terrain[] = ['forest', 'forest', 'hills', 'pasture', 'fields', 'fields', 'mountains'];
+  for (const ids of homeGroups) {
+    shuffle(rng, [...homeBag]).forEach((terrain, i) => { terrains[ids[i]] = terrain; });
+  }
+  shuffle(rng, ['forest', 'forest', 'hills', 'hills', 'pasture', 'pasture', 'fields', 'fields'] as Terrain[])
+    .forEach((terrain, i) => { terrains[neckIds[i]] = terrain; });
+  const tokens = dealTokens(rng, topo, [
+    ...homeGroups.map((ids): [number[], number[]] => [ids, [3, 4, 5, 6, 8, 9, 10]]),
+    [neckIds, [2, 2, 3, 3, 11, 11, 12, 12]],
+  ], topo.hexes.map(() => null));
+  const hexes: Hex[] = topo.hexes.map((h) => ({ id: h.id, q: h.q, r: h.r, terrain: terrains[h.id], token: tokens[h.id], start: homes.has(key(h.q, h.r)) }));
+  const kinds = shuffle(rng, [...LARGE_HARBOR_KINDS]);
+  const harbors = spreadHarborEdges(topo, kinds.length).map((edge, i) => ({ edge, kind: kinds[i] }));
+  return { hexes, harbors };
+}
 
 /**
  * Numbers for groups of hexes, each dealt from its own pool (the first as many as it has hexes),
@@ -359,6 +395,8 @@ function blackForestBoard(rng: RngHolder, gold: boolean): Board {
  * leaves Black Forest's gold fields out.
  */
 export function generateBoard(rng: RngHolder, map: MapId = 'standard', opts: { gold?: boolean } = {}): Board {
+  if (map === 'citadel') return citadelBoard(rng);
+  if (map === 'crossroads') return crossroadsBoard(rng);
   if (map === 'farShores') return farShoresBoard(rng);
   if (map === 'fourRealms') return fourRealmsBoard(rng);
   if (map === 'veiledIsles') return veiledIslesBoard(rng);

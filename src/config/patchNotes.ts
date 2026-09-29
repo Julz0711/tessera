@@ -18,6 +18,19 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '1.3.1',
+    date: '2026-09-30',
+    summary: 'Clearer privacy information and improved dialogs.',
+    sections: [{
+      title: 'Profiles and dialogs',
+      icon: 'players',
+      items: [
+        'Updated the privacy policy to explain how deletion requests affect saved games and portraits.',
+        'Dialogs now keep focus inside while open and return it when closed.',
+      ],
+    }],
+  },
+  {
     version: '1.3',
     date: '2026-09-29',
     summary: 'Voyagers: open sea, ships and the pirate, plus three new maps. Weather effects and a few Knights & Barbarians fixes too.',

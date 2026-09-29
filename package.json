@@ -13,10 +13,12 @@
     "start": "cross-env NODE_ENV=production tsx server.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:privacy": "node scripts/test-privacy.mjs",
     "typecheck": "tsc --noEmit",
     "db:local": "node scripts/local-db.mjs",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
+    "privacy:delete": "tsx scripts/delete-personal-data.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

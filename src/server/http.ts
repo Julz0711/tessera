@@ -145,7 +145,8 @@ async function serveFace(res: ServerResponse, id: string): Promise<void> {
   res.writeHead(200, {
     'content-type': face.mime,
     'content-length': face.data.length,
-    'cache-control': 'public, max-age=31536000, immutable',
+    // Uploaded portraits can be removed on request; do not create year-long public copies.
+    'cache-control': 'private, no-store',
     'x-content-type-options': 'nosniff',
     'content-security-policy': "default-src 'none'",
     'cross-origin-resource-policy': 'same-origin',

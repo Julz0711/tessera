@@ -124,6 +124,34 @@ function sideOf(topo: Topology, hex: number, angle: number): number {
 
 const RESOURCES_TERRAIN: LandTerrain[] = ['forest', 'hills', 'pasture', 'fields', 'mountains'];
 
+/** A central seven-hex island separated from four equal home islands by a two-hex sea. */
+export function citadelBoard(rng: RngHolder): Board {
+  const distance = (q: number, r: number) => Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r));
+  const centers: HexCoord[] = [{ q: -5, r: 0 }, { q: 5, r: 0 }, { q: 0, r: -5 }, { q: 0, r: 5 }];
+  const coords: HexCoord[] = [];
+  for (let r = -6; r <= 6; r++) for (let q = -6; q <= 6; q++) {
+    if (distance(q, r) <= 3 || centers.some((c) => distance(q - c.q, r - c.r) <= 1)) coords.push({ q, r });
+  }
+  const topo = getTopology(coords);
+  const terrains: Terrain[] = topo.hexes.map(() => 'sea');
+  const homeGroups = centers.map((c) => topo.hexes.filter((h) => distance(h.q - c.q, h.r - c.r) <= 1).map((h) => h.id));
+  const central = topo.hexes.filter((h) => distance(h.q, h.r) <= 1).map((h) => h.id);
+  const homeBag: Terrain[] = ['forest', 'forest', 'hills', 'pasture', 'fields', 'fields', 'mountains'];
+  for (const group of homeGroups) shuffle(rng, [...homeBag]).forEach((t, i) => { terrains[group[i]] = t; });
+  terrains[topo.hexAt(0, 0)!] = 'gold';
+  const ring = central.filter((id) => id !== topo.hexAt(0, 0));
+  shuffle(rng, ['mountains', 'mountains', 'mountains', 'forest', 'pasture', 'fields'] as Terrain[])
+    .forEach((t, i) => { terrains[ring[i]] = t; });
+  const tokens = dealTokens(rng, topo, [
+    ...homeGroups.map((ids): [number[], number[]] => [ids, [3, 4, 5, 6, 8, 9, 10]]),
+    [central, [3, 4, 5, 6, 8, 9, 10]],
+  ], topo.hexes.map(() => null));
+  const hexes = hexesOf(topo, terrains, tokens);
+  for (const group of homeGroups) for (const id of group) hexes[id].start = true;
+  const pirateStart = topo.hexAt(0, 2)!;
+  return { hexes, harbors: harborsOn(rng, topo, terrains, homeGroups, [3, 3, 3, 3]), pirateStart };
+}
+
 const idsOf = (layout: Layout, test: (code: string) => boolean) =>
   layout.codes.flatMap((code, id) => (test(code) ? [id] : []));
 

@@ -26,8 +26,8 @@ export function SignInChoices({ auth, failed }: { auth: { google: boolean; disco
         </button>
       )}
       <p className="mt-1 text-xs text-ink-faint">
-        By signing in you agree to the <Link href="/terms" className="underline">terms</Link> and{' '}
-        <Link href="/privacy" className="underline">privacy policy</Link>.
+        By signing in, you agree to the <Link href="/terms" className="underline">Terms</Link>. See our{' '}
+        <Link href="/privacy" className="underline">Privacy Policy</Link>.
       </p>
     </div>
   );

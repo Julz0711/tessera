@@ -3,20 +3,13 @@
 import {
   ArrowLeft,
   ArrowRight,
-  Bot,
-  Castle,
-  Crown,
   Loader2,
-  Sailboat,
-  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { FEATURES } from "@/config/features";
 import { usePrefs } from "@/client/prefs";
 import { api, startConnection, useGame } from "@/client/store";
-import { gameTypeSettings, type GameType } from "@/engine/maps";
 import { sanitizeName } from "@/shared/text";
 import { Logomark } from "@/components/ui/Logomark";
 import {
@@ -29,8 +22,6 @@ export function CreateGame() {
   const prefs = usePrefs();
   const session = useGame((s) => s.session);
   const [draft, setDraft] = useState<ProfileDraft | null>(null);
-  const [type, setType] = useState<GameType>("classic");
-  const [bots, setBots] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,16 +53,12 @@ export function CreateGame() {
     setBusy(true);
     setError(null);
     prefs.set({ name, color: draft.color, knight: draft.knight });
-    const r = await api.createRoom(
-      { name, color: draft.color, knight: draft.knight },
-      gameTypeSettings(type, { map: "standard", mode: "classic" }),
-    );
+    const r = await api.createRoom({ name, color: draft.color, knight: draft.knight });
     if (!r.ok) {
       setError(r.error);
       setBusy(false);
       return;
     }
-    for (let i = 0; i < bots; i++) await api.addBot();
     router.push(`/r/${r.code}`);
   };
 
@@ -105,68 +92,6 @@ export function CreateGame() {
             )}
           </div>
 
-          <div className="mt-6 grid gap-1.5">
-            <span className="label">Game mode</span>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <ModeCard
-                active={type === "classic"}
-                onClick={() => setType("classic")}
-                icon={<Castle size={22} />}
-                title="Classic"
-              />
-              <ModeCard
-                active={type === "ck"}
-                disabled={!FEATURES.citiesAndKnights}
-                onClick={() => setType("ck")}
-                icon={<Crown size={22} />}
-                title="Knights & Barbarians"
-              />
-              <ModeCard
-                active={type === "voyagers"}
-                onClick={() => setType("voyagers")}
-                icon={<Sailboat size={22} />}
-                title="Voyagers"
-              />
-              <ModeCard
-                active={type === "special"}
-                disabled={!FEATURES.citiesAndKnights}
-                onClick={() => setType("special")}
-                icon={<Sparkles size={22} />}
-                title="Special"
-              />
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-1.5">
-            <span className="label">Fill seats with bots</span>
-            <div className="flex flex-wrap gap-2">
-              {[0, 1, 2, 3].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setBots(n)}
-                  aria-pressed={bots === n}
-                  className={`flex items-center gap-1.5 rounded-lg border-2 px-3 py-1.5 text-sm font-bold transition ${
-                    bots === n
-                      ? "border-ink bg-ink text-paper"
-                      : "border-ink/25 bg-white/50 hover:border-ink/60"
-                  }`}
-                >
-                  {n === 0 ? (
-                    "Friends only"
-                  ) : (
-                    <>
-                      <Bot size={15} /> {n}
-                    </>
-                  )}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-ink-faint">
-              You can add or remove bots in the lobby too.
-            </p>
-          </div>
-
           {error && (
             <p className="mt-4 rounded-lg bg-terracotta/15 px-3 py-2 text-sm font-bold text-danger">
               {error}
@@ -185,38 +110,5 @@ export function CreateGame() {
         </form>
       </div>
     </main>
-  );
-}
-
-function ModeCard({
-  active,
-  disabled,
-  onClick,
-  icon,
-  title,
-}: {
-  active: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  title: string;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      aria-pressed={active}
-      className={`flex gap-3 rounded-xl border-2 p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-45 ${
-        active
-          ? "border-ink bg-amber/40 shadow-[0_3px_0_0_#1f1a14]"
-          : "border-ink/25 bg-white/40 hover:border-ink/60"
-      }`}
-    >
-      <span className="mt-0.5">{icon}</span>
-      <span>
-        <span className="block font-extrabold">{title}</span>
-      </span>
-    </button>
   );
 }
