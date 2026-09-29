@@ -2,6 +2,20 @@
 
 Date: 2026-09-29 · Working name: **Veiled Isles** · Status: discovery plan (core discovery and treasure rules captured; remaining details open)
 
+## 0. Product decisions (confirmed by the owner)
+
+- **Scenario name:** keep the working title **Veiled Isles** (`veiledIsles`); it must not copy the source game's title.
+- **Seafarers boards:** ship **two default Seafarers maps** (non-fog starters, `requires: ['seafarers']`) plus **one**
+  Veiled Isles board. Rules for the two default maps come from the official Seafarers rulebook, not from memory.
+- **Veiled Isles is Seafarers + Cities & Knights merged.** It is not a third rules module; it is a scenario that
+  requires both.
+- **Lobby categories:** `Classic`, `C&K`, `Seafarers` and `Special`. Category is a *presentation/selection* concept
+  layered over the existing rule flags, so `Mode` (`classic` | `ck`) keeps meaning "card and city rules" and is not
+  extended. Veiled Isles lives under `Special`; its `requires` is `['seafarers']` and its `modes` is `['ck']`.
+  Implementation: add `category` to `MapDefinition` and group the lobby map picker by it.
+- Remaining Phase 0 items are resolved from the official rulebook wherever it covers them; anything it does not cover
+  stays a labelled Tessera interpretation.
+
 ## 1. What we can decide now
 
 ### Scenario name
