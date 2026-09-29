@@ -218,6 +218,10 @@ export function createPrismaPersistence(db: Db): DurablePersistence {
       ]);
       if (!snapshot || !players.length) return null;
       let state = snapshot.state as unknown as GameState;
+      // Snapshots from before Voyagers have no ships.
+      state.ships ??= state.roads.map(() => null);
+      state.turn.shipsBuilt ??= [];
+      state.turn.shipsMoved ??= false;
       const events = await db.gameEvent.findMany({ where: { gameId: current.id, seq: { gt: snapshot.seq } }, orderBy: { seq: 'asc' } });
       for (const ev of events) {
         const seat = players.findIndex((p) => p.id === ev.playerId);

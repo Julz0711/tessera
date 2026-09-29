@@ -2,7 +2,7 @@
  * Read-only rule queries. They accept anything shaped like the public part of the game state,
  * so the client can call them on a redacted PlayerView to highlight legal moves.
  */
-import { canHoldRoad, canHoldSettlement } from './board/sea';
+import { canHoldRoad, canHoldSettlement, canHoldShip } from './board/sea';
 import { getTopology, type Topology } from './board/topology';
 import { KNIGHTS_PER_LEVEL, PIECE_LIMITS, TERRAIN_RESOURCE } from './constants';
 import { handTotal } from './hand';
@@ -23,6 +23,7 @@ export type Q = Pick<
   | 'players'
   | 'buildings'
   | 'roads'
+  | 'ships'
   | 'knights'
   | 'robber'
   | 'merchant'
@@ -63,6 +64,7 @@ export function touchesOwnRoad(s: Q, seat: number, v: number): boolean {
 
 export interface PieceCount {
   roads: number;
+  ships: number;
   settlements: number;
   cities: number;
   walls: number;
@@ -70,8 +72,9 @@ export interface PieceCount {
 }
 
 export function piecesUsed(s: Q, seat: number): PieceCount {
-  const out: PieceCount = { roads: 0, settlements: 0, cities: 0, walls: 0, knights: { 1: 0, 2: 0, 3: 0 } };
+  const out: PieceCount = { roads: 0, ships: 0, settlements: 0, cities: 0, walls: 0, knights: { 1: 0, 2: 0, 3: 0 } };
   for (const r of s.roads) if (r === seat) out.roads++;
+  for (const r of s.ships) if (r === seat) out.ships++;
   for (const b of s.buildings) {
     if (!b || b.owner !== seat) continue;
     if (b.city) out.cities++;
@@ -86,6 +89,7 @@ export function piecesLeft(s: Q, seat: number): PieceCount {
   const used = piecesUsed(s, seat);
   return {
     roads: PIECE_LIMITS.road - used.roads,
+    ships: PIECE_LIMITS.ship - used.ships,
     settlements: PIECE_LIMITS.settlement - used.settlements,
     cities: PIECE_LIMITS.city - used.cities,
     walls: PIECE_LIMITS.wall - used.walls,
@@ -146,7 +150,7 @@ export function legalSettlementSpots(s: Q, seat: number, setup = false): number[
 
 /** A road may extend from an own building, or from an own road through a vertex no opponent occupies. */
 export function canPlaceRoad(s: Q, seat: number, e: number): boolean {
-  if (!isEdge(s, e) || s.roads[e] !== null) return false;
+  if (!isEdge(s, e) || s.roads[e] !== null || s.ships[e] !== null) return false;
   const t = topo(s);
   if (!canHoldRoad(s.board, t, e)) return false;
   const edge = t.edges[e];
@@ -157,6 +161,52 @@ export function canPlaceRoad(s: Q, seat: number, e: number): boolean {
     if (t.vertices[v].edges.some((other) => other !== e && s.roads[other] === seat)) return true;
   }
   return false;
+}
+
+/** Ships exist only on maps with open water. */
+export const shipsInPlay = (s: Q): boolean => s.board.hexes.some((h) => h.terrain === 'sea');
+
+/**
+ * A ship may leave an own building or extend an own ship through a vertex no opponent occupies. Roads
+ * never connect it: land and sea networks meet only at a settlement or city.
+ */
+export function canPlaceShip(s: Q, seat: number, e: number): boolean {
+  if (!shipsInPlay(s) || !isEdge(s, e) || s.roads[e] !== null || s.ships[e] !== null) return false;
+  const t = topo(s);
+  if (!canHoldShip(s.board, t, e)) return false;
+  const edge = t.edges[e];
+  for (const v of [edge.a, edge.b]) {
+    const b = s.buildings[v];
+    if (b && b.owner === seat) return true;
+    if (blockedFor(s, seat, v)) continue;
+    if (t.vertices[v].edges.some((other) => other !== e && s.ships[other] === seat)) return true;
+  }
+  return false;
+}
+
+export function legalShipSpots(s: Q, seat: number): number[] {
+  const out: number[] = [];
+  for (let e = 0; e < s.ships.length; e++) if (canPlaceShip(s, seat, e)) out.push(e);
+  return out;
+}
+
+/**
+ * Ships that may sail: one end must touch none of the owner's other pieces, which rules out every ship
+ * of a closed route (its ends meet a building or another ship).
+ */
+export function movableShips(s: Q, seat: number): number[] {
+  const t = topo(s);
+  const out: number[] = [];
+  s.ships.forEach((owner, e) => {
+    if (owner !== seat) return;
+    const free = [t.edges[e].a, t.edges[e].b].some((v) => {
+      const b = s.buildings[v];
+      if (b && b.owner === seat) return false;
+      return !t.vertices[v].edges.some((o) => o !== e && (s.ships[o] === seat || s.roads[o] === seat));
+    });
+    if (free) out.push(e);
+  });
+  return out;
 }
 
 export function legalRoadSpots(s: Q, seat: number): number[] {

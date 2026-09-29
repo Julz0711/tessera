@@ -151,6 +151,8 @@ export function endTurn(ctx: Ctx): void {
     crane: false,
     merchantFleet: [],
     alchemist: null,
+    shipsBuilt: [],
+    shipsMoved: false,
   };
   emit(ctx, { type: 'turnStarted', seat: next, n: s.turn.n });
   checkWinner(ctx);

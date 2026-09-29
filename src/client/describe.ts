@@ -61,7 +61,7 @@ function count(h: PartialHand): number {
   return CARDS.reduce((n, c) => n + (h[c] ?? 0), 0);
 }
 
-const PIECE: Record<string, string> = { road: 'a road', settlement: 'a settlement', city: 'a city', wall: 'a city wall' };
+const PIECE: Record<string, string> = { road: 'a road', ship: 'a ship', settlement: 'a settlement', city: 'a city', wall: 'a city wall' };
 
 /** Describes an event for the game log; returns one or more lines (or none). */
 export function describe(ev: GameEvent, view: PlayerView): Part[][] {
@@ -83,6 +83,8 @@ export function describe(ev: GameEvent, view: PlayerView): Part[][] {
       return [[`The bank ran out of ${ev.card}, nobody gets it.`]];
     case 'built':
       return [[P(ev.seat), ev.free ? ' placed ' : ' built ', PIECE[ev.piece] ?? ev.piece]];
+    case 'shipMoved':
+      return [[P(ev.seat), ' sailed a ship to a new route']];
     case 'robberMoved': {
       const hex = view.board.hexes[ev.hex];
       return [[P(ev.seat), ` moved the robber to ${TERRAIN_COLORS[hex.terrain].label.toLowerCase()}${hex.token ? ` (${hex.token})` : ''}`]];

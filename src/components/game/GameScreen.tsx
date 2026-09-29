@@ -75,7 +75,7 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
           }
           break;
         case 'built':
-          play(ev.piece === 'wall' ? 'wall' : ev.piece);
+          play(ev.piece === 'wall' ? 'wall' : ev.piece === 'ship' ? 'road' : ev.piece);
           break;
         case 'robberMoved':
           play('robber');

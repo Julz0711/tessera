@@ -17,6 +17,7 @@ import { MAPS } from './maps';
 
 export const COSTS = {
   road: { brick: 1, lumber: 1 },
+  ship: { wool: 1, lumber: 1 },
   settlement: { brick: 1, lumber: 1, wool: 1, grain: 1 },
   city: { grain: 2, ore: 3 },
   devCard: { wool: 1, grain: 1, ore: 1 },
@@ -27,7 +28,7 @@ export const COSTS = {
   medicineCity: { grain: 1, ore: 2 },
 } as const satisfies Record<string, PartialHand>;
 
-export const PIECE_LIMITS = { road: 15, settlement: 5, city: 4, wall: 3 } as const;
+export const PIECE_LIMITS = { road: 15, ship: 15, settlement: 5, city: 4, wall: 3 } as const;
 /** C&K: each player owns two knights of each level. */
 export const KNIGHTS_PER_LEVEL: Record<KnightLevel, number> = { 1: 2, 2: 2, 3: 2 };
 

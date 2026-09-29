@@ -205,6 +205,10 @@ export interface TurnState {
   crane: boolean;
   merchantFleet: Card[];
   alchemist: { red: number; yellow: number } | null;
+  /** Voyagers: edges of ships built this turn (they may not sail until next turn). */
+  shipsBuilt: number[];
+  /** Voyagers: a ship already sailed this turn. */
+  shipsMoved: boolean;
 }
 
 export interface SetupState {
@@ -282,7 +286,8 @@ export type GameEventBody =
   | { type: 'shortage'; card: Card }
   /** Fog lifted from these hexes (Black Forest), by `seat`'s road or settlement. */
   | { type: 'revealed'; seat: number; hexes: { id: number; terrain: Terrain; token: number | null }[] }
-  | { type: 'built'; seat: number; piece: 'road' | 'settlement' | 'city' | 'wall'; at: number; free?: boolean }
+  | { type: 'built'; seat: number; piece: 'road' | 'ship' | 'settlement' | 'city' | 'wall'; at: number; free?: boolean }
+  | { type: 'shipMoved'; seat: number; from: number; to: number }
   | { type: 'robberMoved'; seat: number; hex: number }
   | { type: 'stole'; seat: number; victim: number }
   | { type: 'discarded'; seat: number; cards: PartialHand }
@@ -375,6 +380,8 @@ export interface GameState {
   buildings: (Building | null)[];
   /** Indexed by edge id → owner seat. */
   roads: (number | null)[];
+  /** Voyagers: indexed by edge id → owner seat. All null on maps without sea. */
+  ships: (number | null)[];
   /** Indexed by vertex id (C&K). */
   knights: (Knight | null)[];
   robber: number;
@@ -422,6 +429,8 @@ export type Action =
   | { type: 'rollDice' }
   | { type: 'endTurn' }
   | { type: 'buildRoad'; edge: number }
+  | { type: 'buildShip'; edge: number }
+  | { type: 'moveShip'; from: number; to: number }
   | { type: 'buildSettlement'; vertex: number }
   | { type: 'buildCity'; vertex: number }
   | { type: 'moveRobber'; hex: number; victim: number | null }

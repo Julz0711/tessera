@@ -1,7 +1,7 @@
 import { COSTS } from '../constants';
 import { assertRule } from '../errors';
 import { transfer } from '../hand';
-import { canPlaceRoad, canPlaceSettlement, legalRoadSpots, piecesLeft } from '../queries';
+import { canPlaceRoad, canPlaceSettlement, canPlaceShip, legalRoadSpots, movableShips, piecesLeft } from '../queries';
 import { emit, type Ctx } from '../state';
 import type { PartialHand, Prompt } from '../types';
 import { removePrompt, requireRolled } from './common';
@@ -24,6 +24,34 @@ export function buildRoad(ctx: Ctx, edge: number): void {
   ctx.s.roads[edge] = ctx.seat;
   emit(ctx, { type: 'built', seat: ctx.seat, piece: 'road', at: edge });
   revealRoad(ctx, edge);
+}
+
+export function buildShip(ctx: Ctx, edge: number): void {
+  requireRolled(ctx);
+  assertRule(piecesLeft(ctx.s, ctx.seat).ships > 0, 'No ships left');
+  assertRule(canPlaceShip(ctx.s, ctx.seat, edge), 'You cannot build a ship there');
+  pay(ctx, COSTS.ship, 'ship');
+  ctx.s.ships[edge] = ctx.seat;
+  ctx.s.turn.shipsBuilt.push(edge);
+  emit(ctx, { type: 'built', seat: ctx.seat, piece: 'ship', at: edge });
+  revealRoad(ctx, edge);
+}
+
+/** One ship per turn, never one built this turn; it re-enters play as if newly placed. */
+export function moveShip(ctx: Ctx, from: number, to: number): void {
+  requireRolled(ctx);
+  const { s, seat } = ctx;
+  assertRule(!s.turn.shipsMoved, 'You already moved a ship this turn');
+  assertRule(s.ships[from] === seat, 'Pick one of your ships');
+  assertRule(!s.turn.shipsBuilt.includes(from), 'A new ship cannot sail on the turn it was built');
+  assertRule(movableShips(s, seat).includes(from), 'That ship is part of a connected route');
+  s.ships[from] = null;
+  assertRule(from !== to && canPlaceShip(s, seat, to), 'You cannot sail the ship there');
+  s.ships[to] = seat;
+  s.turn.shipsMoved = true;
+  s.turn.shipsBuilt.push(to);
+  emit(ctx, { type: 'shipMoved', seat, from, to });
+  revealRoad(ctx, to);
 }
 
 /** Free road from Road Building (classic dev card or C&K progress card). */

@@ -2,7 +2,7 @@ import { applyCkAction, isCkAction, resolveCkPrompt } from './ck/actions';
 import { pickGold } from './rules/fog';
 import { RuleError, assertRule } from './errors';
 import { checkWinner, updateLongestRoad } from './rules/awards';
-import { buildCity, buildRoad, buildSettlement, placeFreeRoad } from './rules/build';
+import { buildCity, buildRoad, buildSettlement, buildShip, moveShip, placeFreeRoad } from './rules/build';
 import { removePrompt } from './rules/common';
 import { buyDevCard, playKnight, playMonopoly, playRoadBuilding, playYearOfPlenty } from './rules/dev';
 import { advance, endTurn, rollDice } from './rules/flow';
@@ -86,6 +86,10 @@ function dispatch(ctx: Ctx, action: Action): void {
       return endTurn(ctx);
     case 'buildRoad':
       return buildRoad(ctx, action.edge);
+    case 'buildShip':
+      return buildShip(ctx, action.edge);
+    case 'moveShip':
+      return moveShip(ctx, action.from, action.to);
     case 'buildSettlement':
       return buildSettlement(ctx, action.vertex);
     case 'buildCity':
