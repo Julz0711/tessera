@@ -16,11 +16,16 @@ import {
   legalRoadSpots,
   legalSettlementSpots,
   legalSetupRoads,
+  legalSetupShips,
+  legalShipSpots,
+  sailableShips,
+  shipDestinations,
   merchantHexes,
   metropolisSpots,
   openRoads,
   promotableKnights,
   relocationSpots,
+  roadMoveTargets,
   robberTargets,
   robberVictims,
   wallSpots,
@@ -60,7 +65,7 @@ export function progressPickSpec(view: PlayerView, type: ProgressCardType): Pick
     case 'inventor':
       return { target: 'hex', allowed: inventorHexes(view), need: 2, hint: 'Pick two number tokens to swap' };
     case 'diplomat':
-      return { target: 'edge', allowed: openRoads(view), need: 1, hint: 'Pick an open road to remove' };
+      return { target: 'edge', allowed: openRoads(view), need: 1, hint: "Pick an open road: an opponent's is removed, yours moves" };
     default:
       return null;
   }
@@ -90,12 +95,13 @@ function ownKnights(view: PlayerView): number[] {
 }
 
 /** Pieces the viewer can afford and place right now, by spot. */
-function affordableSpots(view: PlayerView, me: number): Record<'roads' | 'settlements' | 'cities' | 'knights' | 'walls', number[]> {
+function affordableSpots(view: PlayerView, me: number): Record<'roads' | 'ships' | 'settlements' | 'cities' | 'knights' | 'walls', number[]> {
   const hand = view.players[me].hand;
   const left = piecesLeft(view, me);
   const ck = view.mode === 'ck';
   return {
     roads: left.roads > 0 && hasCards(hand, COSTS.road) ? legalRoadSpots(view, me) : [],
+    ships: left.ships > 0 && hasCards(hand, COSTS.ship) ? legalShipSpots(view, me) : [],
     settlements: left.settlements > 0 && hasCards(hand, COSTS.settlement) ? legalSettlementSpots(view, me) : [],
     cities: left.cities > 0 && hasCards(hand, COSTS.city) ? legalCitySpots(view, me) : [],
     knights: ck && left.knights[1] > 0 && hasCards(hand, COSTS.knight) ? legalKnightSpots(view, me) : [],
@@ -127,16 +133,16 @@ function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): Boa
     if (!setup || setup.order[setup.index] !== me || view.pending.length) return NO_TARGETS;
     return setup.placing === 'settlement'
       ? { ...NO_TARGETS, kind: 'settlement', vertices: legalSettlementSpots(view, me, true) }
-      : { ...NO_TARGETS, kind: 'road', edges: legalSetupRoads(view) };
+      : routeTargets(legalSetupRoads(view), legalSetupShips(view));
   }
 
   const prompt = view.pending.find((p) => p.seat === me);
   if (prompt) {
     switch (prompt.kind) {
       case 'freeRoads':
-        return { ...NO_TARGETS, kind: 'road', edges: legalRoadSpots(view, me) };
+        return routeTargets(piecesLeft(view, me).roads > 0 ? legalRoadSpots(view, me) : [], piecesLeft(view, me).ships > 0 ? legalShipSpots(view, me) : []);
       case 'robber':
-        return { ...NO_TARGETS, kind: 'robber', hexes: robberTargets(view, me, (s) => view.players[s].publicVP) };
+        return { ...NO_TARGETS, kind: 'robber', hexes: robberTargets(view, me, (s) => view.players[s].publicVP, prompt.reason !== 'bishop') };
       case 'loseCity':
         return {
           ...NO_TARGETS,
@@ -147,6 +153,8 @@ function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): Boa
         return { ...NO_TARGETS, kind: 'knight', vertices: relocationSpots(view, me, prompt.from) };
       case 'deserterPlace':
         return { ...NO_TARGETS, kind: 'knight', vertices: legalKnightSpots(view, me) };
+      case 'moveRoad':
+        return { ...NO_TARGETS, kind: 'road', edges: roadMoveTargets(view, me, prompt.from), selectedEdge: prompt.from };
       case 'deserterRemove':
         return { ...NO_TARGETS, kind: 'vertexPick', vertices: ownKnights(view) };
       case 'placeMetropolis':
@@ -161,6 +169,8 @@ function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): Boa
     switch (mode.what) {
       case 'road':
         return { ...NO_TARGETS, kind: 'road', edges: legalRoadSpots(view, me) };
+      case 'ship':
+        return { ...NO_TARGETS, kind: 'ship', edges: legalShipSpots(view, me) };
       case 'settlement':
         return { ...NO_TARGETS, kind: 'settlement', vertices: legalSettlementSpots(view, me) };
       case 'city':
@@ -176,7 +186,11 @@ function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): Boa
     return { ...NO_TARGETS, kind: 'knightDestination', vertices: [...moves, ...displaces], selectedVertex: mode.from };
   }
   if (mode?.t === 'knightChase') {
-    return { ...NO_TARGETS, kind: 'robber', hexes: robberTargets(view, me, (s) => view.players[s].publicVP), selectedVertex: mode.from };
+    return { ...NO_TARGETS, kind: 'robber', hexes: robberTargets(view, me, (s) => view.players[s].publicVP, false), selectedVertex: mode.from };
+  }
+  if (mode?.t === 'shipMove') {
+    if (mode.from === null) return { ...NO_TARGETS, kind: 'edgePick', edges: sailableShips(view, me) };
+    return { ...NO_TARGETS, kind: 'ship', edges: shipDestinations(view, me, mode.from), selectedEdge: mode.from };
   }
   if (mode?.t === 'progress') {
     const spec = progressPickSpec(view, mode.cardType);
@@ -190,9 +204,16 @@ function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): Boa
       hexes: spec.target === 'hex' ? allowed : [],
     };
   }
-  // Cities & Knights: your knights are clickable for their action menu.
+  // Cities & Knights: your knights are clickable for their action menu. Voyagers: a ship that can
+  // sail is clickable too, and picks itself for the move.
   const knights = view.mode === 'ck' ? ownKnights(view) : [];
-  if (!hints) return knights.length ? { ...NO_TARGETS, kind: 'knightAction', vertices: knights } : NO_TARGETS;
+  const sail = sailableShips(view, me);
+  const sailKinds: Partial<Record<number, TargetKind>> = {};
+  for (const e of sail) sailKinds[e] = 'shipAction';
+  if (!hints) {
+    if (!knights.length && !sail.length) return NO_TARGETS;
+    return { ...NO_TARGETS, kind: 'knightAction', vertices: knights, edges: sail, edgeKinds: sailKinds };
+  }
   const spots = affordableSpots(view, me);
   const vertexKinds: Partial<Record<number, TargetKind>> = {};
   for (const v of spots.knights) vertexKinds[v] = 'knight';
@@ -202,8 +223,35 @@ function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): Boa
   for (const v of spots.walls) vertexKinds[v] = 'wall';
   for (const v of knights) vertexKinds[v] = 'knightAction';
   const vertices = Object.keys(vertexKinds).map(Number);
-  if (!vertices.length && !spots.roads.length) return NO_TARGETS;
-  return { kind: spots.roads.length ? 'road' : 'settlement', vertices, edges: spots.roads, hexes: [], vertexKinds, hint: true };
+  const routes = routeTargets(spots.roads, spots.ships);
+  if (!vertices.length && !routes.edges.length && !sail.length) return NO_TARGETS;
+  return {
+    ...routes,
+    kind: routes.edges.length ? routes.kind : 'settlement',
+    edges: [...routes.edges, ...sail],
+    edgeKinds: { ...routes.edgeKinds, ...sailKinds },
+    vertices,
+    hexes: [],
+    vertexKinds,
+    hint: true,
+  };
+}
+
+/** Road and ship spots together; an edge that only takes a ship is marked as one. */
+function routeTargets(roads: number[], ships: number[]): BoardTargets {
+  const edgeKinds: Partial<Record<number, TargetKind>> = {};
+  for (const e of ships) edgeKinds[e] = 'ship';
+  for (const e of roads) edgeKinds[e] = 'road';
+  const edges = [...new Set([...roads, ...ships])];
+  return { ...NO_TARGETS, kind: roads.length || !ships.length ? 'road' : 'ship', edges, edgeKinds };
+}
+
+/** Road and/or ship options for a clicked edge (free in setup and Road Building). */
+function routeOptions(view: PlayerView, id: number, roads: number[], ships: number[], free: boolean): BuildOption[] {
+  const out: BuildOption[] = [];
+  if (roads.includes(id)) out.push(free ? { what: 'road', action: { type: 'buildRoad', edge: id }, cost: null } : buildOption('road', id));
+  if (ships.includes(id)) out.push(free ? { what: 'ship', action: { type: 'buildShip', edge: id }, cost: null } : buildOption('ship', id));
+  return out;
 }
 
 async function send(action: Action, then?: () => void): Promise<void> {
@@ -218,7 +266,7 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
   if (me === null) return;
 
   if (view.phase === 'setup') {
-    if (target === 'edge') return arm('edge', id, [{ what: 'road', action: { type: 'buildRoad', edge: id }, cost: null }], false);
+    if (target === 'edge') return arm('edge', id, routeOptions(view, id, legalSetupRoads(view), legalSetupShips(view), true), false);
     // Cities & Knights: the second placement is a city.
     const city = view.mode === 'ck' && (view.setup?.index ?? 0) >= view.players.length;
     return arm('vertex', id, [{ what: city ? 'city' : 'settlement', action: { type: 'buildSettlement', vertex: id }, cost: null }], false);
@@ -227,8 +275,11 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
   const prompt = view.pending.find((p) => p.seat === me);
   if (prompt) {
     switch (prompt.kind) {
-      case 'freeRoads':
-        return arm('edge', id, [{ what: 'road', action: { type: 'buildRoad', edge: id }, cost: null }], false);
+      case 'freeRoads': {
+        const left = piecesLeft(view, me);
+        const options = routeOptions(view, id, left.roads > 0 ? legalRoadSpots(view, me) : [], left.ships > 0 ? legalShipSpots(view, me) : [], true);
+        return options.length ? arm('edge', id, options, false) : undefined;
+      }
       case 'robber':
         return pickRobberHex(view, id, null);
       case 'loseCity':
@@ -237,6 +288,8 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
         return send({ type: 'relocateKnight', vertex: id });
       case 'deserterPlace':
         return send({ type: 'placeKnight', vertex: id });
+      case 'moveRoad':
+        return send({ type: 'buildRoad', edge: id });
       case 'deserterRemove':
         return send({ type: 'removeKnight', vertex: id });
       case 'placeMetropolis':
@@ -251,6 +304,10 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
   if (mode?.t === 'build') return arm(target === 'edge' ? 'edge' : 'vertex', id, [buildOption(mode.what, id)], true);
   if (mode?.t === 'knightMove') return send({ type: 'moveKnight', from: mode.from, to: id }, done);
   if (mode?.t === 'knightChase') return pickRobberHex(view, id, mode.from);
+  if (mode?.t === 'shipMove') {
+    if (mode.from === null || mode.from === id) return ui.setMode({ t: 'shipMove', from: mode.from === id ? null : id });
+    return send({ type: 'moveShip', from: mode.from, to: id }, done);
+  }
   if (mode?.t === 'progress') {
     const spec = progressPickSpec(view, mode.cardType);
     if (!spec) return;
@@ -259,9 +316,13 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
     return ui.setMode({ ...mode, picked });
   }
   if (target === 'vertex' && view.knights[id]?.owner === me) return ui.setKnightMenu(id);
+  if (target === 'edge' && sailableShips(view, me).includes(id)) return ui.setMode({ t: 'shipMove', from: id });
   // Build hints: offer whatever the spot can take.
   const spots = affordableSpots(view, me);
-  if (target === 'edge') return spots.roads.includes(id) ? arm('edge', id, [buildOption('road', id)], false) : undefined;
+  if (target === 'edge') {
+    const options = routeOptions(view, id, spots.roads, spots.ships, false);
+    return options.length ? arm('edge', id, options, false) : undefined;
+  }
   if (target !== 'vertex') return;
   const offers = [
     ['settlement', spots.settlements],
@@ -316,7 +377,9 @@ function buildOption(what: BuildWhat, at: number): BuildOption {
   const action: Action =
     what === 'road'
       ? { type: 'buildRoad', edge: at }
-      : what === 'settlement'
+      : what === 'ship'
+        ? { type: 'buildShip', edge: at }
+        : what === 'settlement'
         ? { type: 'buildSettlement', vertex: at }
         : what === 'city'
           ? { type: 'buildCity', vertex: at }

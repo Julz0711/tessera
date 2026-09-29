@@ -21,7 +21,7 @@ import {
   VULCAN_HARBOR_KINDS,
 } from '../constants';
 import { randomInt, shuffle, type RngHolder } from '../rng';
-import type { Board, Harbor, HarborKind, Hex, MapId, Terrain } from '../types';
+import type { Board, Harbor, HarborKind, Hex, LandTerrain, MapId, Terrain } from '../types';
 import {
   BLACK_FOREST_HEX_COORDS,
   FOUR_LAKES_HEX_COORDS,
@@ -36,10 +36,11 @@ import {
   type HexCoord,
   type Topology,
 } from './topology';
+import { farShoresBoard, fourRealmsBoard, veiledIslesBoard } from './voyagers';
 
 interface MapSpec {
   coords: readonly HexCoord[];
-  terrains: Record<Terrain, number>;
+  terrains: Record<LandTerrain, number>;
   tokens: readonly number[];
   harbors: readonly HarborKind[];
   /** Harbor positions as indices into the clockwise coast; spread evenly when omitted. */
@@ -50,7 +51,7 @@ interface MapSpec {
   allowEqual?: boolean;
 }
 
-const MAPS: Record<Exclude<MapId, 'blackForest' | 'goldRush' | 'vulcan'>, MapSpec> = {
+const MAPS: Record<Exclude<MapId, 'blackForest' | 'goldRush' | 'vulcan' | 'farShores' | 'fourRealms' | 'veiledIsles'>, MapSpec> = {
   standard: { coords: STANDARD_HEX_COORDS, terrains: TERRAIN_COUNTS, tokens: NUMBER_TOKENS, harbors: HARBOR_KINDS, slots: HARBOR_COAST_SLOTS },
   large: { coords: LARGE_HEX_COORDS, terrains: LARGE_TERRAIN_COUNTS, tokens: LARGE_NUMBER_TOKENS, harbors: LARGE_HARBOR_KINDS },
   fourLakes: {
@@ -85,7 +86,7 @@ function heartlakeHarbors(topo: Topology, rng: RngHolder): Harbor[] {
 }
 
 /** `k` coast edges spread evenly around the island, nudged so no two harbors share a corner. */
-function spreadHarborEdges(topo: Topology, k: number): number[] {
+export function spreadHarborEdges(topo: Topology, k: number): number[] {
   const n = topo.coast.length;
   const taken = new Set<number>();
   const out: number[] = [];
@@ -103,10 +104,10 @@ function spreadHarborEdges(topo: Topology, k: number): number[] {
   return out;
 }
 
-const isRed = (t: number | null) => t === 6 || t === 8;
+export const isRed = (t: number | null) => t === 6 || t === 8;
 
 /** One of each number per 18 tiles (as on the standard island), then the likelier ones first. */
-function balancedTokens(n: number): number[] {
+export function balancedTokens(n: number): number[] {
   const base = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
   const extra = [5, 9, 4, 10, 6, 8, 3, 11, 2, 12];
   const out: number[] = [];
@@ -115,7 +116,7 @@ function balancedTokens(n: number): number[] {
   return out;
 }
 
-function bag(counts: Partial<Record<Terrain, number>>): Terrain[] {
+export function bag(counts: Partial<Record<LandTerrain, number>>): Terrain[] {
   return (Object.entries(counts) as [Terrain, number][]).flatMap(([t, n]) => Array.from({ length: n }, () => t));
 }
 
@@ -127,7 +128,7 @@ const ringOf = (h: HexCoord) => Math.max(Math.abs(h.q), Math.abs(h.r), Math.abs(
  * numbers that don't move. If equal numbers can't be kept apart after many deals, keeping the 6s and
  * 8s apart will do.
  */
-function dealTokens(
+export function dealTokens(
   rng: RngHolder,
   topo: Topology,
   groups: [ids: number[], pool: number[]][],
@@ -358,6 +359,9 @@ function blackForestBoard(rng: RngHolder, gold: boolean): Board {
  * leaves Black Forest's gold fields out.
  */
 export function generateBoard(rng: RngHolder, map: MapId = 'standard', opts: { gold?: boolean } = {}): Board {
+  if (map === 'farShores') return farShoresBoard(rng);
+  if (map === 'fourRealms') return fourRealmsBoard(rng);
+  if (map === 'veiledIsles') return veiledIslesBoard(rng);
   if (map === 'blackForest') return blackForestBoard(rng, opts.gold ?? true);
   if (map === 'goldRush') return goldRushBoard(rng);
   if (map === 'vulcan') return vulcanBoard(rng);

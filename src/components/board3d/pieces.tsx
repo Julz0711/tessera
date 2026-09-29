@@ -4,7 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { Topology } from '@/engine/board/topology';
-import type { Harbor, PlayerColor } from '@/engine/types';
+import type { Harbor, Hex, PlayerColor } from '@/engine/types';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { GEO, mat } from './materials';
 import { usePieceScale } from './pieceScale';
@@ -209,7 +209,7 @@ const SIGN_Y = 0.3;
 const WOOD_PIER = { deck: '#9c6f42', plank: '#8a6139', post: '#6b4a2b' };
 
 /** A little wooden pier out at sea with its rate sign on a pole. */
-export function HarborPiece({ harbor, topo }: { harbor: Harbor; topo: Topology }) {
+export function HarborPiece({ harbor, topo, hexes }: { harbor: Harbor; topo: Topology; hexes: readonly Pick<Hex, 'terrain'>[] }) {
   const face = useMemo(() => new THREE.MeshBasicMaterial({ map: harborTexture(harbor.kind) }), [harbor.kind]);
   const label = useRef<THREE.Group>(null);
   const k = usePieceScale();
@@ -219,7 +219,7 @@ export function HarborPiece({ harbor, topo }: { harbor: Harbor; topo: Topology }
     if (label.current) faceCamera(label.current, state.camera);
   });
   const e = topo.edges[harbor.edge];
-  const at = harborAnchor(topo, harbor.edge, 0.62);
+  const at = harborAnchor(topo, hexes, harbor.edge, 0.62);
   const [ox, oz, px, pz] = [at.ox, at.oy, at.x, at.y];
   const planks = [e.a, e.b].map((v) => {
     const vx = topo.vertices[v].x;

@@ -7,7 +7,8 @@ import { FEATURES } from '@/config/features';
 import { usePrefs } from '@/client/prefs';
 import { api, toast, useGame } from '@/client/store';
 import { MAX_PLAYERS } from '@/engine/constants';
-import { MAP_IDS, type MapId, type PlayerColor } from '@/engine/types';
+import { GAME_TYPES, MAPS, gameTypeOf, gameTypeSettings, mapsForType, type GameType } from '@/engine/maps';
+import { type MapId, type PlayerColor } from '@/engine/types';
 import { TURN_TIMER_OPTIONS, type RoomDTO, type RoomSettings, type SeatDTO } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
@@ -153,32 +154,30 @@ function Segmented<T extends string | number>({
   );
 }
 
-const MAP_OPTIONS: readonly MapId[] = MAP_IDS;
-const MAP_LABELS: Record<MapId, string> = {
-  standard: 'Standard',
-  large: 'Large (5–6)',
-  blackForest: 'Black Forest',
-  goldRush: 'Gold Rush',
-  vulcan: 'Vulcan',
-  heartlake: 'Heartlake',
-  longIsle: 'Long Isle',
-  fourLakes: 'Four Lakes',
-};
-const MAP_BLURBS: Record<MapId, string> = {
-  standard: 'The classic 19-hex island.',
-  large: 'A bigger island for 5–6 players, with a bigger bank and deck.',
-  blackForest: 'Start inside a ring of forest; the rest of the island is hidden under fog until you explore it.',
-  goldRush: 'A ring island around seven hexes of fog, one of them a gold field on a 6 or 8. Build inward to find it.',
-  vulcan: 'Start in the four far corners. Ore lies only around the volcano, a gold 6 in the fog-covered middle.',
-  heartlake: 'A ring island around a lake. Three 3:1 harbors line the lake shore, reachable from the middle.',
-  longIsle: 'A long, thin island: more coast, more harbors within reach, and tighter races for the long road.',
-  fourLakes: 'A big pinwheel island with four lakes cut into it, and harbors on their shores. For up to 6.',
-};
+/** Blurb plus badges for anything beyond the base game or a subset of modes. */
+function MapInfo({ map }: { map: MapId }) {
+  const { blurb, requires, modes } = MAPS[map];
+  const needs = requires.filter((tag) => tag !== 'base');
+  const onlyModes = modes.length < 2 ? modes : [];
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-ink-soft">
+      {needs.map((tag) => (
+        <span key={tag} className="rounded-full bg-ink/10 px-2 py-0.5 font-black uppercase tracking-wide">{tag === 'seafarers' ? 'Voyagers' : tag}</span>
+      ))}
+      {onlyModes.map((mode) => (
+        <span key={mode} className="rounded-full bg-amber/25 px-2 py-0.5 font-black uppercase tracking-wide">
+          {mode === 'ck' ? 'K&B only' : 'Classic only'}
+        </span>
+      ))}
+      <span>{blurb}</span>
+    </div>
+  );
+}
 
-function MapSegmented({ value, onChange, disabled }: { value: MapId; onChange: (v: MapId) => void; disabled?: boolean }) {
+function MapSegmented({ type, value, onChange, disabled }: { type: GameType; value: MapId; onChange: (v: MapId) => void; disabled?: boolean }) {
   return (
     <div className="flex flex-wrap gap-1.5">
-      {MAP_OPTIONS.map((o) => (
+      {mapsForType(type).map(({ id: o }) => (
         <button
           key={o}
           type="button"
@@ -190,7 +189,7 @@ function MapSegmented({ value, onChange, disabled }: { value: MapId; onChange: (
           } ${disabled && value !== o ? 'opacity-40' : ''}`}
         >
           <MapPreview map={o} size={64} />
-          {MAP_LABELS[o]}
+          {MAPS[o].name}
         </button>
       ))}
     </div>
@@ -219,22 +218,29 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
   const host = room.you.isHost;
   const s = room.settings;
   const set = (patch: Partial<RoomSettings>) => api.settings(patch);
+  const map = s.map ?? 'standard';
+  const type = gameTypeOf(map, s.mode);
   return (
     <div className="grid gap-4">
       <div className="grid gap-1.5">
         <span className="label">Mode</span>
         <Segmented
-          value={s.mode}
-          options={FEATURES.citiesAndKnights ? (['classic', 'ck'] as const) : (['classic'] as const)}
-          format={(m) => (m === 'classic' ? 'Classic' : 'Knights & Barbarians')}
-          onChange={(mode) => set({ mode })}
+          value={type}
+          options={GAME_TYPES.map((t) => t.id).filter((t) => FEATURES.citiesAndKnights || (t !== 'ck' && mapsForType(t).some((m) => m.modes.includes('classic'))))}
+          format={(t) => GAME_TYPES.find((g) => g.id === t)!.label}
+          onChange={(t) => set(gameTypeSettings(t, { map, mode: s.mode }))}
           disabled={!host}
         />
       </div>
       <div className="grid gap-1.5">
         <span className="label">Map</span>
-        <MapSegmented value={s.map ?? 'standard'} onChange={(map) => set({ map })} disabled={!host} />
-        <p className="text-xs font-semibold text-ink-soft">{MAP_BLURBS[s.map ?? 'standard']}</p>
+        <MapSegmented type={type} value={map} onChange={(next) => set({ map: next })} disabled={!host} />
+        <MapInfo map={map} />
+        {type === 'voyagers' && FEATURES.citiesAndKnights && MAPS[map].modes.includes('ck') && MAPS[map].modes.includes('classic') && (
+          <div className="mt-1">
+            <Toggle label="Play with Knights & Barbarians rules" checked={s.mode === 'ck'} onChange={(ck) => set({ mode: ck ? 'ck' : 'classic' })} disabled={!host} />
+          </div>
+        )}
         {s.map === 'blackForest' && (
           <div className="mt-1">
             <Toggle label="Gold fields in the fog" checked={s.gold ?? true} onChange={(gold) => set({ gold })} disabled={!host} />
@@ -245,7 +251,7 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
         <span className="label">Seats</span>
         <Segmented
           value={s.maxPlayers}
-          options={Array.from({ length: MAX_PLAYERS[s.map ?? 'standard'] - 1 }, (_, i) => i + 2)}
+          options={Array.from({ length: MAX_PLAYERS[map] - 1 }, (_, i) => i + 2)}
           onChange={(maxPlayers) => set({ maxPlayers })}
           disabled={!host}
         />

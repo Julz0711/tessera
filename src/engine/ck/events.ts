@@ -71,6 +71,8 @@ export function runBarbarians(ctx: Ctx): void {
 export function checkProgressLimit(ctx: Ctx, seat: number): void {
   const s = ctx.s;
   if (s.players[seat].progress.length <= MAX_PROGRESS_IN_HAND) return;
+  // On your own turn the extra card may still be played; the limit is checked when the turn ends.
+  if (s.phase === 'play' && s.turn.seat === seat) return;
   if (s.pending.some((p) => p.kind === 'discardProgress' && p.seat === seat)) return;
   s.pending.push({ kind: 'discardProgress', seat });
 }

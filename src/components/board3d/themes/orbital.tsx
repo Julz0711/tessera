@@ -392,33 +392,6 @@ function Road({ ghost, c }: { ghost: boolean; c: PieceColors }) {
   );
 }
 
-const SHUTTLE = {
-  pad: new THREE.CylinderGeometry(0.11, 0.11, 0.012, 16),
-  padRing: new THREE.TorusGeometry(0.1, 0.006, 4, 24).rotateX(Math.PI / 2),
-  body: new THREE.BoxGeometry(0.14, 0.04, 0.06),
-  nose: new THREE.ConeGeometry(0.03, 0.06, 6).rotateZ(-Math.PI / 2),
-  wing: new THREE.BoxGeometry(0.06, 0.008, 0.16),
-  fin: new THREE.BoxGeometry(0.04, 0.05, 0.006),
-};
-
-/** A landing pad off the pier's end with a shuttle parked on it (clear of the floating rate sign). */
-function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
-  return (
-    <group position={[x, 0, z]} rotation={[0, rot, 0]}>
-      <group position={[0.42, 0.02, 0.02]}>
-        <mesh geometry={SHUTTLE.pad} material={mat('#5a6278')} />
-        <mesh geometry={SHUTTLE.padRing} material={lit(CYAN, 1.4)} position={[0, 0.008, 0]} />
-        <group position={[0, 0.04, 0]}>
-          <mesh geometry={SHUTTLE.body} material={mat('#e8ecf2')} castShadow />
-          <mesh geometry={SHUTTLE.nose} material={mat('#e8ecf2')} position={[0.1, 0, 0]} castShadow />
-          <mesh geometry={SHUTTLE.wing} material={mat('#9aa3b8')} position={[-0.02, -0.01, 0]} castShadow />
-          <mesh geometry={SHUTTLE.fin} material={mat('#b3402e')} position={[-0.06, 0.035, 0]} />
-        </group>
-      </group>
-    </group>
-  );
-}
-
 /**
  * The raider's hull: a sharp arrowhead/manta plan (bow at +z), swept wings and a concave notch
  * between the two engine nacelles at the stern. A shallow bevel gives its edges a hard, angular
@@ -531,4 +504,4 @@ function BarbarianShip({ danger }: { danger: boolean }) {
 }
 
 /** Orbital: an asteroid colony in space, with domes, a UFO for a robber and shuttles at the harbors. */
-export const orbital: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Base, Sea, BarbarianShip, Knight, CityWall };
+export const orbital: ThemeKit = { props, Settlement, City, Robber, Road, Base, Sea, BarbarianShip, Knight, CityWall };

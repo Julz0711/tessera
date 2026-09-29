@@ -1,11 +1,11 @@
-import { alongRoad, pc, RoadBase } from './shared';
+import { alongRoad, OUTLINE, pc, RoadBase } from './shared';
 import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
 
 /** Frontier's settlement: a ranch house, a gable roof over a porch awning. */
 const frontierSettlement: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
       <rect x={x - 16} y={y - 1} width="32" height="16" fill={c.hex} />
       <path d={`M${x - 18} ${y - 1}L${x} ${y - 15}L${x + 18} ${y - 1}Z`} fill={c.dark} />
       <rect x={x - 20} y={y + 9} width="40" height="4" fill={c.dark} />
@@ -13,14 +13,18 @@ const frontierSettlement: PieceGlyph = ({ x, y, color }) => {
   );
 };
 
-/** Frontier's city: a saloon, a false front rising square above the roofline with a sign rail and swinging doors. */
+/** Frontier's city: a saloon, a tall false front with a sign, a porch awning on posts and swinging doors. */
 const frontierCity: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
-      <rect x={x - 22} y={y - 16} width="44" height="33" fill={c.hex} />
-      <rect x={x - 24} y={y - 19} width="48" height="4" fill={c.dark} />
-      <rect x={x - 8} y={y + 5} width="16" height="12" fill={c.dark} />
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
+      {/* the stepped false front, its raised middle carrying the cornice and the sign */}
+      <path d={`M${x - 22} ${y + 17}V${y - 12}H${x - 15}V${y - 22}H${x + 15}V${y - 12}H${x + 22}V${y + 17}Z`} fill={c.hex} />
+      <rect x={x - 17} y={y - 26} width="34" height="5" fill={c.dark} />
+      <rect x={x - 12} y={y - 17} width="24" height="8" fill={c.dark} />
+      <rect x={x - 25} y={y + 3} width="50" height="4" fill={c.dark} />
+      <path d={`M${x - 19} ${y + 7}v10M${x + 19} ${y + 7}v10`} stroke={c.dark} strokeWidth="2.6" strokeLinecap="round" />
+      <path d={`M${x - 7} ${y + 7}v10M${x + 7} ${y + 7}v10`} stroke={c.dark} strokeWidth="4" strokeLinecap="round" />
     </g>
   );
 };

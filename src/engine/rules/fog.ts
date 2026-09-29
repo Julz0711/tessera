@@ -4,6 +4,7 @@ import { handTotal, parseHand, transfer } from '../hand';
 import { emit, type Ctx } from '../state';
 import { RESOURCES, type PartialHand, type Prompt } from '../types';
 import { removePrompt } from './common';
+import { oceanTreasure } from './treasure';
 
 /**
  * Fog maps: lifts the fog from every hex touching these corners (a new road's ends or a new
@@ -16,10 +17,12 @@ export function revealAround(ctx: Ctx, vertices: number[]): void {
   if (!found.length) return;
   const gains: PartialHand = {};
   let picks = 0;
+  let oceans = 0;
   for (const id of found) {
     const hex = s.board.hexes[id];
     delete hex.fog;
     if (hex.terrain === 'gold') picks++;
+    if (hex.terrain === 'sea' && s.board.treasures) oceans++;
     const res = TERRAIN_RESOURCE[hex.terrain];
     if (res && s.bank[res] > 0) {
       s.bank[res]--;
@@ -34,6 +37,7 @@ export function revealAround(ctx: Ctx, vertices: number[]): void {
   });
   if (handTotal(gains) > 0) emit(ctx, { type: 'received', seat: ctx.seat, cards: gains, reason: 'discovery' });
   if (picks) s.pending.push({ kind: 'goldPick', seat: ctx.seat, count: picks });
+  for (let i = 0; i < oceans; i++) oceanTreasure(ctx);
 }
 
 /** Gold: take `count` resources of your choice (fewer only when the bank can't cover them). */

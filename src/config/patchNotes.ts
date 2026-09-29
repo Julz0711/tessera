@@ -16,6 +16,65 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '1.3',
+    date: '2026-09-29',
+    summary: 'Voyagers: open sea, ships, the pirate and three new maps. Plus weather, event banners and Knights & Barbarians fixes.',
+    sections: [
+      {
+        title: 'Voyagers',
+        icon: 'board',
+        items: [
+          'Ships cost a wool and a lumber. Build them on sea or coast edges, from your coastal settlements or your other ships. Each player has 15.',
+          'Roads and ships only connect through one of your settlements or cities, and a settlement can stand at the end of either.',
+          'Once a turn you can sail the ship at the open end of a route (not one you built this turn). Use Sail in the build bar, or just click the ship.',
+          'A starting settlement on the coast may launch a ship instead of its road, and Road Building places roads or ships.',
+          'Longest Road becomes the longest trade route: roads and ships count together.',
+          'With Knights & Barbarians, knights can be recruited beside your ships and move along them as well as roads. A ship with your knight at its open end stays put.',
+          'The pirate: on a 7 or a knight you may move it instead of the robber. It robs a player with a ship beside it and blocks new ships on its hex and ships sailing away from it.',
+          'Every board theme has its own ships, pirate and treasure: longships in Nordic, junks in Sakura, feluccas on the Nile, paddle steamers in Frontier, airships in Skyport, neon speedboats in Cyberpunk, shuttles in Orbital and paper boats in Origami.',
+        ],
+      },
+      {
+        title: 'New maps',
+        icon: 'map',
+        items: [
+          'Far Shores: start on the big island and sail for the small isles and their gold. 2 points for your first settlement on each small isle. First to 14.',
+          'Four Realms: four islands. Start on one or two; each other island you settle is worth 2 points. First to 13.',
+          'Veiled Isles (Special, Knights & Barbarians): the home island sits in a wide sea with 15 fog hexes around it. Sail into the fog to uncover land and claim 15 hidden treasures. Hidden sea pays a bonus treasure, and each foreign isle you settle is worth a point. First to 16.',
+          'On Veiled Isles the treasures and the 9 harbors are always in the same places; only which harbor is which changes.',
+          'Pick Classic, Knights & Barbarians, Voyagers or Special as the mode, then one of its maps.',
+        ],
+      },
+      {
+        title: 'Knights & Barbarians',
+        icon: 'turn',
+        items: [
+          'Alchemist: once you pick the dice, they roll straight away.',
+          "Deserter: if you have no knight of the deserter's strength left, you place your strongest weaker one instead of nothing.",
+          "Diplomat on one of your own roads moves it: pick the new spot, or keep it where it is. Opponents' roads are still removed.",
+          'A 5th progress card on your own turn can still be played. You only discard down to 4 when you end the turn.',
+        ],
+      },
+      {
+        title: 'At the table',
+        icon: 'players',
+        items: [
+          'Big moments get a banner across the board for a few seconds: the robber or pirate striking, barbarian attacks, a new metropolis, Longest Road, Largest Army and the Defender of the island.',
+          "A player's hand card turns red when they hold more cards than they may keep, so you can see who a 7 would hurt.",
+        ],
+      },
+      {
+        title: 'Look & feel',
+        icon: 'board',
+        items: [
+          'Weather on the 3D board, to suit the theme: soft clouds, rain on the megacity, blossom, snow, fireflies, dust, drifting sand, star dust and paper confetti. Turn it off in Settings under Board.',
+          'A calmer sea in 3D: the shallows fade smoothly into deep water, with no edges showing when you zoom out.',
+          "Harbors sit in the water beside the coast on every map, and in 3D they no longer have boats moored at them, so they can't be mistaken for players' ships.",
+        ],
+      },
+    ],
+  },
+  {
     version: '1.2',
     date: '2026-09-28',
     summary: 'A completely themed island, a more flexible HUD, a board-side barbarian fleet and fairer map rules.',

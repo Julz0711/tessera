@@ -7,7 +7,6 @@ import {
   COSTS,
   PIPS,
   RESOURCES,
-  canPlaceSettlement,
   distanceRuleOk,
   handTotal,
   hasCards,
@@ -15,6 +14,7 @@ import {
   legalRoadSpots,
   legalSettlementSpots,
   legalSetupRoads,
+  legalSetupShips,
   longestRoadLength,
   piecesLeft,
   robberTargets,
@@ -30,13 +30,14 @@ import {
   type TradeOffer,
 } from '@/engine';
 import { bankTradeToward, deficit, productionOf, resourceWeights, vertexScore } from './eval';
+import { bestShip, islandBonus, settleable } from './voyage';
 
 export interface BotOptions {
   /** Set by the runner when the bot's own trade offer has been open for a while. */
   tradeTimedOut?: boolean;
 }
 
-interface Goal {
+export interface Goal {
   action: Action;
   cost: PartialHand;
   value: number;
@@ -92,10 +93,10 @@ function resolvePrompt(view: PlayerView, seat: number, prompt: Prompt): Action |
     case 'discard':
       return { type: 'discard', cards: chooseDiscard(view, seat, prompt.count) };
     case 'robber':
-      return { type: 'moveRobber', ...chooseRobber(view, seat) };
+      return { type: 'moveRobber', ...chooseRobber(view, seat, prompt.reason !== 'bishop') };
     case 'freeRoads': {
-      const road = bestRoad(view, seat);
-      return road ? { type: 'buildRoad', edge: road.edge } : { type: 'skipFreeRoads' };
+      const route = bestRoute(view, seat);
+      return route ? route.action : { type: 'skipFreeRoads' };
     }
     case 'goldPick':
       return { type: 'pickGold', cards: chooseGold(view, seat, prompt.count) };
@@ -141,12 +142,18 @@ export function chooseDiscard(view: PlayerView, seat: number, count: number, car
   return out;
 }
 
-export function chooseRobber(view: PlayerView, seat: number): { hex: number; victim: number | null } {
+export function chooseRobber(view: PlayerView, seat: number, pirate = true): { hex: number; victim: number | null } {
   const t = topo(view);
-  const targets = robberTargets(view, seat, (s) => view.players[s].publicVP);
+  const targets = robberTargets(view, seat, (s) => view.players[s].publicVP, pirate);
   const hex =
     argmax(targets, (h) => {
       const tile = view.board.hexes[h];
+      // The pirate only robs ships (and blocks them); it never stops production.
+      if (tile.terrain === 'sea') {
+        const theirs = t.hexes[h].edges.filter((e) => view.ships[e] !== null && view.ships[e] !== seat).length;
+        const mine = t.hexes[h].edges.filter((e) => view.ships[e] === seat).length;
+        return (robberVictims(view, seat, h).length ? 3 : 0) + theirs - 3 * mine;
+      }
       const pips = tile.token ? PIPS[tile.token] : 0;
       let score = 0;
       for (const v of t.hexes[h].vertices) {
@@ -191,6 +198,8 @@ export function setupMove(view: PlayerView, seat: number): Action {
   }
   const edges = legalSetupRoads(view);
   const from = view.setup!.lastVertex!;
+  // Voyagers: a settlement with no land edge left launches a ship instead.
+  if (!edges.length) return { type: 'buildShip', edge: legalSetupShips(view)[0] };
   const weights = resourceWeights(view);
   const dist = (v: number) => Math.hypot(t.vertices[v].x, t.vertices[v].y);
   const edge = argmax(edges, (e) => {
@@ -269,9 +278,9 @@ function playDevCard(view: PlayerView, seat: number): Action | null {
       return { type: 'playMonopoly', resource: want };
     }
   }
-  if (canPlayDev(view, seat, 'roadBuilding') && piecesLeft(view, seat).roads >= 1) {
-    const road = bestRoad(view, seat);
-    if (road && road.value >= 3) return { type: 'playRoadBuilding' };
+  if (canPlayDev(view, seat, 'roadBuilding')) {
+    const route = bestRoute(view, seat);
+    if (route && route.value >= 3) return { type: 'playRoadBuilding' };
   }
   return null;
 }
@@ -305,9 +314,9 @@ export function bestRoad(view: PlayerView, seat: number): { edge: number; value:
     for (const w of [edge.a, edge.b]) {
       const ownHere = view.buildings[w]?.owner === seat || t.vertices[w].edges.some((x) => x !== e && view.roads[x] === seat);
       if (ownHere) continue;
-      if (canPlaceSettlement(view, seat, w, true)) value = Math.max(value, vertexScore(view, seat, w, weights));
+      if (settleable(view, w)) value = Math.max(value, vertexScore(view, seat, w, weights) + islandBonus(view, seat, w));
       for (const x of t.vertices[w].vertices) {
-        if (canPlaceSettlement(view, seat, x, true)) value = Math.max(value, 0.7 * vertexScore(view, seat, x, weights));
+        if (settleable(view, x)) value = Math.max(value, 0.7 * (vertexScore(view, seat, x, weights) + islandBonus(view, seat, x)));
       }
     }
     value = openSpots > 0 ? value * 0.25 : value * 0.6;
@@ -324,6 +333,17 @@ export function bestRoad(view: PlayerView, seat: number): { edge: number; value:
   return best;
 }
 
+/** The better of the best road and (Voyagers) the best ship, as a buildable goal. */
+export function bestRoute(view: PlayerView, seat: number): Goal | null {
+  const road = bestRoad(view, seat);
+  const ship = bestShip(view, seat);
+  // Ships are scored against the same settlement values as roads, scaled the same way.
+  const openSpots = legalSettlementSpots(view, seat).length;
+  const shipValue = ship ? ship.value * (openSpots > 0 ? 0.25 : 0.6) : -Infinity;
+  if (ship && (!road || shipValue > road.value)) return { action: { type: 'buildShip', edge: ship.edge }, cost: COSTS.ship, value: shipValue };
+  return road ? { action: { type: 'buildRoad', edge: road.edge }, cost: COSTS.road, value: road.value } : null;
+}
+
 function goals(view: PlayerView, seat: number): Goal[] {
   const out: Goal[] = [];
   const left = piecesLeft(view, seat);
@@ -333,13 +353,14 @@ function goals(view: PlayerView, seat: number): Goal[] {
     if (v !== undefined) out.push({ action: { type: 'buildCity', vertex: v }, cost: COSTS.city, value: 10 + cityValue(view, seat, v) / 3 });
   }
   if (left.settlements > 0) {
-    const v = argmax(legalSettlementSpots(view, seat), (x) => vertexScore(view, seat, x, weights));
+    const score = (x: number) => vertexScore(view, seat, x, weights) + islandBonus(view, seat, x);
+    const v = argmax(legalSettlementSpots(view, seat), score);
     if (v !== undefined) {
-      out.push({ action: { type: 'buildSettlement', vertex: v }, cost: COSTS.settlement, value: 9 + vertexScore(view, seat, v, weights) / 4 });
+      out.push({ action: { type: 'buildSettlement', vertex: v }, cost: COSTS.settlement, value: 9 + score(v) / 4 });
     }
   }
-  const road = bestRoad(view, seat);
-  if (road && road.value > 0.5) out.push({ action: { type: 'buildRoad', edge: road.edge }, cost: COSTS.road, value: road.value });
+  const route = bestRoute(view, seat);
+  if (route && route.value > 0.5) out.push(route);
   if (view.devDeckCount > 0) out.push({ action: { type: 'buyDevCard' }, cost: COSTS.devCard, value: 3.5 });
   return out.sort((a, b) => b.value - a.value);
 }

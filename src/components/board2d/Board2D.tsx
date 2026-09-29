@@ -9,6 +9,8 @@ import type { PlayerColor, Terrain } from "@/engine/types";
 import { CARD_COLORS } from "@/client/palette";
 import { PALETTES, type BoardPalette, type BoardThemeId, type TileColors } from "@/client/themes";
 import { THEME_BARBARIAN_SHIPS, THEME_GLYPHS, THEME_PIECES, type BarbarianShipGlyph } from "./themes";
+import { OUTLINE, ROAD_WEIGHT, RoadBase } from "./themes/shared";
+import { VOYAGE_GLYPHS } from "./themes/voyage";
 import { PLAYER_COLORS } from "@/shared/colors";
 import { harborAnchor } from "@/components/board/harbor";
 import { BARBARIAN_HEADER_H, barbarianTrackLayout, type BarbarianLayout } from "@/components/board/barbarian";
@@ -314,7 +316,7 @@ function classicSettlement({ x, y, color }: { x: number; y: number; color: Playe
       d={`M${x - 17} ${y + 14}v-17l17-14 17 14v17Z`}
       fill={c.hex}
       stroke={c.dark}
-      strokeWidth="4.5"
+      strokeWidth={OUTLINE}
       strokeLinejoin="round"
     />
   );
@@ -328,23 +330,27 @@ function classicCity({ x, y, color }: { x: number; y: number; color: PlayerColor
       d={`M${x - 26} ${y + 17}v-18l12-9 12 9v-18h9v-8h8v8h9v36Z`}
       fill={c.hex}
       stroke={c.dark}
-      strokeWidth="4.5"
+      strokeWidth={OUTLINE}
       strokeLinejoin="round"
     />
   );
 }
 
 /**
- * A city wall (C&K), like colonist's: a low slab the city stands on, in the owner's colour, its top
- * face tapering back and a darker front edge for a slight 3D look.
+ * A city wall (C&K), flat like every other piece: a rampart behind the city in the owner's colour
+ * and outline, a low band along its foot with a merlon standing up at each end, so a walled city
+ * reads as a wider, battlemented silhouette.
  */
 function CityWallBlock({ x, y, color }: { x: number; y: number; color: PlayerColor }) {
   const c = PLAYER_COLORS[color];
   return (
-    <g stroke="#1f1a14" strokeWidth="3" strokeLinejoin="round">
-      <path d={`M${x - 34} ${y + 22}h68v4.5q0 3-3 3h-62q-3 0-3-3Z`} fill={c.dark} />
-      <path d={`M${x - 30} ${y + 11}h60l4 11h-68Z`} fill={c.hex} />
-    </g>
+    <path
+      d={`M${x - 40} ${y + 25}V${y - 3}h8v8h64v-8h8V${y + 25}Z`}
+      fill={c.hex}
+      stroke={c.dark}
+      strokeWidth={OUTLINE}
+      strokeLinejoin="round"
+    />
   );
 }
 
@@ -397,9 +403,6 @@ function CityPath({
 }
 
 /** A road: the theme's own drawing (THEME_PIECES) where it has one, else the classic two-tone line. */
-/** Roads are drawn a little slimmer than their base size so the settlements and cities stay the focus. */
-const ROAD_WEIGHT = 0.78;
-
 function RoadPath({
   x1,
   y1,
@@ -419,41 +422,11 @@ function RoadPath({
   k?: number;
   theme?: BoardThemeId;
 }) {
-  const glyph = (theme && THEME_PIECES[theme]?.road) || defaultRoad;
+  const glyph = (theme && THEME_PIECES[theme]?.road) || RoadBase;
   return (
     <g pointerEvents="none" opacity={ghost ? 0.7 : undefined}>
       {glyph({ x1, y1, x2, y2, color, ghost, k: k * ROAD_WEIGHT })}
     </g>
-  );
-}
-
-/** The classic road: a dark outline under the owner's colour, or a single thinner line as a ghost preview. */
-function defaultRoad({
-  x1,
-  y1,
-  x2,
-  y2,
-  color,
-  ghost,
-  k = 1,
-}: {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  color: PlayerColor;
-  ghost?: boolean;
-  k?: number;
-}) {
-  const c = PLAYER_COLORS[color];
-  if (ghost) {
-    return <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.hex} strokeWidth={11 * k} strokeLinecap="round" />;
-  }
-  return (
-    <>
-      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.dark} strokeWidth={20 * k} strokeLinecap="round" />
-      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.hex} strokeWidth={12 * k} strokeLinecap="round" />
-    </>
   );
 }
 
@@ -484,6 +457,56 @@ function KnightEmblem({
 }) {
   const glyph = (theme && THEME_PIECES[theme]?.knight) || classicKnightEmblem;
   return <>{glyph({ x, y, color })}</>;
+}
+
+/** A ship on an edge (Voyagers), in the theme's style and the owner's colour. */
+function ShipPiece({
+  topo,
+  edge,
+  color,
+  theme,
+  ghost,
+  selected,
+  k = 1,
+}: {
+  topo: Topology;
+  edge: number;
+  color: PlayerColor;
+  theme: BoardThemeId;
+  ghost?: boolean;
+  selected?: boolean;
+  k?: number;
+}) {
+  const e = topo.edges[edge];
+  // Always upright and level, centred on the edge: a boat standing on its end (on the steep edges)
+  // reads badly, and every theme's craft is drawn side-on.
+  return (
+    <g pointerEvents="none" opacity={ghost ? 0.7 : 1} transform={`translate(${e.x * S} ${e.y * S}) scale(${k * 0.85})`}>
+      {selected && <ellipse rx="40" ry="20" fill="none" stroke="#f2b33d" strokeWidth="5" strokeDasharray="8 5" />}
+      {VOYAGE_GLYPHS[theme].ship({ color })}
+    </g>
+  );
+}
+
+/** The pirate (Voyagers): the theme's dark craft in the middle of its sea hex. */
+function PirateShip({ x, y, theme, ghost, k = 1 }: { x: number; y: number; theme: BoardThemeId; ghost?: boolean; k?: number }) {
+  return (
+    <g pointerEvents="none" opacity={ghost ? 0.6 : 1} transform={`translate(${x} ${y}) scale(${k * 1.3})`}>
+      <title>Pirate</title>
+      {!ghost && <ellipse cy="20" rx="30" ry="6" fill="#000" opacity="0.25" />}
+      {VOYAGE_GLYPHS[theme].pirate()}
+    </g>
+  );
+}
+
+/** A treasure on a corner (Veiled Isles): what's inside stays hidden until a ship reaches it. */
+function TreasureChest({ x, y, theme, k = 1 }: { x: number; y: number; theme: BoardThemeId; k?: number }) {
+  return (
+    <g pointerEvents="none" transform={`translate(${x} ${y}) scale(${k})`}>
+      <title>Treasure</title>
+      {VOYAGE_GLYPHS[theme].treasure()}
+    </g>
+  );
 }
 
 /** The robber, standing below the hex's number token; a ghost previews a move waiting for confirmation. */
@@ -803,6 +826,7 @@ export default function Board2D({
     };
   }, [topo, barbLayout]);
   const hexTargets = new Set(targets.hexes);
+  const land = scene.board.hexes.filter((h) => h.terrain !== "sea" || h.fog);
   const myColor = scene.myColor;
   const {
     svgRef,
@@ -917,7 +941,7 @@ export default function Board2D({
         {/* The sea itself is painted by the container (.sea-2d) so it spans the whole screen. */}
 
         {/* foam, beach & tiles */}
-        {scene.board.hexes.map((h) => (
+        {land.map((h) => (
           <polygon
             key={`f${h.id}`}
             points={hexPoints(topo, h.id, 1.26)}
@@ -925,7 +949,7 @@ export default function Board2D({
             opacity="0.45"
           />
         ))}
-        {scene.board.hexes.map((h) => (
+        {land.map((h) => (
           <polygon
             key={`b${h.id}`}
             points={hexPoints(topo, h.id, 1.12)}
@@ -936,6 +960,7 @@ export default function Board2D({
           const t = topo.hexes[h.id];
           const c = h.fog ? palette.fog : palette.terrain[h.terrain];
           const target = hexTargets.has(h.id);
+          const sea = h.terrain === "sea" && !h.fog;
           return (
             <g
               key={`h${h.id}`}
@@ -952,14 +977,27 @@ export default function Board2D({
               className={target ? "cursor-pointer" : undefined}
               data-hex-anchor={h.id}
             >
-              <polygon
-                points={hexPoints(topo, h.id, TILE_SIZE)}
-                fill={c.top}
-                stroke={c.side}
-                strokeWidth="5"
-                strokeLinejoin="round"
-              />
-              {h.fog ? (
+              {sea ? (
+                // Open water (Voyagers): the sea shows through, with a faint outline for the hex grid.
+                <polygon
+                  points={hexPoints(topo, h.id, TILE_SIZE)}
+                  fill={palette.sea.shallow}
+                  fillOpacity="0.25"
+                  stroke={palette.sea.foam}
+                  strokeOpacity="0.35"
+                  strokeWidth="3"
+                  strokeLinejoin="round"
+                />
+              ) : (
+                <polygon
+                  points={hexPoints(topo, h.id, TILE_SIZE)}
+                  fill={c.top}
+                  stroke={c.side}
+                  strokeWidth="5"
+                  strokeLinejoin="round"
+                />
+              )}
+              {sea ? null : h.fog ? (
                 <FogGlyphs cx={t.x * S} cy={t.y * S} fog={palette.fog} />
               ) : (
                 (THEME_GLYPHS[theme]?.({
@@ -977,7 +1015,7 @@ export default function Board2D({
                 ))
               )}
               {/* after a roll: the tiles that pay out glow, the rest of the board steps back */}
-              {scene.highlightToken !== null &&
+              {scene.highlightToken !== null && !sea &&
                 (h.token === scene.highlightToken && !h.fog ? (
                   <polygon
                     points={hexPoints(topo, h.id, 0.9)}
@@ -1030,7 +1068,7 @@ export default function Board2D({
         {/* harbors */}
         {scene.board.harbors.map((hb) => {
           const e = topo.edges[hb.edge];
-          const at = harborAnchor(topo, hb.edge, 0.66);
+          const at = harborAnchor(topo, scene.board.hexes, hb.edge, 0.66);
           const px = at.x * S;
           const py = at.y * S;
           const label =
@@ -1173,6 +1211,20 @@ export default function Board2D({
           );
         })}
 
+        {/* ships (Voyagers) */}
+        {(scene.ships ?? []).map((owner, eid) =>
+          owner === null ? null : (
+            <ShipPiece key={`sh${eid}`} topo={topo} edge={eid} color={scene.colors[owner]} theme={theme} k={ps} selected={targets.selectedEdge === eid} />
+          ),
+        )}
+
+        {/* treasures (Veiled Isles): a chest on each corner not yet reached */}
+        {(scene.board.treasures ?? []).map((tr) =>
+          tr.takenBy !== undefined ? null : (
+            <TreasureChest key={`tr${tr.vertex}`} x={topo.vertices[tr.vertex].x * S} y={topo.vertices[tr.vertex].y * S} theme={theme} k={ps} />
+          ),
+        )}
+
         {/* buildings */}
         {scene.buildings.map((b, v) => {
           if (!b) return null;
@@ -1284,6 +1336,10 @@ export default function Board2D({
           y={topo.hexes[scene.robber].y * S + 46}
           k={ps}
         />
+        {/* pirate (Voyagers) */}
+        {scene.pirate != null && (
+          <PirateShip x={topo.hexes[scene.pirate].x * S} y={topo.hexes[scene.pirate].y * S} theme={theme} k={ps} />
+        )}
 
         {/* barbarian ship's voyage (C&K) */}
         {barbarian && barbLayout && (
@@ -1322,10 +1378,26 @@ export default function Board2D({
                   stroke="transparent"
                   strokeWidth="26"
                 />
-                {targets.hint ? (
-                  // Build hints only show on hover: a preview of the road.
+                {targets.edgeKinds?.[eid] === "shipAction" ? (
+                  // A ship that can sail: a soft glow on hover says it can be picked up.
+                  isHover && (
+                    <line
+                      x1={x1}
+                      y1={y1}
+                      x2={x2}
+                      y2={y2}
+                      stroke="#f2b33d"
+                      strokeOpacity="0.45"
+                      strokeWidth="26"
+                      strokeLinecap="round"
+                    />
+                  )
+                ) : targets.hint ? (
+                  // Build hints only show on hover: a preview of the road (or ship).
                   isHover &&
-                  myColor && (
+                  myColor && ((targets.edgeKinds?.[eid] ?? targets.kind) === "ship" ? (
+                    <ShipPiece topo={topo} edge={eid} color={myColor} theme={theme} k={ps} ghost />
+                  ) : (
                     <RoadPath
                       x1={x1}
                       y1={y1}
@@ -1336,7 +1408,7 @@ export default function Board2D({
                       k={ps}
                       theme={theme}
                     />
-                  )
+                  ))
                 ) : (
                   <>
                     {/* dark underlay so the amber reads on light tiles */}
@@ -1482,18 +1554,24 @@ export default function Board2D({
           })}
 
         {/* the spot whose popup is open keeps its ghost */}
-        {armed?.target === "hex" && (
-          <RobberFigure
-            x={topo.hexes[armed.at].x * S}
-            y={topo.hexes[armed.at].y * S + 46}
-            k={ps}
-            ghost
-          />
-        )}
+        {armed?.target === "hex" &&
+          (scene.board.hexes[armed.at].terrain === "sea" ? (
+            <PirateShip x={topo.hexes[armed.at].x * S} y={topo.hexes[armed.at].y * S} theme={theme} k={ps} ghost />
+          ) : (
+            <RobberFigure
+              x={topo.hexes[armed.at].x * S}
+              y={topo.hexes[armed.at].y * S + 46}
+              k={ps}
+              ghost
+            />
+          ))}
         {armed &&
           armed.target !== "hex" &&
           myColor &&
           (() => {
+            if (armed.target === "edge" && armed.what === "ship") {
+              return <ShipPiece topo={topo} edge={armed.at} color={myColor} theme={theme} k={ps} ghost />;
+            }
             if (armed.target === "edge") {
               const e = topo.edges[armed.at];
               const a = topo.vertices[e.a];

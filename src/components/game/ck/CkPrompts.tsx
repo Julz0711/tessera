@@ -22,8 +22,10 @@ export function CkPromptDialog({ view, prompt }: { view: PlayerView; prompt: Pro
   switch (prompt.kind) {
     case 'rewardDeck':
       return (
-        <Modal open dismissable={false} title="Defender's reward">
-          <p className="mb-3 text-sm text-ink-soft">You tied for the strongest defense. Draw a progress card from a deck of your choice:</p>
+        <Modal open dismissable={false} title={prompt.reason === 'treasure' ? 'Treasure!' : "Defender's reward"}>
+          <p className="mb-3 text-sm text-ink-soft">
+            {prompt.reason === 'treasure' ? 'Your ship found a treasure' : 'You tied for the strongest defense'}. Draw a progress card from a deck of your choice:
+          </p>
           <div className="grid gap-2 sm:grid-cols-3">
             {TRACKS.map((t) => (
               <button
@@ -130,8 +132,11 @@ const PROMPT_HINT: Partial<Record<Prompt['kind'], string>> = {
   relocateKnight: 'Your knight was displaced: pick where it goes',
   deserterRemove: 'A deserter! Pick one of your knights to leave',
   deserterPlace: 'Place the deserting knight next to your roads',
+  moveRoad: 'Diplomat: pick a new spot for your road',
   placeMetropolis: 'Pick a city for your metropolis',
 };
+
+const KNIGHT_NAMES = { 1: 'basic', 2: 'strong', 3: 'mighty' } as const;
 
 /** Instruction strip for board picks, with cancel/done/give-up buttons where they make sense. */
 export function PickBanner({ view }: { view: PlayerView }) {
@@ -151,7 +156,16 @@ export function PickBanner({ view }: { view: PlayerView }) {
         </button>
       );
     }
+    if (prompt.kind === 'moveRoad') {
+      extra = (
+        <button type="button" className="btn btn-ghost px-2 py-1 text-xs" onClick={() => api.act({ type: 'skipFreeRoads' })}>
+          Keep it here
+        </button>
+      );
+    }
     if (prompt.kind === 'deserterPlace') {
+      // It may be weaker than the knight that deserted, when the thief has none of that strength left.
+      text = `Place your ${KNIGHT_NAMES[prompt.level]} knight (the deserter) next to your roads`;
       extra = (
         <button type="button" className="btn btn-ghost px-2 py-1 text-xs" onClick={() => api.act({ type: 'placeKnight', vertex: null })}>
           Skip
@@ -160,9 +174,10 @@ export function PickBanner({ view }: { view: PlayerView }) {
     }
   } else if (!prompt && ui.mode) {
     const m = ui.mode;
-    if (m.t === 'build') text = { road: 'Pick where to build the road', settlement: 'Pick a spot for the settlement', city: 'Pick a settlement to upgrade', knight: 'Pick an empty spot next to your roads', wall: 'Pick a city to protect' }[m.what];
+    if (m.t === 'build') text = { road: 'Pick where to build the road', ship: 'Pick where to launch the ship', settlement: 'Pick a spot for the settlement', city: 'Pick a settlement to upgrade', knight: 'Pick an empty spot next to your roads', wall: 'Pick a city to protect' }[m.what];
     if (m.t === 'knightMove') text = 'Pick where your knight goes (a weaker enemy knight gets displaced)';
     if (m.t === 'knightChase') text = 'Pick where to send the robber';
+    if (m.t === 'shipMove') text = m.from === null ? 'Pick a ship at the open end of a route' : 'Pick where the ship sails to';
     if (m.t === 'progress') {
       const spec = progressPickSpec(view, m.cardType);
       text = `${PROGRESS_NAMES[m.cardType]}: ${spec?.hint ?? ''}${spec && spec.need > 1 ? ` (${m.picked.length}/${spec.need})` : ''}`;

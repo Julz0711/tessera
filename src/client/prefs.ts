@@ -35,6 +35,8 @@ export interface Prefs {
   hudLayout: HudLayout;
   /** Per-sound volume, 0..1 on top of the master volume; a missing sound plays at full. */
   sfxVolume: Partial<Record<Sfx, number>>;
+  /** Themed weather over the 3D board (rain, petals, snow…). */
+  weather: boolean;
 }
 
 const KEY = 'prefs.v1';
@@ -61,6 +63,7 @@ const defaults = (): Prefs => ({
   hudScale: 'medium',
   hudLayout: DEFAULT_HUD_LAYOUT,
   sfxVolume: {},
+  weather: true,
 });
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -99,6 +102,7 @@ export function read(): Prefs {
       hudScale: p.hudScale === 'small' || p.hudScale === 'large' ? p.hudScale : base.hudScale,
       hudLayout: sanitizeHudLayout(p.hudLayout),
       sfxVolume: sanitizeSfxVolume(p.sfxVolume),
+      weather: typeof p.weather === 'boolean' ? p.weather : base.weather,
     };
   } catch {
     return base;

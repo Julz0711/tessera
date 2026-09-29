@@ -1,4 +1,4 @@
-import { alongRoad, pc, RoadBase } from './shared';
+import { alongRoad, OUTLINE, pc, RoadBase } from './shared';
 import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
 
 /** A folded peak: its left face in `light`, its right face in `dark`, standing on (x, y). */
@@ -17,21 +17,22 @@ const PINWHEEL = ['#f28aa6', '#f0cf6a', '#6fb3dc', '#8fd08a'];
 const origamiSettlement: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="2.5" strokeLinejoin="round">
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
       <rect x={x - 13} y={y - 1} width="26" height="16" fill={c.hex} />
       <Fold x={x} y={y - 1} w={17} h={17} light={c.hex} dark={c.dark} />
     </g>
   );
 };
 
-/** Origami's city: a paper tower, a tall creased fold over a vertical seam down its face. */
+/** Origami's city: a wider paper keep, two creased folds of different heights over a shared seam. */
 const origamiCity: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="2.5" strokeLinejoin="round">
-      <rect x={x - 15} y={y - 10} width="30" height="27" fill={c.hex} />
-      <line x1={x} y1={y - 10} x2={x} y2={y + 17} stroke={c.dark} strokeWidth="1.4" opacity="0.6" />
-      <Fold x={x} y={y - 10} w={19} h={20} light={c.hex} dark={c.dark} />
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
+      <rect x={x - 22} y={y - 2} width="44" height="19" fill={c.hex} />
+      <line x1={x} y1={y - 2} x2={x} y2={y + 17} stroke={c.dark} strokeWidth="1.4" opacity="0.5" />
+      <Fold x={x - 11} y={y - 2} w={12} h={15} light={c.hex} dark={c.dark} />
+      <Fold x={x + 11} y={y - 2} w={12} h={23} light={c.hex} dark={c.dark} />
     </g>
   );
 };

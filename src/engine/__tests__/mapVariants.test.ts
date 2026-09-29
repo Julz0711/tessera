@@ -3,8 +3,9 @@ import { simulateGame } from '@/bots/simulate';
 import { applyAction } from '../apply';
 import { generateBoard } from '../board/generate';
 import { VULCAN_TILES, getTopology } from '../board/topology';
-import { FOUR_LAKES_TERRAIN_COUNTS, GOLD_RUSH_TERRAIN_COUNTS, HEARTLAKE_NUMBER_TOKENS, HEARTLAKE_TERRAIN_COUNTS, TERRAIN_COUNTS } from '../constants';
+import { BIG_MAPS, FOUR_LAKES_TERRAIN_COUNTS, GOLD_RUSH_TERRAIN_COUNTS, HEARTLAKE_NUMBER_TOKENS, HEARTLAKE_TERRAIN_COUNTS, MAX_PLAYERS, TERRAIN_COUNTS } from '../constants';
 import { legalSettlementSpots, legalSetupRoads } from '../queries';
+import { GAME_TYPES, MAPS, gameTypeOf, gameTypeSettings, mapSupports, mapsByCategory, mapsForType } from '../maps';
 import { createGame } from '../state';
 import { viewFor } from '../view';
 import { victoryPoints } from '../vp';
@@ -17,7 +18,7 @@ function counts(board: Board): Partial<Record<Terrain, number>> {
   for (const h of board.hexes) out[h.terrain] = (out[h.terrain] ?? 0) + 1;
   return out;
 }
-const nonZero = (c: Record<Terrain, number>) => Object.fromEntries(Object.entries(c).filter(([, n]) => n > 0));
+const nonZero = (c: Partial<Record<Terrain, number>>) => Object.fromEntries(Object.entries(c).filter(([, n]) => n > 0));
 
 /** Harbors never share a corner, and every harbor sits on a coastal edge. */
 function harborsValid(board: Board): boolean {
@@ -27,6 +28,44 @@ function harborsValid(board: Board): boolean {
 }
 
 describe('map variants', () => {
+  it('keeps map metadata complete and enforces compatibility tags', () => {
+    expect(Object.keys(MAPS)).toEqual([...MAP_IDS]);
+    for (const map of MAP_IDS) {
+      expect(MAPS[map].id).toBe(map);
+      expect(MAPS[map].name).not.toBe('');
+      expect(MAPS[map].blurb).not.toBe('');
+      expect(MAPS[map].requires.length).toBeGreaterThan(0);
+      for (const mode of ['classic', 'ck'] as const) expect(mapSupports(map, mode)).toBe(MAPS[map].modes.includes(mode));
+      // Only the base game's maps may be played without the Voyagers rules.
+      expect(mapSupports(map, MAPS[map].modes[0], new Set(['base']))).toBe(MAPS[map].category === 'base');
+      expect(MAX_PLAYERS[map]).toBe(MAPS[map].maxPlayers);
+    }
+    expect([...BIG_MAPS].sort()).toEqual(['blackForest', 'fourLakes', 'goldRush', 'large', 'vulcan']);
+    // Every map appears in exactly one lobby group.
+    const grouped = mapsByCategory().flatMap((g) => g.maps.map((m) => m.id));
+    expect([...grouped].sort()).toEqual([...MAP_IDS].sort());
+  });
+
+  it('offers every map under a game type, and switching type lands on a playable map', () => {
+    expect(mapsForType('voyagers').map((m) => m.id)).toEqual(['farShores', 'fourRealms']);
+    expect(mapsForType('special').map((m) => m.id)).toEqual(['veiledIsles']);
+    for (const map of MAP_IDS) {
+      for (const mode of MAPS[map].modes) expect(mapsForType(gameTypeOf(map, mode)).map((m) => m.id)).toContain(map);
+    }
+    for (const { id } of GAME_TYPES) {
+      for (const map of MAP_IDS) {
+        for (const mode of MAPS[map].modes) {
+          const next = gameTypeSettings(id, { map, mode });
+          expect(mapSupports(next.map, next.mode)).toBe(true);
+          expect(gameTypeOf(next.map, next.mode)).toBe(id);
+        }
+      }
+    }
+    // Staying within a type keeps the chosen map and rules.
+    expect(gameTypeSettings('voyagers', { map: 'fourRealms', mode: 'ck' })).toEqual({ map: 'fourRealms', mode: 'ck' });
+    expect(gameTypeSettings('classic', { map: 'veiledIsles', mode: 'ck' })).toEqual({ map: 'standard', mode: 'classic' });
+  });
+
   it('Gold Rush rings seven fogged hexes, one of them gold', () => {
     for (const seed of seeds) {
       const board = generateBoard({ rng: seed }, 'goldRush');
@@ -160,11 +199,13 @@ describe('map variants', () => {
     for (const map of MAP_IDS) {
       for (const seed of seeds.slice(0, 20)) {
         const board = generateBoard({ rng: seed }, map);
-        for (const h of board.hexes) expect(h.token === null, `${map} seed ${seed} hex ${h.id} (${h.terrain})`).toBe(h.terrain === 'desert');
+        for (const h of board.hexes) expect(h.token === null, `${map} seed ${seed} hex ${h.id} (${h.terrain})`).toBe(h.terrain === 'desert' || h.terrain === 'sea');
         // And no 6 or 8 ever sits next to another.
         const topo = getTopology(board.hexes);
         for (const h of board.hexes) {
           if (h.token !== 6 && h.token !== 8) continue;
+          // Veiled Isles numbers its outer isles and the fog at random, as the scenario says.
+          if (map === 'veiledIsles' && !h.start) continue;
           for (const n of topo.hexes[h.id].neighbors) expect([6, 8], `${map} seed ${seed} hex ${h.id}`).not.toContain(board.hexes[n].token);
         }
       }
