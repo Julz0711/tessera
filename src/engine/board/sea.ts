@@ -6,7 +6,8 @@ import type { Topology } from './topology';
  * boards without them. Board edges with no hex behind them are treated as open water, as the frame is in
  * the Seafarers rules, so a land hex on the rim still has a coast.
  */
-export const isSeaHex = (board: Pick<Board, 'hexes'>, hex: number): boolean => board.hexes[hex].terrain === 'sea';
+/** Open water. A fogged hex counts as land until revealed, so legality never leaks what the fog hides. */
+export const isSeaHex = (board: Pick<Board, 'hexes'>, hex: number): boolean => board.hexes[hex].terrain === 'sea' && !board.hexes[hex].fog;
 
 /** Land hexes touching a vertex: settlements need at least one. */
 export function landHexesAt(board: Pick<Board, 'hexes'>, t: Topology, v: number): number[] {
@@ -32,3 +33,40 @@ export function edgeKind(board: Pick<Board, 'hexes'>, t: Topology, e: number): E
 
 export const canHoldRoad = (board: Pick<Board, 'hexes'>, t: Topology, e: number): boolean => edgeKind(board, t, e) !== 'sea';
 export const canHoldShip = (board: Pick<Board, 'hexes'>, t: Topology, e: number): boolean => edgeKind(board, t, e) !== 'land';
+
+const islandCache = new WeakMap<object, number[]>();
+
+/**
+ * Island index per hex (land hexes joined through land neighbours), -1 for sea. Terrain never
+ * changes, so this is worked out once per board. Fog hides terrain from views but not from the
+ * server's state, where scoring happens.
+ */
+export function islandsOf(board: Pick<Board, 'hexes'>, t: Topology): number[] {
+  let out = islandCache.get(board.hexes);
+  if (out) return out;
+  const ids: number[] = board.hexes.map(() => -1);
+  let next = 0;
+  for (const h of board.hexes) {
+    if (ids[h.id] !== -1 || h.terrain === 'sea') continue;
+    const stack = [h.id];
+    ids[h.id] = next;
+    while (stack.length) {
+      const cur = stack.pop()!;
+      for (const n of t.hexes[cur].neighbors) {
+        if (ids[n] === -1 && board.hexes[n].terrain !== 'sea') {
+          ids[n] = next;
+          stack.push(n);
+        }
+      }
+    }
+    next++;
+  }
+  islandCache.set(board.hexes, (out = ids));
+  return out;
+}
+
+/** Islands a vertex stands on (a corner can touch two islands only across a strait of one edge). */
+export function islandsAt(board: Pick<Board, 'hexes'>, t: Topology, v: number): number[] {
+  const islands = islandsOf(board, t);
+  return [...new Set(t.vertices[v].hexes.map((h) => islands[h]).filter((i) => i >= 0))];
+}

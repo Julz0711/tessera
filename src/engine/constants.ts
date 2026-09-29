@@ -6,6 +6,7 @@ import type {
   KnightLevel,
   LandTerrain,
   MapId,
+  TreasureKind,
   Mode,
   PartialHand,
   ProgressCardType,
@@ -178,6 +179,18 @@ export const EVENT_DIE: EventFace[] = ['ship', 'ship', 'ship', 'trade', 'politic
 
 /** Probability "pips" of each number token (ways to roll it out of 36). */
 export const PIPS: Record<number, number> = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1 };
+
+/** Veiled Isles: the 15 placed treasures, shuffled without replacement. */
+export const TREASURE_DECK: readonly TreasureKind[] = [
+  ...Array<TreasureKind>(5).fill('resource'),
+  ...Array<TreasureKind>(4).fill('roadBuilding'),
+  ...Array<TreasureKind>(3).fill('bundle'),
+  ...Array<TreasureKind>(3).fill('devCard'),
+];
+/** Veiled Isles: numbers for hidden and outer land (never 2, 7 or 12). */
+export const VEILED_NUMBERS: readonly number[] = [3, 4, 5, 6, 8, 9, 10, 11];
+/** Veiled Isles "three resources" treasure. */
+export const TREASURE_BUNDLE = { wool: 1, grain: 1, brick: 1 } as const;
 
 export const DEFAULT_VP: Record<Mode, number> = { classic: 10, ck: 13 };
 export const LONGEST_ROAD_MIN = 5;

@@ -50,9 +50,26 @@ export interface Harbor {
   kind: HarborKind;
 }
 
+/** Veiled Isles treasure rewards. `devCard` is a progress card of a chosen track in C&K. */
+export type TreasureKind = 'resource' | 'roadBuilding' | 'bundle' | 'devCard';
+export const TREASURE_KINDS: readonly TreasureKind[] = ['resource', 'roadBuilding', 'bundle', 'devCard'];
+
+export interface Treasure {
+  /** Corner a ship must reach to collect it. */
+  vertex: number;
+  /** Hidden (null) in player views until collected. */
+  kind: TreasureKind | null;
+  /** Seat that collected it. */
+  takenBy?: number;
+}
+
 export interface Board {
   hexes: Hex[];
   harbors: Harbor[];
+  /** Voyagers: the sea hex the pirate starts on. */
+  pirateStart?: number;
+  /** Veiled Isles: treasure spots. */
+  treasures?: Treasure[];
 }
 
 // ── Modes & settings ────────────────────────────────────────────────────────
@@ -61,8 +78,31 @@ export type Mode = 'classic' | 'ck';
  * Board layout: the standard island, the larger 5–6 player island, the fog maps (Black Forest,
  * Gold Rush, Vulcan) or one of the land-only variants (Heartlake, Long Isle, Four Lakes).
  */
-export type MapId = 'standard' | 'large' | 'blackForest' | 'goldRush' | 'vulcan' | 'heartlake' | 'longIsle' | 'fourLakes';
-export const MAP_IDS: readonly MapId[] = ['standard', 'large', 'blackForest', 'goldRush', 'vulcan', 'heartlake', 'longIsle', 'fourLakes'];
+export type MapId =
+  | 'standard'
+  | 'large'
+  | 'blackForest'
+  | 'goldRush'
+  | 'vulcan'
+  | 'heartlake'
+  | 'longIsle'
+  | 'fourLakes'
+  | 'farShores'
+  | 'fourRealms'
+  | 'veiledIsles';
+export const MAP_IDS: readonly MapId[] = [
+  'standard',
+  'large',
+  'blackForest',
+  'goldRush',
+  'vulcan',
+  'heartlake',
+  'longIsle',
+  'fourLakes',
+  'farShores',
+  'fourRealms',
+  'veiledIsles',
+];
 export const isMapId = (v: unknown): v is MapId => typeof v === 'string' && (MAP_IDS as readonly string[]).includes(v);
 export type Track = 'trade' | 'politics' | 'science';
 export const TRACKS: readonly Track[] = ['trade', 'politics', 'science'];
@@ -288,6 +328,10 @@ export type GameEventBody =
   | { type: 'revealed'; seat: number; hexes: { id: number; terrain: Terrain; token: number | null }[] }
   | { type: 'built'; seat: number; piece: 'road' | 'ship' | 'settlement' | 'city' | 'wall'; at: number; free?: boolean }
   | { type: 'shipMoved'; seat: number; from: number; to: number }
+  /** Voyagers: first settlement on a foreign island, worth `vp` special points. */
+  /** Veiled Isles: a treasure collected at corner `at` (null: the bonus for finding hidden sea). */
+  | { type: 'treasure'; seat: number; kind: TreasureKind; at: number | null }
+  | { type: 'islandSettled'; seat: number; at: number; vp: number }
   | { type: 'robberMoved'; seat: number; hex: number; pirate?: boolean }
   | { type: 'stole'; seat: number; victim: number }
   | { type: 'discarded'; seat: number; cards: PartialHand }
@@ -385,6 +429,8 @@ export interface GameState {
   /** Indexed by vertex id (C&K). */
   knights: (Knight | null)[];
   robber: number;
+  /** Voyagers: each seat's home islands (where it built during setup); set when setup ends. */
+  homeIslands?: number[][];
   /** Voyagers: the pirate's sea hex; null (or missing in older games) on maps without sea. */
   pirate?: number | null;
   merchant: { hex: number; owner: number } | null;

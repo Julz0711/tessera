@@ -27,6 +27,7 @@ export type Q = Pick<
   | 'knights'
   | 'robber'
   | 'pirate'
+  | 'homeIslands'
   | 'merchant'
   | 'barbarian'
   | 'metropolis'
@@ -131,7 +132,7 @@ function startingCorner(s: Q, v: number): boolean {
   const hexes = topo(s).vertices[v].hexes.map((h) => s.board.hexes[h]);
   if (hexes.some((h) => h.fog || s.setup?.fog?.includes(h.id))) return false;
   if (s.settings.map === 'blackForest') return hexes.every((h) => h.terrain === 'forest');
-  if (hasStartAreas(s)) return hexes.some((h) => h.start) && hexes.every((h) => h.start || h.terrain === 'desert');
+  if (hasStartAreas(s)) return hexes.some((h) => h.start) && hexes.every((h) => h.start || h.terrain === 'desert' || h.terrain === 'sea');
   return true;
 }
 

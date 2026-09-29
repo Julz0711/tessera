@@ -34,9 +34,10 @@ describe('map variants', () => {
       expect(MAPS[map].id).toBe(map);
       expect(MAPS[map].name).not.toBe('');
       expect(MAPS[map].blurb).not.toBe('');
-      expect(MAPS[map].requires).toContain('base');
-      expect(mapSupports(map, 'classic')).toBe(true);
-      expect(mapSupports(map, 'ck')).toBe(true);
+      expect(MAPS[map].requires.length).toBeGreaterThan(0);
+      for (const mode of ['classic', 'ck'] as const) expect(mapSupports(map, mode)).toBe(MAPS[map].modes.includes(mode));
+      // Only the base game's maps may be played without the Voyagers rules.
+      expect(mapSupports(map, MAPS[map].modes[0], new Set(['base']))).toBe(MAPS[map].category === 'base');
       expect(MAX_PLAYERS[map]).toBe(MAPS[map].maxPlayers);
     }
     expect([...BIG_MAPS].sort()).toEqual(['blackForest', 'fourLakes', 'goldRush', 'large', 'vulcan']);
@@ -178,11 +179,13 @@ describe('map variants', () => {
     for (const map of MAP_IDS) {
       for (const seed of seeds.slice(0, 20)) {
         const board = generateBoard({ rng: seed }, map);
-        for (const h of board.hexes) expect(h.token === null, `${map} seed ${seed} hex ${h.id} (${h.terrain})`).toBe(h.terrain === 'desert');
+        for (const h of board.hexes) expect(h.token === null, `${map} seed ${seed} hex ${h.id} (${h.terrain})`).toBe(h.terrain === 'desert' || h.terrain === 'sea');
         // And no 6 or 8 ever sits next to another.
         const topo = getTopology(board.hexes);
         for (const h of board.hexes) {
           if (h.token !== 6 && h.token !== 8) continue;
+          // Veiled Isles numbers its outer isles and the fog at random, as the scenario says.
+          if (map === 'veiledIsles' && !h.start) continue;
           for (const n of topo.hexes[h.id].neighbors) expect([6, 8], `${map} seed ${seed} hex ${h.id}`).not.toContain(board.hexes[n].token);
         }
       }

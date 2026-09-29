@@ -5,7 +5,9 @@ import { canPlaceRoad, canPlaceSettlement, canPlaceShip, freeRouteLeft, movableS
 import { emit, type Ctx } from '../state';
 import type { PartialHand, Prompt } from '../types';
 import { removePrompt, requireRolled } from './common';
+import { islandPoints } from '../vp';
 import { revealAround } from './fog';
+import { collectTreasures } from './treasure';
 
 function revealRoad(ctx: Ctx, edge: number): void {
   const { a, b } = ctx.topo.edges[edge];
@@ -35,6 +37,7 @@ export function buildShip(ctx: Ctx, edge: number): void {
   ctx.s.turn.shipsBuilt.push(edge);
   emit(ctx, { type: 'built', seat: ctx.seat, piece: 'ship', at: edge });
   revealRoad(ctx, edge);
+  collectTreasures(ctx, edge);
 }
 
 /** One ship per turn, never one built this turn; it re-enters play as if newly placed. */
@@ -52,6 +55,7 @@ export function moveShip(ctx: Ctx, from: number, to: number): void {
   s.turn.shipsBuilt.push(to);
   emit(ctx, { type: 'shipMoved', seat, from, to });
   revealRoad(ctx, to);
+  collectTreasures(ctx, to);
 }
 
 /** Free road from Road Building (classic dev card or C&K progress card). */
@@ -72,6 +76,7 @@ export function placeFreeShip(ctx: Ctx, prompt: Extract<Prompt, { kind: 'freeRoa
   emit(ctx, { type: 'built', seat: ctx.seat, piece: 'ship', at: edge, free: true });
   revealRoad(ctx, edge);
   endFreeRoute(ctx, prompt);
+  collectTreasures(ctx, edge);
 }
 
 function endFreeRoute(ctx: Ctx, prompt: Extract<Prompt, { kind: 'freeRoads' }>): void {
@@ -84,8 +89,11 @@ export function buildSettlement(ctx: Ctx, vertex: number): void {
   assertRule(piecesLeft(ctx.s, ctx.seat).settlements > 0, 'No settlements left');
   assertRule(canPlaceSettlement(ctx.s, ctx.seat, vertex), 'You cannot build a settlement there');
   pay(ctx, COSTS.settlement, 'settlement');
+  const before = islandPoints(ctx.s, ctx.seat);
   ctx.s.buildings[vertex] = { owner: ctx.seat, city: false, wall: false, metropolis: null };
   emit(ctx, { type: 'built', seat: ctx.seat, piece: 'settlement', at: vertex });
+  const gained = islandPoints(ctx.s, ctx.seat) - before;
+  if (gained > 0) emit(ctx, { type: 'islandSettled', seat: ctx.seat, at: vertex, vp: gained });
   revealAround(ctx, [vertex]);
 }
 

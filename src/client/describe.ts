@@ -1,4 +1,4 @@
-import { CARDS, type Card, type DevCardType, type Dice, type GameEvent, type PartialHand, type ProgressCardType, type Track } from '@/engine/types';
+import { CARDS, type Card, type DevCardType, type Dice, type GameEvent, type PartialHand, type ProgressCardType, type Track, type TreasureKind } from '@/engine/types';
 import type { PlayerView } from '@/engine/view';
 import { TERRAIN_COLORS } from './palette';
 
@@ -61,6 +61,13 @@ function count(h: PartialHand): number {
   return CARDS.reduce((n, c) => n + (h[c] ?? 0), 0);
 }
 
+const TREASURE_NAMES: Record<TreasureKind, string> = {
+  resource: 'a resource of choice',
+  roadBuilding: 'two free roads or ships',
+  bundle: 'wool, grain and brick',
+  devCard: 'a card of choice',
+};
+
 const PIECE: Record<string, string> = { road: 'a road', ship: 'a ship', settlement: 'a settlement', city: 'a city', wall: 'a city wall' };
 
 /** Describes an event for the game log; returns one or more lines (or none). */
@@ -83,6 +90,10 @@ export function describe(ev: GameEvent, view: PlayerView): Part[][] {
       return [[`The bank ran out of ${ev.card}, nobody gets it.`]];
     case 'built':
       return [[P(ev.seat), ev.free ? ' placed ' : ' built ', PIECE[ev.piece] ?? ev.piece]];
+    case 'treasure':
+      return [[P(ev.seat), ev.at === null ? ' found open sea and a bonus treasure: ' : ' found a treasure: ', TREASURE_NAMES[ev.kind]]];
+    case 'islandSettled':
+      return [[P(ev.seat), ` settled a new island: +${ev.vp} point${ev.vp === 1 ? '' : 's'}`]];
     case 'shipMoved':
       return [[P(ev.seat), ' sailed a ship to a new route']];
     case 'robberMoved': {

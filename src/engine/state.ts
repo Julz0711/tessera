@@ -14,7 +14,7 @@ import {
   PROGRESS_DECKS,
 } from './constants';
 import { emptyHand } from './hand';
-import { mapSupports } from './maps';
+import { defaultVP, mapSupports } from './maps';
 import { normalizeSeed, shuffle } from './rng';
 import { newStats, recordStats } from './stats';
 import {
@@ -122,7 +122,7 @@ export function createGame(opts: CreateGameOptions): GameState {
   const settings: GameSettings = {
     mode,
     map,
-    vpToWin: opts.settings?.vpToWin ?? DEFAULT_VP[mode],
+    vpToWin: opts.settings?.vpToWin ?? defaultVP(map, mode, DEFAULT_VP[mode]),
     discardLimit: opts.settings?.discardLimit ?? 7,
     friendlyRobber: opts.settings?.friendlyRobber ?? false,
     gold,
@@ -131,7 +131,12 @@ export function createGame(opts: CreateGameOptions): GameState {
 
   const n = players.length;
   const order = [...Array(n).keys(), ...[...Array(n).keys()].reverse()];
-  const desert = board.hexes.find((h) => h.terrain === 'desert')!;
+  // The robber starts in the desert; maps without one (Four Realms) start it on the 12, as the rules say.
+  const robber =
+    board.hexes.find((h) => h.terrain === 'desert') ??
+    board.hexes.find((h) => h.token === 12 && !h.fog) ??
+    board.hexes.find((h) => h.terrain !== 'sea' && !h.fog)!;
+  const pirate = board.hexes.some((h) => h.terrain === 'sea') ? (board.pirateStart ?? board.hexes.find((h) => h.terrain === 'sea')!.id) : null;
 
   const s: GameState = {
     v: 1,
@@ -159,7 +164,8 @@ export function createGame(opts: CreateGameOptions): GameState {
     roads: topo.edges.map(() => null),
     ships: topo.edges.map(() => null),
     knights: topo.vertices.map(() => null),
-    robber: desert.id,
+    robber: robber.id,
+    pirate,
     merchant: null,
     barbarian: { position: 0, attacks: 0 },
     metropolis: { trade: null, politics: null, science: null },

@@ -23,16 +23,23 @@ export interface MapDefinition {
   requires: readonly MapRuleset[];
   /** Card/city rules this map has been tested with. */
   modes: readonly Mode[];
+  /** Points to win, when the map sets its own (otherwise the mode's default). */
+  vpToWin?: Partial<Record<Mode, number>>;
+  /** Special points for a player's first settlement on each island that wasn't one of their home islands. */
+  islandVP?: number;
 }
 
-const BASE_MODES = ['classic', 'ck'] as const;
+const BASE_MODES: readonly Mode[] = ['classic', 'ck'];
+
+/** Rules modules this build implements; a map needing anything else can't be picked. */
+export const ENABLED_RULESETS: ReadonlySet<MapRuleset> = new Set<MapRuleset>(['base', 'seafarers']);
 
 /**
- * Player-facing metadata and compatibility live here rather than in lobby components. Future
- * Seafarers scenarios must declare `requires: ['seafarers']`; the engine and room server enforce
- * that tag instead of treating it as decoration.
+ * Player-facing metadata and compatibility live here rather than in lobby components. Voyagers
+ * (Seafarers) maps declare `requires: ['seafarers']`; the engine and room server enforce that tag
+ * instead of treating it as decoration.
  */
-export const MAPS = {
+export const MAPS: Record<MapId, MapDefinition> = {
   standard: { id: 'standard', category: 'base', name: 'Standard', blurb: 'The classic 19-hex island.', maxPlayers: 4, bigBank: false, requires: ['base'], modes: BASE_MODES },
   large: { id: 'large', category: 'base', name: 'Large (5–6)', blurb: 'A bigger island for 5–6 players, with a bigger bank and deck.', maxPlayers: 6, bigBank: true, requires: ['base'], modes: BASE_MODES },
   blackForest: { id: 'blackForest', category: 'base', name: 'Black Forest', blurb: 'Start inside a ring of forest; the rest of the island is hidden under fog until you explore it.', maxPlayers: 6, bigBank: true, requires: ['base'], modes: BASE_MODES },
@@ -41,11 +48,50 @@ export const MAPS = {
   heartlake: { id: 'heartlake', category: 'base', name: 'Heartlake', blurb: 'A ring island around a lake. Three 3:1 harbors line the lake shore, reachable from the middle.', maxPlayers: 4, bigBank: false, requires: ['base'], modes: BASE_MODES },
   longIsle: { id: 'longIsle', category: 'base', name: 'Long Isle', blurb: 'A long, thin island: more coast, more harbors within reach, and tighter races for the long road.', maxPlayers: 4, bigBank: false, requires: ['base'], modes: BASE_MODES },
   fourLakes: { id: 'fourLakes', category: 'base', name: 'Four Lakes', blurb: 'A big pinwheel island with four lakes cut into it, and harbors on their shores. For up to 6.', maxPlayers: 6, bigBank: true, requires: ['base'], modes: BASE_MODES },
-} as const satisfies Record<MapId, MapDefinition>;
+  farShores: {
+    id: 'farShores',
+    category: 'voyagers',
+    name: 'Far Shores',
+    blurb: 'Start on the big island, then sail for the small isles and their gold. 2 points for your first settlement on each small isle.',
+    maxPlayers: 4,
+    bigBank: false,
+    requires: ['seafarers'],
+    modes: BASE_MODES,
+    vpToWin: { classic: 14, ck: 17 },
+    islandVP: 2,
+  },
+  fourRealms: {
+    id: 'fourRealms',
+    category: 'voyagers',
+    name: 'Four Realms',
+    blurb: 'Four islands. Start on one or two of them; each other island you settle is worth 2 extra points.',
+    maxPlayers: 4,
+    bigBank: false,
+    requires: ['seafarers'],
+    modes: BASE_MODES,
+    vpToWin: { classic: 13, ck: 16 },
+    islandVP: 2,
+  },
+  veiledIsles: {
+    id: 'veiledIsles',
+    category: 'special',
+    name: 'Veiled Isles',
+    blurb: 'Voyagers meets Knights & Barbarians. Sail into the fog to uncover land, claim treasures and settle foreign isles for a point each.',
+    maxPlayers: 4,
+    bigBank: false,
+    requires: ['seafarers'],
+    modes: ['ck'],
+    vpToWin: { ck: 14 },
+    islandVP: 1,
+  },
+};
+
+/** Points to win on a map in a mode, before any host override. */
+export const defaultVP = (id: MapId, mode: Mode, fallback: number): number => MAPS[id].vpToWin?.[mode] ?? fallback;
 
 export const mapDefinition = (id: MapId): MapDefinition => MAPS[id];
 
-export function mapSupports(id: MapId, mode: Mode, enabled: ReadonlySet<MapRuleset> = new Set(['base'])): boolean {
+export function mapSupports(id: MapId, mode: Mode, enabled: ReadonlySet<MapRuleset> = ENABLED_RULESETS): boolean {
   const map = MAPS[id];
   return map.modes.includes(mode) && map.requires.every((tag) => enabled.has(tag));
 }
