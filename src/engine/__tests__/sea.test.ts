@@ -2,7 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { COSTS } from '../constants';
 import { canHoldRoad, canHoldShip, edgeKind } from '../board/sea';
 import { getTopology } from '../board/topology';
-import { canPlaceRoad, legalRoadSpots, legalSettlementSpots, legalShipSpots, movableShips, piecesLeft, robberTargets } from '../queries';
+import { longestRoadLength } from '../longestRoad';
+import {
+  canPlaceRoad,
+  canPlaceShip,
+  legalRoadSpots,
+  legalSettlementSpots,
+  legalSetupShips,
+  legalShipSpots,
+  movableShips,
+  piecesLeft,
+  robberTargets,
+  robberVictims,
+} from '../queries';
 import { act, autoSetup, newGame, reject } from './kit';
 
 /** A standard game whose outer ring is flooded: 7 land hexes in the middle, 12 sea hexes around them. */
@@ -116,5 +128,75 @@ describe('ships', () => {
     const { g } = ready();
     expect(piecesLeft(g, 0).ships).toBe(15);
     expect(COSTS.ship).toEqual({ wool: 1, lumber: 1 });
+  });
+});
+
+describe('pirate, trade route, setup and Road Building', () => {
+  function ready() {
+    const { s, sea } = floodedGame();
+    const g = autoSetup(s);
+    g.turn.seat = 0;
+    g.turn.rolled = true;
+    g.pending = [];
+    const t = getTopology(g.board.hexes);
+    return { g, t, sea };
+  }
+
+  it('lets the pirate sail only on sea, block ships there and rob ship owners', () => {
+    const { g, t, sea } = ready();
+    const pirateHex = [...sea][0];
+    g.pirate = [...sea][1];
+    const targets = robberTargets(g, 0, () => 5);
+    expect(targets).toContain(pirateHex);
+    expect(robberTargets(g, 0, () => 5, false).some((h) => sea.has(h))).toBe(false);
+    // A ship of seat 1 along the hex gets robbed.
+    const e = t.hexes[pirateHex].edges[0];
+    g.ships[e] = 1;
+    g.players[1].hand.ore = 2;
+    expect(robberVictims(g, 0, pirateHex)).toEqual([1]);
+    g.pirate = pirateHex;
+    // No ship may be placed on its borders, and ships there cannot sail away.
+    for (const edge of t.hexes[pirateHex].edges) expect(canPlaceShip(g, 1, edge)).toBe(false);
+    expect(movableShips(g, 1)).not.toContain(e);
+  });
+
+  it('counts ships in the trade route but links roads and ships only at own buildings', () => {
+    const { g, t } = ready();
+    const len = (s: typeof g) => longestRoadLength(s, t, 0);
+    const base = len(g);
+    // A ship hanging off a road end without a settlement there does not extend the route.
+    const roadEnd = g.roads.findIndex((o) => o === 0);
+    const { a, b } = t.edges[roadEnd];
+    const free = [a, b].find((v) => !g.buildings[v])!;
+    const ship = t.vertices[free].edges.find((x) => x !== roadEnd && canHoldShip(g.board, t, x) && g.roads[x] === null);
+    if (ship !== undefined) {
+      g.ships[ship] = 0;
+      expect(len(g)).toBe(Math.max(base, 1));
+      g.buildings[free] = { owner: 0, city: false, wall: false, metropolis: null };
+      expect(len(g)).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it('offers a ship instead of a road beside a coastal starting settlement', () => {
+    const { s } = floodedGame();
+    const t = getTopology(s.board.hexes);
+    const coastal = legalSettlementSpots(s, 0, true).find((v) => t.vertices[v].edges.some((e) => canHoldShip(s.board, t, e)))!;
+    const a = act(s, 0, { type: 'buildSettlement', vertex: coastal });
+    const ships = legalSetupShips(a);
+    expect(ships.length).toBeGreaterThan(0);
+    const b = act(a, 0, { type: 'buildShip', edge: ships[0] });
+    expect(b.ships[ships[0]]).toBe(0);
+  });
+
+  it('lets Road Building place ships', () => {
+    const { g, t } = ready();
+    g.players[0].devCards.push({ type: 'roadBuilding', boughtOn: 0 });
+    let a = act(g, 0, { type: 'playRoadBuilding' });
+    const spot = legalShipSpots(a, 0)[0];
+    expect(spot).toBeDefined();
+    a = act(a, 0, { type: 'buildShip', edge: spot });
+    expect(a.ships[spot]).toBe(0);
+    expect(a.pending[0]?.kind).toBe('freeRoads');
+    expect(canHoldShip(a.board, t, spot)).toBe(true);
   });
 });

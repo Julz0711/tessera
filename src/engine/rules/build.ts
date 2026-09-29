@@ -1,7 +1,7 @@
 import { COSTS } from '../constants';
 import { assertRule } from '../errors';
 import { transfer } from '../hand';
-import { canPlaceRoad, canPlaceSettlement, canPlaceShip, legalRoadSpots, movableShips, piecesLeft } from '../queries';
+import { canPlaceRoad, canPlaceSettlement, canPlaceShip, freeRouteLeft, movableShips, piecesLeft } from '../queries';
 import { emit, type Ctx } from '../state';
 import type { PartialHand, Prompt } from '../types';
 import { removePrompt, requireRolled } from './common';
@@ -60,10 +60,23 @@ export function placeFreeRoad(ctx: Ctx, prompt: Extract<Prompt, { kind: 'freeRoa
   ctx.s.roads[edge] = ctx.seat;
   emit(ctx, { type: 'built', seat: ctx.seat, piece: 'road', at: edge, free: true });
   revealRoad(ctx, edge);
+  endFreeRoute(ctx, prompt);
+}
+
+/** Voyagers: each free Road Building piece may be a ship instead. */
+export function placeFreeShip(ctx: Ctx, prompt: Extract<Prompt, { kind: 'freeRoads' }>, edge: number): void {
+  assertRule(piecesLeft(ctx.s, ctx.seat).ships > 0, 'No ships left');
+  assertRule(canPlaceShip(ctx.s, ctx.seat, edge), 'You cannot build a ship there');
+  ctx.s.ships[edge] = ctx.seat;
+  ctx.s.turn.shipsBuilt.push(edge);
+  emit(ctx, { type: 'built', seat: ctx.seat, piece: 'ship', at: edge, free: true });
+  revealRoad(ctx, edge);
+  endFreeRoute(ctx, prompt);
+}
+
+function endFreeRoute(ctx: Ctx, prompt: Extract<Prompt, { kind: 'freeRoads' }>): void {
   prompt.count--;
-  if (prompt.count <= 0 || piecesLeft(ctx.s, ctx.seat).roads <= 0 || !legalRoadSpots(ctx.s, ctx.seat).length) {
-    removePrompt(ctx, prompt);
-  }
+  if (prompt.count <= 0 || !freeRouteLeft(ctx.s, ctx.seat)) removePrompt(ctx, prompt);
 }
 
 export function buildSettlement(ctx: Ctx, vertex: number): void {

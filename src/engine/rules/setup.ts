@@ -1,7 +1,7 @@
 import { TERRAIN_RESOURCE } from '../constants';
 import { assertRule } from '../errors';
 import { compactHand, emptyHand } from '../hand';
-import { canPlaceSettlement, legalSetupRoads } from '../queries';
+import { canPlaceSettlement, legalSetupRoads, legalSetupShips } from '../queries';
 import { emit, type Ctx } from '../state';
 import { revealAround } from './fog';
 
@@ -48,6 +48,22 @@ export function setupRoad(ctx: Ctx, edge: number): void {
   assertRule(legalSetupRoads(s).includes(edge), 'The road must touch the settlement you just placed');
   s.roads[edge] = ctx.seat;
   emit(ctx, { type: 'built', seat: ctx.seat, piece: 'road', at: edge, free: true });
+  finishSetupRoute(ctx, edge);
+}
+
+/** Voyagers: a coastal starting settlement may launch a ship instead of a road. */
+export function setupShip(ctx: Ctx, edge: number): void {
+  requireSetupTurn(ctx, 'road');
+  const s = ctx.s;
+  assertRule(legalSetupShips(s).includes(edge), 'The ship must leave the settlement you just placed');
+  s.ships[edge] = ctx.seat;
+  emit(ctx, { type: 'built', seat: ctx.seat, piece: 'ship', at: edge, free: true });
+  finishSetupRoute(ctx, edge);
+}
+
+function finishSetupRoute(ctx: Ctx, edge: number): void {
+  const s = ctx.s;
+  const setup = s.setup!;
   revealAround(ctx, [ctx.topo.edges[edge].a, ctx.topo.edges[edge].b]);
 
   setup.index++;

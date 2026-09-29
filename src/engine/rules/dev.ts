@@ -1,7 +1,7 @@
 import { COSTS } from '../constants';
 import { assertRule } from '../errors';
 import { transfer } from '../hand';
-import { legalRoadSpots, piecesLeft } from '../queries';
+import { freeRouteCount, freeRouteLeft } from '../queries';
 import { emit, type Ctx } from '../state';
 import { RESOURCES, isResource, type DevCardType, type Resource } from '../types';
 import { updateLargestArmy } from './awards';
@@ -40,10 +40,9 @@ export function playKnight(ctx: Ctx): void {
 }
 
 export function playRoadBuilding(ctx: Ctx): void {
-  const left = piecesLeft(ctx.s, ctx.seat).roads;
-  assertRule(left > 0 && legalRoadSpots(ctx.s, ctx.seat).length > 0, 'You have nowhere to build a road');
+  assertRule(freeRouteLeft(ctx.s, ctx.seat), 'You have nowhere to build a road');
   takePlayable(ctx, 'roadBuilding');
-  ctx.s.pending.push({ kind: 'freeRoads', seat: ctx.seat, count: Math.min(2, left) });
+  ctx.s.pending.push({ kind: 'freeRoads', seat: ctx.seat, count: freeRouteCount(ctx.s, ctx.seat) });
 }
 
 export function playYearOfPlenty(ctx: Ctx, resources: Resource[]): void {

@@ -2,7 +2,7 @@
 import { COSTS, TERRAIN_RESOURCE } from '../constants';
 import { RuleError, assertRule } from '../errors';
 import { commodityTotal, handTotal, resourceTotal } from '../hand';
-import { isEdge, isHex, isVertex, legalRoadSpots, piecesLeft, topo } from '../queries';
+import { isEdge, isHex, isVertex, freeRouteCount, freeRouteLeft, legalRoadSpots, topo } from '../queries';
 import { isInt, requireActive } from '../rules/common';
 import { upgradeToCity } from '../rules/build';
 import { emit, type Ctx } from '../state';
@@ -98,9 +98,8 @@ export function playProgress(ctx: Ctx, cardId: number, params: ProgressParams): 
       return upgradeToCity(ctx, v, COSTS.medicineCity);
     }
     case 'roadBuilding': {
-      const left = piecesLeft(s, ctx.seat).roads;
-      assertRule(left > 0 && legalRoadSpots(s, ctx.seat).length > 0, 'You have nowhere to build a road');
-      s.pending.push({ kind: 'freeRoads', seat: ctx.seat, count: Math.min(2, left) });
+      assertRule(freeRouteLeft(s, ctx.seat), 'You have nowhere to build a road');
+      s.pending.push({ kind: 'freeRoads', seat: ctx.seat, count: freeRouteCount(s, ctx.seat) });
       break;
     }
     case 'smith': {

@@ -288,7 +288,7 @@ export type GameEventBody =
   | { type: 'revealed'; seat: number; hexes: { id: number; terrain: Terrain; token: number | null }[] }
   | { type: 'built'; seat: number; piece: 'road' | 'ship' | 'settlement' | 'city' | 'wall'; at: number; free?: boolean }
   | { type: 'shipMoved'; seat: number; from: number; to: number }
-  | { type: 'robberMoved'; seat: number; hex: number }
+  | { type: 'robberMoved'; seat: number; hex: number; pirate?: boolean }
   | { type: 'stole'; seat: number; victim: number }
   | { type: 'discarded'; seat: number; cards: PartialHand }
   | { type: 'devBought'; seat: number }
@@ -385,6 +385,8 @@ export interface GameState {
   /** Indexed by vertex id (C&K). */
   knights: (Knight | null)[];
   robber: number;
+  /** Voyagers: the pirate's sea hex; null (or missing in older games) on maps without sea. */
+  pirate?: number | null;
   merchant: { hex: number; owner: number } | null;
   barbarian: { position: number; attacks: number };
   metropolis: Record<Track, number | null>;

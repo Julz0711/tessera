@@ -26,6 +26,7 @@ export type Q = Pick<
   | 'ships'
   | 'knights'
   | 'robber'
+  | 'pirate'
   | 'merchant'
   | 'barbarian'
   | 'metropolis'
@@ -163,6 +164,11 @@ export function canPlaceRoad(s: Q, seat: number, e: number): boolean {
   return false;
 }
 
+/** The pirate's hex borders this edge: no ship may be placed there or sail away from there. */
+export function pirateBorders(s: Q, e: number): boolean {
+  return s.pirate != null && topo(s).edges[e].hexes.includes(s.pirate);
+}
+
 /** Ships exist only on maps with open water. */
 export const shipsInPlay = (s: Q): boolean => s.board.hexes.some((h) => h.terrain === 'sea');
 
@@ -174,6 +180,7 @@ export function canPlaceShip(s: Q, seat: number, e: number): boolean {
   if (!shipsInPlay(s) || !isEdge(s, e) || s.roads[e] !== null || s.ships[e] !== null) return false;
   const t = topo(s);
   if (!canHoldShip(s.board, t, e)) return false;
+  if (pirateBorders(s, e)) return false;
   const edge = t.edges[e];
   for (const v of [edge.a, edge.b]) {
     const b = s.buildings[v];
@@ -198,7 +205,7 @@ export function movableShips(s: Q, seat: number): number[] {
   const t = topo(s);
   const out: number[] = [];
   s.ships.forEach((owner, e) => {
-    if (owner !== seat) return;
+    if (owner !== seat || pirateBorders(s, e)) return;
     const free = [t.edges[e].a, t.edges[e].b].some((v) => {
       const b = s.buildings[v];
       if (b && b.owner === seat) return false;
@@ -209,17 +216,36 @@ export function movableShips(s: Q, seat: number): number[] {
   return out;
 }
 
+/** Whether Road Building can still place anything: a road, or (Voyagers) a ship. */
+export function freeRouteLeft(s: Q, seat: number): boolean {
+  const left = piecesLeft(s, seat);
+  return (left.roads > 0 && legalRoadSpots(s, seat).length > 0) || (left.ships > 0 && legalShipSpots(s, seat).length > 0);
+}
+
+/** Road Building places up to two pieces, fewer when the supply runs short. */
+export function freeRouteCount(s: Q, seat: number): number {
+  const left = piecesLeft(s, seat);
+  return Math.min(2, left.roads + (shipsInPlay(s) ? left.ships : 0));
+}
+
 export function legalRoadSpots(s: Q, seat: number): number[] {
   const out: number[] = [];
   for (let e = 0; e < s.roads.length; e++) if (canPlaceRoad(s, seat, e)) out.push(e);
   return out;
 }
 
+/** A coastal starting settlement may launch a ship instead of its road. */
+export function legalSetupShips(s: Q): number[] {
+  if (!shipsInPlay(s) || !s.setup || s.setup.placing !== 'road' || s.setup.lastVertex === null) return [];
+  const t = topo(s);
+  return t.vertices[s.setup.lastVertex].edges.filter((e) => s.roads[e] === null && s.ships[e] === null && canHoldShip(s.board, t, e));
+}
+
 export function legalSetupRoads(s: Q): number[] {
   if (!s.setup || s.setup.placing !== 'road' || s.setup.lastVertex === null) return [];
   // Black Forest too: the settlement stands in the forest, but its road may already lead out into the fog.
   const t = topo(s);
-  return t.vertices[s.setup.lastVertex].edges.filter((e) => s.roads[e] === null && canHoldRoad(s.board, t, e));
+  return t.vertices[s.setup.lastVertex].edges.filter((e) => s.roads[e] === null && s.ships[e] === null && canHoldRoad(s.board, t, e));
 }
 
 export function legalCitySpots(s: Q, seat: number): number[] {
@@ -290,6 +316,14 @@ export function cardCount(p: Q['players'][number]): number {
 export function robberVictims(s: Q, seat: number, hex: number): number[] {
   const t = topo(s);
   const out = new Set<number>();
+  // The pirate robs whoever has a ship along its hex.
+  if (s.board.hexes[hex].terrain === 'sea') {
+    for (const e of t.hexes[hex].edges) {
+      const o = s.ships[e];
+      if (o !== null && o !== seat && cardCount(s.players[o]) > 0) out.add(o);
+    }
+    return [...out].sort((a, b) => a - b);
+  }
   for (const v of t.hexes[hex].vertices) {
     const b = s.buildings[v];
     if (b && b.owner !== seat && cardCount(s.players[b.owner]) > 0) out.add(b.owner);
@@ -308,12 +342,17 @@ export function hexNeighbours(s: Q, seat: number, hex: number): number[] {
   return [...out];
 }
 
-export function robberTargets(s: Q, seat: number, publicVP: (seat: number) => number): number[] {
+/**
+ * Hexes the robber (land) or, with `pirate`, the pirate (sea) may move to. Voyagers: a 7 or a knight
+ * moves either one; the Bishop moves only the robber.
+ */
+export function robberTargets(s: Q, seat: number, publicVP: (seat: number) => number, pirate = true): number[] {
   // Fogged hexes (Black Forest) can't be targeted until they're discovered.
-  const all = s.board.hexes.filter((h) => h.id !== s.robber && !h.fog && h.terrain !== 'sea').map((h) => h.id);
-  if (!s.settings.friendlyRobber) return all;
-  const friendly = all.filter((hex) => hexNeighbours(s, seat, hex).every((o) => publicVP(o) > 2));
-  return friendly.length ? friendly : all;
+  const land = s.board.hexes.filter((h) => h.id !== s.robber && !h.fog && h.terrain !== 'sea').map((h) => h.id);
+  const sea = pirate && s.pirate != null ? s.board.hexes.filter((h) => h.id !== s.pirate && !h.fog && h.terrain === 'sea').map((h) => h.id) : [];
+  if (!s.settings.friendlyRobber) return [...land, ...sea];
+  const friendly = land.filter((hex) => hexNeighbours(s, seat, hex).every((o) => publicVP(o) > 2));
+  return [...(friendly.length ? friendly : land), ...sea];
 }
 
 // ── Misc ────────────────────────────────────────────────────────────────────

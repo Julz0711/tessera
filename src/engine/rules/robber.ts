@@ -21,11 +21,14 @@ export function discard(ctx: Ctx, prompt: Extract<Prompt, { kind: 'discard' }>, 
 export function relocateRobber(ctx: Ctx, hex: number, victim: number | null, everyone = false): void {
   const s = ctx.s;
   assertRule(isHex(s, hex), 'Unknown hex');
-  assertRule(hex !== s.robber, 'The robber must move to a different hex');
-  const allowed = robberTargets(s, ctx.seat, (seat) => publicVictoryPoints(s, seat));
-  assertRule(allowed.includes(hex), 'Friendly robber: that hex only touches players with 2 or fewer points');
-  s.robber = hex;
-  emit(ctx, { type: 'robberMoved', seat: ctx.seat, hex });
+  const pirate = s.board.hexes[hex].terrain === 'sea';
+  assertRule(!pirate || !everyone, 'The Bishop moves only the robber');
+  assertRule(hex !== (pirate ? s.pirate : s.robber), `The ${pirate ? 'pirate' : 'robber'} must move to a different hex`);
+  const allowed = robberTargets(s, ctx.seat, (seat) => publicVictoryPoints(s, seat), !everyone);
+  assertRule(allowed.includes(hex), pirate ? 'The pirate cannot sail there' : 'Friendly robber: that hex only touches players with 2 or fewer points');
+  if (pirate) s.pirate = hex;
+  else s.robber = hex;
+  emit(ctx, { type: 'robberMoved', seat: ctx.seat, hex, ...(pirate ? { pirate: true } : {}) });
 
   if (everyone) {
     for (const other of hexNeighbours(s, ctx.seat, hex).sort((a, b) => a - b)) stealRandom(ctx, ctx.seat, other);

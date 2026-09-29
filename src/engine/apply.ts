@@ -2,12 +2,12 @@ import { applyCkAction, isCkAction, resolveCkPrompt } from './ck/actions';
 import { pickGold } from './rules/fog';
 import { RuleError, assertRule } from './errors';
 import { checkWinner, updateLongestRoad } from './rules/awards';
-import { buildCity, buildRoad, buildSettlement, buildShip, moveShip, placeFreeRoad } from './rules/build';
+import { buildCity, buildRoad, buildSettlement, buildShip, moveShip, placeFreeRoad, placeFreeShip } from './rules/build';
 import { removePrompt } from './rules/common';
 import { buyDevCard, playKnight, playMonopoly, playRoadBuilding, playYearOfPlenty } from './rules/dev';
 import { advance, endTurn, rollDice } from './rules/flow';
 import { discard, moveRobber } from './rules/robber';
-import { setupRoad, setupSettlement } from './rules/setup';
+import { setupRoad, setupSettlement, setupShip } from './rules/setup';
 import { bankExchange, bankTrade, cancelTrade, confirmTrade, offerTrade, respondTrade, setEmbargo, sweepTrades } from './rules/trade';
 import { makeCtx, type Ctx } from './state';
 import type { Action, ActionType, ApplyResult, GameState, Prompt, PromptKind } from './types';
@@ -17,6 +17,7 @@ const PROMPT_ACTIONS: Partial<Record<ActionType, PromptKind[]>> = {
   discard: ['discard'],
   moveRobber: ['robber'],
   buildRoad: ['freeRoads'],
+  buildShip: ['freeRoads'],
   skipFreeRoads: ['freeRoads'],
   loseCity: ['loseCity'],
   relocateKnight: ['relocateKnight'],
@@ -76,6 +77,7 @@ function dispatch(ctx: Ctx, action: Action): void {
   if (s.phase === 'setup') {
     if (action.type === 'buildSettlement') return setupSettlement(ctx, action.vertex);
     if (action.type === 'buildRoad') return setupRoad(ctx, action.edge);
+    if (action.type === 'buildShip') return setupShip(ctx, action.edge);
     throw new RuleError('Place your starting pieces first');
   }
 
@@ -132,6 +134,7 @@ function resolvePrompt(ctx: Ctx, prompt: Prompt, action: Action): void {
       break;
     case 'freeRoads':
       if (action.type === 'buildRoad') return placeFreeRoad(ctx, prompt, action.edge);
+      if (action.type === 'buildShip') return placeFreeShip(ctx, prompt, action.edge);
       if (action.type === 'skipFreeRoads') return removePrompt(ctx, prompt);
       break;
     case 'goldPick':
