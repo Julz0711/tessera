@@ -49,7 +49,7 @@ import {
 } from '@/engine';
 import {
   afterTrade,
-  bestRoad,
+  bestRoute,
   chooseDiscard,
   chooseRobber,
   cityValue,
@@ -58,6 +58,7 @@ import {
   type BotOptions,
   chooseGold,
 } from './classic';
+import { islandBonus } from './voyage';
 import { bankTradeToward, deficit, resourceWeights, vertexScore } from './eval';
 
 interface Goal {
@@ -138,10 +139,10 @@ function resolvePrompt(view: PlayerView, seat: number, prompt: Prompt): Action |
     case 'discard':
       return { type: 'discard', cards: chooseDiscard(view, seat, prompt.count, CARDS) };
     case 'robber':
-      return { type: 'moveRobber', ...chooseRobber(view, seat) };
+      return { type: 'moveRobber', ...chooseRobber(view, seat, prompt.reason !== 'bishop') };
     case 'freeRoads': {
-      const road = bestRoad(view, seat);
-      return road ? { type: 'buildRoad', edge: road.edge } : { type: 'skipFreeRoads' };
+      const route = bestRoute(view, seat);
+      return route ? route.action : { type: 'skipFreeRoads' };
     }
     case 'loseCity': {
       const cities = view.buildings.flatMap((b, v) => (b && b.owner === seat && b.city && !b.metropolis ? [v] : []));
@@ -237,8 +238,9 @@ function goals(view: PlayerView, seat: number): Goal[] {
     });
   }
   if (left.settlements > 0) {
-    const v = argmax(legalSettlementSpots(view, seat), (x) => vertexScore(view, seat, x, weights));
-    if (v !== undefined) out.push({ action: { type: 'buildSettlement', vertex: v }, cost: COSTS.settlement, value: 9 + vertexScore(view, seat, v, weights) / 4 });
+    const score = (x: number) => vertexScore(view, seat, x, weights) + islandBonus(view, seat, x);
+    const v = argmax(legalSettlementSpots(view, seat), score);
+    if (v !== undefined) out.push({ action: { type: 'buildSettlement', vertex: v }, cost: COSTS.settlement, value: 9 + score(v) / 4 });
   }
   const knights = view.knights.filter((k) => k?.owner === seat).length;
   if (left.knights[1] > 0) {
@@ -255,8 +257,8 @@ function goals(view: PlayerView, seat: number): Goal[] {
   if (promotable.length) out.push({ action: { type: 'promoteKnight', vertex: promotable[0] }, cost: COSTS.promote, value: threat ? 10 : 2.5 });
   const walls = wallSpots(view, seat);
   if (walls.length && handTotal(me.hand) >= 7) out.push({ action: { type: 'buildWall', vertex: walls[0] }, cost: COSTS.wall, value: 4 });
-  const road = bestRoad(view, seat);
-  if (road && road.value > 0.5) out.push({ action: { type: 'buildRoad', edge: road.edge }, cost: COSTS.road, value: road.value });
+  const route = bestRoute(view, seat);
+  if (route && route.value > 0.5) out.push(route);
   return out.sort((a, b) => b.value - a.value);
 }
 
@@ -384,8 +386,8 @@ function progressAction(view: PlayerView, seat: number, card: ProgressCard): Act
     case 'bishop':
       return robberActive(view) ? play() : null;
     case 'roadBuilding': {
-      const road = bestRoad(view, seat);
-      return road && road.value >= 3 ? play() : null;
+      const route = bestRoute(view, seat);
+      return route && route.value >= 3 ? play() : null;
     }
     case 'inventor': {
       // Swap one of my low tokens with a better one elsewhere.
@@ -463,7 +465,7 @@ export function ckBotAction(view: PlayerView, seat: number, opts: BotOptions = {
     const t = topo(view);
     const robbed = t.hexes[view.robber].vertices.some((v) => view.buildings[v]?.owner === seat);
     if (robbed) {
-      const { hex, victim } = chooseRobber(view, seat);
+      const { hex, victim } = chooseRobber(view, seat, false);
       if (hex !== view.robber) return { type: 'chaseRobber', vertex: chasers[0], hex, victim: robberVictims(view, seat, hex).length ? victim : null };
     }
   }

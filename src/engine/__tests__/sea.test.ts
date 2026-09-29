@@ -200,3 +200,16 @@ describe('pirate, trade route, setup and Road Building', () => {
     expect(canHoldShip(a.board, t, spot)).toBe(true);
   });
 });
+
+describe('settling by sea', () => {
+  it('allows a settlement at the end of a ship route', () => {
+    const { s } = floodedGame();
+    const g = autoSetup(s);
+    const t = getTopology(g.board.hexes);
+    // Pick an empty land corner that satisfies the distance rule and give seat 0 a ship touching it.
+    const v = t.vertices.findIndex((vx, i) => legalSettlementSpots(g, 0, true).includes(i) && vx.edges.some((e) => canHoldShip(g.board, t, e) && g.roads[e] === null));
+    expect(legalSettlementSpots(g, 0)).not.toContain(v);
+    g.ships[t.vertices[v].edges.find((e) => canHoldShip(g.board, t, e) && g.roads[e] === null)!] = 0;
+    expect(legalSettlementSpots(g, 0)).toContain(v);
+  });
+});

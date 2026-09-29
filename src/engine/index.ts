@@ -10,3 +10,5 @@ export { longestRoadLength } from './longestRoad';
 export { victoryPoints, publicVictoryPoints } from './vp';
 export { getTopology, STANDARD_HEX_COORDS, type Topology, type TopoEdge, type TopoHex, type TopoVertex } from './board/topology';
 export { emptyHand, handTotal, hasCards, cardList, resourceTotal, commodityTotal, compactHand } from './hand';
+export { canHoldRoad, canHoldSettlement, canHoldShip, edgeKind, islandsAt, islandsOf, isSeaHex } from './board/sea';
+export { foreignIslands, islandPoints } from './vp';

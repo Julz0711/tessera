@@ -58,6 +58,11 @@ export function distanceRuleOk(s: Q, v: number): boolean {
   return t.vertices[v].vertices.every((n) => !s.buildings[n]);
 }
 
+/** A settlement may stand at the end of a road or (Voyagers) a ship. */
+export function touchesOwnRoute(s: Q, seat: number, v: number): boolean {
+  return topo(s).vertices[v].edges.some((e) => s.roads[e] === seat || s.ships[e] === seat);
+}
+
 export function touchesOwnRoad(s: Q, seat: number, v: number): boolean {
   return topo(s).vertices[v].edges.some((e) => s.roads[e] === seat);
 }
@@ -118,7 +123,7 @@ export function canPlaceSettlement(s: Q, seat: number, v: number, setup = false)
   if (!canHoldSettlement(s.board, topo(s), v)) return false;
   if (!distanceRuleOk(s, v)) return false;
   if (setup && !startingCorner(s, v)) return false;
-  return setup || touchesOwnRoad(s, seat, v);
+  return setup || touchesOwnRoute(s, seat, v);
 }
 
 /**
