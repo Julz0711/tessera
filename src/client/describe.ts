@@ -1,4 +1,5 @@
-import { CARDS, type Card, type DevCardType, type Dice, type GameEvent, type PartialHand, type ProgressCardType, type Track } from '@/engine/types';
+import { CARDS, type Card, type DevCardType, type Dice, type GameEvent, type PartialHand, type ProgressCardType, type Track, type TreasureKind } from '@/engine/types';
+import { legalSetupShips } from '@/engine/queries';
 import type { PlayerView } from '@/engine/view';
 import { TERRAIN_COLORS } from './palette';
 
@@ -61,7 +62,14 @@ function count(h: PartialHand): number {
   return CARDS.reduce((n, c) => n + (h[c] ?? 0), 0);
 }
 
-const PIECE: Record<string, string> = { road: 'a road', settlement: 'a settlement', city: 'a city', wall: 'a city wall' };
+const TREASURE_NAMES: Record<TreasureKind, string> = {
+  resource: 'a resource of choice',
+  roadBuilding: 'two free roads or ships',
+  bundle: 'wool, grain and brick',
+  devCard: 'a card of choice',
+};
+
+const PIECE: Record<string, string> = { road: 'a road', ship: 'a ship', settlement: 'a settlement', city: 'a city', wall: 'a city wall' };
 
 /** Describes an event for the game log; returns one or more lines (or none). */
 export function describe(ev: GameEvent, view: PlayerView): Part[][] {
@@ -83,7 +91,14 @@ export function describe(ev: GameEvent, view: PlayerView): Part[][] {
       return [[`The bank ran out of ${ev.card}, nobody gets it.`]];
     case 'built':
       return [[P(ev.seat), ev.free ? ' placed ' : ' built ', PIECE[ev.piece] ?? ev.piece]];
+    case 'treasure':
+      return [[P(ev.seat), ev.at === null ? ' found open sea and a bonus treasure: ' : ' found a treasure: ', TREASURE_NAMES[ev.kind]]];
+    case 'islandSettled':
+      return [[P(ev.seat), ` settled a new island: +${ev.vp} point${ev.vp === 1 ? '' : 's'}`]];
+    case 'shipMoved':
+      return [[P(ev.seat), ' sailed a ship to a new route']];
     case 'robberMoved': {
+      if (ev.pirate) return [[P(ev.seat), ' sailed the pirate to a new sea hex']];
       const hex = view.board.hexes[ev.hex];
       return [[P(ev.seat), ` moved the robber to ${TERRAIN_COLORS[hex.terrain].label.toLowerCase()}${hex.token ? ` (${hex.token})` : ''}`]];
     }
@@ -155,7 +170,8 @@ export function describe(ev: GameEvent, view: PlayerView): Part[][] {
     case 'merchantPlaced':
       return [[P(ev.seat), ' placed the merchant']];
     case 'roadRemoved':
-      return [[P(ev.seat), ' removed a road of ', P(ev.owner)]];
+      // Your own road only leaves to be placed again (Diplomat): the next entry says where.
+      return ev.owner === ev.seat ? [[P(ev.seat), ' moved one of their roads']] : [[P(ev.seat), ' removed a road of ', P(ev.owner)]];
     case 'tokensSwapped':
       return [[P(ev.seat), ' swapped two number tokens']];
   }
@@ -181,12 +197,13 @@ export function statusLine(view: PlayerView): { text: string; mine: boolean } {
       relocateKnight: 'Move your displaced knight',
       rewardDeck: 'Choose a progress card deck',
       aqueduct: 'Aqueduct: choose a resource',
-      goldPick: `Gold! Choose ${'count' in mine ? mine.count : ''} resource${'count' in mine && mine.count === 1 ? '' : 's'}`,
+      goldPick: `${mine.kind === 'goldPick' && mine.reason === 'treasure' ? 'Treasure' : 'Gold'}! Choose ${'count' in mine ? mine.count : ''} resource${'count' in mine && mine.count === 1 ? '' : 's'}`,
       discardProgress: 'Discard a progress card (max 4)',
       giveCards: 'Choose cards to give',
       commercialHarbor: 'Commercial Harbor: give a commodity',
       deserterRemove: 'Choose a knight to desert',
       deserterPlace: 'Place the deserted knight',
+      moveRoad: 'Diplomat: pick where your road goes',
       spy: 'Spy: take a progress card',
       masterMerchant: 'Master Merchant: take 2 cards',
       placeMetropolis: 'Place your metropolis on a city',
@@ -200,7 +217,7 @@ export function statusLine(view: PlayerView): { text: string; mine: boolean } {
   if (view.phase === 'setup' && view.setup) {
     const seat = view.setup.order[view.setup.index];
     const second = view.setup.index >= view.players.length;
-    const what = view.setup.placing === 'road' ? 'a road' : second ? (view.mode === 'ck' ? 'a city' : 'a second settlement') : 'a settlement';
+    const what = view.setup.placing === 'road' ? (legalSetupShips(view).length ? 'a road or ship' : 'a road') : second ? (view.mode === 'ck' ? 'a city' : 'a second settlement') : 'a settlement';
     return seat === me ? { text: `Place ${what}`, mine: true } : { text: `${name(seat)} is placing ${what}…`, mine: false };
   }
   const seat = view.turn.seat;

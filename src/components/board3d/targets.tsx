@@ -5,11 +5,12 @@ import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { useRef, useState, type ReactNode } from 'react';
 import type * as THREE from 'three';
 import type { Topology } from '@/engine/board/topology';
-import type { PlayerColor } from '@/engine/types';
+import type { Board, PlayerColor } from '@/engine/types';
 import type { BoardTargets } from '@/components/board/types';
 import { GEO, mat } from './materials';
 import { City, Road, Robber, Settlement } from './pieces';
 import { TILE_TOP } from './terrain';
+import { Pirate, Ship } from './voyage';
 
 const AMBER = '#f2b33d';
 
@@ -98,6 +99,8 @@ function EdgeTarget({
   hint,
   color,
   onPick,
+  ship,
+  sail,
 }: {
   x: number;
   z: number;
@@ -106,17 +109,20 @@ function EdgeTarget({
   hint?: boolean;
   color: PlayerColor | null;
   onPick: (id: number) => void;
+  ship?: boolean;
+  /** One of your ships that can sail: no ghost, just a glow on hover. */
+  sail?: boolean;
 }) {
   const [hover, setHover] = useState(false);
   const bar = usePulse(id * 0.7);
   return (
     <group>
-      {hover && color && <Road x={x} z={z} angle={angle} color={color} ghost />}
-      {hint ? null : (
+      {hover && color && !sail && (ship ? <Ship x={x} z={z} angle={angle} color={color} ghost /> : <Road x={x} z={z} angle={angle} color={color} ghost />)}
+      {(sail ? !hover : hint) ? null : (
         <mesh
           ref={bar}
           geometry={GEO.road}
-          material={mat(hover ? '#fff3cf' : AMBER, { opacity: hover ? 0.2 : 0.75, emissive: AMBER })}
+          material={mat(hover && !sail ? '#fff3cf' : AMBER, { opacity: hover && !sail ? 0.2 : 0.75, emissive: AMBER })}
           position={[x, TILE_TOP + 0.08, z]}
           rotation={[0, -angle, 0]}
           scale={[0.7, 0.6, 0.6]}
@@ -155,7 +161,7 @@ function HexTarget({ x, z, id, onPick }: { x: number; z: number; id: number; onP
 }
 
 /** The spot whose popup is open (a build, or the robber's next hex): its ghost stays, with the popup above it. */
-function ArmedSpot({ armed, topo, color, popup }: { armed: NonNullable<BoardTargets['armed']>; topo: Topology; color: PlayerColor | null; popup?: ReactNode }) {
+function ArmedSpot({ armed, topo, board, color, popup }: { armed: NonNullable<BoardTargets['armed']>; topo: Topology; board: Board; color: PlayerColor | null; popup?: ReactNode }) {
   const p = armed.target === 'edge' ? topo.edges[armed.at] : armed.target === 'hex' ? topo.hexes[armed.at] : topo.vertices[armed.at];
   const x = p.x;
   const z = p.y;
@@ -163,7 +169,8 @@ function ArmedSpot({ armed, topo, color, popup }: { armed: NonNullable<BoardTarg
   const lift = armed.target === 'hex' ? 1.3 : 0.45;
   return (
     <group>
-      {armed.what === 'robber' && <Robber x={x} z={z + 0.46} ghost />}
+      {armed.what === 'robber' && (board.hexes[armed.at].terrain === 'sea' ? <Pirate x={x} z={z} ghost /> : <Robber x={x} z={z + 0.46} ghost />)}
+      {color && armed.what === 'ship' && <Ship x={x} z={z} angle={topo.edges[armed.at].angle} color={color} ghost />}
       {color && armed.what === 'road' && <Road x={x} z={z} angle={topo.edges[armed.at].angle} color={color} ghost />}
       {color && armed.what === 'settlement' && <Settlement x={x} z={z} color={color} ghost />}
       {color && armed.what === 'city' && <City x={x} z={z} color={color} ghost />}
@@ -189,6 +196,7 @@ function ArmedSpot({ armed, topo, color, popup }: { armed: NonNullable<BoardTarg
 export function Targets({
   targets,
   topo,
+  board,
   color,
   popup,
   onVertex,
@@ -197,6 +205,7 @@ export function Targets({
 }: {
   targets: BoardTargets;
   topo: Topology;
+  board: Board;
   color: PlayerColor | null;
   popup?: ReactNode;
   onVertex?: (id: number) => void;
@@ -220,10 +229,21 @@ export function Targets({
         ))}
       {onEdge &&
         targets.edges.map((id) => (
-          <EdgeTarget key={`e${id}`} id={id} x={topo.edges[id].x} z={topo.edges[id].y} angle={topo.edges[id].angle} hint={targets.hint} color={color} onPick={onEdge} />
+          <EdgeTarget
+            key={`e${id}`}
+            id={id}
+            x={topo.edges[id].x}
+            z={topo.edges[id].y}
+            angle={topo.edges[id].angle}
+            hint={targets.hint}
+            color={color}
+            onPick={onEdge}
+            ship={(targets.edgeKinds?.[id] ?? targets.kind) === 'ship'}
+            sail={targets.edgeKinds?.[id] === 'shipAction'}
+          />
         ))}
       {onHex && targets.hexes.map((id) => <HexTarget key={`h${id}`} id={id} x={topo.hexes[id].x} z={topo.hexes[id].y} onPick={onHex} />)}
-      {targets.armed && <ArmedSpot armed={targets.armed} topo={topo} color={color} popup={popup} />}
+      {targets.armed && <ArmedSpot armed={targets.armed} topo={topo} board={board} color={color} popup={popup} />}
     </group>
   );
 }

@@ -73,6 +73,10 @@ export function viewFor(state: GameState, viewer: number | null): PlayerView {
     const { fog: _fog, ...lifted } = h;
     return lifted;
   });
+  // Veiled Isles: what a treasure holds stays secret until someone collects it.
+  if (visible.board.treasures && !reveal) {
+    visible.board.treasures = visible.board.treasures.map((t) => (t.takenBy === undefined ? { vertex: t.vertex, kind: null } : t));
+  }
   return {
     ...visible,
     players,

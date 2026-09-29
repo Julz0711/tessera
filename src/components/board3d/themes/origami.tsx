@@ -414,17 +414,6 @@ function Road({ ghost }: { ghost: boolean; c: PieceColors }) {
   return <mesh geometry={CREASE} material={mat('#ffffff', { opacity: 0.8 })} position={[0, 0.045 * (2 * k - 1) + 0.002, 0]} />;
 }
 
-/** A paper boat moored beside the pier (clear of the floating rate sign). */
-function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
-  return (
-    <group position={[x, -0.09, z]} rotation={[0, rot, 0]}>
-      <group position={[0.42, 0, 0.05]} scale={1.3}>
-        <PaperBoat />
-      </group>
-    </group>
-  );
-}
-
 /** The barbarian ship as a folded black paper boat, flying a small red paper flag. */
 function BarbarianShip({ danger }: { danger: boolean }) {
   return (
@@ -437,4 +426,4 @@ function BarbarianShip({ danger }: { danger: boolean }) {
 }
 
 /** Origami: pyramid trees, accordion fields, a crane and a fox, all folded from paper. */
-export const origami: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Sea, BarbarianShip, Knight, CityWall };
+export const origami: ThemeKit = { props, Settlement, City, Robber, Road, Sea, BarbarianShip, Knight, CityWall };

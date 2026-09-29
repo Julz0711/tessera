@@ -1,16 +1,19 @@
 /** Read-only Cities & Knights rule queries (usable on full states and redacted views). */
 import { ABILITY_LEVEL, MAX_IMPROVEMENT, METROPOLIS_LEVEL, TERRAIN_RESOURCE, TRACK_COMMODITY } from '../constants';
-import { blockedFor, piecesLeft, topo, touchesOwnRoad, type Q } from '../queries';
+import { blockedFor, legalRoadSpots, piecesLeft, topo, touchesOwnRoute, type Q } from '../queries';
 import type { KnightLevel, Track } from '../types';
 
 export function isVertexFree(s: Q, v: number): boolean {
   return !s.buildings[v] && !s.knights[v];
 }
 
-/** Empty intersections touching the seat's roads (where knights can be recruited or relocated). */
+/**
+ * Empty intersections touching the seat's roads or (Voyagers) ships, where knights can be recruited
+ * or relocated. With the sea, knights stand along shipping routes too, as in the combined rules.
+ */
 export function legalKnightSpots(s: Q, seat: number): number[] {
   const out: number[] = [];
-  for (let v = 0; v < s.buildings.length; v++) if (isVertexFree(s, v) && touchesOwnRoad(s, seat, v)) out.push(v);
+  for (let v = 0; v < s.buildings.length; v++) if (isVertexFree(s, v) && touchesOwnRoute(s, seat, v)) out.push(v);
   return out;
 }
 
@@ -26,8 +29,8 @@ export function canKnightAct(s: Q, seat: number, v: number): boolean {
 }
 
 /**
- * Intersections a knight can reach along its owner's roads. It may pass its owner's pieces but
- * not opponents' buildings or knights.
+ * Intersections a knight can reach along its owner's roads and ships. It may pass its owner's
+ * pieces but not opponents' buildings or knights.
  */
 export function knightReach(s: Q, seat: number, from: number): Set<number> {
   const t = topo(s);
@@ -37,7 +40,7 @@ export function knightReach(s: Q, seat: number, from: number): Set<number> {
     const v = queue.shift()!;
     if (v !== from && blockedFor(s, seat, v)) continue;
     for (const e of t.vertices[v].edges) {
-      if (s.roads[e] !== seat) continue;
+      if (s.roads[e] !== seat && s.ships[e] !== seat) continue;
       const edge = t.edges[e];
       const w = edge.a === v ? edge.b : edge.a;
       if (!seen.has(w)) {
@@ -198,11 +201,18 @@ export function openRoads(s: Q): number[] {
   return out;
 }
 
-/** Opponent knights standing on intersections that touch the seat's roads (Intrigue). */
+/** Diplomat on your own open road: where it can move to, i.e. anywhere a new road could go once it has left. */
+export function roadMoveTargets(s: Q, seat: number, from: number): number[] {
+  const roads = s.roads.slice();
+  roads[from] = null;
+  return legalRoadSpots({ ...s, roads }, seat).filter((e) => e !== from);
+}
+
+/** Opponent knights standing on intersections that touch the seat's roads or ships (Intrigue). */
 export function intrigueTargets(s: Q, seat: number): number[] {
   const out: number[] = [];
   s.knights.forEach((k, v) => {
-    if (k && k.owner !== seat && touchesOwnRoad(s, seat, v)) out.push(v);
+    if (k && k.owner !== seat && touchesOwnRoute(s, seat, v)) out.push(v);
   });
   return out;
 }

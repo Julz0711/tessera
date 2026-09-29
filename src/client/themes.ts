@@ -1,4 +1,4 @@
-import type { Terrain } from '@/engine/types';
+import type { LandTerrain, Terrain } from '@/engine/types';
 import { FOG, SEA, TERRAIN_COLORS, TOKEN } from './palette';
 
 /**
@@ -123,8 +123,10 @@ const PAPER_PLEATS = svgPattern(
   "<path d='M0 20L15 8L30 20L45 8L60 20V40H0Z' fill='#ffffff' fill-opacity='0.07'/><path d='M0 20L15 8L30 20L45 8L60 20' stroke='#ffffff' stroke-opacity='0.35' stroke-width='1.5' fill='none'/>",
 );
 
-const tiles = (t: Record<Terrain, [string, string, string]>): Record<Terrain, TileColors> =>
-  Object.fromEntries(Object.entries(t).map(([k, [top, side, accent]]) => [k, { top, side, accent }])) as Record<Terrain, TileColors>;
+const tiles = (t: Record<LandTerrain, [string, string, string]>): Record<Terrain, TileColors> =>
+  Object.fromEntries(
+    Object.entries({ ...t, sea: [SEA.shallow, SEA.deep, SEA.foam] }).map(([k, [top, side, accent]]) => [k, { top, side, accent }]),
+  ) as Record<Terrain, TileColors>;
 
 /** Gold looks the same everywhere, so it is always recognisable (and always the brightest tile). */
 const GOLD: [string, string, string] = [TERRAIN_COLORS.gold.top, TERRAIN_COLORS.gold.side, TERRAIN_COLORS.gold.accent];

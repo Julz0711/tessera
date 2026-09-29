@@ -273,6 +273,22 @@ function HexRing({ color }: { color: string }) {
   return <mesh geometry={RING} material={material} position={[0, 0.136, 0]} rotation={[-Math.PI / 2, 0, 0]} />;
 }
 
+function SeaTile({ x, z, onClick }: { x: number; z: number; onClick?: () => void }) {
+  if (!onClick) return null;
+  return (
+    <mesh
+      geometry={TG.top}
+      position={[x, -0.05, z]}
+      visible={false}
+      onClick={(e) => {
+        if (e.delta > 6) return;
+        e.stopPropagation();
+        onClick();
+      }}
+    />
+  );
+}
+
 export function HexTile({
   hex,
   x,
@@ -293,6 +309,8 @@ export function HexTile({
 }) {
   const palette = useBoardPalette();
   const kit = useBoardKit();
+  // Open water (Voyagers): the sea shows through; only an invisible tile catches clicks for the pirate.
+  if (hex.terrain === 'sea' && !hex.fog) return <SeaTile x={x} z={z} onClick={onClick} />;
   const colors = hex.fog ? palette.fog : palette.terrain[hex.terrain];
   // Gold fields glow a little so they stand out from the wheat-yellow fields.
   const gold = hex.terrain === 'gold' && !hex.fog;

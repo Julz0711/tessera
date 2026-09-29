@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import type { Action, DevCardType, PartialHand, ProgressCardType } from '@/engine/types';
 
-export type BuildWhat = 'road' | 'settlement' | 'city' | 'knight' | 'wall';
+export type BuildWhat = 'road' | 'ship' | 'settlement' | 'city' | 'knight' | 'wall';
 
 /** What a click on the board means right now (beyond setup and prompts, which the game decides). */
 export type UiMode =
@@ -11,6 +11,8 @@ export type UiMode =
   | { t: 'build'; what: BuildWhat }
   | { t: 'knightMove'; from: number }
   | { t: 'knightChase'; from: number }
+  /** Voyagers: pick one of your open-route ships, then where it sails. */
+  | { t: 'shipMove'; from: number | null }
   | { t: 'progress'; card: number; cardType: ProgressCardType; picked: number[] };
 
 /** One thing that can be built on an armed spot. */

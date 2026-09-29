@@ -2,9 +2,10 @@
 import { COSTS, TERRAIN_RESOURCE } from '../constants';
 import { RuleError, assertRule } from '../errors';
 import { commodityTotal, handTotal, resourceTotal } from '../hand';
-import { isEdge, isHex, isVertex, legalRoadSpots, piecesLeft, topo } from '../queries';
+import { isEdge, isHex, isVertex, freeRouteCount, freeRouteLeft, topo } from '../queries';
 import { isInt, requireActive } from '../rules/common';
 import { upgradeToCity } from '../rules/build';
+import { rollDice } from '../rules/flow';
 import { emit, type Ctx } from '../state';
 import { COMMODITIES, isCard, isCommodity, isResource, type Card, type ProgressCard, type ProgressParams, type Resource } from '../types';
 import { victoryPoints } from '../vp';
@@ -16,6 +17,7 @@ import {
   merchantHexes,
   openRoads,
   promotableKnights,
+  roadMoveTargets,
   robberActive,
   wallSpots,
 } from './queries';
@@ -60,7 +62,9 @@ export function playProgress(ctx: Ctx, cardId: number, params: ProgressParams): 
     assertRule(!s.turn.rolled, 'The Alchemist is played before rolling');
     assertRule(isInt(params.red, 1, 6) && isInt(params.yellow, 1, 6), 'Choose both dice');
     s.turn.alchemist = { red: params.red!, yellow: params.yellow! };
-    return discardPlayed(ctx, card);
+    discardPlayed(ctx, card);
+    // Nothing is left to decide once the dice are set: roll straight away (the event die still rolls).
+    return rollDice(ctx);
   }
   assertRule(s.turn.rolled, 'Roll the dice first');
 
@@ -98,9 +102,8 @@ export function playProgress(ctx: Ctx, cardId: number, params: ProgressParams): 
       return upgradeToCity(ctx, v, COSTS.medicineCity);
     }
     case 'roadBuilding': {
-      const left = piecesLeft(s, ctx.seat).roads;
-      assertRule(left > 0 && legalRoadSpots(s, ctx.seat).length > 0, 'You have nowhere to build a road');
-      s.pending.push({ kind: 'freeRoads', seat: ctx.seat, count: Math.min(2, left) });
+      assertRule(freeRouteLeft(s, ctx.seat), 'You have nowhere to build a road');
+      s.pending.push({ kind: 'freeRoads', seat: ctx.seat, count: freeRouteCount(s, ctx.seat) });
       break;
     }
     case 'smith': {
@@ -127,10 +130,14 @@ export function playProgress(ctx: Ctx, cardId: number, params: ProgressParams): 
       const e = params.edge;
       assertRule(isEdge(s, e) && openRoads(s).includes(e), 'Pick an open road (one end connected to nothing)');
       const owner = s.roads[e]!;
+      if (owner === ctx.seat) {
+        // One of your own roads moves instead of going: it stays put until you pick its new spot.
+        assertRule(roadMoveTargets(s, ctx.seat, e).length > 0, 'That road has nowhere else to go');
+        s.pending.push({ kind: 'moveRoad', seat: ctx.seat, from: e });
+        break;
+      }
       s.roads[e] = null;
       emit(ctx, { type: 'roadRemoved', seat: ctx.seat, owner, at: e });
-      // Moving one of your own roads: place it again right away.
-      if (owner === ctx.seat && legalRoadSpots(s, ctx.seat).length) s.pending.push({ kind: 'freeRoads', seat: ctx.seat, count: 1 });
       break;
     }
     case 'intrigue': {

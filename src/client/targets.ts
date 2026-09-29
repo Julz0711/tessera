@@ -11,6 +11,8 @@ export function sceneFromView(view: PlayerView, styles: (KnightCustomization | n
     robber: view.robber,
     buildings: view.buildings,
     roads: view.roads,
+    ships: view.ships,
+    pirate: view.pirate ?? null,
     knights: view.knights,
     merchant: view.merchant,
     colors: view.players.map((p) => p.color),

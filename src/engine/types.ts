@@ -26,7 +26,9 @@ export function isCard(card: unknown): card is Card {
 
 // ── Board ───────────────────────────────────────────────────────────────────
 /** `gold` (Black Forest) pays out a resource of the owner's choice. */
-export type Terrain = 'forest' | 'hills' | 'pasture' | 'fields' | 'mountains' | 'desert' | 'gold';
+export type Terrain = 'forest' | 'hills' | 'pasture' | 'fields' | 'mountains' | 'desert' | 'gold' | 'sea';
+/** Every terrain that carries a number token or resource; `sea` is open water (Voyagers). */
+export type LandTerrain = Exclude<Terrain, 'sea'>;
 export type HarborKind = 'any' | Resource;
 
 export interface Hex {
@@ -48,9 +50,26 @@ export interface Harbor {
   kind: HarborKind;
 }
 
+/** Veiled Isles treasure rewards. `devCard` is a progress card of a chosen track in C&K. */
+export type TreasureKind = 'resource' | 'roadBuilding' | 'bundle' | 'devCard';
+export const TREASURE_KINDS: readonly TreasureKind[] = ['resource', 'roadBuilding', 'bundle', 'devCard'];
+
+export interface Treasure {
+  /** Corner a ship must reach to collect it. */
+  vertex: number;
+  /** Hidden (null) in player views until collected. */
+  kind: TreasureKind | null;
+  /** Seat that collected it. */
+  takenBy?: number;
+}
+
 export interface Board {
   hexes: Hex[];
   harbors: Harbor[];
+  /** Voyagers: the sea hex the pirate starts on. */
+  pirateStart?: number;
+  /** Veiled Isles: treasure spots. */
+  treasures?: Treasure[];
 }
 
 // ── Modes & settings ────────────────────────────────────────────────────────
@@ -59,8 +78,31 @@ export type Mode = 'classic' | 'ck';
  * Board layout: the standard island, the larger 5–6 player island, the fog maps (Black Forest,
  * Gold Rush, Vulcan) or one of the land-only variants (Heartlake, Long Isle, Four Lakes).
  */
-export type MapId = 'standard' | 'large' | 'blackForest' | 'goldRush' | 'vulcan' | 'heartlake' | 'longIsle' | 'fourLakes';
-export const MAP_IDS: readonly MapId[] = ['standard', 'large', 'blackForest', 'goldRush', 'vulcan', 'heartlake', 'longIsle', 'fourLakes'];
+export type MapId =
+  | 'standard'
+  | 'large'
+  | 'blackForest'
+  | 'goldRush'
+  | 'vulcan'
+  | 'heartlake'
+  | 'longIsle'
+  | 'fourLakes'
+  | 'farShores'
+  | 'fourRealms'
+  | 'veiledIsles';
+export const MAP_IDS: readonly MapId[] = [
+  'standard',
+  'large',
+  'blackForest',
+  'goldRush',
+  'vulcan',
+  'heartlake',
+  'longIsle',
+  'fourLakes',
+  'farShores',
+  'fourRealms',
+  'veiledIsles',
+];
 export const isMapId = (v: unknown): v is MapId => typeof v === 'string' && (MAP_IDS as readonly string[]).includes(v);
 export type Track = 'trade' | 'politics' | 'science';
 export const TRACKS: readonly Track[] = ['trade', 'politics', 'science'];
@@ -203,6 +245,10 @@ export interface TurnState {
   crane: boolean;
   merchantFleet: Card[];
   alchemist: { red: number; yellow: number } | null;
+  /** Voyagers: edges of ships built this turn (they may not sail until next turn). */
+  shipsBuilt: number[];
+  /** Voyagers: a ship already sailed this turn. */
+  shipsMoved: boolean;
 }
 
 export interface SetupState {
@@ -228,18 +274,21 @@ export type Prompt =
   | { kind: 'freeRoads'; seat: number; count: number }
   | { kind: 'loseCity'; seat: number }
   | { kind: 'relocateKnight'; seat: number; from: number; knight: Knight }
-  | { kind: 'rewardDeck'; seat: number }
+  | { kind: 'rewardDeck'; seat: number; reason?: 'treasure' }
   | { kind: 'aqueduct'; seat: number }
-  | { kind: 'discardProgress'; seat: number }
+  /** Over the progress card limit; `endTurn`: asked when ending the turn, which then carries on. */
+  | { kind: 'discardProgress'; seat: number; endTurn?: boolean }
   | { kind: 'giveCards'; seat: number; to: number; count: number }
   | { kind: 'commercialHarbor'; seat: number; from: number }
   | { kind: 'deserterRemove'; seat: number; to: number }
   | { kind: 'deserterPlace'; seat: number; level: KnightLevel }
+  /** Diplomat on your own open road: pick where it moves (it stays put until then). */
+  | { kind: 'moveRoad'; seat: number; from: number }
   | { kind: 'spy'; seat: number; victim: number; cards: ProgressCard[] }
   | { kind: 'masterMerchant'; seat: number; victim: number; hand: Hand; count: number }
   | { kind: 'placeMetropolis'; seat: number; track: Track }
   /** Gold (Black Forest): pick `count` resources of your choice. */
-  | { kind: 'goldPick'; seat: number; count: number };
+  | { kind: 'goldPick'; seat: number; count: number; reason?: 'treasure' };
 
 export type PromptKind = Prompt['kind'];
 
@@ -280,8 +329,13 @@ export type GameEventBody =
   | { type: 'shortage'; card: Card }
   /** Fog lifted from these hexes (Black Forest), by `seat`'s road or settlement. */
   | { type: 'revealed'; seat: number; hexes: { id: number; terrain: Terrain; token: number | null }[] }
-  | { type: 'built'; seat: number; piece: 'road' | 'settlement' | 'city' | 'wall'; at: number; free?: boolean }
-  | { type: 'robberMoved'; seat: number; hex: number }
+  | { type: 'built'; seat: number; piece: 'road' | 'ship' | 'settlement' | 'city' | 'wall'; at: number; free?: boolean }
+  | { type: 'shipMoved'; seat: number; from: number; to: number }
+  /** Voyagers: first settlement on a foreign island, worth `vp` special points. */
+  /** Veiled Isles: a treasure collected at corner `at` (null: the bonus for finding hidden sea). */
+  | { type: 'treasure'; seat: number; kind: TreasureKind; at: number | null }
+  | { type: 'islandSettled'; seat: number; at: number; vp: number }
+  | { type: 'robberMoved'; seat: number; hex: number; pirate?: boolean }
   | { type: 'stole'; seat: number; victim: number }
   | { type: 'discarded'; seat: number; cards: PartialHand }
   | { type: 'devBought'; seat: number }
@@ -373,9 +427,15 @@ export interface GameState {
   buildings: (Building | null)[];
   /** Indexed by edge id → owner seat. */
   roads: (number | null)[];
+  /** Voyagers: indexed by edge id → owner seat. All null on maps without sea. */
+  ships: (number | null)[];
   /** Indexed by vertex id (C&K). */
   knights: (Knight | null)[];
   robber: number;
+  /** Voyagers: each seat's home islands (where it built during setup); set when setup ends. */
+  homeIslands?: number[][];
+  /** Voyagers: the pirate's sea hex; null (or missing in older games) on maps without sea. */
+  pirate?: number | null;
   merchant: { hex: number; owner: number } | null;
   barbarian: { position: number; attacks: number };
   metropolis: Record<Track, number | null>;
@@ -420,6 +480,8 @@ export type Action =
   | { type: 'rollDice' }
   | { type: 'endTurn' }
   | { type: 'buildRoad'; edge: number }
+  | { type: 'buildShip'; edge: number }
+  | { type: 'moveShip'; from: number; to: number }
   | { type: 'buildSettlement'; vertex: number }
   | { type: 'buildCity'; vertex: number }
   | { type: 'moveRobber'; hex: number; victim: number | null }

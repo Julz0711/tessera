@@ -378,13 +378,6 @@ function Road({ ghost }: { ghost: boolean; c: PieceColors }) {
   );
 }
 
-const BOAT = {
-  hull: new THREE.BoxGeometry(0.3, 0.05, 0.11),
-  deck: new THREE.BoxGeometry(0.16, 0.06, 0.08),
-  stack: new THREE.CylinderGeometry(0.012, 0.014, 0.13, 6),
-  wheel: new THREE.CylinderGeometry(0.055, 0.055, 0.06, 10),
-};
-
 const SHIP_DANGER = '#c23a2a';
 
 /** An outlaws' paddle steamer: a white hull, a red-roofed deck cabin, twin smokestacks and a big stern wheel. */
@@ -420,21 +413,5 @@ function BarbarianShip({ danger }: { danger: boolean }) {
   );
 }
 
-/** A paddle steamer tied up beside the pier (along it, clear of the floating rate sign). */
-function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
-  return (
-    <group position={[x, 0, z]} rotation={[0, rot, 0]}>
-      <group position={[0.46, -0.075, 0.06]}>
-        <mesh geometry={BOAT.hull} material={mat('#efe8d8')} castShadow />
-        <mesh geometry={BOAT.deck} material={mat('#b3402e')} position={[0.02, 0.055, 0]} castShadow />
-        {[-0.02, 0.05].map((sx) => (
-          <mesh key={sx} geometry={BOAT.stack} material={mat('#2a2622')} position={[sx, 0.14, 0]} castShadow />
-        ))}
-        <mesh geometry={BOAT.wheel} material={mat('#8a4a2a')} position={[-0.16, 0.02, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow />
-      </group>
-    </group>
-  );
-}
-
 /** Frontier: pines and ranches, adobe and silver mines, saloons, railroads and an outlaw. */
-export const frontier: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, BarbarianShip, Knight, CityWall };
+export const frontier: ThemeKit = { props, Settlement, City, Robber, Road, BarbarianShip, Knight, CityWall };

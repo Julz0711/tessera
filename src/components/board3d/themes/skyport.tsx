@@ -509,38 +509,10 @@ function Road({ ghost }: { ghost: boolean; c: PieceColors }) {
 }
 
 const AIRSHIP = {
-  // A short brass catwalk bridges the gap from the pier's deck (±0.23) out to the mast.
-  catwalk: new THREE.BoxGeometry(0.58, 0.025, 0.12),
-  mast: new THREE.CylinderGeometry(0.014, 0.024, 0.44, 6),
-  mastTop: new THREE.SphereGeometry(0.024, 6, 4),
   envelope: new THREE.SphereGeometry(1, 12, 8),
   gondola: new THREE.BoxGeometry(0.1, 0.03, 0.04),
   fin: new THREE.BoxGeometry(0.06, 0.05, 0.006),
 };
-
-/** A mooring mast at the pier's end with an airship tied to it (clear of the floating rate sign). */
-function Harbor({ x, z, rot }: { x: number; z: number; rot: number }) {
-  return (
-    <group position={[x, 0, z]} rotation={[0, rot, 0]}>
-      {/* Deck level (0.065, matching HarborPiece's pier) out to the mast at x=0.85 — clear of the sign's
-          screen-facing billboard (radius up to 0.26, centred near x=0): close offsets still read as
-          overlapping the sign from the default camera, since the billboard always faces it. */}
-      <mesh geometry={AIRSHIP.catwalk} material={mat(BRASS, { metal: 0.3, rough: 0.5 })} position={[0.52, 0.053, 0]} castShadow />
-      {/* The mast now starts at deck level and rises to where the airship's nose ties on. */}
-      <mesh geometry={AIRSHIP.mast} material={mat(BRASS)} position={[0.85, 0.28, 0]} castShadow />
-      <mesh geometry={AIRSHIP.mastTop} material={mat('#6b5236')} position={[0.85, 0.5, 0]} />
-      <group position={[1.04, 0.5, 0.02]}>
-        {/* The envelope's tapered end (its sphere pole) lands right on the mast top, so the nose reads as tied on. */}
-        <mesh geometry={AIRSHIP.envelope} material={mat('#e3d3b0')} scale={[0.19, 0.07, 0.07]} castShadow />
-        <mesh geometry={AIRSHIP.gondola} material={mat('#6b4a2a')} position={[0, -0.085, 0]} castShadow />
-        {[0.04, -0.04].map((fy) => (
-          <mesh key={fy} geometry={AIRSHIP.fin} material={mat('#b3402e')} position={[0.17, fy, 0]} />
-        ))}
-        <mesh geometry={AIRSHIP.fin} material={mat('#b3402e')} position={[0.17, 0, 0]} rotation={[Math.PI / 2, 0, 0]} />
-      </group>
-    </group>
-  );
-}
 
 const SHIP_DANGER = '#e0503a';
 
@@ -581,4 +553,4 @@ function BarbarianShip({ danger }: { danger: boolean }) {
 }
 
 /** Skyport: a steampunk island floating over a sea of clouds, with airships at its harbors. */
-export const skyport: ThemeKit = { props, Settlement, City, Robber, Road, Harbor, Base, Sea, BarbarianShip, Knight, CityWall };
+export const skyport: ThemeKit = { props, Settlement, City, Robber, Road, Base, Sea, BarbarianShip, Knight, CityWall };

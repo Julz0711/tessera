@@ -16,6 +16,7 @@ import {
   type GameState,
   type PlayerColor,
 } from '@/engine';
+import { MAPS, defaultVP, mapSupports } from '@/engine/maps';
 import { COLOR_ORDER, isPlayerColor } from '@/shared/colors';
 import { DEFAULT_COSMETICS, sanitizeCosmetics, type Cosmetics } from '@/shared/cosmetics';
 import { DEFAULT_KNIGHT, sanitizeKnight, type KnightCustomization } from '@/shared/knight';
@@ -294,11 +295,19 @@ export class Room {
   private applySettings(patch: Partial<RoomSettings>): void {
     const next = { ...this.settings };
     if (patch.mode === 'classic' || patch.mode === 'ck') {
-      if (patch.mode !== next.mode) next.vpToWin = DEFAULT_VP[patch.mode];
+      // Mode and map may change together (the lobby's game type picker): check against the new map.
+      const map = isMapId(patch.map) ? patch.map : (next.map ?? 'standard');
+      if (!mapSupports(map, patch.mode)) throw new UserError('That map is not available in this mode');
+      if (patch.mode !== next.mode) next.vpToWin = defaultVP(next.map ?? 'standard', patch.mode, DEFAULT_VP[patch.mode]);
       next.mode = patch.mode;
     }
     next.map ??= 'standard'; // rooms saved before maps existed
     if (isMapId(patch.map)) {
+      // A map made for one mode (Veiled Isles: Knights & Barbarians) switches the room to it.
+      const only = MAPS[patch.map].modes;
+      if (!only.includes(next.mode) && only.length === 1) next.mode = only[0];
+      if (!mapSupports(patch.map, next.mode)) throw new UserError('That map is not available in this mode');
+      if (patch.map !== next.map) next.vpToWin = defaultVP(patch.map, next.mode, DEFAULT_VP[next.mode]);
       const seats = MAX_PLAYERS[patch.map];
       if (this.seats.length > seats) throw new UserError(`That map seats at most ${seats} players`);
       // The big island is for bigger tables: open its extra seats by default.
