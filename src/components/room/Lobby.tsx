@@ -7,8 +7,8 @@ import { FEATURES } from '@/config/features';
 import { usePrefs } from '@/client/prefs';
 import { api, toast, useGame } from '@/client/store';
 import { MAX_PLAYERS } from '@/engine/constants';
-import { MAPS } from '@/engine/maps';
-import { MAP_IDS, type MapId, type PlayerColor } from '@/engine/types';
+import { MAPS, mapsByCategory } from '@/engine/maps';
+import { type MapId, type PlayerColor } from '@/engine/types';
 import { TURN_TIMER_OPTIONS, type RoomDTO, type RoomSettings, type SeatDTO } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
@@ -154,7 +154,6 @@ function Segmented<T extends string | number>({
   );
 }
 
-const MAP_OPTIONS: readonly MapId[] = MAP_IDS;
 /** Blurb plus badges for anything beyond the base game or a subset of modes. */
 function MapInfo({ map }: { map: MapId }) {
   const { blurb, requires, modes } = MAPS[map];
@@ -176,22 +175,30 @@ function MapInfo({ map }: { map: MapId }) {
 }
 
 function MapSegmented({ value, onChange, disabled }: { value: MapId; onChange: (v: MapId) => void; disabled?: boolean }) {
+  const groups = mapsByCategory();
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {MAP_OPTIONS.map((o) => (
-        <button
-          key={o}
-          type="button"
-          disabled={disabled}
-          onClick={() => onChange(o)}
-          aria-pressed={value === o}
-          className={`flex flex-col items-center gap-1 rounded-lg border-2 px-3 py-1.5 text-sm font-bold transition disabled:cursor-default ${
-            value === o ? 'border-ink bg-ink text-paper' : 'border-ink/20 bg-white/40 enabled:hover:border-ink/60'
-          } ${disabled && value !== o ? 'opacity-40' : ''}`}
-        >
-          <MapPreview map={o} size={64} />
-          {MAPS[o].name}
-        </button>
+    <div className="grid gap-2">
+      {groups.map((g) => (
+        <div key={g.id} className="grid gap-1">
+          {groups.length > 1 && <span className="text-[11px] font-black uppercase tracking-wide text-ink-soft">{g.label}</span>}
+          <div className="flex flex-wrap gap-1.5">
+            {g.maps.map(({ id: o }) => (
+              <button
+                key={o}
+                type="button"
+                disabled={disabled}
+                onClick={() => onChange(o)}
+                aria-pressed={value === o}
+                className={`flex flex-col items-center gap-1 rounded-lg border-2 px-3 py-1.5 text-sm font-bold transition disabled:cursor-default ${
+                  value === o ? 'border-ink bg-ink text-paper' : 'border-ink/20 bg-white/40 enabled:hover:border-ink/60'
+                } ${disabled && value !== o ? 'opacity-40' : ''}`}
+              >
+                <MapPreview map={o} size={64} />
+                {MAPS[o].name}
+              </button>
+            ))}
+          </div>
+        </div>
       ))}
     </div>
   );

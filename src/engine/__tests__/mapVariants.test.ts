@@ -5,7 +5,7 @@ import { generateBoard } from '../board/generate';
 import { VULCAN_TILES, getTopology } from '../board/topology';
 import { FOUR_LAKES_TERRAIN_COUNTS, GOLD_RUSH_TERRAIN_COUNTS, HEARTLAKE_NUMBER_TOKENS, HEARTLAKE_TERRAIN_COUNTS, MAX_PLAYERS, TERRAIN_COUNTS } from '../constants';
 import { legalSettlementSpots, legalSetupRoads } from '../queries';
-import { MAPS, mapSupports } from '../maps';
+import { MAPS, mapSupports, mapsByCategory } from '../maps';
 import { createGame } from '../state';
 import { viewFor } from '../view';
 import { victoryPoints } from '../vp';
@@ -39,6 +39,9 @@ describe('map variants', () => {
       expect(mapSupports(map, 'ck')).toBe(true);
       expect(MAX_PLAYERS[map]).toBe(MAPS[map].maxPlayers);
     }
+    // Every map appears in exactly one lobby group.
+    const grouped = mapsByCategory().flatMap((g) => g.maps.map((m) => m.id));
+    expect([...grouped].sort()).toEqual([...MAP_IDS].sort());
   });
 
   it('Gold Rush rings seven fogged hexes, one of them gold', () => {
