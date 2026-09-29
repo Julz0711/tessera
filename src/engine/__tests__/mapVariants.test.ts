@@ -3,7 +3,7 @@ import { simulateGame } from '@/bots/simulate';
 import { applyAction } from '../apply';
 import { generateBoard } from '../board/generate';
 import { VULCAN_TILES, getTopology } from '../board/topology';
-import { FOUR_LAKES_TERRAIN_COUNTS, GOLD_RUSH_TERRAIN_COUNTS, HEARTLAKE_NUMBER_TOKENS, HEARTLAKE_TERRAIN_COUNTS, MAX_PLAYERS, TERRAIN_COUNTS } from '../constants';
+import { BIG_MAPS, FOUR_LAKES_TERRAIN_COUNTS, GOLD_RUSH_TERRAIN_COUNTS, HEARTLAKE_NUMBER_TOKENS, HEARTLAKE_TERRAIN_COUNTS, MAX_PLAYERS, TERRAIN_COUNTS } from '../constants';
 import { legalSettlementSpots, legalSetupRoads } from '../queries';
 import { MAPS, mapSupports, mapsByCategory } from '../maps';
 import { createGame } from '../state';
@@ -39,6 +39,7 @@ describe('map variants', () => {
       expect(mapSupports(map, 'ck')).toBe(true);
       expect(MAX_PLAYERS[map]).toBe(MAPS[map].maxPlayers);
     }
+    expect([...BIG_MAPS].sort()).toEqual(['blackForest', 'fourLakes', 'goldRush', 'large', 'vulcan']);
     // Every map appears in exactly one lobby group.
     const grouped = mapsByCategory().flatMap((g) => g.maps.map((m) => m.id));
     expect([...grouped].sort()).toEqual([...MAP_IDS].sort());

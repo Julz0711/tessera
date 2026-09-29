@@ -85,7 +85,9 @@ export const MAX_PLAYERS = Object.fromEntries(
   Object.values(MAPS).map((m) => [m.id, m.maxPlayers]),
 ) as Record<MapId, number>;
 /** Maps that use the 5–6 player extension's bigger bank and development deck. */
-export const BIG_MAPS: ReadonlySet<MapId> = new Set<MapId>(['large', 'blackForest', 'goldRush', 'vulcan', 'fourLakes']);
+export const BIG_MAPS: ReadonlySet<MapId> = new Set(
+  Object.values(MAPS).filter((m) => m.bigBank).map((m) => m.id),
+);
 
 /** Gold Rush: the ring island's 24 visible tiles (one desert); the 7 in the middle hide under fog. */
 export const GOLD_RUSH_TERRAIN_COUNTS: Record<Terrain, number> = { forest: 5, hills: 4, pasture: 5, fields: 5, mountains: 4, desert: 1, gold: 0 };
