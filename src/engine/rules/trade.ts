@@ -95,6 +95,7 @@ export function respondTrade(ctx: Ctx, id: number, accept: boolean): void {
   assertRule(offer.to.includes(ctx.seat) && offer.from !== ctx.seat, 'That offer is not for you');
   offer.accepted = offer.accepted.filter((i) => i !== ctx.seat);
   offer.declined = offer.declined.filter((i) => i !== ctx.seat);
+  offer.auto = offer.auto?.filter((i) => i !== ctx.seat);
   if (!accept) {
     // The active player turning down a counter-offer removes it.
     if (ctx.seat === s.turn.seat) s.trades = s.trades.filter((t) => t.id !== id);
@@ -131,18 +132,21 @@ export function setEmbargo(ctx: Ctx, seat: number, on: boolean): void {
 
 /**
  * Tidies the open offers after every action: whoever can't give what an offer asks for, or has an
- * embargo on its sender, declines it; an offer everyone has declined closes.
+ * embargo on its sender, declines it; an offer everyone has declined closes. Declines for lack of
+ * cards are marked `auto` and stay hidden from others (see `viewFor`), so they don't close the offer.
  */
 export function sweepTrades(ctx: Ctx): void {
   const s = ctx.s;
   for (const offer of [...s.trades]) {
     for (const seat of offer.to) {
       if (offer.declined.includes(seat)) continue;
-      if (!embargoes(s, seat, offer.from) && hasCards(s.players[seat].hand, offer.want)) continue;
+      const embargoed = embargoes(s, seat, offer.from);
+      if (!embargoed && hasCards(s.players[seat].hand, offer.want)) continue;
       offer.accepted = offer.accepted.filter((i) => i !== seat);
       offer.declined.push(seat);
+      if (!embargoed) offer.auto = [...(offer.auto ?? []), seat];
     }
-    if (offer.to.every((seat) => offer.declined.includes(seat))) {
+    if (offer.to.every((seat) => offer.declined.includes(seat) && !offer.auto?.includes(seat))) {
       s.trades = s.trades.filter((t) => t.id !== offer.id);
       emit(ctx, { type: 'tradeClosed', seat: offer.from, id: offer.id });
     }

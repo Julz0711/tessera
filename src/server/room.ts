@@ -101,6 +101,8 @@ export class Room {
   lastActivity: number;
   closed = false;
   private window = { key: '', startedAt: 0 };
+  /** Extra time earned by acting while in the red zone (last 10s); resets with the window. */
+  private bonusMs = 0;
   private botTimer: ReturnType<typeof setTimeout> | null = null;
   private ticker: ReturnType<typeof setInterval> | null = null;
   private botGuard = { marker: '', count: 0 };
@@ -439,6 +441,7 @@ export class Room {
     this.gameNumber++;
     this.status = 'playing';
     this.window = { key: '', startedAt: this.now() };
+    this.bonusMs = 0;
     this.botGuard = { marker: '', count: 0 };
     this.deps.persistence.gameStarted(this.persistGame());
     this.deps.persistence.roomStatus(this.persistRoom());
@@ -462,6 +465,9 @@ export class Room {
   /** Applies an action for a seat; returns an error message or null. */
   private apply(seat: number, action: Action): string | null {
     if (!this.game) return 'No game';
+    const dl = this.deadline();
+    const inRedZone = dl !== null && dl - this.now() <= 10_000;
+    const prevKey = this.window.key;
     const result = applyAction(this.game, seat, action);
     if (!result.ok) return result.error;
     this.game = result.state;
@@ -470,6 +476,9 @@ export class Room {
       if (result.state.seq % 25 === 0) this.deps.persistence.snapshot(this.gameId, result.state);
     }
     this.afterChange(result.events);
+    // Acting with the clock nearly out earns a bit more time, but only within the same decision
+    // window — starting a new window (new turn/prompt) already gets a fresh deadline.
+    if (inRedZone && this.window.key === prevKey) this.bonusMs += 5_000;
     return null;
   }
 
@@ -534,7 +543,10 @@ export class Room {
     const g = this.game;
     if (!g) return;
     const key = `${g.turn.n}:${g.phase}:${g.setup?.index ?? ''}:${g.pending.map((p) => `${p.kind}${p.seat}`).join(',')}`;
-    if (key !== this.window.key) this.window = { key, startedAt: this.now() };
+    if (key !== this.window.key) {
+      this.window = { key, startedAt: this.now() };
+      this.bonusMs = 0;
+    }
   }
 
   private windowLimitMs(): number {
@@ -551,7 +563,7 @@ export class Room {
     const humans = actorsFor(g).filter((i) => !this.seats[i].isBot);
     if (!humans.length) return null;
     const grace = this.deps.disconnectGraceMs ?? 20_000;
-    let at = this.window.startedAt + this.windowLimitMs();
+    let at = this.window.startedAt + this.windowLimitMs() + this.bonusMs;
     for (const i of humans) {
       const s = this.seats[i];
       if (s.sockets.size === 0) at = Math.min(at, s.left ? this.now() : Math.max(s.lastSeen, this.window.startedAt) + grace);
@@ -577,7 +589,7 @@ export class Room {
     const deadline = this.deadline();
     if (deadline === null || this.now() < deadline) return;
     const grace = this.deps.disconnectGraceMs ?? 20_000;
-    const timedOut = this.now() >= this.window.startedAt + this.windowLimitMs();
+    const timedOut = this.now() >= this.window.startedAt + this.windowLimitMs() + this.bonusMs;
     for (const seat of actorsFor(g)) {
       const s = this.seats[seat];
       if (s.isBot) continue;

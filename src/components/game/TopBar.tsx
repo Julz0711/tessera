@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Clock, Copy, Grid2x2, LogOut, Menu, Settings, Volume2, VolumeX, Wifi, WifiOff } from 'lucide-react';
+import { Box, Copy, Grid2x2, LogOut, Menu, Settings, Volume2, VolumeX, Wifi, WifiOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { statusLine } from '@/client/describe';
@@ -14,16 +14,6 @@ import { formatCode } from '@/components/room/Lobby';
 import { LeaveDialog } from './LeaveDialog';
 import { ReactionPicker } from './Reactions';
 
-function useCountdown(deadline: number | null): number | null {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!deadline) return;
-    const t = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(t);
-  }, [deadline]);
-  return deadline ? Math.max(0, Math.ceil((deadline - now) / 1000)) : null;
-}
-
 export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
   const router = useRouter();
   const conn = useGame((s) => s.conn);
@@ -31,7 +21,6 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
   const [menu, setMenu] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const status = statusLine(view);
-  const seconds = useCountdown(room.deadline);
 
   useEffect(() => setVolume(prefs.volume), [prefs.volume]);
   useEffect(() => setSfxVolumes(prefs.sfxVolume), [prefs.sfxVolume]);
@@ -64,16 +53,6 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
           </button>
           {menu && (
             <div className="paper animate-pop absolute left-0 top-12 z-40 grid w-56 gap-1.5 p-3">
-              <button
-                type="button"
-                className="btn py-1.5 text-sm"
-                onClick={() => {
-                  setMenu(false);
-                  useSettingsUI.getState().show();
-                }}
-              >
-                <Settings size={15} /> Settings
-              </button>
               <button type="button" className="btn py-1.5 text-sm" onClick={() => prefs.set({ volume: prefs.volume > 0 ? 0 : 0.6 })}>
                 {prefs.volume > 0 ? <Volume2 size={15} /> : <VolumeX size={15} />} {prefs.volume > 0 ? 'Mute' : 'Unmute'}
               </button>
@@ -87,6 +66,9 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
           )}
           {confirmLeave && <LeaveDialog view={view} room={room} onStay={() => setConfirmLeave(false)} onLeave={leave} />}
         </div>
+        <button type="button" className="btn btn-dark h-10 w-10 p-0" onClick={() => useSettingsUI.getState().show()} aria-label="Settings" title="Settings">
+          <Settings size={18} />
+        </button>
         <button type="button" onClick={copy} className="glass hidden items-center gap-2 px-3 py-2 sm:flex" title="Copy invite link">
           <span className="font-mono text-sm font-black tracking-[0.18em] text-paper">{formatCode(room.code)}</span>
         </button>
@@ -106,11 +88,6 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
 
       <div className="pointer-events-auto flex items-center gap-2">
         {room.you.seat !== null && <ReactionPicker />}
-        {seconds !== null && (
-          <span className={`glass flex h-10 items-center gap-1.5 px-3 font-black tabular ${seconds <= 10 ? 'text-terracotta' : 'text-paper'}`} title="Time left">
-            <Clock size={16} /> {seconds}s
-          </span>
-        )}
         <button
           type="button"
           className="btn btn-dark h-10 px-3 text-sm"
