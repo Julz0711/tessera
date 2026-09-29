@@ -65,6 +65,13 @@ export function viewFor(state: GameState, viewer: number | null): PlayerView {
   });
   const { devDeck, progressDecks, rng: _rng, diceBag: _diceBag, players: _players, log, pending, ...rest } = state;
   const visible = structuredClone(rest);
+  // Someone who couldn't afford an offer is declined for them; nobody else learns that from the
+  // offer, they just see no answer.
+  for (const offer of visible.trades) {
+    if (!offer.auto?.length) continue;
+    offer.declined = offer.declined.filter((seat) => !offer.auto!.includes(seat) || seat === viewer);
+    offer.auto = offer.auto.filter((seat) => seat === viewer);
+  }
   // Black Forest: what lies under the fog stays secret (a blank tile) until someone discovers it;
   // once the game is over the whole map is shown.
   visible.board.hexes = visible.board.hexes.map((h) => {

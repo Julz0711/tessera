@@ -311,6 +311,8 @@ export interface TradeOffer {
   want: PartialHand;
   accepted: number[];
   declined: number[];
+  /** Seats in `declined` that couldn't afford the offer (declined for them); only that seat sees it as declined. */
+  auto?: number[];
 }
 
 // ── Events (game log + animation triggers) ──────────────────────────────────

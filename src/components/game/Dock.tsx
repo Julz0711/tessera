@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowLeftRight, BrickWall, Eye, Hammer, Hourglass, Landmark, Sailboat, Ship, Sparkles } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   COSTS,
   hasCards,
@@ -22,9 +22,21 @@ import { play } from '@/client/sound';
 import { api } from '@/client/store';
 import { buildMode, useUi } from '@/client/ui';
 import { CityGlyph, KnightGlyph, RoadGlyph, SettlementGlyph } from '@/components/ui/Glyphs';
+import type { RoomDTO } from '@/shared/protocol';
 import { CardList } from './cards';
 import { Hand } from './Hand';
 import { TradePanel } from './TradePanel';
+
+/** Seconds left until `deadline`, ticking every 250ms; null once there's no active deadline. */
+function useCountdown(deadline: number | null): number | null {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!deadline) return;
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, [deadline]);
+  return deadline ? Math.max(0, Math.ceil((deadline - now) / 1000)) : null;
+}
 
 function ActionButton({
   label,
@@ -35,6 +47,7 @@ function ActionButton({
   cost,
   primary,
   danger,
+  pulse,
   hint,
   left,
   bankAnchor,
@@ -47,6 +60,8 @@ function ActionButton({
   cost?: PartialHand;
   primary?: boolean;
   danger?: boolean;
+  /** Draws attention to the button (e.g. the turn timer running low). */
+  pulse?: boolean;
   hint?: string;
   /** Pieces left in the player's supply. */
   left?: number;
@@ -64,7 +79,7 @@ function ActionButton({
       aria-pressed={active}
       title={hint ?? label}
       data-bank-anchor={bankAnchor ? '' : undefined}
-      className={`btn group relative flex-col gap-0.5 px-2.5 py-1.5 text-[11px] sm:min-w-16 ${primary ? 'btn-primary' : active ? 'btn-primary' : danger ? 'btn-danger' : ''}`}
+      className={`btn group relative flex-col gap-0.5 px-2.5 py-1.5 text-[11px] sm:min-w-16 ${primary ? 'btn-primary' : active ? 'btn-primary' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''}`}
     >
       {icon}
       <span className="leading-none">{label}</span>
@@ -82,9 +97,11 @@ function ActionButton({
   );
 }
 
-export function Dock({ view }: { view: PlayerView }) {
+export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
   const ui = useUi();
   const me = view.viewer;
+  const seconds = useCountdown(room.deadline);
+  const lowTime = seconds !== null && seconds <= 10;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -219,7 +236,7 @@ export function Dock({ view }: { view: PlayerView }) {
         <span className="mx-0.5 h-8 w-px bg-white/15" />
         <ActionButton
           label="End (E)"
-          icon={<Hourglass size={20} />}
+          icon={seconds !== null ? <span className="font-mono text-base font-black leading-none tabular">{seconds}s</span> : <Hourglass size={20} />}
           onClick={() => {
             ui.reset();
             void api.act({ type: 'endTurn' });
@@ -227,6 +244,7 @@ export function Dock({ view }: { view: PlayerView }) {
           disabled={!canBuild}
           hint="End your turn (E)"
           danger
+          pulse={lowTime}
         />
       </div>
     </div>

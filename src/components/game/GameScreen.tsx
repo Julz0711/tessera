@@ -413,7 +413,7 @@ export function GameScreen() {
             the dice box on wide screens. */}
         <div className="flex justify-center">
           <div className="pointer-events-auto max-w-full">
-            <Dock view={view} />
+            <Dock view={view} room={room} />
           </div>
         </div>
       </div>

@@ -378,24 +378,40 @@ describe('trading', () => {
     expect(s.trades).toHaveLength(0);
   });
 
-  it('declines for players without the cards and closes an offer once everyone has declined', () => {
+  it('declines for players without the cards, without telling anyone else', () => {
     let s = playing();
     setHand(s, 0, { brick: 2 });
     setHand(s, 1, { ore: 1 });
     s = act(s, 0, { type: 'offerTrade', give: { brick: 1 }, want: { ore: 1 }, to: [] });
     const id = s.trades[0].id;
     expect(s.trades[0].declined).toEqual([2]);
-    // Player 1 accepts, then spends the ore: the acceptance turns into a decline and the offer closes.
+    // Only player 2 sees their own decline; the offerer and player 1 see no answer from them.
+    expect(viewFor(s, 2).trades[0].declined).toEqual([2]);
+    expect(viewFor(s, 0).trades[0].declined).toEqual([]);
+    expect(viewFor(s, 1).trades[0].declined).toEqual([]);
+    // Player 1 accepts, then spends the ore: the acceptance turns into a hidden decline too, and
+    // the offer stays open so the offerer can't tell that nobody can take it.
     s = act(s, 1, { type: 'respondTrade', id, accept: true });
     setHand(s, 1, {});
-    const r = applyAction(s, 0, { type: 'embargo', seat: 2, on: true });
+    s = act(s, 0, { type: 'embargo', seat: 2, on: true });
+    expect(s.trades).toHaveLength(1);
+    expect(viewFor(s, 0).trades[0].accepted).toEqual([]);
+    expect(viewFor(s, 0).trades[0].declined).toEqual([]);
+  });
+
+  it('closes an offer once everyone has actually declined it', () => {
+    let s = playing();
+    setHand(s, 0, { brick: 2 });
+    setHand(s, 1, { ore: 1 });
+    setHand(s, 2, { ore: 1 });
+    s = act(s, 0, { type: 'offerTrade', give: { brick: 1 }, want: { ore: 1 }, to: [1, 2] });
+    const id = s.trades[0].id;
+    s = act(s, 1, { type: 'respondTrade', id, accept: false });
+    expect(s.trades).toHaveLength(1);
+    const r = applyAction(s, 2, { type: 'respondTrade', id, accept: false });
     if (!r.ok) throw new Error(r.error);
     expect(r.state.trades).toHaveLength(0);
     expect(r.events).toContainEqual(expect.objectContaining({ type: 'tradeClosed', seat: 0, id }));
-
-    // Nobody can take it: the offer closes as it is made.
-    s = act(r.state, 0, { type: 'offerTrade', give: { brick: 1 }, want: { grain: 1 }, to: [] });
-    expect(s.trades).toHaveLength(0);
   });
 
   it('turns down every offer from a player under embargo, until it is lifted', () => {
