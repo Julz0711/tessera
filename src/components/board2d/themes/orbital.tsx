@@ -1,5 +1,5 @@
 import { Glow, Neon } from './glow';
-import { alongRoad, pc, RoadBase } from './shared';
+import { alongRoad, OUTLINE, pc, RoadBase } from './shared';
 import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
 
 const CYAN = '#7fe3ff';
@@ -8,7 +8,7 @@ const CYAN = '#7fe3ff';
 const orbitalSettlement: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
       <rect x={x - 15} y={y + 6} width="30" height="8" fill={c.dark} />
       <path d={`M${x - 14} ${y + 7}a14 15 0 0 1 28 0Z`} fill={c.hex} />
       <circle cx={x} cy={y - 2} r="2" fill={CYAN} />
@@ -16,16 +16,18 @@ const orbitalSettlement: PieceGlyph = ({ x, y, color }) => {
   );
 };
 
-/** Orbital's city: a cluster of domes on a shared ring, an antenna mast with a blinking light. */
+/** Orbital's city: a cluster of domes sunk into a solid ring base, an antenna mast with a blinking light. */
 const orbitalCity: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="2.5" strokeLinejoin="round">
-      <rect x={x - 22} y={y + 10} width="44" height="7" fill={c.dark} />
-      <path d={`M${x - 20} ${y + 11}a11 12 0 0 1 22 0Z`} fill={c.hex} />
-      <path d={`M${x - 2} ${y + 11}a14 15 0 0 1 28 0Z`} fill={c.hex} />
-      <line x1={x + 12} y1={y - 4} x2={x + 12} y2={y - 20} stroke={c.dark} strokeWidth="2.4" />
-      <circle cx={x + 12} cy={y - 22} r="2.4" fill={CYAN} />
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
+      <rect x={x - 24} y={y + 8} width="48" height="10" rx="2" fill={c.dark} />
+      <path d={`M${x - 19} ${y + 9}a10 11 0 0 1 20 0Z`} fill={c.hex} />
+      <path d={`M${x - 3} ${y + 9}a13 14 0 0 1 26 0Z`} fill={c.hex} />
+      <circle cx={x - 9} cy={y + 1} r="1.8" fill={CYAN} />
+      <circle cx={x + 10} cy={y - 3} r="2" fill={CYAN} />
+      <line x1={x + 10} y1={y - 5} x2={x + 10} y2={y - 26} stroke={c.dark} strokeWidth="2.4" />
+      <circle cx={x + 10} cy={y - 28} r="2.4" fill={CYAN} />
     </g>
   );
 };

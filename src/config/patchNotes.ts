@@ -16,7 +16,7 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
-    version: '1.2',
+    version: '1.3',
     date: '2026-09-29',
     summary: 'Voyagers: open sea, ships, the pirate and three new maps, including Veiled Isles.',
     sections: [
@@ -41,6 +41,59 @@ export const PATCH_NOTES: PatchNote[] = [
           'Four Realms: four islands. Start on one or two; each other island you settle is worth 2 points. First to 13.',
           'Veiled Isles (Special, Knights & Barbarians): sail into the fog to uncover land and claim 15 hidden treasures. Hidden sea pays a bonus treasure, and each foreign isle you settle is worth a point. First to 14.',
           'Pick Classic, Knights & Barbarians, Voyagers or Special as the mode, then one of its maps.',
+        ],
+      },
+    ],
+  },
+  {
+    version: '1.2',
+    date: '2026-09-28',
+    summary: 'A completely themed island, a more flexible HUD, a board-side barbarian fleet and fairer map rules.',
+    sections: [
+      {
+        title: 'Ten board themes',
+        icon: 'board',
+        items: [
+          'Choose Classic, Night, Sakura, Nordic, Frontier, Nile, Skyport, Cyberpunk, Orbital or Origami in Settings.',
+          'Themes now restyle the whole island in both 2D and 3D: terrain, sea, harbors, roads, settlements, cities, knights and city walls.',
+          'The barbarian fleet has its own ship for every theme, from a Nordic drakkar to an Orbital raider warship.',
+          'Your theme is personal, can be changed during a game and never changes the rules for anyone else.',
+        ],
+      },
+      {
+        title: 'Settings & HUD',
+        icon: 'players',
+        items: [
+          'Settings now open as an overlay from anywhere, while profile editing has its own dedicated page.',
+          'On desktop, drag the player list, game log and action panels between either side of the board, or reset them to the default layout.',
+          'Choose a HUD size to make the in-game panels, top bar and action dock smaller or larger.',
+          'The master volume now has individual controls for each kind of sound effect.',
+          'Profiles open with a win-and-game summary and show recent games first, with the full history available on demand.',
+        ],
+      },
+      {
+        title: 'Knights & Barbarians',
+        icon: 'turn',
+        items: [
+          'The barbarian track has moved onto the board in both 2D and 3D, with a compact sailing route and an at-a-glance status header.',
+          'Displaced knights must now retreat along their own connected roads. If there is nowhere legal to go, the knight is removed.',
+          'City walls are clearer on both boards and match the selected theme.',
+        ],
+      },
+      {
+        title: 'Maps & dice',
+        icon: 'map',
+        items: [
+          'Room hosts can choose Random dice or Balanced dice, which keep the familiar odds while smoothing out extreme streaks.',
+          'Gold Rush always hides its gold on a 6 or 8, keeps every fog number between 4 and 10, and gives every player the same possible starting corners.',
+        ],
+      },
+      {
+        title: 'Tessera',
+        icon: 'log',
+        items: [
+          'The game has a new name: Tessera.',
+          'Added an in-game patch-notes page, plus clear privacy and terms pages.',
         ],
       },
     ],

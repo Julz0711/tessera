@@ -1,4 +1,4 @@
-import { alongRoad, pc, RoadBase } from './shared';
+import { alongRoad, OUTLINE, pc, RoadBase } from './shared';
 import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
 
 /** A wide overhanging pagoda roof: a flat-topped triangle with small upturned eave flares. */
@@ -15,7 +15,7 @@ function PagodaRoof({ x, apexY, eaveY, half, color }: { x: number; apexY: number
 const sakuraSettlement: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
       <rect x={x - 12} y={y - 1} width="24" height="16" fill={c.hex} />
       <PagodaRoof x={x} apexY={y - 19} eaveY={y - 1} half={22} color={c.dark} />
     </g>
@@ -26,7 +26,7 @@ const sakuraSettlement: PieceGlyph = ({ x, y, color }) => {
 const sakuraCity: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="2.5" strokeLinejoin="round">
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
       <rect x={x - 17} y={y + 3} width="34" height="14" fill={c.hex} />
       <PagodaRoof x={x} apexY={y - 9} eaveY={y + 3} half={24} color={c.dark} />
       <rect x={x - 11} y={y - 13} width="22" height="12" fill={c.hex} />

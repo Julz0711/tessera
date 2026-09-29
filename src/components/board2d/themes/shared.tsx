@@ -29,18 +29,30 @@ export function alongRoad(seg: Seg, t: number, o = 0) {
 }
 
 /**
- * The classic road: a dark outline under the owner's colour, full width; a single thinner line in
- * just the owner's colour while it's a ghost (build hint / placement preview), matching how the
- * road looked before themes had their own drawings.
+ * The dark outline on every piece (settlements, cities and the road's border), in board units at
+ * the medium Board size, so all pieces read as one family. Details inside a piece (doors, windows,
+ * trim) use thinner lines.
+ */
+export const OUTLINE = 3.5;
+
+/** Roads are drawn slimmer than their base size (the `k` a road glyph gets is scaled by this) so settlements and cities stay the focus. */
+export const ROAD_WEIGHT = 0.78;
+
+/**
+ * The classic road: the owner's colour with a dark border as thick as the settlements' and cities'
+ * outline; a single thinner line in just the owner's colour while it's a ghost (build hint /
+ * placement preview), matching how the road looked before themes had their own drawings.
  */
 export function RoadBase({ x1, y1, x2, y2, color, ghost, k = 1 }: Seg & { color: PlayerColor; ghost?: boolean; k?: number }) {
   const c = pc(color);
   if (ghost) {
     return <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.hex} strokeWidth={11 * k} strokeLinecap="round" />;
   }
+  // `k` already includes ROAD_WEIGHT; the border follows the pieces' size instead, so it matches them.
+  const border = (OUTLINE * k) / ROAD_WEIGHT;
   return (
     <>
-      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.dark} strokeWidth={20 * k} strokeLinecap="round" />
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.dark} strokeWidth={12 * k + 2 * border} strokeLinecap="round" />
       <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.hex} strokeWidth={12 * k} strokeLinecap="round" />
     </>
   );

@@ -1,28 +1,43 @@
-import { alongRoad, pc, RoadBase } from './shared';
+import { alongRoad, OUTLINE, pc, RoadBase } from './shared';
 import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
 
-/** Nordic Fjords' settlement: a longhouse, a bowed ridge roof with crossed finials at both gables. */
+/**
+ * A Norse gable end: walls under a steep roof whose two bargeboards run on past the ridge and cross
+ * in an X, as on a longhouse. `w` is half the roof's width, `h` the roof's height, walls from `top` to `foot`.
+ */
+function Gable({ x, top, foot, w, h, c, door }: { x: number; top: number; foot: number; w: number; h: number; c: { hex: string; dark: string }; door?: boolean }) {
+  const apex = top - h;
+  // Past the ridge, each board carries on along its own slope for a short way.
+  const over = 7;
+  const dx = (over * w) / Math.hypot(w, h);
+  const dy = (over * h) / Math.hypot(w, h);
+  return (
+    <>
+      <rect x={x - w + 3} y={top} width={2 * (w - 3)} height={foot - top} fill={c.hex} />
+      <path d={`M${x - w} ${top}L${x} ${apex}L${x + w} ${top}Z`} fill={c.hex} />
+      <path d={`M${x - w} ${top}L${x + dx} ${apex - dy}M${x + w} ${top}L${x - dx} ${apex - dy}`} stroke={c.dark} fill="none" strokeLinecap="round" />
+      {door && <rect x={x - 4} y={foot - 10} width="8" height="10" fill={c.dark} />}
+    </>
+  );
+}
+
+/** Nordic Fjords' settlement: a small longhouse, its steep gable topped by crossed bargeboards. */
 const nordicSettlement: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
-      <rect x={x - 18} y={y + 1} width="36" height="14" fill={c.hex} />
-      <path d={`M${x - 20} ${y + 1}Q${x} ${y - 15} ${x + 20} ${y + 1}Z`} fill={c.dark} />
-      <path d={`M${x - 20} ${y + 1}l-3-8M${x - 20} ${y + 1}l5-6M${x + 20} ${y + 1}l3-8M${x + 20} ${y + 1}l-5-6`} stroke={c.dark} strokeWidth="2" fill="none" />
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
+      <Gable x={x} top={y + 1} foot={y + 15} w={18} h={16} c={c} door />
     </g>
   );
 };
 
-/** Nordic Fjords' city: a great hall (a bigger longhouse) beside a peaked watchtower. */
+/** Nordic Fjords' city: a great hall with a smaller hall behind it, both with crossed bargeboards. */
 const nordicCity: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="3" strokeLinejoin="round">
-      <rect x={x - 24} y={y + 5} width="48" height="14" fill={c.hex} />
-      <path d={`M${x - 26} ${y + 5}Q${x - 2} ${y - 13} ${x + 22} ${y + 5}Z`} fill={c.dark} />
-      <path d={`M${x - 26} ${y + 5}l-3-8M${x - 26} ${y + 5}l5-6M${x + 22} ${y + 5}l3-8M${x + 22} ${y + 5}l-5-6`} stroke={c.dark} strokeWidth="2" fill="none" />
-      <rect x={x + 10} y={y - 20} width="14" height="20" fill={c.hex} />
-      <path d={`M${x + 8} ${y - 20}L${x + 17} ${y - 32}L${x + 26} ${y - 20}Z`} fill={c.dark} />
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
+      <Gable x={x + 13} top={y + 3} foot={y + 17} w={14} h={12} c={c} />
+      <Gable x={x - 7} top={y - 1} foot={y + 17} w={21} h={19} c={c} door />
     </g>
   );
 };
