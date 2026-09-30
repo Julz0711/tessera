@@ -20,7 +20,7 @@ export const PATCH_NOTES: PatchNote[] = [
   {
     version: '1.4',
     date: '2026-09-30',
-    summary: 'Two new maps and an easier way to set up a game with friends.',
+    summary: 'Two new maps and a clearer turn timer.',
     sections: [
       {
         title: 'New maps',
