@@ -2,7 +2,7 @@ import { handTotal } from './hand';
 import { CARDS } from './types';
 import type { GameReport } from './report';
 
-export type ReportSection = 'Overview' | 'Economy' | 'Trades' | 'Building' | 'Cards' | 'Knights & Barbarians' | 'Exploration';
+export type ReportSection = 'Overview' | 'Dice' | 'Economy' | 'Trades' | 'Building' | 'Cards' | 'Knights & Barbarians' | 'Exploration';
 export interface ReportMetric { section: ReportSection; label: string; definition: string; values: (number | null)[] }
 export const humanize = (text: string) => text.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/:/g, ' · ').replace(/^./, (c) => c.toUpperCase());
 const DEFINITIONS: Record<string, string> = {
@@ -45,7 +45,8 @@ export function reportMetrics(report: GameReport): ReportMetric[] {
   if (!d) return out;
   for (const [key, values] of Object.entries(d.counters)) {
     let section: ReportSection = 'Economy';
-    if (/^(bankRatio|partner|offers|responses)/.test(key)) section = 'Trades';
+    if (/^(rolls|sevens|rolled)/.test(key)) section = 'Dice';
+    else if (/^(bankRatio|partner|offers|responses)/.test(key)) section = 'Trades';
     else if (/^(built|setup|free|firstCity|longest|largest|roadsLost)/.test(key)) section = 'Building';
     else if (/^(devBought|devPlayed)/.test(key)) section = 'Cards';
     else if (/^(progress|knight|improvements|metropol|cityLost|barbarian|defen|merchant)/.test(key)) section = 'Knights & Barbarians';

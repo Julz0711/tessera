@@ -42,6 +42,7 @@ export function recordDetailedEvent(s: GameState, ev: GameEvent): void {
       d.red[ev.dice.red]++; d.yellow[ev.dice.yellow]++;
       if (ev.dice.event) d.eventDie[ev.dice.event] = (d.eventDie[ev.dice.event] ?? 0) + 1;
       countStat(s, 'rolls', ev.seat);
+      countStat(s, `rolled:${ev.dice.red + ev.dice.yellow}`, ev.seat);
       if (ev.dice.red + ev.dice.yellow === 7) countStat(s, 'sevens', ev.seat);
       for (let n = 2; n <= 12; n++) {
         d.drought[n] = n === ev.dice.red + ev.dice.yellow ? 0 : d.drought[n] + 1;
