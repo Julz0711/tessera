@@ -8,7 +8,7 @@ import { sanitizeKnight } from '@/shared/knight';
 import type { JoinProfile, RoomSettings } from '@/shared/protocol';
 import type { Db } from './db';
 import type { Persistence, PersistGame, PersistRoom, PersistSeat } from './persistence';
-import { START_RATING, placesFrom, ratingChanges } from './rating';
+import { finalizeGame } from './finalizeGame';
 
 const GUEST_TTL_MS = 30 * 86400_000;
 
@@ -144,56 +144,7 @@ export function createPrismaPersistence(db: Db): DurablePersistence {
     },
 
     gameEnded(game: PersistGame) {
-      const state = game.state;
-      enqueue(game.room.id, 'game end', async () => {
-        const winner = state.winner;
-        const vps = game.seats.map((_, seat) => victoryPoints(state, seat, true));
-        const order = vps.map((vp, seat) => ({ vp, seat })).sort((a, b) => b.vp - a.vp);
-        await db.game.update({
-          where: { id: game.gameId },
-          data: {
-            status: 'finished',
-            winnerPlayerId: winner !== null ? game.seats[winner].playerId : null,
-            endedAt: new Date(),
-            turns: state.turn.n,
-          },
-        });
-        for (const [seat, s] of game.seats.entries()) {
-          const won = seat === winner;
-          await db.player.update({
-            where: { id: s.playerId },
-            data: { finalVp: vps[seat], rank: order.findIndex((o) => o.seat === seat) + 1, won },
-          });
-          const refs = identityRefs(s.identityKey);
-          const inc = { gamesPlayed: { increment: 1 }, gamesWon: { increment: won ? 1 : 0 } };
-          if (refs.userId) {
-            await db.profile.upsert({
-              where: { userId: refs.userId },
-              create: { userId: refs.userId, displayName: s.name, gamesPlayed: 1, gamesWon: won ? 1 : 0 },
-              update: inc,
-            });
-          } else if (refs.guestSessionId) {
-            await db.guestSession.update({ where: { id: refs.guestSessionId }, data: inc });
-          }
-        }
-
-        // Rating: signed-in players only, and only when at least two of them played.
-        const places = placesFrom(vps, winner);
-        const rated = game.seats
-          .map((s, seat) => ({ seat, playerId: s.playerId, userId: s.isBot ? null : identityRefs(s.identityKey).userId }))
-          .filter((r): r is { seat: number; playerId: string; userId: string } => !!r.userId);
-        if (rated.length >= 2) {
-          const profiles = await db.profile.findMany({ where: { userId: { in: rated.map((r) => r.userId) } } });
-          const byUser = new Map(profiles.map((p) => [p.userId, p]));
-          const deltas = ratingChanges(
-            rated.map((r) => ({ rating: byUser.get(r.userId)?.rating ?? START_RATING, games: byUser.get(r.userId)?.ratedGames ?? 0, place: places[r.seat] })),
-          );
-          for (const [i, r] of rated.entries()) {
-            await db.profile.update({ where: { userId: r.userId }, data: { rating: { increment: deltas[i] }, ratedGames: { increment: 1 } } });
-            await db.player.update({ where: { id: r.playerId }, data: { ratingDelta: deltas[i] } });
-          }
-        }
-      });
+      enqueue(game.room.id, 'game end', () => finalizeGame(db, game));
     },
 
     rememberProfile(identityKey: string, profile: JoinProfile) {
@@ -238,12 +189,12 @@ export function createPrismaPersistence(db: Db): DurablePersistence {
       const userIds = players.flatMap((p) => (p.userId ? [p.userId] : []));
       const guestIds = players.flatMap((p) => (p.guestSessionId ? [p.guestSessionId] : []));
       const [profiles, guests] = await Promise.all([
-        db.profile.findMany({ where: { userId: { in: userIds } }, select: { userId: true, cosmetics: true, gamesPlayed: true, gamesWon: true, rating: true, ratedGames: true } }),
+        db.profile.findMany({ where: { userId: { in: userIds } }, select: { userId: true, cosmetics: true, gamesPlayed: true, gamesWon: true, rating: true, ratedGames: true, user: { select: { ratings: true } } } }),
         db.guestSession.findMany({ where: { id: { in: guestIds } }, select: { id: true, cosmetics: true, gamesPlayed: true, gamesWon: true } }),
       ]);
       const saved = new Map<string, Cosmetics>();
       for (const p of profiles) {
-        if (p.cosmetics) saved.set(`u:${p.userId}`, clampCosmetics(p.cosmetics, { gamesPlayed: p.gamesPlayed, gamesWon: p.gamesWon, rating: p.ratedGames > 0 ? p.rating : null }));
+        if (p.cosmetics) saved.set(`u:${p.userId}`, clampCosmetics(p.cosmetics, { gamesPlayed: p.gamesPlayed, gamesWon: p.gamesWon, rating: Math.max(p.ratedGames > 0 ? p.rating : 0, ...p.user.ratings.filter((r) => r.ratedGames > 0).map((r) => r.peakRating)) || null }));
       }
       for (const g of guests) {
         if (g.cosmetics) saved.set(`g:${g.id}`, clampCosmetics(g.cosmetics, { gamesPlayed: g.gamesPlayed, gamesWon: g.gamesWon, rating: null }));

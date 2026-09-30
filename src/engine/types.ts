@@ -394,6 +394,10 @@ export type GameEventType = GameEventBody['type'];
  * the stolen card's identity or which development card was bought/played in secret.
  */
 export interface GameStats {
+  /** Detailed counters are revealed only once the match ends. */
+  details?: DetailedStats;
+  /** Old saves without counters must never be presented as complete games. */
+  partial?: boolean;
   /** Dice roll counts by total; indices 0 and 1 are unused, 2–12 hold the counts. */
   dice: number[];
   /** Resources/commodities gained from hex production, per seat (`produced` events). */
@@ -417,6 +421,22 @@ export interface GameStats {
   knightsPlayed: number[];
   /** Cities & Knights progress cards played, per seat. */
   progressPlayed: number[];
+}
+
+export interface DetailedStats {
+  version: 2;
+  fromTurn: number;
+  complete: boolean;
+  counters: Record<string, number[]>;
+  hands: Record<string, Hand[]>;
+  red: number[];
+  yellow: number[];
+  eventDie: Record<string, number>;
+  drought: number[];
+  longestDrought: number[];
+  expectedDice: number[];
+  timeline: { turn: number; vp: number[]; production: number[]; spent: number[]; hand: number[]; improvements: number[] }[];
+  milestones: { turn: number; seat: number | null; label: string }[];
 }
 
 // ── Whole game ──────────────────────────────────────────────────────────────

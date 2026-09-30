@@ -10,6 +10,8 @@ import { discard, moveRobber } from './rules/robber';
 import { setupRoad, setupSettlement, setupShip } from './rules/setup';
 import { bankExchange, bankTrade, cancelTrade, confirmTrade, offerTrade, respondTrade, setEmbargo, sweepTrades } from './rules/trade';
 import { makeCtx, type Ctx } from './state';
+import { newDetails, recordActionStats } from './detailedStats';
+import { cloneStats, newStats } from './stats';
 import type { Action, ActionType, ApplyResult, GameState, Prompt, PromptKind } from './types';
 
 /** Which prompt kinds each action can answer. */
@@ -42,8 +44,9 @@ export function applyAction(state: GameState, seat: number, action: Action): App
     return { ok: false, error: 'Invalid action' };
   }
   // Events are immutable once emitted, so the log is copied shallowly (it is the bulk of the state).
-  const { log, ...rest } = state;
-  const s: GameState = { ...structuredClone(rest), log: log.slice() };
+  const { log, stats, ...rest } = state;
+  const s: GameState = { ...structuredClone(rest), stats: stats ? cloneStats(stats) : undefined!, log: log.slice() };
+  if (!s.stats) { s.stats = newStats(s.players.length); s.stats.partial = true; s.stats.details = newDetails(s.turn.n, false); }
   const ctx = makeCtx(s, seat);
   try {
     assertRule(Number.isInteger(seat) && seat >= 0 && seat < s.players.length, 'Unknown player');
@@ -53,6 +56,7 @@ export function applyAction(state: GameState, seat: number, action: Action): App
     advance(ctx);
     updateLongestRoad(ctx);
     checkWinner(ctx);
+    recordActionStats(state, s, seat, action, ctx.events);
     return { ok: true, state: s, events: ctx.events };
   } catch (err) {
     if (err instanceof RuleError) return { ok: false, error: err.message };

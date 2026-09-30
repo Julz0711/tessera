@@ -1,4 +1,5 @@
 import { COSTS } from '../constants';
+import { recordSpend } from '../detailedStats';
 import { assertRule } from '../errors';
 import { transfer } from '../hand';
 import { canPlaceRoad, canPlaceSettlement, canPlaceShip, freeRouteLeft, movableShips, piecesLeft } from '../queries';
@@ -16,6 +17,7 @@ function revealRoad(ctx: Ctx, edge: number): void {
 
 function pay(ctx: Ctx, cost: PartialHand, what: string): void {
   transfer(ctx.s.players[ctx.seat].hand, ctx.s.bank, cost, `Not enough resources for a ${what}`);
+  recordSpend(ctx.s, ctx.seat, cost, what);
 }
 
 export function buildRoad(ctx: Ctx, edge: number): void {

@@ -24,6 +24,7 @@ model User {
   accounts        Account[]
   sessions        Session[]
   profile         Profile?
+  ratings         PlayerRating[]
   players         Player[]
   migratedGuests  GuestSession[]
   friendsAsked    Friendship[]   @relation("FriendRequester")
@@ -99,6 +100,21 @@ model Profile {
 }
 
 // A friend request (pending) or friendship (accepted), stored once per pair.
+model PlayerRating {
+  userId     String
+  poolKey    String
+  rating     Int      @default(1000)
+  ratedGames Int      @default(0)
+  ratedWins  Int      @default(0)
+  peakRating Int      @default(1000)
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, poolKey])
+  @@index([poolKey, rating, userId])
+  @@map("player_ratings")
+}
+
 model Friendship {
   id          String   @id @default(cuid())
   requesterId String
@@ -166,6 +182,8 @@ model Game {
   settings       Json
   winnerPlayerId String?
   turns          Int            @default(0)
+  report         Json?
+  hasReport      Boolean        @default(false)
   startedAt      DateTime       @default(now())
   endedAt        DateTime?
   updatedAt      DateTime       @updatedAt
@@ -176,6 +194,7 @@ model Game {
 
   @@index([roomId])
   @@index([status])
+  @@index([startedAt, id])
   @@map("games")
 }
 
@@ -195,6 +214,11 @@ model Player {
   rank                Int?
   won                 Boolean       @default(false)
   ratingDelta         Int?
+  ratingPool          String?
+  ratingBefore        Int?
+  ratingAfter         Int?
+  ratingVersion       Int?
+  unratedReason       String?
   game                Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
   user                User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   guestSession        GuestSession? @relation(fields: [guestSessionId], references: [id], onDelete: SetNull)

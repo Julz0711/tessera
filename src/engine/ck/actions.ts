@@ -1,5 +1,6 @@
 /** Cities & Knights actions and prompt resolution. */
 import { COSTS, KNIGHTS_PER_LEVEL, MAX_PROGRESS_IN_HAND, TRACK_COMMODITY } from '../constants';
+import { recordSpend } from '../detailedStats';
 import { RuleError, assertRule } from '../errors';
 import { cardList, handTotal, hasCards, parseHand, removeCards, transfer } from '../hand';
 import { isVertex, piecesLeft, topo } from '../queries';
@@ -45,6 +46,7 @@ export function isCkAction(action: Action): boolean {
 
 function pay(ctx: Ctx, cost: PartialHand, what: string): void {
   transfer(ctx.s.players[ctx.seat].hand, ctx.s.bank, cost, `Not enough resources to ${what}`);
+  recordSpend(ctx.s, ctx.seat, cost, what);
 }
 
 // ── Knights ─────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import type { Prisma } from '@/generated/prisma/client';
+import { Prisma } from '@/generated/prisma/client';
 import type { Db } from './db';
 import { PRIVACY_LOCK_KEY, PrivacyMaintenanceError } from './privacyMaintenance';
 
@@ -91,6 +91,8 @@ export async function deletePersonalData(db: Db, target: DeletionTarget, options
     // records avoids overlooking names copied into free-form engine event text.
     await tx.gameEvent.deleteMany({ where: { gameId: { in: plan.gameIds } } });
     await tx.gameSnapshot.deleteMany({ where: { gameId: { in: plan.gameIds } } });
+    // Reports contain display names copied at completion, just like replay records.
+    await tx.game.updateMany({ where: { id: { in: plan.gameIds } }, data: { report: Prisma.DbNull, hasReport: false } });
     await tx.player.updateMany({ where: { id: { in: plan.playerIds } }, data: {
       userId: null, guestSessionId: null, displayName: 'Deleted player', knightCustomization: { face: null },
     } });

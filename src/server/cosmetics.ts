@@ -13,10 +13,10 @@ export async function cosmeticStateFor(identity: ServerIdentity): Promise<{ unlo
     if (identity.kind === 'user') {
       const p = await db.profile.findUnique({
         where: { userId: identity.id },
-        select: { gamesPlayed: true, gamesWon: true, rating: true, ratedGames: true, cosmetics: true },
+        select: { gamesPlayed: true, gamesWon: true, rating: true, ratedGames: true, cosmetics: true, user: { select: { ratings: true } } },
       });
       if (!p) return { unlocks: NO_UNLOCKS, chosen: null };
-      const unlocks = { gamesPlayed: p.gamesPlayed, gamesWon: p.gamesWon, rating: p.ratedGames > 0 ? p.rating : null };
+      const unlocks = { gamesPlayed: p.gamesPlayed, gamesWon: p.gamesWon, rating: Math.max(p.ratedGames > 0 ? p.rating : 0, ...p.user.ratings.filter((r) => r.ratedGames > 0).map((r) => r.peakRating)) || null };
       return { unlocks, chosen: p.cosmetics ? clampCosmetics(p.cosmetics, unlocks) : null };
     }
     const g = await db.guestSession.findUnique({ where: { id: identity.id }, select: { gamesPlayed: true, gamesWon: true, cosmetics: true } });

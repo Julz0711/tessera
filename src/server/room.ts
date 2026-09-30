@@ -650,6 +650,7 @@ export class Room {
     const seatIndex = this.seats.findIndex((s) => s.identityKey === key);
     return {
       code: this.code,
+      gameId: this.gameId,
       status: this.status,
       settings: { ...this.settings },
       seats: this.seats.map((s) => ({

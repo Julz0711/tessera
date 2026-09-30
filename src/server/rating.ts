@@ -42,10 +42,4 @@ export function ratingChanges(players: RatedPlayer[]): number[] {
 }
 
 /** Final places from victory points, with the winner (if any) always first. */
-export function placesFrom(vps: number[], winner: number | null): number[] {
-  return vps.map((vp, seat) => {
-    if (seat === winner) return 1;
-    const ahead = vps.filter((v, s) => s !== seat && (s === winner || v > vp)).length;
-    return ahead + 1;
-  });
-}
+export { standings as placesFrom } from '@/engine/report';

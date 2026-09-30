@@ -11,6 +11,9 @@ import type { ProfileData } from '@/shared/protocol';
 import { DEFAULT_KNIGHT } from '@/shared/knight';
 import { PlayerPortrait, TitleTag } from './Cosmetics';
 import { GameHistory } from './GameHistory';
+import { ModeRatings } from './ModeRatings';
+import { useUrlFilters } from '@/client/urlFilters';
+const PROFILE_FILTERS = { tab: 'overview' };
 import { SignInChoices } from '@/components/auth/SignInChoices';
 import { FriendsPanel } from '@/components/social/FriendsPanel';
 import { Logomark } from '@/components/ui/Logomark';
@@ -35,6 +38,8 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
 
 export function ProfilePage() {
   const prefs = usePrefs();
+  const { get, change } = useUrlFilters(PROFILE_FILTERS);
+  const tab = ['overview', 'history', 'friends'].includes(get('tab')) ? get('tab') : 'overview';
   const [data, setData] = useState<ProfileData | null>(null);
   const [failed, setFailed] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -76,7 +81,10 @@ export function ProfilePage() {
         {failed && <p className="paper p-5">Couldn&apos;t load your profile. Is the server running?</p>}
         {authError && <p className="paper-flat p-3 text-sm font-semibold text-terracotta">Sign-in didn&apos;t go through. Give it another try.</p>}
 
-        {data && (
+        {data && <nav aria-label="Profile sections" className="flex gap-2">{['overview', 'history', 'friends'].map((name) => (
+          <button key={name} type="button" aria-pressed={tab === name} onClick={() => change({ tab: name })} className={`btn px-4 py-2 capitalize ${tab === name ? 'btn-primary' : 'btn-dark'}`}>{name}</button>
+        ))}</nav>}
+        {data && tab === 'overview' && (
           <section className="paper animate-rise grid gap-6 p-5 sm:grid-cols-[1fr_auto] sm:p-7">
             <div className="grid content-start gap-4">
               <div className="flex items-center gap-4">
@@ -93,18 +101,8 @@ export function ProfilePage() {
                 <Stat label="Games played" value={stats.gamesPlayed} />
                 <Stat label="Games won" value={stats.gamesWon} />
                 <Stat label="Win rate" value={`${winRate}%`} />
-                <Stat label="Favorite mode" value={data.favoriteMode === 'ck' ? 'C&K' : data.favoriteMode === 'classic' ? 'Classic' : '—'} />
-                {data.rating && (
-                  <Stat
-                    label="Rating"
-                    value={
-                      <span className="flex items-baseline gap-2">
-                        {data.rating.place && <span className="text-sm font-bold text-ink-faint">#{data.rating.place}</span>}
-                        {data.rating.rating}
-                      </span>
-                    }
-                  />
-                )}
+                <Stat label="Recent favorite mode" value={data.favoriteMode === 'ck' ? 'C&K' : data.favoriteMode === 'classic' ? 'Classic' : '—'} />
+
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link href="/profile/edit" className="btn px-4 py-2">
@@ -137,14 +135,15 @@ export function ProfilePage() {
           </section>
         )}
 
-        {data && user && (
+        {data && tab === 'overview' && user && <section className="paper grid gap-3 p-5"><h2 className="display text-2xl font-black">Ratings by mode</h2><ModeRatings ratings={data.ratings} /><p className="text-xs text-ink-faint">Each mode has its own ladder. Maps share their ruleset?s ladder; your first 10 rated games are provisional.</p>{!!data.rating?.ratedGames && <p className="text-xs text-ink-faint">Legacy shared rating: {data.rating.rating} ? {data.rating.ratedGames} games before mode ladders.</p>}</section>}
+        {data && tab === 'friends' && (
           <section className="paper grid gap-3 p-5 sm:p-7">
             <h2 className="display text-2xl font-black">Friends</h2>
             <FriendsPanel />
           </section>
         )}
 
-        {data && <GameHistory history={data.history} />}
+        {data && tab === 'history' && <GameHistory />}
       </div>
 
       {data && (

@@ -12,7 +12,10 @@ import { GUEST_TTL_DAYS, newGuestId, resolveIdentity, setGuestCookie, type Serve
 import { limits } from './rateLimit';
 import { clientIp, originAllowed } from './realtime';
 import { UserError } from './room';
-import { acceptFriend, friendsFor, inviteFriend, leaderboard, removeFriend, requestFriend } from './social';
+import { acceptFriend, friendProfileFor, friendsFor, inviteFriend, leaderboard, removeFriend, requestFriend } from './social';
+import { pagedHistory, reportFor } from './historyApi';
+import { modeRatingsFor } from './modeRatings';
+import { emptyRatings } from '@/shared/ratings';
 
 function json(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
@@ -208,11 +211,33 @@ export async function handleHttp(req: IncomingMessage, res: ServerResponse): Pro
     return true;
   }
   if (path === '/api/leaderboard' && req.method === 'GET') {
-    json(res, 200, await leaderboard(await resolveIdentity(req.headers.cookie)));
+    json(res, 200, await leaderboard(await resolveIdentity(req.headers.cookie), new URL(req.url!, 'http://localhost').searchParams));
+    return true;
+  }
+  if ((path === '/api/history' || /^\/api\/games\/[^/]+\/report$/.test(path)) && req.method === 'GET') {
+    const identity = await resolveIdentity(req.headers.cookie);
+    if (!identity) { json(res, 401, { error: 'Sign in or start a guest session first.' }); return true; }
+    try {
+      const data = path === '/api/history' ? await pagedHistory(identity, new URL(req.url!, 'http://localhost').searchParams) : await reportFor(identity, path.split('/')[3]);
+      json(res, data ? 200 : 404, data ?? { error: 'This report is unavailable or you did not play in this game.' });
+    } catch (err) {
+      if (err instanceof UserError) json(res, 400, { error: err.message });
+      else { logDbError('game history/report', err); json(res, 503, { error: 'Could not load game data. Please try again.' }); }
+    }
     return true;
   }
   if (path === '/api/friends' && (req.method === 'GET' || req.method === 'POST')) {
     await friendsRoute(req, res);
+    return true;
+  }
+  if (path.startsWith('/api/friends/') && req.method === 'GET') {
+    const identity = await resolveIdentity(req.headers.cookie);
+    if (identity?.kind !== 'user') {
+      json(res, 401, { error: 'Sign in to view friend profiles.' });
+      return true;
+    }
+    const data = await friendProfileFor(identity, path.slice('/api/friends/'.length));
+    json(res, data ? 200 : 404, data ?? { error: 'Profile unavailable. You can only view accepted friends.' });
     return true;
   }
   if (path === '/api/profile' && (req.method === 'GET' || req.method === 'PATCH')) {
@@ -255,14 +280,15 @@ export async function handleHttp(req: IncomingMessage, res: ServerResponse): Pro
         logDbError(what, err);
         return fallback;
       });
-    const [session, history, providers, preferences, rating] = await Promise.all([
+    const [session, history, providers, preferences, rating, ratings] = await Promise.all([
       sessionInfo(identity),
       orElse(historyFor(identity), [], 'game history'),
       orElse(linkedProviders(identity), [], 'linked accounts'),
       orElse(preferencesFor(identity), {}, 'profile preferences'),
       orElse(ratingFor(identity), null, 'rating'),
+      identity.kind === 'user' ? orElse(modeRatingsFor(identity.id), emptyRatings(), 'mode ratings') : Promise.resolve(emptyRatings()),
     ]);
-    const data: ProfileData = { session, history, providers, preferences, favoriteMode: favoriteMode(history), rating };
+    const data: ProfileData = { session, history, providers, preferences, favoriteMode: favoriteMode(history), rating, ratings };
     json(res, 200, data);
     return true;
   }
