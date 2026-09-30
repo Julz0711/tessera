@@ -137,6 +137,16 @@ export interface ProfilePreferences {
   language?: 'en';
   /** Use the OAuth picture as avatar (true) or the knight portrait (false). */
   useProviderAvatar?: boolean;
+  /** The game settings below follow a signed-in player across devices (see client/prefs.ts, which validates them again). */
+  buildHints?: boolean;
+  confirmBuilds?: boolean;
+  boardScale?: 'small' | 'medium' | 'large';
+  motion?: 'system' | 'full' | 'reduced';
+  boardTheme?: string;
+  hudScale?: 'small' | 'medium' | 'large';
+  hudLayout?: Record<string, { slot: string; order: number }>;
+  sfxVolume?: Record<string, number>;
+  weather?: boolean;
 }
 
 export interface GameSummary {

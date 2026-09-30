@@ -2,14 +2,13 @@
 
 import { Box, Gamepad2, Grid2x2, LayoutGrid, Languages, Palette, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePrefs } from '@/client/prefs';
 import { BOARD_THEMES } from '@/client/themes';
 import { DEFAULT_HUD_LAYOUT, HUD_SCALE, useHud, type HudScale } from '@/client/hud';
 import { useSettingsUI, type SettingsTab } from '@/client/settingsUI';
 import { play, setVolume, setSfxVolumes, SFX_GROUPS } from '@/client/sound';
 import { ThemeSwatch } from '@/components/ui/ThemeSwatch';
-import { fetchProfile } from '@/components/profile/ProfilePage';
 
 const TABS: { id: SettingsTab; label: string; icon: typeof Palette }[] = [
   { id: 'board', label: 'Board', icon: Palette },
@@ -50,39 +49,6 @@ export function SettingsPanel() {
   const pathname = usePathname();
   const inGame = pathname?.startsWith('/r/') ?? false;
   const wide = useIsWide();
-
-  // Signed-in sync: view/graphics/volume follow the player to their profile (debounced).
-  const [persist, setPersist] = useState(false);
-  const first = useRef(true);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    fetchProfile()
-      .then((d) => setPersist(d?.session.persistence ?? false))
-      .catch(() => {});
-  }, []);
-  useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
-    if (!persist) return;
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      void fetch('/api/profile', {
-        method: 'PATCH',
-        credentials: 'same-origin',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ preferences: { view: prefs.view, graphics: prefs.graphics, volume: prefs.volume } }),
-      });
-    }, 800);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefs.view, prefs.graphics, prefs.volume, persist]);
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current);
-    },
-    [],
-  );
 
   return (
     <div className="grid h-full gap-4 sm:grid-cols-[9rem_1fr] sm:gap-6">

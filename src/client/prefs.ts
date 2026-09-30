@@ -78,41 +78,61 @@ function sanitizeSfxVolume(raw: unknown): Partial<Record<Sfx, number>> {
 /** The persisted fields (everything but the store's own state and methods). */
 const FIELDS = Object.keys(defaults()) as (keyof Prefs)[];
 
-export function read(): Prefs {
+/** Validates untrusted prefs (localStorage or the profile) field by field; anything missing or invalid falls back to the defaults. */
+export function sanitizePrefs(raw: unknown): Prefs {
   const base = defaults();
+  if (!raw || typeof raw !== 'object') return base;
+  const p = raw as Partial<Prefs> & { uiScale?: unknown };
+  // `uiScale` was the name of this setting when it scaled the whole interface.
+  const boardScale = p.boardScale ?? p.uiScale;
+  return {
+    name: typeof p.name === 'string' ? p.name.slice(0, 20) : base.name,
+    color: isPlayerColor(p.color) ? p.color : base.color,
+    knight: sanitizeKnight(p.knight),
+    cosmetics: sanitizeCosmetics(p.cosmetics),
+    view: p.view === '2d' ? '2d' : '3d',
+    graphics: p.graphics === 'low' ? 'low' : 'high',
+    volume: typeof p.volume === 'number' ? Math.min(1, Math.max(0, p.volume)) : base.volume,
+    buildHints: typeof p.buildHints === 'boolean' ? p.buildHints : base.buildHints,
+    confirmBuilds: typeof p.confirmBuilds === 'boolean' ? p.confirmBuilds : base.confirmBuilds,
+    boardScale: boardScale === 'small' || boardScale === 'large' ? boardScale : base.boardScale,
+    motion: p.motion === 'full' || p.motion === 'reduced' ? p.motion : base.motion,
+    boardTheme: isBoardTheme(p.boardTheme) ? p.boardTheme : base.boardTheme,
+    hudScale: p.hudScale === 'small' || p.hudScale === 'large' ? p.hudScale : base.hudScale,
+    hudLayout: sanitizeHudLayout(p.hudLayout),
+    sfxVolume: sanitizeSfxVolume(p.sfxVolume),
+    weather: typeof p.weather === 'boolean' ? p.weather : base.weather,
+  };
+}
+
+export function read(): Prefs {
   try {
     const raw = typeof window !== 'undefined' ? window.localStorage.getItem(KEY) : null;
-    if (!raw) return base;
-    const p = JSON.parse(raw) as Partial<Prefs> & { uiScale?: unknown };
-    // `uiScale` was the name of this setting when it scaled the whole interface.
-    const boardScale = p.boardScale ?? p.uiScale;
-    return {
-      name: typeof p.name === 'string' ? p.name.slice(0, 20) : base.name,
-      color: isPlayerColor(p.color) ? p.color : base.color,
-      knight: sanitizeKnight(p.knight),
-      cosmetics: sanitizeCosmetics(p.cosmetics),
-      view: p.view === '2d' ? '2d' : '3d',
-      graphics: p.graphics === 'low' ? 'low' : 'high',
-      volume: typeof p.volume === 'number' ? Math.min(1, Math.max(0, p.volume)) : base.volume,
-      buildHints: typeof p.buildHints === 'boolean' ? p.buildHints : base.buildHints,
-      confirmBuilds: typeof p.confirmBuilds === 'boolean' ? p.confirmBuilds : base.confirmBuilds,
-      boardScale: boardScale === 'small' || boardScale === 'large' ? boardScale : base.boardScale,
-      motion: p.motion === 'full' || p.motion === 'reduced' ? p.motion : base.motion,
-      boardTheme: isBoardTheme(p.boardTheme) ? p.boardTheme : base.boardTheme,
-      hudScale: p.hudScale === 'small' || p.hudScale === 'large' ? p.hudScale : base.hudScale,
-      hudLayout: sanitizeHudLayout(p.hudLayout),
-      sfxVolume: sanitizeSfxVolume(p.sfxVolume),
-      weather: typeof p.weather === 'boolean' ? p.weather : base.weather,
-    };
+    return raw ? sanitizePrefs(JSON.parse(raw)) : defaults();
   } catch {
-    return base;
+    return defaults();
   }
 }
+
+/** The settings that follow a signed-in player to their profile. Name, colour, knight and cosmetics already live there. */
+export const SYNCED_FIELDS = [
+  'view', 'graphics', 'volume', 'buildHints', 'confirmBuilds', 'boardScale', 'motion', 'boardTheme', 'hudScale', 'hudLayout', 'sfxVolume', 'weather',
+] as const satisfies readonly (keyof Prefs)[];
 
 interface PrefsStore extends Prefs {
   loaded: boolean;
   load(): void;
   set(patch: Partial<Prefs>): void;
+  /** Adopts the settings saved on the profile (only the ones it has) over this browser's. */
+  applyRemote(remote: Record<string, unknown>): void;
+}
+
+function persistLocal(all: Prefs) {
+  try {
+    window.localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(FIELDS.map((f) => [f, all[f]]))));
+  } catch {
+    // Storage unavailable (private mode) — preferences just won't persist.
+  }
 }
 
 export const usePrefs = create<PrefsStore>((set, get) => ({
@@ -124,11 +144,13 @@ export const usePrefs = create<PrefsStore>((set, get) => ({
   },
   set(patch) {
     set(patch);
-    try {
-      const all = get();
-      window.localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(FIELDS.map((f) => [f, all[f]]))));
-    } catch {
-      // Storage unavailable (private mode) — preferences just won't persist.
-    }
+    persistLocal(get());
+  },
+  applyRemote(remote) {
+    const clean = sanitizePrefs({ ...get(), ...remote });
+    const patch: Partial<Prefs> = {};
+    for (const f of SYNCED_FIELDS) if (f in remote) Object.assign(patch, { [f]: clean[f] });
+    set(patch);
+    persistLocal(get());
   },
 }));
