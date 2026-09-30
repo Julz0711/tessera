@@ -18,17 +18,24 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
-    version: '1.3.1',
+    version: '1.4',
     date: '2026-09-30',
-    summary: 'Clearer privacy information and improved dialogs.',
-    sections: [{
-      title: 'Profiles and dialogs',
-      icon: 'players',
-      items: [
-        'Updated the privacy policy to explain how deletion requests affect saved games and portraits.',
-        'Dialogs now keep focus inside while open and return it when closed.',
-      ],
-    }],
+    summary: 'Two new maps and an easier way to set up a game with friends.',
+    sections: [
+      {
+        title: 'New maps',
+        icon: 'map',
+        items: [
+          'Crossroads: start in one of four regions and race to claim the narrow routes between them.',
+          'The Citadel: sail from an outer island to an ore-rich center in a Knights & Barbarians game.',
+        ],
+      },
+      {
+        title: 'Timed turns',
+        icon: 'turn',
+        items: ['When a turn timer is on, the End Turn button shows the remaining seconds and warns you as time runs out.'],
+      },
+    ],
   },
   {
     version: '1.3',
