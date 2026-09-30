@@ -72,6 +72,29 @@ describe('Voyagers maps', () => {
     expect(() => game('veiledIsles', 'classic')).toThrow(/not compatible/);
     expect(game('veiledIsles', 'ck').settings.vpToWin).toBe(MAPS.veiledIsles.vpToWin!.ck);
   });
+
+  it('The Citadel has four fair home islands and an ore-rich island across the sea', () => {
+    expect(() => game('citadel', 'classic')).toThrow(/not compatible/);
+    for (const seed of seeds) {
+      const s = game('citadel', 'ck', seed, 4);
+      const t = getTopology(s.board.hexes);
+      const islands = islandsOf(s.board, t);
+      expect(new Set(islands.filter((i) => i >= 0)).size).toBe(5);
+      expect(s.board.hexes.filter((h) => h.start)).toHaveLength(28);
+      const center = s.board.hexes.filter((h) => Math.max(Math.abs(h.q), Math.abs(h.r), Math.abs(h.q + h.r)) <= 1);
+      expect(center).toHaveLength(7);
+      expect(center.filter((h) => h.terrain === 'mountains')).toHaveLength(3);
+      expect(center.filter((h) => h.terrain === 'gold')).toHaveLength(1);
+      expect(center.every((h) => !h.start)).toBe(true);
+      expect(s.board.harbors).toHaveLength(12);
+      const harborCorners = s.board.harbors.flatMap((h) => [t.edges[h.edge].a, t.edges[h.edge].b]);
+      expect(new Set(harborCorners).size).toBe(harborCorners.length);
+      expect(s.board.harbors.every((h) => canHoldShip(s.board, t, h.edge) && t.edges[h.edge].hexes.some((id) => s.board.hexes[id].terrain !== 'sea'))).toBe(true);
+      expect(s.board.hexes[s.pirate!].terrain).toBe('sea');
+      expect(s.settings.vpToWin).toBe(16);
+      expect(legalSettlementSpots(s, 0, true).every((v) => t.vertices[v].hexes.some((h) => s.board.hexes[h].start))).toBe(true);
+    }
+  });
 });
 
 describe('Veiled Isles', () => {

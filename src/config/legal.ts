@@ -14,4 +14,4 @@ export const LEGAL_EMAIL: string = process.env.NEXT_PUBLIC_LEGAL_EMAIL || '[cont
 export const LEGAL_COUNTRY: string = process.env.NEXT_PUBLIC_LEGAL_COUNTRY || 'Germany';
 
 /** Bump when either document changes (ISO date). */
-export const LEGAL_UPDATED = '2026-09-27';
+export const LEGAL_UPDATED = '2026-09-30';

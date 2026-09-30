@@ -24,3 +24,9 @@ services:
         value: "1"
       - key: APP_URL
         sync: false
+      - key: NEXT_PUBLIC_LEGAL_OPERATOR
+        sync: false
+      - key: NEXT_PUBLIC_LEGAL_ADDRESS
+        sync: false
+      - key: NEXT_PUBLIC_LEGAL_EMAIL
+        sync: false

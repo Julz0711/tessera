@@ -40,7 +40,7 @@ describe('map variants', () => {
       expect(mapSupports(map, MAPS[map].modes[0], new Set(['base']))).toBe(MAPS[map].category === 'base');
       expect(MAX_PLAYERS[map]).toBe(MAPS[map].maxPlayers);
     }
-    expect([...BIG_MAPS].sort()).toEqual(['blackForest', 'fourLakes', 'goldRush', 'large', 'vulcan']);
+    expect([...BIG_MAPS].sort()).toEqual(['blackForest', 'citadel', 'crossroads', 'fourLakes', 'goldRush', 'large', 'vulcan']);
     // Every map appears in exactly one lobby group.
     const grouped = mapsByCategory().flatMap((g) => g.maps.map((m) => m.id));
     expect([...grouped].sort()).toEqual([...MAP_IDS].sort());
@@ -48,7 +48,7 @@ describe('map variants', () => {
 
   it('offers every map under a game type, and switching type lands on a playable map', () => {
     expect(mapsForType('voyagers').map((m) => m.id)).toEqual(['farShores', 'fourRealms']);
-    expect(mapsForType('special').map((m) => m.id)).toEqual(['veiledIsles']);
+    expect(mapsForType('special').map((m) => m.id)).toEqual(['veiledIsles', 'citadel']);
     for (const map of MAP_IDS) {
       for (const mode of MAPS[map].modes) expect(mapsForType(gameTypeOf(map, mode)).map((m) => m.id)).toContain(map);
     }
@@ -222,6 +222,29 @@ describe('map variants', () => {
     }
   });
 
+  it('Crossroads has four equal starting regions and a low-yield center', () => {
+    for (const seed of seeds.slice(0, 20)) {
+      const board = generateBoard({ rng: seed }, 'crossroads');
+      expect(board.hexes).toHaveLength(37);
+      expect(board.hexes.filter((h) => h.start)).toHaveLength(28);
+      for (const center of [{ q: -4, r: 0 }, { q: 4, r: 0 }, { q: 0, r: -4 }, { q: 0, r: 4 }]) {
+        const home = board.hexes.filter((h) => Math.max(Math.abs(h.q - center.q), Math.abs(h.r - center.r), Math.abs(h.q + h.r - center.q - center.r)) <= 1);
+        expect(home).toHaveLength(7);
+        expect(home.filter((h) => h.token === 6 || h.token === 8)).toHaveLength(2);
+        expect(home.map((h) => h.terrain).sort()).toEqual(['fields', 'fields', 'forest', 'forest', 'hills', 'mountains', 'pasture']);
+      }
+      expect(board.hexes.find((h) => h.q === 0 && h.r === 0)).toMatchObject({ terrain: 'desert', token: null, start: false });
+      const necks = board.hexes.filter((h) => !h.start && h.terrain !== 'desert');
+      expect(necks).toHaveLength(8);
+      expect(necks.every((h) => [2, 3, 11, 12].includes(h.token!))).toBe(true);
+      expect(board.harbors).toHaveLength(11);
+      expect(harborsValid(board)).toBe(true);
+      const s = createGame({ seed, mode: 'ck', players: ['a', 'b', 'c', 'd'].map((id) => ({ id, name: id, color: 'red' as const, isBot: false })), settings: { map: 'crossroads' } });
+      const t = getTopology(s.board.hexes);
+      expect(legalSettlementSpots(s, 0, true).every((v) => t.vertices[v].hexes.some((h) => s.board.hexes[h].start))).toBe(true);
+    }
+  });
+
   it('Heartlake rings a lake, with three harbors on the lake shore', () => {
     for (const seed of seeds) {
       const board = generateBoard({ rng: seed }, 'heartlake');
@@ -251,7 +274,7 @@ describe('map variants', () => {
   });
 
   it('bots finish games on every new map, in both modes', () => {
-    for (const map of ['goldRush', 'vulcan', 'heartlake', 'longIsle', 'fourLakes'] as const) {
+    for (const map of ['goldRush', 'vulcan', 'heartlake', 'longIsle', 'fourLakes', 'crossroads'] as const) {
       for (const mode of ['classic', 'ck'] as const) {
         for (const seed of [11, 12, 13]) {
           const result = simulateGame(seed, 4, mode, 12_000, map);
@@ -262,5 +285,11 @@ describe('map variants', () => {
         }
       }
     }
+  });
+
+  it('bots can finish The Citadel with Knights & Barbarians rules', () => {
+    const result = simulateGame(11, 4, 'ck', 12_000, 'citadel');
+    if (result.error) throw new Error(result.error);
+    expect(result.state.phase).toBe('ended');
   });
 });

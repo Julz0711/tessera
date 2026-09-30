@@ -87,9 +87,11 @@ export type MapId =
   | 'heartlake'
   | 'longIsle'
   | 'fourLakes'
+  | 'crossroads'
   | 'farShores'
   | 'fourRealms'
-  | 'veiledIsles';
+  | 'veiledIsles'
+  | 'citadel';
 export const MAP_IDS: readonly MapId[] = [
   'standard',
   'large',
@@ -99,9 +101,11 @@ export const MAP_IDS: readonly MapId[] = [
   'heartlake',
   'longIsle',
   'fourLakes',
+  'crossroads',
   'farShores',
   'fourRealms',
   'veiledIsles',
+  'citadel',
 ];
 export const isMapId = (v: unknown): v is MapId => typeof v === 'string' && (MAP_IDS as readonly string[]).includes(v);
 export type Track = 'trade' | 'politics' | 'science';

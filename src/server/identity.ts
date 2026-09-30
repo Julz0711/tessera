@@ -114,7 +114,18 @@ export async function resolveIdentity(cookieHeader: string | undefined): Promise
     }
   }
   const guestId = verifyGuestToken(cookies[GUEST_COOKIE]);
-  if (guestId) return { key: `g:${guestId}`, kind: 'guest', id: guestId, displayName: null, avatarUrl: null };
+  if (guestId) {
+    // A signed cookie must not resurrect a deleted (or expired) database identity.
+    if (db) {
+      try {
+        const guest = await db.guestSession.findUnique({ where: { id: guestId }, select: { expiresAt: true, migratedToUserId: true } });
+        if (!guest || guest.expiresAt <= new Date() || guest.migratedToUserId) return null;
+      } catch {
+        return null;
+      }
+    }
+    return { key: `g:${guestId}`, kind: 'guest', id: guestId, displayName: null, avatarUrl: null };
+  }
   return null;
 }
 

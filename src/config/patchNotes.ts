@@ -18,6 +18,26 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '1.4',
+    date: '2026-09-30',
+    summary: 'Two new maps and a clearer turn timer.',
+    sections: [
+      {
+        title: 'New maps',
+        icon: 'map',
+        items: [
+          'Crossroads: start in one of four regions and race to claim the narrow routes between them.',
+          'The Citadel: sail from an outer island to an ore-rich center in a Knights & Barbarians game.',
+        ],
+      },
+      {
+        title: 'Timed turns',
+        icon: 'turn',
+        items: ['When a turn timer is on, the End Turn button shows the remaining seconds and warns you as time runs out.'],
+      },
+    ],
+  },
+  {
     version: '1.3',
     date: '2026-09-29',
     summary: 'Voyagers: open sea, ships and the pirate, plus three new maps. Weather effects and a few Knights & Barbarians fixes too.',

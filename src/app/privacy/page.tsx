@@ -116,9 +116,18 @@ export default function Page() {
         <ul>
           <li>Account and profile data: until you ask us to delete your account.</li>
           <li>Guest data: the cookie expires after 30 days. The guest record can be deleted on request.</li>
-          <li>Game records: kept for history and ratings. If your account is deleted, they are no longer linked to you.</li>
+          <li>
+            Game records: kept for history and ratings. When we process account or guest deletion, we remove stored
+            account links, replace your name and portrait in game summaries, and remove the affected games&apos; move
+            logs and recovery snapshots. Other players can still see the scores.
+          </li>
+          <li>Uploaded portraits: removed when no retained records reference them. Shared images need individual review.</li>
           <li>Chat: gone when the room closes or the server restarts.</li>
         </ul>
+        <p>
+          Deletion from the live database does not immediately remove copies in hosting-provider backups or copies
+          already downloaded by other players. Contact us for details about your request.
+        </p>
       </section>
 
       <section>
