@@ -63,8 +63,9 @@ export function viewFor(state: GameState, viewer: number | null): PlayerView {
       roadLength: state.roadLengths[seat] ?? 0,
     };
   });
-  const { devDeck, progressDecks, rng: _rng, diceBag: _diceBag, players: _players, log, pending, ...rest } = state;
-  const visible = structuredClone(rest);
+  const { devDeck, progressDecks, rng: _rng, diceBag: _diceBag, players: _players, log, pending, stats, ...rest } = state;
+  const { details, ...publicStats } = stats ?? {};
+  const visible = { ...structuredClone(rest), stats: structuredClone(reveal ? stats : publicStats) as GameState['stats'] };
   // Someone who couldn't afford an offer is declined for them; nobody else learns that from the
   // offer, they just see no answer.
   for (const offer of visible.trades) {

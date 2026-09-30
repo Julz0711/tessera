@@ -149,7 +149,7 @@ describe.skipIf(!url)('prisma persistence', async () => {
     persistence.gameEnded({ gameId: g.gameId, room: g.room, seats: g.seats, state: final });
     await persistence.flush();
 
-    const [pa, pb] = await Promise.all([db.profile.findUnique({ where: { userId: a.id } }), db.profile.findUnique({ where: { userId: b.id } })]);
+    const [pa, pb] = await Promise.all([db.playerRating.findUnique({ where: { userId_poolKey: { userId: a.id, poolKey: 'classic' } } }), db.playerRating.findUnique({ where: { userId_poolKey: { userId: b.id, poolKey: 'classic' } } })]);
     expect(pa?.ratedGames).toBe(1);
     expect(pb?.ratedGames).toBe(1);
     // Two equal newcomers: one goes up, the other down by as much (unless a bot won and they tied).
@@ -164,7 +164,7 @@ describe.skipIf(!url)('prisma persistence', async () => {
     const soloFinal = play(solo, 20_000);
     persistence.gameEnded({ gameId: solo.gameId, room: solo.room, seats: solo.seats, state: soloFinal });
     await persistence.flush();
-    expect((await db.profile.findUnique({ where: { userId: a.id } }))?.ratedGames).toBe(1);
+    expect((await db.playerRating.findUnique({ where: { userId_poolKey: { userId: a.id, poolKey: 'classic' } } }))?.ratedGames).toBe(1);
   });
 
   it('handles friend requests, recent players, invites and the leaderboard', async () => {
@@ -200,7 +200,7 @@ describe.skipIf(!url)('prisma persistence', async () => {
     const board = await social.leaderboard(meId);
     expect(board.enabled).toBe(true);
     expect(board.entries.every((e) => e.ratedGames > 0)).toBe(true);
-    expect(board.entries.map((e) => e.place)).toEqual(board.entries.map((_, i) => i + 1));
+    expect(board.entries.map((e) => e.place)).toEqual(board.entries.map((e) => 1 + board.entries.filter((other) => other.rating > e.rating).length));
   });
 
   it('only keeps cosmetics a player has unlocked', async () => {

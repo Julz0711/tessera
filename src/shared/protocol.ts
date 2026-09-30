@@ -4,6 +4,7 @@ import type { PlayerView } from '@/engine/view';
 import type { Cosmetics, UnlockStats } from './cosmetics';
 import type { KnightCustomization } from './knight';
 import type { ReactionId } from './reactions';
+import type { ModeRating, RatingPool } from './ratings';
 
 /** The PRD's conceptual identity: the game never cares whether a player is a guest. */
 export interface PlayerIdentity {
@@ -71,6 +72,7 @@ export interface SeatDTO {
 }
 
 export interface RoomDTO {
+  gameId?: string | null;
   code: string;
   status: 'lobby' | 'playing' | 'finished';
   settings: RoomSettings;
@@ -137,6 +139,16 @@ export interface ProfilePreferences {
   language?: 'en';
   /** Use the OAuth picture as avatar (true) or the knight portrait (false). */
   useProviderAvatar?: boolean;
+  /** The game settings below follow a signed-in player across devices (see client/prefs.ts, which validates them again). */
+  buildHints?: boolean;
+  confirmBuilds?: boolean;
+  boardScale?: 'small' | 'medium' | 'large';
+  motion?: 'system' | 'full' | 'reduced';
+  boardTheme?: string;
+  hudScale?: 'small' | 'medium' | 'large';
+  hudLayout?: Record<string, { slot: string; order: number }>;
+  sfxVolume?: Record<string, number>;
+  weather?: boolean;
 }
 
 export interface GameSummary {
@@ -150,11 +162,18 @@ export interface GameSummary {
   finalVp: number | null;
   /** Rating change from this game (rated games only). */
   ratingDelta: number | null;
+  ratingPool?: string | null;
+  ratingBefore?: number | null;
+  ratingAfter?: number | null;
+  map?: string;
+  turns?: number;
+  hasReport?: boolean;
   players: { name: string; color: PlayerColor; vp: number | null; isBot: boolean; isYou: boolean; won: boolean }[];
 }
 
 /** GET /api/profile — only ever returned to the identity itself. */
 export interface ProfileData {
+  ratings: ModeRating[];
   session: SessionInfo;
   preferences: ProfilePreferences;
   favoriteMode: Mode | null;
@@ -209,6 +228,15 @@ export interface FriendInfo extends PlayerCard {
   roomCode: string | null;
 }
 
+/** Read-only profile shared with accepted friends. No account or preference data. */
+export interface FriendProfileData {
+  ratings: ModeRating[];
+  headToHead: { games: number; yourWins: number; theirWins: number };
+  friend: FriendInfo;
+  stats: { gamesPlayed: number; gamesWon: number };
+  recentGames: Pick<GameSummary, 'mode' | 'endedAt' | 'startedAt' | 'won' | 'rank' | 'finalVp' | 'ratingDelta' | 'ratingPool'>[];
+}
+
 export interface FriendsData {
   /** False without a database or when not signed in: friends need an account. */
   enabled: boolean;
@@ -221,14 +249,27 @@ export interface FriendsData {
 }
 
 export interface LeaderboardEntry extends PlayerCard {
+  isFriend?: boolean;
   place: number;
   gamesWon: number;
   isYou: boolean;
 }
 
 export interface LeaderboardData {
+  pool?: RatingPool;
+  scope?: 'world' | 'friends';
+  signInRequired?: boolean;
+  page?: number;
+  total?: number;
+  pages?: number;
   enabled: boolean;
   entries: LeaderboardEntry[];
   /** Your own row when you're rated but not in the top list. */
   you: LeaderboardEntry | null;
+}
+
+export interface HistoryData {
+  games: GameSummary[];
+  nextCursor: string | null;
+  summary: { games: number; wins: number; averageVp: number | null; averagePlace: number | null };
 }

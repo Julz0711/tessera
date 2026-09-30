@@ -578,6 +578,11 @@ export function Lobby({ room }: { room: RoomDTO }) {
             )}
           </div>
           <SettingsPanel room={room} />
+          <p className="rounded-xl bg-paper-2 p-3 text-xs font-semibold text-ink-soft">
+            {room.seats.filter((s) => !s.isBot && !s.isGuest).length >= 2
+              ? `Rated for signed-in players · ${room.settings.mode === 'ck' ? 'Cities & Knights' : 'Classic'} Elo. Maps share this mode’s ladder.`
+              : 'Unrated · Add at least two signed-in players for mode Elo. Bots and guests do not receive ratings.'}
+          </p>
           {host ? (
             <button
               type="button"

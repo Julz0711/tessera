@@ -1,155 +1,79 @@
 'use client';
+import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
+import { fetchFriends } from '@/client/social';
+import { useUrlFilters } from '@/client/urlFilters';
+import { MAPS } from '@/engine/maps';
+import type { FriendInfo, GameSummary, HistoryData } from '@/shared/protocol';
+import { MODE_LABEL } from '@/shared/ratings';
 
-import { ChevronDown, ChevronUp, Crown, Swords, Trophy } from 'lucide-react';
-import { useState } from 'react';
-import type { Mode } from '@/engine/types';
-import type { GameSummary } from '@/shared/protocol';
-import { PLAYER_COLORS } from '@/shared/colors';
-
-/** Games shown before "Show all". */
-const SHOWN = 3;
-/** Results in the "Recent form" strip. */
-const FORM = 10;
-
-const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
-const yourVp = (g: GameSummary) => g.finalVp ?? g.players.find((p) => p.isYou)?.vp ?? null;
-const modeName = (m: Mode) => (m === 'ck' ? 'C&K' : 'Classic');
-
-function Tile({ label, value, sub }: { label: string; value: React.ReactNode; sub?: string }) {
-  return (
-    <div className="grid content-start gap-0.5 rounded-xl bg-paper-2 px-3 py-2.5">
-      <span className="label">{label}</span>
-      <span className="display text-2xl font-black tabular">{value}</span>
-      {sub && <span className="text-xs font-semibold text-ink-faint">{sub}</span>}
+const DEFAULTS = { mode: 'all', map: 'all', result: 'all', rating: 'all', from: '', to: '', friend: '' };
+function GameRow({ game: g }: { game: GameSummary }) {
+  const duration = g.endedAt ? Math.max(0, Math.round((Date.parse(g.endedAt) - Date.parse(g.startedAt)) / 60000)) : null;
+  return <details className="paper-flat group p-4">
+    <summary className="grid cursor-pointer list-none grid-cols-[1fr_auto] items-center gap-2 marker:hidden">
+      <div className="min-w-0"><p className="font-extrabold"><span className={g.won ? 'text-moss' : ''}>{g.won ? 'Victory' : g.rank ? `Finished #${g.rank}` : 'Played'}</span><span className="ml-2 text-xs font-semibold text-ink-soft">{MODE_LABEL[g.mode]}</span></p>
+        <p className="mt-1 text-xs text-ink-faint">{new Date(g.endedAt ?? g.startedAt).toLocaleDateString()} · {MAPS[g.map as keyof typeof MAPS]?.name ?? g.map ?? 'Standard'}{duration !== null ? ` · ${duration} min` : ''}</p>
+      </div>
+      <div className="text-right"><p className="font-black tabular">{g.finalVp ?? '—'} VP</p><p className={`text-xs font-bold ${g.ratingDelta !== null && g.ratingDelta > 0 ? 'text-moss' : 'text-ink-soft'}`}>{g.ratingDelta === null ? 'Unrated' : `${g.ratingDelta > 0 ? '+' : ''}${g.ratingDelta} ${g.ratingPool ? 'Elo' : 'legacy'}`}</p></div>
+      <span className="col-span-2 text-[11px] font-semibold text-ink-faint group-open:hidden">Show players and details ↓</span>
+    </summary>
+    <div className="mt-4 grid gap-3 border-t border-ink/10 pt-3">
+      <ul className="grid gap-1 text-sm">{g.players.map((p, i) => <li key={i} className="flex justify-between gap-3"><span>{p.name}{p.isYou ? ' (you)' : p.isBot ? ' (bot)' : ''}{p.won ? ' · Winner' : ''}</span><b>{p.vp ?? '—'} VP</b></li>)}</ul>
+      <p className="text-xs text-ink-faint">{g.turns ?? '—'} turns{g.ratingBefore !== null && g.ratingBefore !== undefined ? ` · ${g.ratingBefore} → ${g.ratingAfter} ${MODE_LABEL[g.mode]} Elo` : ''}</p>
+      {g.hasReport ? <Link className="btn justify-self-start px-3 py-2 text-sm" href={`/games/${g.gameId}`}>Explore stats</Link> : <p className="text-xs text-ink-faint">Detailed stats were not recorded or are no longer available for this game.</p>}
     </div>
-  );
+  </details>;
 }
 
-/** Averages, recent form and a per-mode split over the games the server returned (newest first). */
-function Summary({ history }: { history: GameSummary[] }) {
-  const ranks = history.flatMap((g) => (g.rank !== null ? [g.rank] : []));
-  const place = mean(ranks);
-  const players = mean(history.map((g) => g.players.length));
-  const vp = mean(history.flatMap((g) => {
-    const v = yourVp(g);
-    return v !== null ? [v] : [];
-  }));
-  const rated = history.filter((g) => g.ratingDelta !== null);
-  const ratingNet = rated.reduce((n, g) => n + (g.ratingDelta ?? 0), 0);
-  const modes = (['classic', 'ck'] as const)
-    .map((m) => {
-      const games = history.filter((g) => g.mode === m);
-      return { m, games: games.length, wins: games.filter((g) => g.won).length, place: mean(games.flatMap((g) => (g.rank !== null ? [g.rank] : []))) };
-    })
-    .filter((x) => x.games > 0);
-  const form = history.slice(0, FORM);
-
-  return (
-    <div className="paper grid gap-4 p-4 sm:p-5">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Tile label="Avg. place" value={place !== null ? place.toFixed(1) : '–'} sub={players !== null ? `of ${players.toFixed(1).replace(/\.0$/, '')} players on average` : undefined} />
-        <Tile label="Avg. points" value={vp !== null ? vp.toFixed(1) : '–'} />
-        <Tile label="Wins" value={`${history.filter((g) => g.won).length}/${history.length}`} sub={`${Math.round((history.filter((g) => g.won).length / history.length) * 100)}% of the last ${history.length}`} />
-        {rated.length > 0 ? (
-          <Tile
-            label="Rating"
-            value={<span className={ratingNet >= 0 ? 'text-moss' : 'text-danger'}>{`${ratingNet >= 0 ? '+' : ''}${ratingNet}`}</span>}
-            sub={`over ${rated.length} rated game${rated.length === 1 ? '' : 's'}`}
-          />
-        ) : (
-          <Tile label="Best finish" value={ranks.length ? `#${Math.min(...ranks)}` : '–'} />
-        )}
+export function GameHistory() {
+  const { params, get, change } = useUrlFilters(DEFAULTS);
+  const [data, setData] = useState<HistoryData | null>(null);
+  const [friends, setFriends] = useState<FriendInfo[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const active = useRef<AbortController | null>(null);
+  const query = new URLSearchParams(Object.keys(DEFAULTS).map((key) => [key, get(key)])).toString();
+  useEffect(() => { void fetchFriends().then((d) => setFriends(d?.friends ?? [])).catch(() => undefined); }, []);
+  async function load(queryString: string, cursor?: string) {
+    active.current?.abort(); const controller = new AbortController(); active.current = controller;
+    setLoading(true); setError(null);
+    try {
+      const url = new URLSearchParams(queryString); if (cursor) url.set('cursor', cursor);
+      const response = await fetch(`/api/history?${url}`, { signal: controller.signal });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? 'Could not load history.');
+      if (!controller.signal.aborted) setData((old) => cursor && old ? { ...body, games: [...old.games, ...body.games] } : body);
+    } catch (err) { if (!controller.signal.aborted) setError((err as Error).message); }
+    finally { if (!controller.signal.aborted) setLoading(false); }
+  }
+  const ready = params !== null;
+  useEffect(() => {
+    if (!ready) return;
+    setData(null); void load(query);
+    return () => active.current?.abort();
+  }, [query, ready, attempt]);
+  const filters = [
+    ['mode', 'Mode', [['all', 'All modes'], ...Object.entries(MODE_LABEL)]],
+    ['map', 'Map', [['all', 'All maps'], ...Object.values(MAPS).map((m) => [m.id, m.name])]],
+    ['result', 'Result', [['all', 'All results'], ['win', 'Wins'], ['other', 'Other results']]],
+    ['rating', 'Rating', [['all', 'All games'], ['rated', 'Rated'], ['unrated', 'Unrated']]],
+    ['friend', 'Played with', [['', 'Anyone'], ...friends.map((f) => [f.code, f.name])]],
+  ] as const;
+  return <section className="grid gap-4">
+    <div><h1 className="display text-3xl font-black text-paper">Game history</h1><p className="mt-1 text-sm text-foam/70">Find a match, then open its report.</p></div>
+    <div className="paper grid gap-4 p-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{filters.map(([key, label, options]) => <label key={key} className="grid gap-1 text-xs font-bold">{label}<select className="w-full min-w-0 rounded-lg border border-ink/20 bg-paper p-2 text-sm" value={get(key)} onChange={(e) => change({ [key]: e.target.value })}>{options.map(([v, name]) => <option key={v} value={v}>{name}</option>)}</select></label>)}
+        {(['from', 'to'] as const).map((key) => <label key={key} className="grid gap-1 text-xs font-bold">{key === 'from' ? 'From (UTC)' : 'Through (UTC)'}<input type="date" className="min-w-0 rounded-lg border border-ink/20 bg-paper p-2 text-sm" value={get(key)} onChange={(e) => change({ [key]: e.target.value })} /></label>)}
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="grid gap-1">
-          <span className="label">Recent form</span>
-          <div className="flex gap-1" aria-label="Recent results, newest first">
-            {form.map((g) => (
-              <span
-                key={g.gameId}
-                title={`${g.won ? 'Won' : g.rank ? `#${g.rank}` : 'Played'} · ${modeName(g.mode)}`}
-                className={`grid h-7 w-7 place-items-center rounded-lg border-2 border-ink text-xs font-black ${g.won ? 'bg-amber' : 'bg-paper-2'}`}
-              >
-                {g.won ? <Trophy size={13} /> : (g.rank ?? '–')}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="grid gap-1 text-sm font-bold text-ink-soft">
-          {modes.map((x) => (
-            <span key={x.m} className="flex items-center gap-1.5">
-              {x.m === 'ck' ? <Crown size={14} /> : <Swords size={14} />}
-              {modeName(x.m)}: {x.games} game{x.games === 1 ? '' : 's'} · {x.wins} win{x.wins === 1 ? '' : 's'}
-              {x.place !== null && <span className="text-ink-faint">· avg. #{x.place.toFixed(1)}</span>}
-            </span>
-          ))}
-        </div>
-      </div>
+      <button type="button" className="justify-self-start text-xs font-bold underline" onClick={() => change(Object.fromEntries(Object.keys(DEFAULTS).map((key) => [key, null])))}>Clear filters</button>
+      {data && <p className="border-t border-ink/10 pt-3 text-sm text-ink-soft">Matching games: <b>{data.summary.games}</b> · Wins: <b>{data.summary.wins}</b> · Avg. place: <b>{data.summary.averagePlace?.toFixed(1) ?? '—'}</b> · Avg. VP: <b>{data.summary.averageVp?.toFixed(1) ?? '—'}</b></p>}
     </div>
-  );
-}
-
-function GameRow({ g }: { g: GameSummary }) {
-  return (
-    <article className="paper-flat flex flex-wrap items-center gap-3 p-3">
-      <span className={`grid h-10 w-10 place-items-center rounded-xl border-2 border-ink ${g.won ? 'bg-amber' : 'bg-paper-2'}`}>
-        {g.won ? <Trophy size={18} /> : <span className="display text-lg font-black">{g.rank ?? '–'}</span>}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 font-extrabold">
-          {g.won ? 'Victory' : g.rank ? `Finished #${g.rank}` : 'Played'}
-          <span className="flex items-center gap-1 rounded bg-ink px-1.5 text-[10px] font-black uppercase tracking-wider text-paper">
-            {g.mode === 'ck' ? <Crown size={10} /> : <Swords size={10} />} {modeName(g.mode)}
-          </span>
-        </div>
-        <p className="text-xs text-ink-faint">
-          {new Date(g.endedAt ?? g.startedAt).toLocaleString()}
-          {g.ratingDelta !== null && (
-            <span className={`ml-2 font-black ${g.ratingDelta >= 0 ? 'text-moss' : 'text-danger'}`}>
-              {g.ratingDelta >= 0 ? '+' : ''}
-              {g.ratingDelta} rating
-            </span>
-          )}
-        </p>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {g.players.map((p, i) => (
-          <span
-            key={i}
-            className={`rounded-md px-2 py-0.5 text-xs font-bold ${p.isYou ? 'ring-2 ring-ink' : ''}`}
-            style={{ background: PLAYER_COLORS[p.color].hex, color: PLAYER_COLORS[p.color].ink }}
-          >
-            {p.name} · {p.vp ?? '?'}
-            {p.won ? ' 🏆' : ''}
-          </span>
-        ))}
-      </div>
-    </article>
-  );
-}
-
-/** The profile's game history: a summary, then the latest few games with the rest behind a button. */
-export function GameHistory({ history }: { history: GameSummary[] }) {
-  const [all, setAll] = useState(false);
-  return (
-    <section className="grid gap-3">
-      <h2 className="display text-2xl font-black text-paper">Game history</h2>
-      {history.length === 0 ? (
-        <p className="text-foam/60">No finished games yet. Go win one!</p>
-      ) : (
-        <>
-          <Summary history={history} />
-          {(all ? history : history.slice(0, SHOWN)).map((g) => (
-            <GameRow key={g.gameId} g={g} />
-          ))}
-          {history.length > SHOWN && (
-            <button type="button" className="btn btn-dark justify-self-center px-4 py-2 text-sm" onClick={() => setAll((a) => !a)}>
-              {all ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              {all ? 'Show fewer' : `Show all ${history.length} games`}
-            </button>
-          )}
-        </>
-      )}
-    </section>
-  );
+    {error && <div role="alert" className="paper p-4"><p>{error}</p><button className="btn mt-2 px-3 py-2" onClick={() => data?.nextCursor ? void load(query, data.nextCursor) : setAttempt((n) => n + 1)}>Try again</button></div>}
+    {loading && <p role="status" className="text-sm text-paper">Loading games…</p>}
+    {data?.games.map((game) => <GameRow key={game.gameId} game={game} />)}
+    {data && !data.games.length && <p className="text-foam/70">No finished games match these filters. Clear the filters to see all your games.</p>}
+    {data?.nextCursor && <button type="button" disabled={loading} className="btn btn-dark justify-self-center px-5 py-2" onClick={() => void load(query, data.nextCursor!)}>Load more games</button>}
+  </section>;
 }

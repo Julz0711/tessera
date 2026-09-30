@@ -2,11 +2,14 @@ import { randomInt } from 'node:crypto';
 import { isPlayerColor } from '@/shared/colors';
 import { clampCosmetics } from '@/shared/cosmetics';
 import { sanitizeKnight } from '@/shared/knight';
-import type { FriendInfo, FriendsData, LeaderboardData, LeaderboardEntry, PlayerCard } from '@/shared/protocol';
+import type { FriendInfo, FriendProfileData, FriendsData, LeaderboardData, LeaderboardEntry, PlayerCard } from '@/shared/protocol';
+import type { Mode } from '@/engine/types';
 import { getDb } from './db';
 import type { ServerIdentity } from './identity';
 import { presenceOf, sendInvite } from './presence';
 import { UserError } from './room';
+import { modeRatingsFor } from './modeRatings';
+import { isRatingPool } from '@/shared/ratings';
 
 /**
  * Friends and the leaderboard. Both need an account (and a database): a friend is a person, not a
@@ -55,12 +58,13 @@ const cardSelect = {
   knight: true,
   cosmetics: true,
   avatarUrl: true,
+  preferences: true,
   rating: true,
   ratedGames: true,
   gamesWon: true,
   gamesPlayed: true,
   friendCode: true,
-  user: { select: { image: true } },
+  user: { select: { image: true, ratings: { select: { peakRating: true, ratedGames: true } } } },
 } as const;
 
 type CardRow = {
@@ -70,12 +74,13 @@ type CardRow = {
   knight: unknown;
   cosmetics: unknown;
   avatarUrl: string | null;
+  preferences: unknown;
   rating: number;
   ratedGames: number;
   gamesWon: number;
   gamesPlayed: number;
   friendCode: string | null;
-  user: { image: string | null };
+  user: { image: string | null; ratings?: { peakRating: number; ratedGames: number }[] };
 };
 
 async function cardsFor(db: Db, userIds: string[]): Promise<Map<string, PlayerCard>> {
@@ -86,14 +91,15 @@ async function cardsFor(db: Db, userIds: string[]): Promise<Map<string, PlayerCa
 }
 
 function toCard(r: CardRow): PlayerCard {
+  const preferences = r.preferences as { useProviderAvatar?: boolean } | null;
   return {
     code: r.friendCode ?? '',
     name: r.displayName,
     color: isPlayerColor(r.color) ? r.color : 'red',
     knight: sanitizeKnight(r.knight),
-    avatarUrl: r.avatarUrl ?? r.user.image ?? null,
+    avatarUrl: preferences?.useProviderAvatar === false ? null : (r.avatarUrl ?? r.user.image ?? null),
     // Stored cosmetics were checked when saved; re-clamp in case the rules changed since.
-    cosmetics: clampCosmetics(r.cosmetics, { gamesPlayed: r.gamesPlayed, gamesWon: r.gamesWon, rating: r.ratedGames > 0 ? r.rating : null }),
+    cosmetics: clampCosmetics(r.cosmetics, { gamesPlayed: r.gamesPlayed, gamesWon: r.gamesWon, rating: Math.max(r.ratedGames > 0 ? r.rating : 0, ...(r.user.ratings ?? []).filter((x) => x.ratedGames > 0).map((x) => x.peakRating)) || null }),
     rating: r.rating,
     ratedGames: r.ratedGames,
   };
@@ -156,6 +162,54 @@ export async function friendsFor(identity: ServerIdentity | null): Promise<Frien
 }
 
 const statusOrder = (s: FriendInfo['status']) => ({ playing: 1, lobby: 0, online: 2, offline: 3 })[s];
+
+/** Only accepted friends can read this profile, including its recent results and presence. */
+export async function friendProfileFor(identity: ServerIdentity, input: unknown): Promise<FriendProfileData | null> {
+  const db = getDb();
+  const code = normalizeFriendCode(input);
+  if (!db || identity.kind !== 'user' || !code) return null;
+  const row = await db.profile.findFirst({
+    where: {
+      friendCode: code,
+      user: {
+        OR: [
+          { friendsAsked: { some: { addresseeId: identity.id, status: 'accepted' } } },
+          { friendsAnswered: { some: { requesterId: identity.id, status: 'accepted' } } },
+        ],
+      },
+    },
+    select: cardSelect,
+  });
+  if (!row) return null;
+  const games = await db.player.findMany({
+    where: { userId: row.userId, game: { status: 'finished' } },
+    orderBy: [{ game: { startedAt: 'desc' } }, { gameId: 'desc' }],
+    take: 10,
+    select: {
+      won: true, rank: true, finalVp: true, ratingDelta: true, ratingPool: true,
+      game: { select: { mode: true, startedAt: true, endedAt: true } },
+    },
+  });
+  const presence = presenceOf(`u:${row.userId}`);
+  const shared = { status: 'finished', players: { some: { userId: identity.id } } };
+  const [ratings, gamesTogether, yourWins, theirWins] = await Promise.all([
+    modeRatingsFor(row.userId),
+    db.player.count({ where: { userId: row.userId, game: shared } }),
+    db.player.count({ where: { userId: identity.id, won: true, game: { status: 'finished', players: { some: { userId: row.userId } } } } }),
+    db.player.count({ where: { userId: row.userId, won: true, game: shared } }),
+  ]);
+  return {
+    ratings, headToHead: { games: gamesTogether, yourWins, theirWins },
+    friend: { ...toCard(row), status: presence.status, roomCode: presence.roomCode },
+    stats: { gamesPlayed: row.gamesPlayed, gamesWon: row.gamesWon },
+    recentGames: games.map((p) => ({
+      mode: p.game.mode as Mode,
+      startedAt: p.game.startedAt.toISOString(),
+      endedAt: p.game.endedAt?.toISOString() ?? null,
+      won: p.won, rank: p.rank, finalVp: p.finalVp, ratingDelta: p.ratingDelta, ratingPool: p.ratingPool,
+    })),
+  };
+}
 
 /** Sends a friend request — or accepts theirs, if they already asked. */
 export async function requestFriend(identity: ServerIdentity | null, code: unknown): Promise<void> {
@@ -226,27 +280,41 @@ export async function inviteFriend(identity: ServerIdentity | null, code: unknow
   }
 }
 
-export async function leaderboard(identity: ServerIdentity | null): Promise<LeaderboardData> {
+export async function leaderboard(identity: ServerIdentity | null, params = new URLSearchParams()): Promise<LeaderboardData> {
+  const pool = isRatingPool(params.get('mode')) ? params.get('mode') as 'classic' | 'ck' : 'classic';
+  const scope: 'friends' | 'world' = params.get('scope') === 'friends' ? 'friends' : 'world';
+  const pageInput = Number(params.get('page') ?? 1);
+  let page = Number.isSafeInteger(pageInput) ? Math.min(10000, Math.max(1, pageInput)) : 1;
   const db = getDb();
-  if (!db) return { enabled: false, entries: [], you: null };
-  const rows = (await db.profile.findMany({
-    where: { ratedGames: { gt: 0 } },
-    orderBy: [{ rating: 'desc' }, { ratedGames: 'desc' }],
-    take: LEADERBOARD_SIZE,
-    select: cardSelect,
-  })) as CardRow[];
   const me = identity?.kind === 'user' ? identity.id : null;
-  for (const r of rows) if (!r.friendCode) r.friendCode = await ensureCode(db, r.userId);
-  const entries: LeaderboardEntry[] = rows.map((r, i) => ({ ...toCard(r), place: i + 1, gamesWon: r.gamesWon, isYou: r.userId === me }));
-  let you: LeaderboardEntry | null = null;
-  if (me && !entries.some((e) => e.isYou)) {
-    const mine = (await db.profile.findUnique({ where: { userId: me }, select: cardSelect })) as CardRow | null;
-    if (mine && mine.ratedGames > 0) {
-      const above = await db.profile.count({ where: { ratedGames: { gt: 0 }, rating: { gt: mine.rating } } });
-      if (!mine.friendCode) mine.friendCode = await ensureCode(db, me);
-      you = { ...toCard(mine), place: above + 1, gamesWon: mine.gamesWon, isYou: true };
-    }
+  const empty = { enabled: !!db, entries: [], you: null, pool, scope, page: 1, pages: 1, total: 0 };
+  if (!db) return empty;
+  if (scope === 'friends' && !me) return { ...empty, signInRequired: true };
+  const links = me ? await db.friendship.findMany({ where: { status: 'accepted', OR: [{ requesterId: me }, { addresseeId: me }] } }) : [];
+  const friendIds = new Set(links.map((l) => l.requesterId === me ? l.addresseeId : l.requesterId));
+  const base = { poolKey: pool, ratedGames: { gt: 0 }, ...(scope === 'friends' ? { userId: { in: [me!, ...friendIds] } } : {}) };
+  const search = (params.get('q') ?? '').trim().slice(0, 60);
+  const where = { ...base, ...(search ? { user: { profile: { OR: [
+    { displayName: { contains: search, mode: 'insensitive' as const } }, { friendCode: { equals: normalizeFriendCode(search) ?? search } },
+  ] } } } : {}) };
+  const mine = me ? await db.playerRating.findUnique({ where: { userId_poolKey: { userId: me, poolKey: pool } } }) : null;
+  const total = await db.playerRating.count({ where });
+  const pages = Math.max(1, Math.ceil(total / LEADERBOARD_SIZE));
+  if (params.get('around') === 'me' && mine?.ratedGames && !search) {
+    const above = await db.playerRating.count({ where: { ...base, OR: [{ rating: { gt: mine.rating } }, { rating: mine.rating, userId: { lt: me! } }] } });
+    page = Math.floor(above / LEADERBOARD_SIZE) + 1;
   }
-  return { enabled: true, entries, you };
+  page = Math.min(page, pages);
+  const rows = await db.playerRating.findMany({ where, orderBy: [{ rating: 'desc' }, { userId: 'asc' }], skip: (page - 1) * LEADERBOARD_SIZE, take: LEADERBOARD_SIZE });
+  const ids = [...new Set([...rows.map((r) => r.userId), ...(mine?.ratedGames ? [me!] : [])])];
+  const cards = await cardsFor(db, ids);
+  const ranks = new Map<number, number>();
+  await Promise.all([...new Set([...rows.map((r) => r.rating), ...(mine?.ratedGames ? [mine.rating] : [])])].map(async (rating) => {
+    ranks.set(rating, 1 + await db.playerRating.count({ where: { ...base, rating: { gt: rating } } }));
+  }));
+  const entry = (r: typeof rows[number]): LeaderboardEntry | null => {
+    const card = cards.get(r.userId); if (!card) return null;
+    return { ...card, rating: r.rating, ratedGames: r.ratedGames, gamesWon: r.ratedWins, place: ranks.get(r.rating)!, isYou: r.userId === me, isFriend: friendIds.has(r.userId) };
+  };
+  return { ...empty, page, pages, total, entries: rows.map(entry).filter((e): e is LeaderboardEntry => !!e), you: mine?.ratedGames ? entry(mine) : null };
 }
-

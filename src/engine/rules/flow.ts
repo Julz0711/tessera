@@ -9,6 +9,7 @@ import { emit, type Ctx } from '../state';
 import { CARDS, type Hand, type Prompt, type Step } from '../types';
 import { checkWinner } from './awards';
 import { requireActive } from './common';
+import { countStat, recordExpectedProduction } from '../detailedStats';
 
 /** Runs queued steps while no prompt is pending. */
 export function advance(ctx: Ctx): void {
@@ -44,6 +45,7 @@ export function rollDice(ctx: Ctx): void {
   requireActive(ctx);
   const s = ctx.s;
   assertRule(!s.turn.rolled, 'You already rolled this turn');
+  recordExpectedProduction(s);
   // The Alchemist sets the dice; otherwise roll them, or draw from the bag for balanced dice.
   const { red, yellow } = s.turn.alchemist ?? (s.settings.dice === 'balanced' ? drawBalanced(s) : { red: rollDie(s), yellow: rollDie(s) });
   const event = s.mode === 'ck' ? EVENT_DIE[randomInt(s, EVENT_DIE.length)] : undefined;
@@ -67,6 +69,12 @@ export function produce(ctx: Ctx): void {
   const goldPicks = s.players.map(() => 0);
 
   for (const hex of s.board.hexes) {
+    if (hex.token === total && hex.id === s.robber && !hex.fog && (TERRAIN_RESOURCE[hex.terrain] || hex.terrain === 'gold')) {
+      for (const v of ctx.topo.hexes[hex.id].vertices) {
+        const b = s.buildings[v];
+        if (b) countStat(s, 'blockedProduction', b.owner, b.city ? 2 : 1);
+      }
+    }
     if (hex.token !== total || hex.id === s.robber || hex.fog) continue;
     if (hex.terrain === 'gold') {
       for (const v of ctx.topo.hexes[hex.id].vertices) {
@@ -101,6 +109,7 @@ export function produce(ctx: Ctx): void {
     }
   }
   gains.forEach((g, seat) => {
+    countStat(s, 'shortageLoss', seat, handTotal(demand[seat]) - handTotal(g));
     for (const card of CARDS) {
       s.bank[card] -= g[card];
       s.players[seat].hand[card] += g[card];

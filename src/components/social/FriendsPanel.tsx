@@ -15,16 +15,20 @@ const STATUS: Record<FriendInfo['status'], { label: string; dot: string }> = {
   offline: { label: 'Offline', dot: 'bg-ink/25' },
 };
 
-function Person({ card, sub, children }: { card: PlayerCard; sub?: React.ReactNode; children?: React.ReactNode }) {
+function Person({ card, sub, children, profile = false }: { card: PlayerCard; sub?: React.ReactNode; children?: React.ReactNode; profile?: boolean }) {
   return (
     <li className="flex items-center gap-2.5 rounded-xl bg-paper-2/70 p-1.5 pr-2">
       <PlayerPortrait knight={card.knight} color={card.color} avatarUrl={card.avatarUrl} frame={card.cosmetics.frame} size={40} />
       <div className="min-w-0 flex-1">
         <p className="flex items-center gap-1.5 truncate text-sm font-extrabold leading-tight">
-          <span className="truncate">{card.name}</span>
+          {profile ? (
+            <Link href={`/profile/${card.code}`} className="truncate underline decoration-ink/25 underline-offset-2 hover:decoration-ink focus-visible:outline-2" aria-label={`View ${card.name}'s profile`}>
+              {card.name}
+            </Link>
+          ) : <span className="truncate">{card.name}</span>}
           <TitleTag title={card.cosmetics.title} className="shrink-0" />
         </p>
-        <p className="truncate text-xs font-semibold text-ink-faint">{sub ?? `${card.rating} rating`}</p>
+        <p className="truncate text-xs font-semibold text-ink-faint">{sub ?? (profile ? 'View profile and mode ratings' : 'Player')}</p>
       </div>
       <div className="flex shrink-0 items-center gap-1">{children}</div>
     </li>
@@ -83,14 +87,14 @@ export function FriendsPanel({ mode = 'full', roomCode }: { mode?: 'full' | 'inv
     return (
       <ul className="grid gap-1.5">
         {available.map((f) => (
-          <Person key={f.code} card={f} sub={STATUS[f.status].label}>
+          <Person key={f.code} card={f} profile sub={STATUS[f.status].label}>
             <button type="button" className="btn btn-primary h-8 px-2.5 text-xs" disabled={busy} onClick={() => run('invite', f.code, `Invite sent to ${f.name}`)}>
               <Mail size={14} /> Invite
             </button>
           </Person>
         ))}
         {here.map((f) => (
-          <Person key={f.code} card={f} sub="In this room" />
+          <Person key={f.code} card={f} profile sub="In this room" />
         ))}
         {!available.length && !here.length && <p className="text-sm text-ink-soft">None of your friends are online right now.</p>}
       </ul>
@@ -157,9 +161,10 @@ export function FriendsPanel({ mode = 'full', roomCode }: { mode?: 'full' | 'inv
               <Person
                 key={f.code}
                 card={f}
+                profile
                 sub={
                   <span className="flex items-center gap-1.5">
-                    <span className={`inline-block h-2 w-2 rounded-full ${STATUS[f.status].dot}`} /> {STATUS[f.status].label} · {f.rating}
+                    <span className={`inline-block h-2 w-2 rounded-full ${STATUS[f.status].dot}`} /> {STATUS[f.status].label}
                   </span>
                 }
               >

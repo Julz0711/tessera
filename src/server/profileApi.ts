@@ -16,6 +16,31 @@ export function sanitizePreferences(input: unknown): ProfilePreferences {
   if (typeof src.volume === 'number' && Number.isFinite(src.volume)) out.volume = Math.min(1, Math.max(0, src.volume));
   if (src.language === 'en') out.language = 'en';
   if (typeof src.useProviderAvatar === 'boolean') out.useProviderAvatar = src.useProviderAvatar;
+  if (typeof src.buildHints === 'boolean') out.buildHints = src.buildHints;
+  if (typeof src.confirmBuilds === 'boolean') out.confirmBuilds = src.confirmBuilds;
+  if (typeof src.weather === 'boolean') out.weather = src.weather;
+  if (src.boardScale === 'small' || src.boardScale === 'medium' || src.boardScale === 'large') out.boardScale = src.boardScale;
+  if (src.motion === 'system' || src.motion === 'full' || src.motion === 'reduced') out.motion = src.motion;
+  if (src.hudScale === 'small' || src.hudScale === 'medium' || src.hudScale === 'large') out.hudScale = src.hudScale;
+  if (typeof src.boardTheme === 'string' && /^[a-z0-9_-]{1,32}$/i.test(src.boardTheme)) out.boardTheme = src.boardTheme;
+  // Layout and per-sound volumes: the shape is checked strictly here; the client's own sanitizers drop unknown keys.
+  if (src.hudLayout && typeof src.hudLayout === 'object') {
+    const layout: NonNullable<ProfilePreferences['hudLayout']> = {};
+    for (const [panel, v] of Object.entries(src.hudLayout as Record<string, unknown>).slice(0, 16)) {
+      const p = v as { slot?: unknown; order?: unknown } | null;
+      if (p && typeof p.slot === 'string' && p.slot.length <= 24 && typeof p.order === 'number' && Number.isFinite(p.order)) {
+        layout[panel.slice(0, 24)] = { slot: p.slot, order: p.order };
+      }
+    }
+    out.hudLayout = layout;
+  }
+  if (src.sfxVolume && typeof src.sfxVolume === 'object') {
+    const vols: Record<string, number> = {};
+    for (const [k, v] of Object.entries(src.sfxVolume as Record<string, unknown>).slice(0, 64)) {
+      if (typeof v === 'number' && Number.isFinite(v)) vols[k.slice(0, 32)] = Math.min(1, Math.max(0, v));
+    }
+    out.sfxVolume = vols;
+  }
   return out;
 }
 

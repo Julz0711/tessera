@@ -9,6 +9,7 @@ export function Modal({
   title,
   children,
   wide = false,
+  expansive = false,
   dismissable = true,
   dim = true,
 }: {
@@ -17,6 +18,7 @@ export function Modal({
   title?: React.ReactNode;
   children: React.ReactNode;
   wide?: boolean;
+  expansive?: boolean;
   dismissable?: boolean;
   /** Darken and blur the screen behind the dialog. */
   dim?: boolean;
@@ -76,7 +78,7 @@ export function Modal({
       <div
         ref={contentRef}
         tabIndex={-1}
-        className={`paper animate-pop max-h-[92dvh] w-full overflow-y-auto p-5 outline-none scroll-thin ${wide ? 'max-w-2xl' : 'max-w-md'}`}
+        className={`paper animate-pop max-h-[92dvh] w-full overflow-y-auto p-5 outline-none scroll-thin ${expansive ? 'max-w-6xl' : wide ? 'max-w-2xl' : 'max-w-md'}`}
       >
         {(title || (dismissable && onClose)) && (
           <div className="mb-3 flex items-start justify-between gap-3">

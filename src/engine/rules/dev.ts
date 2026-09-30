@@ -1,4 +1,5 @@
 import { COSTS } from '../constants';
+import { recordSpend } from '../detailedStats';
 import { assertRule } from '../errors';
 import { transfer } from '../hand';
 import { freeRouteCount, freeRouteLeft } from '../queries';
@@ -13,6 +14,7 @@ export function buyDevCard(ctx: Ctx): void {
   const s = ctx.s;
   assertRule(s.devDeck.length > 0, 'No development cards left');
   transfer(s.players[ctx.seat].hand, s.bank, COSTS.devCard, 'Not enough resources for a development card');
+  recordSpend(s, ctx.seat, COSTS.devCard, 'development card');
   const type = s.devDeck.pop()!;
   s.players[ctx.seat].devCards.push({ type, boughtOn: s.turn.n });
   emit(ctx, { type: 'devBought', seat: ctx.seat }, { data: { card: type }, to: [ctx.seat] });
