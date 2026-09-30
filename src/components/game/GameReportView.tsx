@@ -4,7 +4,7 @@ import type { GameReport } from '@/engine/report';
 import { reportMapName } from '@/engine/report';
 import { reportCsv, reportMetrics, type ReportMetric } from '@/engine/reportMetrics';
 import { PLAYER_COLORS } from '@/shared/colors';
-import { MODE_LABEL } from '@/shared/ratings';
+import { MODE_LABEL, ratingPoolFor } from '@/shared/ratings';
 import { DiceHistogram } from './DiceStats';
 
 const format = (n: number | null) => n === null ? '—' : Number.isInteger(n) ? String(n) : n.toFixed(1);
@@ -22,7 +22,7 @@ export function GameReportView({ report, initialSeat }: { report: GameReport; in
   const [timelineMetric, setTimelineMetric] = useState<'vp' | 'production' | 'spent' | 'hand' | 'improvements'>('vp');
   const metrics = useMemo(() => reportMetrics(report), [report]);
   const stats = report.stats, d = stats?.details;
-  const sections = ['Overview', 'Economy', 'Trades', 'Building', ...(report.mode === 'classic' ? ['Cards'] : ['Cities & Knights']),
+  const sections = ['Overview', 'Economy', 'Trades', 'Building', ...(report.mode === 'classic' ? ['Cards'] : ['Knights & Barbarians']),
     ...(metrics.some((m) => m.section === 'Exploration') ? ['Exploration'] : []), 'Dice', 'Timeline'];
   const seats = selected === 'all' ? report.players.map((_, i) => i) : [Number(selected), ...(compare !== 'none' && compare !== 'average' && compare !== selected ? [Number(compare)] : [])];
   const tableAverage = selected !== 'all' && compare === 'average';
@@ -42,7 +42,7 @@ export function GameReportView({ report, initialSeat }: { report: GameReport; in
     return `${label}: ${report.players.filter((_, i) => values[i] === best).map((p) => p.name).join(', ')} (${format(best)})`;
   };
   return <div className="grid min-w-0 gap-5">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="label">{MODE_LABEL[report.mode]} · {reportMapName(report)}</p><h2 className="display mt-1 text-3xl font-black">Match report</h2><p className="mt-1 text-xs text-ink-faint">{report.turns} player turns · Target {report.target} VP · {report.diceMode} dice{elapsed !== null ? ` · ${elapsed} min elapsed` : ''}</p></div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="label">{MODE_LABEL[ratingPoolFor(report.mode, report.map)]} · {reportMapName(report)}</p><h2 className="display mt-1 text-3xl font-black">Match report</h2><p className="mt-1 text-xs text-ink-faint">{report.turns} player turns · Target {report.target} VP · {report.diceMode} dice{elapsed !== null ? ` · ${elapsed} min elapsed` : ''}</p></div>
       <div className="flex gap-2"><button className="btn px-3 py-2 text-xs" onClick={() => download(report, 'csv')}>Export CSV</button><button className="btn px-3 py-2 text-xs" onClick={() => download(report, 'json')}>Export JSON</button></div></div>
     {(!d?.complete || stats?.partial) && <p className="rounded-xl bg-amber/20 p-3 text-sm">{!stats ? 'Stats were not recorded for this game.' : d ? `Detailed tracking started at turn ${d.fromTurn}. These counters cover only part of the game.` : 'Historical report: detailed counters and timeline were not recorded.'}</p>}
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">

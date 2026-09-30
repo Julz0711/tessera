@@ -2,7 +2,7 @@ import { handTotal } from './hand';
 import { CARDS } from './types';
 import type { GameReport } from './report';
 
-export type ReportSection = 'Overview' | 'Economy' | 'Trades' | 'Building' | 'Cards' | 'Cities & Knights' | 'Exploration';
+export type ReportSection = 'Overview' | 'Economy' | 'Trades' | 'Building' | 'Cards' | 'Knights & Barbarians' | 'Exploration';
 export interface ReportMetric { section: ReportSection; label: string; definition: string; values: (number | null)[] }
 export const humanize = (text: string) => text.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/:/g, ' · ').replace(/^./, (c) => c.toUpperCase());
 const DEFINITIONS: Record<string, string> = {
@@ -36,9 +36,9 @@ export function reportMetrics(report: GameReport): ReportMetric[] {
   add('Cards', 'Development cards bought', stats.devBought); add('Cards', 'Knights played', stats.knightsPlayed);
   add('Cards', 'Unused development cards', players.map((p) => p.unusedDev));
   if (report.mode === 'ck') {
-    add('Cities & Knights', 'Progress cards played', stats.progressPlayed);
-    add('Cities & Knights', 'Unused progress cards', players.map((p) => p.unusedProgress));
-    for (const track of ['science', 'trade', 'politics']) add('Cities & Knights', `${humanize(track)} level`, players.map((p) => p.improvements[track] ?? 0));
+    add('Knights & Barbarians', 'Progress cards played', stats.progressPlayed);
+    add('Knights & Barbarians', 'Unused progress cards', players.map((p) => p.unusedProgress));
+    for (const track of ['science', 'trade', 'politics']) add('Knights & Barbarians', `${humanize(track)} level`, players.map((p) => p.improvements[track] ?? 0));
   }
   const cards = report.mode === 'ck' ? CARDS : CARDS.slice(0, 5);
   for (const card of cards) add('Economy', `Produced · ${card}`, stats.produced.map((h) => h[card]));
@@ -48,7 +48,7 @@ export function reportMetrics(report: GameReport): ReportMetric[] {
     if (/^(bankRatio|partner|offers|responses)/.test(key)) section = 'Trades';
     else if (/^(built|setup|free|firstCity|longest|largest|roadsLost)/.test(key)) section = 'Building';
     else if (/^(devBought|devPlayed)/.test(key)) section = 'Cards';
-    else if (/^(progress|knight|improvements|metropol|cityLost|barbarian|defen|merchant)/.test(key)) section = 'Cities & Knights';
+    else if (/^(progress|knight|improvements|metropol|cityLost|barbarian|defen|merchant)/.test(key)) section = 'Knights & Barbarians';
     else if (/^(shipMoved|hexes|treasure|island)/.test(key)) section = 'Exploration';
     const label = key.startsWith('partner:') ? `Transfers with ${players[Number(key.split(':')[1])]?.name}` : key.startsWith('robbed:') ? `Steals from ${players[Number(key.split(':')[1])]?.name}` : humanize(key);
     add(section, label, values, DEFINITIONS[key] ?? `${label}. Accumulated since turn ${d.fromTurn}; quantities are counts unless labeled as spending or income.`);

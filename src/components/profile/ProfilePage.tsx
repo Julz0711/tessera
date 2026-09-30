@@ -11,6 +11,7 @@ import type { ProfileData } from '@/shared/protocol';
 import { DEFAULT_KNIGHT } from '@/shared/knight';
 import { PlayerPortrait, TitleTag } from './Cosmetics';
 import { GameHistory } from './GameHistory';
+import { MODE_LABEL } from '@/shared/ratings';
 import { ModeRatings } from './ModeRatings';
 import { useUrlFilters } from '@/client/urlFilters';
 const PROFILE_FILTERS = { tab: 'overview' };
@@ -101,7 +102,7 @@ export function ProfilePage() {
                 <Stat label="Games played" value={stats.gamesPlayed} />
                 <Stat label="Games won" value={stats.gamesWon} />
                 <Stat label="Win rate" value={`${winRate}%`} />
-                <Stat label="Recent favorite mode" value={data.favoriteMode === 'ck' ? 'C&K' : data.favoriteMode === 'classic' ? 'Classic' : '—'} />
+                <Stat label="Recent favorite mode" value={data.favoriteMode ? MODE_LABEL[data.favoriteMode] : '—'} />
 
               </div>
               <div className="flex flex-wrap gap-2">
@@ -135,7 +136,7 @@ export function ProfilePage() {
           </section>
         )}
 
-        {data && tab === 'overview' && user && <section className="paper grid gap-3 p-5"><h2 className="display text-2xl font-black">Ratings by mode</h2><ModeRatings ratings={data.ratings} /><p className="text-xs text-ink-faint">Each mode has its own ladder. Maps share their ruleset?s ladder; your first 10 rated games are provisional.</p>{!!data.rating?.ratedGames && <p className="text-xs text-ink-faint">Legacy shared rating: {data.rating.rating} ? {data.rating.ratedGames} games before mode ladders.</p>}</section>}
+        {data && tab === 'overview' && user && <section className="paper grid gap-3 p-5"><h2 className="display text-2xl font-black">Ratings by mode</h2><ModeRatings ratings={data.ratings} /><p className="text-xs text-ink-faint">Each mode has its own ladder. Classic, Knights &amp; Barbarians, Voyagers and Special are rated separately; your first 10 rated games are provisional.</p>{!!data.rating?.ratedGames && <p className="text-xs text-ink-faint">Legacy shared rating: {data.rating.rating} &middot; {data.rating.ratedGames} games before mode ladders.</p>}</section>}
         {data && tab === 'friends' && (
           <section className="paper grid gap-3 p-5 sm:p-7">
             <h2 className="display text-2xl font-black">Friends</h2>

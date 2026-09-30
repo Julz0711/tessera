@@ -1,3 +1,4 @@
+import { ratingPoolFor, RATING_POOLS, type RatingPool } from '@/shared/ratings';
 import type { Mode, PlayerColor } from '@/engine/types';
 import { isPlayerColor } from '@/shared/colors';
 import { clampCosmetics } from '@/shared/cosmetics';
@@ -58,6 +59,7 @@ export async function historyFor(identity: ServerIdentity, take = 25): Promise<G
   return rows.map((me) => ({
     gameId: me.gameId,
     mode: me.game.mode as Mode,
+    map: (me.game.settings as { map?: string } | null)?.map,
     startedAt: me.game.startedAt.toISOString(),
     endedAt: me.game.endedAt?.toISOString() ?? null,
     status: me.game.status,
@@ -127,8 +129,12 @@ export async function updateProfile(identity: ServerIdentity, input: unknown): P
   }
 }
 
-export function favoriteMode(history: GameSummary[]): Mode | null {
+export function favoriteMode(history: GameSummary[]): RatingPool | null {
   if (!history.length) return null;
-  const ck = history.filter((g) => g.mode === 'ck').length;
-  return ck > history.length / 2 ? 'ck' : 'classic';
+  const counts = new Map<RatingPool, number>(RATING_POOLS.map((pool) => [pool, 0]));
+  for (const game of history) {
+    const pool = ratingPoolFor(game.mode, game.map);
+    counts.set(pool, counts.get(pool)! + 1);
+  }
+  return [...counts].sort((a, b) => b[1] - a[1])[0][0];
 }

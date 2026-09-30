@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { FriendInfo, FriendProfileData } from '@/shared/protocol';
 import { PlayerPortrait, TitleTag } from './Cosmetics';
+import { MODE_LABEL, ratingPoolFor } from '@/shared/ratings';
 import { ModeRatings } from './ModeRatings';
 import { Logomark } from '@/components/ui/Logomark';
 
@@ -99,7 +100,7 @@ export function FriendProfilePage({ code }: { code: string }) {
                         {game.won ? <Trophy size={17} aria-label="Victory" /> : game.rank === null ? '—' : `#${game.rank}`}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-extrabold">{game.mode === 'ck' ? 'Cities & Knights' : 'Classic'} <span className="font-semibold text-ink-soft">· {game.finalVp ?? '—'} VP</span></p>
+                        <p className="text-sm font-extrabold">{MODE_LABEL[ratingPoolFor(game.mode, game.map)]} <span className="font-semibold text-ink-soft">· {game.finalVp ?? '—'} VP</span></p>
                         <time dateTime={game.endedAt ?? game.startedAt} className="text-xs text-ink-faint">{new Date(game.endedAt ?? game.startedAt).toLocaleDateString()}</time>
                       </div>
                       <span className={`shrink-0 text-sm font-bold tabular ${game.ratingDelta !== null && game.ratingDelta > 0 ? 'text-moss' : 'text-ink-soft'}`}>

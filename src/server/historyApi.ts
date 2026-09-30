@@ -1,7 +1,7 @@
-import type { Prisma } from '@/generated/prisma/client';
+import { Prisma } from '@/generated/prisma/client';
 import type { GameReport } from '@/engine/report';
 import type { Mode, PlayerColor } from '@/engine/types';
-import { MAPS } from '@/engine/maps';
+import { MAPS, mapsForType } from '@/engine/maps';
 import { isPlayerColor } from '@/shared/colors';
 import type { GameSummary, HistoryData } from '@/shared/protocol';
 import { isRatingPool } from '@/shared/ratings';
@@ -27,7 +27,13 @@ export async function pagedHistory(identity: ServerIdentity, params: URLSearchPa
   const game: Prisma.GameWhereInput = { status: 'finished' };
   const where: Prisma.PlayerWhereInput = { ...owner(identity), game };
   const mode = params.get('mode');
-  if (mode && mode !== 'all') { if (!isRatingPool(mode)) throw new UserError('Invalid mode'); game.mode = mode; }
+  if (mode && mode !== 'all') {
+    if (!isRatingPool(mode)) throw new UserError('Invalid mode');
+    if (mode === 'classic' || mode === 'ck') game.mode = mode;
+    game.OR = mapsForType(mode).map((m) => ({ settings: { path: ['map'], equals: m.id } }));
+    // Old games without a map setting used the standard board.
+    if (mode === 'classic' || mode === 'ck') game.OR.push({ settings: { path: ['map'], equals: Prisma.DbNull } });
+  }
   const map = params.get('map');
   if (map && map !== 'all') { if (!Object.hasOwn(MAPS, map)) throw new UserError('Invalid map'); game.settings = { path: ['map'], equals: map }; }
   const result = params.get('result');
