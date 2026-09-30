@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@/generated/prisma/client';
 import { createGame } from '@/engine';
-import type { Mode } from '@/engine/types';
+import type { MapId, Mode } from '@/engine/types';
 import { DEFAULT_KNIGHT } from '@/shared/knight';
 import { DEFAULT_ROOM_SETTINGS } from '@/shared/protocol';
 import { finalizeGame } from '../finalizeGame';
@@ -24,14 +24,14 @@ describe.skipIf(!url)('social and reports with PostgreSQL', () => {
   async function users() {
     return Promise.all(['Alice', 'Bob', 'Carol'].map((name) => db.user.create({ data: { name, profile: { create: { displayName: name, rating: 1400, ratedGames: 20 } } } })));
   }
-  async function match(ids: string[], mode: Mode = 'classic') {
-    const room = await db.room.create({ data: { code: randomUUID(), status: 'playing', settings: { ...DEFAULT_ROOM_SETTINGS, mode } } });
-    const game = await db.game.create({ data: { roomId: room.id, mode, status: 'playing', settings: { ...DEFAULT_ROOM_SETTINGS, mode } } });
+  async function match(ids: string[], mode: Mode = 'classic', map: MapId = 'standard') {
+    const room = await db.room.create({ data: { code: randomUUID(), status: 'playing', settings: { ...DEFAULT_ROOM_SETTINGS, mode, map } } });
+    const game = await db.game.create({ data: { roomId: room.id, mode, status: 'playing', settings: { ...DEFAULT_ROOM_SETTINGS, mode, map } } });
     const seats = ids.map((userId, seat) => ({ playerId: randomUUID(), identityKey: `u:${userId}`, isBot: false, name: `Player ${seat}`, color: (['red', 'blue', 'green'] as const)[seat], knight: DEFAULT_KNIGHT }));
     await db.player.createMany({ data: seats.map((s, seat) => ({ id: s.playerId, gameId: game.id, seat, userId: ids[seat], displayName: s.name, color: s.color, knightCustomization: { face: null } })) });
-    const state = createGame({ seed: 12, mode, players: seats.map((s) => ({ id: s.playerId, name: s.name, color: s.color, isBot: false })) });
+    const state = createGame({ seed: 12, mode, settings: { map }, players: seats.map((s) => ({ id: s.playerId, name: s.name, color: s.color, isBot: false })) });
     state.phase = 'ended'; state.winner = 0; state.turn.n = 5;
-    return { gameId: game.id, room: { id: room.id, code: room.code, status: 'playing', settings: { ...DEFAULT_ROOM_SETTINGS, mode } }, seats, state };
+    return { gameId: game.id, room: { id: room.id, code: room.code, status: 'playing', settings: { ...DEFAULT_ROOM_SETTINGS, mode, map } }, seats, state };
   }
 
   it('finalizes once, keeps pools independent and preserves legacy ratings', async () => {
@@ -45,6 +45,35 @@ describe.skipIf(!url)('social and reports with PostgreSQL', () => {
     expect(await db.profile.findUnique({ where: { userId: a.id } })).toMatchObject({ gamesPlayed: 2, rating: 1400, ratedGames: 20 });
     expect(await db.player.findUnique({ where: { id: classic.seats[0].playerId } })).toMatchObject({ ratingBefore: 1000, ratingAfter: 1024, ratingPool: 'classic', ratingDelta: 24 });
     expect((await reportFor(identity(a.id), classic.gameId))?.players[0].rating?.delta).toBe(24);
+  });
+  it('rates and filters all four lobby modes without mixing map-based modes into the base ladders', async () => {
+    const [a, b] = await users();
+    const cases = [
+      ['classic', 'standard', 'classic'], ['ck', 'standard', 'ck'],
+      ['classic', 'farShores', 'voyagers'], ['ck', 'fourRealms', 'voyagers'],
+      ['ck', 'veiledIsles', 'special'], ['ck', 'citadel', 'special'],
+    ] as const;
+    for (const [mode, map, pool] of cases) {
+      const game = await match([a.id, b.id], mode, map);
+      await finalizeGame(db, game);
+      expect(await db.player.findUnique({ where: { id: game.seats[0].playerId } })).toMatchObject({ ratingPool: pool });
+      expect((await reportFor(identity(a.id), game.gameId))?.players[0].rating?.pool).toBe(pool);
+    }
+    for (const [pool, count] of [['classic', 1], ['ck', 1], ['voyagers', 2], ['special', 2]] as const) {
+      const rating = await db.playerRating.findUniqueOrThrow({ where: { userId_poolKey: { userId: a.id, poolKey: pool } } });
+      expect(rating.ratedGames).toBe(count);
+      const history = await pagedHistory(identity(a.id), new URLSearchParams({ mode: pool }));
+      expect(history.summary.games).toBe(count);
+      expect(history.games.every((g) => g.ratingPool === pool)).toBe(true);
+      const board = await leaderboard(identity(a.id), new URLSearchParams({ mode: pool }));
+      expect(board.pool).toBe(pool);
+      expect(board.you?.ratedGames).toBe(count);
+    }
+    expect((await pagedHistory(identity(a.id), new URLSearchParams({ mode: 'classic', map: 'farShores' }))).games).toEqual([]);
+    // Historical records without map metadata still belong to the base ruleset.
+    await db.game.create({ data: { roomId: (await match([a.id, b.id])).room.id, mode: 'classic', status: 'finished', settings: {},
+      players: { create: { id: randomUUID(), seat: 0, userId: a.id, displayName: 'A', color: 'red', knightCustomization: {} } } } });
+    expect((await pagedHistory(identity(a.id), new URLSearchParams({ mode: 'classic' }))).summary.games).toBe(2);
   });
   it('serializes concurrent results for the same players', async () => {
     const [a, b] = await users();

@@ -8,7 +8,7 @@ import { ratingChanges } from './rating';
 export async function finalizeGame(db: Db, game: PersistGame): Promise<void> {
   if (game.state.phase !== 'ended') throw new Error('Cannot finalize an unfinished game');
   const report = buildReport(game.state);
-  const pool = ratingPoolFor(game.state.mode);
+  const pool = ratingPoolFor(game.state.mode, game.state.settings.map);
   const places = standings(report.players.map((p) => p.vp), game.state.winner);
   await db.$transaction(async (tx) => {
     // Claim this game first. A duplicate completion waits, then sees finished and does nothing.

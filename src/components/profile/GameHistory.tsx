@@ -5,14 +5,14 @@ import { fetchFriends } from '@/client/social';
 import { useUrlFilters } from '@/client/urlFilters';
 import { MAPS } from '@/engine/maps';
 import type { FriendInfo, GameSummary, HistoryData } from '@/shared/protocol';
-import { MODE_LABEL } from '@/shared/ratings';
+import { MODE_LABEL, ratingPoolFor, isRatingPool } from '@/shared/ratings';
 
 const DEFAULTS = { mode: 'all', map: 'all', result: 'all', rating: 'all', from: '', to: '', friend: '' };
 function GameRow({ game: g }: { game: GameSummary }) {
   const duration = g.endedAt ? Math.max(0, Math.round((Date.parse(g.endedAt) - Date.parse(g.startedAt)) / 60000)) : null;
   return <details className="paper-flat group p-4">
     <summary className="grid cursor-pointer list-none grid-cols-[1fr_auto] items-center gap-2 marker:hidden">
-      <div className="min-w-0"><p className="font-extrabold"><span className={g.won ? 'text-moss' : ''}>{g.won ? 'Victory' : g.rank ? `Finished #${g.rank}` : 'Played'}</span><span className="ml-2 text-xs font-semibold text-ink-soft">{MODE_LABEL[g.mode]}</span></p>
+      <div className="min-w-0"><p className="font-extrabold"><span className={g.won ? 'text-moss' : ''}>{g.won ? 'Victory' : g.rank ? `Finished #${g.rank}` : 'Played'}</span><span className="ml-2 text-xs font-semibold text-ink-soft">{MODE_LABEL[ratingPoolFor(g.mode, g.map)]}</span></p>
         <p className="mt-1 text-xs text-ink-faint">{new Date(g.endedAt ?? g.startedAt).toLocaleDateString()} · {MAPS[g.map as keyof typeof MAPS]?.name ?? g.map ?? 'Standard'}{duration !== null ? ` · ${duration} min` : ''}</p>
       </div>
       <div className="text-right"><p className="font-black tabular">{g.finalVp ?? '—'} VP</p><p className={`text-xs font-bold ${g.ratingDelta !== null && g.ratingDelta > 0 ? 'text-moss' : 'text-ink-soft'}`}>{g.ratingDelta === null ? 'Unrated' : `${g.ratingDelta > 0 ? '+' : ''}${g.ratingDelta} ${g.ratingPool ? 'Elo' : 'legacy'}`}</p></div>
@@ -20,7 +20,7 @@ function GameRow({ game: g }: { game: GameSummary }) {
     </summary>
     <div className="mt-4 grid gap-3 border-t border-ink/10 pt-3">
       <ul className="grid gap-1 text-sm">{g.players.map((p, i) => <li key={i} className="flex justify-between gap-3"><span>{p.name}{p.isYou ? ' (you)' : p.isBot ? ' (bot)' : ''}{p.won ? ' · Winner' : ''}</span><b>{p.vp ?? '—'} VP</b></li>)}</ul>
-      <p className="text-xs text-ink-faint">{g.turns ?? '—'} turns{g.ratingBefore !== null && g.ratingBefore !== undefined ? ` · ${g.ratingBefore} → ${g.ratingAfter} ${MODE_LABEL[g.mode]} Elo` : ''}</p>
+      <p className="text-xs text-ink-faint">{g.turns ?? '—'} turns{g.ratingBefore !== null && g.ratingBefore !== undefined ? ` · ${g.ratingBefore} → ${g.ratingAfter} ${MODE_LABEL[isRatingPool(g.ratingPool) ? g.ratingPool : ratingPoolFor(g.mode, g.map)]} Elo` : ''}</p>
       {g.hasReport ? <Link className="btn justify-self-start px-3 py-2 text-sm" href={`/games/${g.gameId}`}>Explore stats</Link> : <p className="text-xs text-ink-faint">Detailed stats were not recorded or are no longer available for this game.</p>}
     </div>
   </details>;

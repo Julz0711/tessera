@@ -176,7 +176,7 @@ export interface ProfileData {
   ratings: ModeRating[];
   session: SessionInfo;
   preferences: ProfilePreferences;
-  favoriteMode: Mode | null;
+  favoriteMode: RatingPool | null;
   providers: string[];
   history: GameSummary[];
   /** Signed-in players: rating and leaderboard place (null place until the first rated game). */
@@ -234,7 +234,7 @@ export interface FriendProfileData {
   headToHead: { games: number; yourWins: number; theirWins: number };
   friend: FriendInfo;
   stats: { gamesPlayed: number; gamesWon: number };
-  recentGames: Pick<GameSummary, 'mode' | 'endedAt' | 'startedAt' | 'won' | 'rank' | 'finalVp' | 'ratingDelta' | 'ratingPool'>[];
+  recentGames: Pick<GameSummary, 'mode' | 'map' | 'endedAt' | 'startedAt' | 'won' | 'rank' | 'finalVp' | 'ratingDelta' | 'ratingPool'>[];
 }
 
 export interface FriendsData {

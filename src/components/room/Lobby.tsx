@@ -37,6 +37,7 @@ import {
   type RoomSettings,
   type SeatDTO,
 } from "@/shared/protocol";
+import { MODE_LABEL, ratingPoolFor } from "@/shared/ratings";
 import { PLAYER_COLORS } from "@/shared/colors";
 import { KnightBadge } from "@/components/knight/KnightBadge";
 import { Framed, TitleTag } from "@/components/profile/Cosmetics";
@@ -580,7 +581,7 @@ export function Lobby({ room }: { room: RoomDTO }) {
           <SettingsPanel room={room} />
           <p className="rounded-xl bg-paper-2 p-3 text-xs font-semibold text-ink-soft">
             {room.seats.filter((s) => !s.isBot && !s.isGuest).length >= 2
-              ? `Rated for signed-in players · ${room.settings.mode === 'ck' ? 'Cities & Knights' : 'Classic'} Elo. Maps share this mode’s ladder.`
+              ? `Rated for signed-in players · ${MODE_LABEL[ratingPoolFor(room.settings.mode, room.settings.map)]} Elo. Maps share this mode’s ladder.`
               : 'Unrated · Add at least two signed-in players for mode Elo. Bots and guests do not receive ratings.'}
           </p>
           {host ? (

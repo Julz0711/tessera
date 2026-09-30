@@ -9,7 +9,7 @@ import type { ServerIdentity } from './identity';
 import { presenceOf, sendInvite } from './presence';
 import { UserError } from './room';
 import { modeRatingsFor } from './modeRatings';
-import { isRatingPool } from '@/shared/ratings';
+import { type RatingPool, isRatingPool } from '@/shared/ratings';
 
 /**
  * Friends and the leaderboard. Both need an account (and a database): a friend is a person, not a
@@ -187,7 +187,7 @@ export async function friendProfileFor(identity: ServerIdentity, input: unknown)
     take: 10,
     select: {
       won: true, rank: true, finalVp: true, ratingDelta: true, ratingPool: true,
-      game: { select: { mode: true, startedAt: true, endedAt: true } },
+      game: { select: { mode: true, settings: true, startedAt: true, endedAt: true } },
     },
   });
   const presence = presenceOf(`u:${row.userId}`);
@@ -203,7 +203,7 @@ export async function friendProfileFor(identity: ServerIdentity, input: unknown)
     friend: { ...toCard(row), status: presence.status, roomCode: presence.roomCode },
     stats: { gamesPlayed: row.gamesPlayed, gamesWon: row.gamesWon },
     recentGames: games.map((p) => ({
-      mode: p.game.mode as Mode,
+      mode: p.game.mode as Mode, map: (p.game.settings as { map?: string } | null)?.map,
       startedAt: p.game.startedAt.toISOString(),
       endedAt: p.game.endedAt?.toISOString() ?? null,
       won: p.won, rank: p.rank, finalVp: p.finalVp, ratingDelta: p.ratingDelta, ratingPool: p.ratingPool,
@@ -281,7 +281,7 @@ export async function inviteFriend(identity: ServerIdentity | null, code: unknow
 }
 
 export async function leaderboard(identity: ServerIdentity | null, params = new URLSearchParams()): Promise<LeaderboardData> {
-  const pool = isRatingPool(params.get('mode')) ? params.get('mode') as 'classic' | 'ck' : 'classic';
+  const pool = isRatingPool(params.get('mode')) ? params.get('mode') as RatingPool : 'classic';
   const scope: 'friends' | 'world' = params.get('scope') === 'friends' ? 'friends' : 'world';
   const pageInput = Number(params.get('page') ?? 1);
   let page = Number.isSafeInteger(pageInput) ? Math.min(10000, Math.max(1, pageInput)) : 1;
