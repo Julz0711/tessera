@@ -154,6 +154,8 @@ body {
   padding-bottom: calc(1.5rem + var(--safe-bottom));
   padding-left: max(1rem, var(--safe-left));
 }
+/* Phones only: keep headers and back links clear of the status bar / notch. */
+@media (max-width: 639px) { .page-safe-top { padding-top: calc(var(--safe-top) + 1rem); } }
 .landing-page { display: flex; flex-direction: column; }
 .landing-header { padding-top: max(1.25rem, var(--safe-top)); padding-left: max(1.25rem, var(--safe-left)); padding-right: max(1.25rem, var(--safe-right)); }
 .landing-hero { flex: 1; min-height: min(760px, calc(100svh - 120px)); padding-top: 3rem; }

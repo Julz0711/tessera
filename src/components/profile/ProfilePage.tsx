@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Database, LogOut, Pencil, Save } from 'lucide-react';
+import { ArrowLeft, Database, ShieldCheck, LogOut, Pencil, Save } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -70,13 +70,16 @@ export function ProfilePage() {
   const winRate = stats.gamesPlayed ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100) : 0;
 
   return (
-    <main className="min-h-dvh bg-[radial-gradient(ellipse_at_top,_#0f2f3b_0%,_#061419_60%)] px-4 py-6 sm:py-10">
+    <main className="page-safe-top min-h-dvh bg-[radial-gradient(ellipse_at_top,_#0f2f3b_0%,_#061419_60%)] px-4 py-6 sm:py-10">
       <div className="mx-auto grid max-w-3xl gap-5">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-sm font-bold text-foam/70 hover:text-paper">
             <ArrowLeft size={16} /> Home
           </Link>
-          <Logomark size={28} />
+          <div className="flex items-center gap-3">
+            {data?.isAdmin && <Link href="/admin" className="btn btn-dark px-3 py-1.5 text-sm"><ShieldCheck size={16} /> Admin</Link>}
+            <Logomark size={28} />
+          </div>
         </div>
 
         {failed && <p className="paper p-5">Couldn&apos;t load your profile. Is the server running?</p>}
