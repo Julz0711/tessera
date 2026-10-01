@@ -252,9 +252,9 @@ export function citadelBoard(rng: RngHolder): Board {
   for (const ids of isleIds) for (const id of ids) hexes[id].start = true;
   for (const id of fog) hexes[id].fog = true;
 
-  // A lumber harbor on the edge between each pond and the forest beside it.
+  // A lumber harbor on the edge between each pond and the ring-1 forest beside it (fog may hide forests too).
   const harbors: Harbor[] = ponds.map((pond) => {
-    const wood = topo.hexes[pond].neighbors.find((n) => terrains[n] === 'forest')!;
+    const wood = topo.hexes[pond].neighbors.find((n) => forest.includes(n))!;
     return { edge: topo.edges.find((e) => e.hexes.includes(pond) && e.hexes.includes(wood))!.id, kind: 'lumber' as const };
   });
   // Three harbors per isle, drawn once on the first isle and turned onto the others.
