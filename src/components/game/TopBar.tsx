@@ -45,7 +45,7 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
   };
 
   return (
-    <div className="pointer-events-none flex items-start justify-between gap-2 p-2 sm:p-3">
+    <div className="game-toolbar pointer-events-none flex items-start justify-between gap-2 p-2 sm:p-3">
       <div className="pointer-events-auto flex items-center gap-2">
         <div className="relative">
           <button type="button" className="btn btn-dark h-10 w-10 p-0" onClick={() => setMenu((m) => !m)} aria-label="Menu" aria-expanded={menu}>
@@ -69,16 +69,16 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
         <button type="button" className="btn btn-dark h-10 w-10 p-0" onClick={() => useSettingsUI.getState().show()} aria-label="Settings" title="Settings">
           <Settings size={18} />
         </button>
-        <button type="button" onClick={copy} className="glass hidden items-center gap-2 px-3 py-2 sm:flex" title="Copy invite link">
+        <button type="button" onClick={copy} className="game-code glass hidden items-center gap-2 px-3 py-2 sm:flex" title="Copy invite link">
           <span className="font-mono text-sm font-black tracking-[0.18em] text-paper">{formatCode(room.code)}</span>
         </button>
-        <span className={`glass flex h-10 items-center px-2.5 ${conn === 'online' ? 'text-moss' : 'text-terracotta'}`} title={conn}>
+        <span className={`game-connection glass flex h-10 items-center px-2.5 ${conn === 'online' ? 'text-moss' : 'text-terracotta'}`} title={conn} role="status" aria-label={conn === 'online' ? 'Connected' : 'Reconnecting to your table'}>
           {conn === 'online' ? <Wifi size={16} /> : <WifiOff size={16} className="animate-pulse" />}
         </span>
       </div>
 
       <div
-        className={`pointer-events-auto max-w-[min(560px,55vw)] rounded-xl border-2 px-3 py-2 text-center text-sm font-extrabold shadow-[0_3px_0_0_#000] sm:px-4 sm:text-base ${
+        className={`game-status pointer-events-auto max-w-[min(560px,55vw)] rounded-xl border-2 px-3 py-2 text-center text-sm font-extrabold shadow-[0_3px_0_0_#000] sm:px-4 sm:text-base ${
           status.mine ? 'attention border-ink bg-amber text-ink' : 'border-black bg-sea-900/90 text-paper'
         }`}
         aria-live="polite"
@@ -93,6 +93,7 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
           className="btn btn-dark h-10 px-3 text-sm"
           onClick={() => prefs.set({ view: prefs.view === '3d' ? '2d' : '3d' })}
           title="Switch between 3D and 2D board"
+          aria-label={`Switch to ${prefs.view === '3d' ? '2D' : '3D'} board`}
         >
           {prefs.view === '3d' ? <Grid2x2 size={16} /> : <Box size={16} />}
           <span className="hidden sm:inline">{prefs.view === '3d' ? '2D' : '3D'}</span>

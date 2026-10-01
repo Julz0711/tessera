@@ -49,10 +49,13 @@ function ActionButton({
   danger,
   pulse,
   hint,
+  shortcut,
   left,
   bankAnchor,
 }: {
   label: string;
+  /** Keyboard key, shown after the label where there's a keyboard to press it on. */
+  shortcut?: string;
   icon: React.ReactNode;
   onClick: () => void;
   disabled?: boolean;
@@ -79,10 +82,13 @@ function ActionButton({
       aria-pressed={active}
       title={hint ?? label}
       data-bank-anchor={bankAnchor ? '' : undefined}
-      className={`btn group relative flex-col gap-0.5 px-2.5 py-1.5 text-[11px] sm:min-w-16 ${primary ? 'btn-primary' : active ? 'btn-primary' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''}`}
+      className={`btn group relative min-w-0 flex-col gap-0.5 px-1 py-1.5 text-[11px] sm:min-w-16 sm:px-2.5 ${primary ? 'btn-primary' : active ? 'btn-primary' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''}`}
     >
       {icon}
-      <span className="leading-none">{label}</span>
+      <span className="whitespace-nowrap leading-none">
+        {label}
+        {shortcut && <span className="pointer-coarse:hidden"> ({shortcut})</span>}
+      </span>
       {left !== undefined && (
         <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full border-2 border-ink bg-paper px-1 text-[10px] font-black leading-none text-ink" title={`${left} left`}>
           {left}
@@ -152,100 +158,106 @@ export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
   const knightOk = canBuild && ck && left.knights[1] > 0 && has(COSTS.knight) && legalKnightSpots(view, me).length > 0;
   const wallOk = canBuild && ck && has(COSTS.wall) && wallSpots(view, me).length > 0;
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="game-dock flex w-full min-w-0 flex-col items-center gap-2 sm:w-auto">
       {ui.panel === 'trade' && <TradePanel view={view} />}
       <Hand view={view} />
 
-      {/* actions */}
-      <div className="glass flex flex-wrap items-center justify-center gap-1.5 p-1.5 sm:gap-2 sm:p-2">
-        <ActionButton
-          label="Road"
-          icon={<RoadGlyph size={20} />}
-          onClick={() => ui.toggleBuild('road')}
-          active={building === 'road'}
-          disabled={!roadOk}
-          cost={COSTS.road}
-          left={left.roads}
-        />
-        {voyage && (
-          <>
-            <ActionButton
-              label="Ship"
-              icon={<Ship size={20} />}
-              onClick={() => ui.toggleBuild('ship')}
-              active={building === 'ship'}
-              disabled={!shipOk}
-              cost={COSTS.ship}
-              left={left.ships}
-              hint="Build a ship on a sea or coast edge"
-            />
-            <ActionButton
-              label="Sail"
-              icon={<Sailboat size={20} />}
-              onClick={() => ui.setMode(ui.mode?.t === 'shipMove' ? null : { t: 'shipMove', from: null })}
-              active={ui.mode?.t === 'shipMove'}
-              disabled={!sailOk}
-              hint="Move the ship at the open end of a route (once a turn)"
-            />
-          </>
-        )}
-        <ActionButton
-          label="Settle"
-          icon={<SettlementGlyph size={20} />}
-          onClick={() => ui.toggleBuild('settlement')}
-          active={building === 'settlement'}
-          disabled={!settlementOk}
-          cost={COSTS.settlement}
-          left={left.settlements}
-        />
-        <ActionButton
-          label="City"
-          icon={<CityGlyph size={20} />}
-          onClick={() => ui.toggleBuild('city')}
-          active={building === 'city'}
-          disabled={!cityOk}
-          cost={COSTS.city}
-          left={left.cities}
-        />
-        {!ck && <ActionButton label="Buy card" icon={<Sparkles size={20} />} onClick={() => api.act({ type: 'buyDevCard' })} disabled={!devOk} cost={COSTS.devCard} />}
-        {ck && (
-          <>
-            <ActionButton
-              label="Knight"
-              icon={<KnightGlyph size={20} />}
-              onClick={() => ui.toggleBuild('knight')}
-              active={building === 'knight'}
-              disabled={!knightOk}
-              cost={COSTS.knight}
-              left={left.knights[1]}
-              hint="Recruit a basic knight"
-            />
-            <ActionButton label="Wall" icon={<BrickWall size={20} />} onClick={() => ui.toggleBuild('wall')} active={building === 'wall'} disabled={!wallOk} cost={COSTS.wall} left={left.walls} hint="City wall: +2 hand limit" />
-            <ActionButton label="Improve" icon={<Hammer size={20} />} onClick={() => ui.setPanel('improve')} active={ui.panel === 'improve'} disabled={view.phase !== 'play'} hint="City improvements" />
-          </>
-        )}
-        <span className="mx-0.5 h-8 w-px bg-white/15" />
-        <ActionButton
-          label="Trade"
-          icon={<ArrowLeftRight size={20} />}
-          onClick={() => ui.setPanel('trade')}
-          active={ui.panel === 'trade'}
-          disabled={view.phase !== 'play' || !view.turn.rolled || !free}
-        />
-        <ActionButton label="Bank" icon={<Landmark size={20} />} onClick={() => ui.setPanel('bank')} active={ui.panel === 'bank'} disabled={!canBuild} bankAnchor />
-        <span className="mx-0.5 h-8 w-px bg-white/15" />
-        <ActionButton
-          label="End (E)"
-          icon={seconds !== null ? <span className="font-mono text-base font-black leading-none tabular">{seconds}s</span> : <Hourglass size={20} />}
-          onClick={() => {
-            ui.reset();
-            void api.act({ type: 'endTurn' });
-          }}
-          disabled={!canBuild}
-          hint="End your turn (E)"
-          danger
-          pulse={lowTime}
-        />
+      {/* actions: one row where there's room; on phones the builds and the turn's other moves
+          get a row each, every button the same width, so nothing hides off the edge. */}
+      <div role="group" aria-label="Game actions" className="game-actions glass flex w-full flex-col gap-1.5 p-1.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-2 sm:p-2">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(3rem,1fr))] gap-1.5 sm:flex sm:gap-2">
+          <ActionButton
+            label="Road"
+            icon={<RoadGlyph size={20} />}
+            onClick={() => ui.toggleBuild('road')}
+            active={building === 'road'}
+            disabled={!roadOk}
+            cost={COSTS.road}
+            left={left.roads}
+          />
+          {voyage && (
+            <>
+              <ActionButton
+                label="Ship"
+                icon={<Ship size={20} />}
+                onClick={() => ui.toggleBuild('ship')}
+                active={building === 'ship'}
+                disabled={!shipOk}
+                cost={COSTS.ship}
+                left={left.ships}
+                hint="Build a ship on a sea or coast edge"
+              />
+              <ActionButton
+                label="Sail"
+                icon={<Sailboat size={20} />}
+                onClick={() => ui.setMode(ui.mode?.t === 'shipMove' ? null : { t: 'shipMove', from: null })}
+                active={ui.mode?.t === 'shipMove'}
+                disabled={!sailOk}
+                hint="Move the ship at the open end of a route (once a turn)"
+              />
+            </>
+          )}
+          <ActionButton
+            label="Settle"
+            icon={<SettlementGlyph size={20} />}
+            onClick={() => ui.toggleBuild('settlement')}
+            active={building === 'settlement'}
+            disabled={!settlementOk}
+            cost={COSTS.settlement}
+            left={left.settlements}
+          />
+          <ActionButton
+            label="City"
+            icon={<CityGlyph size={20} />}
+            onClick={() => ui.toggleBuild('city')}
+            active={building === 'city'}
+            disabled={!cityOk}
+            cost={COSTS.city}
+            left={left.cities}
+          />
+          {!ck && <ActionButton label="Buy card" icon={<Sparkles size={20} />} onClick={() => api.act({ type: 'buyDevCard' })} disabled={!devOk} cost={COSTS.devCard} />}
+          {ck && (
+            <>
+              <ActionButton
+                label="Knight"
+                icon={<KnightGlyph size={20} />}
+                onClick={() => ui.toggleBuild('knight')}
+                active={building === 'knight'}
+                disabled={!knightOk}
+                cost={COSTS.knight}
+                left={left.knights[1]}
+                hint="Recruit a basic knight"
+              />
+              <ActionButton label="Wall" icon={<BrickWall size={20} />} onClick={() => ui.toggleBuild('wall')} active={building === 'wall'} disabled={!wallOk} cost={COSTS.wall} left={left.walls} hint="City wall: +2 hand limit" />
+              <ActionButton label="Improve" icon={<Hammer size={20} />} onClick={() => ui.setPanel('improve')} active={ui.panel === 'improve'} disabled={view.phase !== 'play'} hint="City improvements" />
+            </>
+          )}
+        </div>
+        <span className="mx-0.5 hidden h-8 w-px bg-white/15 sm:block" />
+        <div className="grid grid-cols-[1fr_1fr_1.4fr] gap-1.5 sm:flex sm:items-center sm:gap-2">
+          <ActionButton
+            label="Trade"
+            icon={<ArrowLeftRight size={20} />}
+            onClick={() => ui.setPanel('trade')}
+            active={ui.panel === 'trade'}
+            disabled={view.phase !== 'play' || !view.turn.rolled || !free}
+          />
+          <ActionButton label="Bank" icon={<Landmark size={20} />} onClick={() => ui.setPanel('bank')} active={ui.panel === 'bank'} disabled={!canBuild} bankAnchor />
+          <span className="mx-0.5 hidden h-8 w-px bg-white/15 sm:block" />
+          <ActionButton
+            label="End turn"
+            icon={seconds !== null ? <span className="font-mono text-base font-black leading-none tabular">{seconds}s</span> : <Hourglass size={20} />}
+            onClick={() => {
+              ui.reset();
+              void api.act({ type: 'endTurn' });
+            }}
+            disabled={!canBuild}
+            hint="End your turn (E)"
+            shortcut="E"
+            danger
+            pulse={lowTime}
+          />
+        </div>
       </div>
     </div>
   );

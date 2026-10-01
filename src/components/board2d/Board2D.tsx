@@ -843,8 +843,15 @@ export default function Board2D({
   const wideHud = useWide();
   const hostEl = useZoomHost((s) => s.el);
   const zoomHost = wideHud ? hostEl : null;
-  const zoomControls = (
-        <div className={zoomHost ? "flex gap-1.5" : "absolute bottom-2 left-2 z-10 flex flex-col gap-1.5"}>
+  // Phones pinch and drag instead: the only button there is the way back, once zoomed in.
+  const zoomControls = !zoomHost ? (
+    !atHome && (
+      <button type="button" className="btn btn-dark absolute bottom-2 left-2 z-10 h-10 w-10 p-0" onClick={reset} aria-label="Reset zoom">
+        <Maximize2 size={18} />
+      </button>
+    )
+  ) : (
+        <div className="flex gap-1.5">
           <button
             type="button"
             className="btn btn-dark h-10 w-10 p-0"

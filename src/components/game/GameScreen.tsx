@@ -30,7 +30,7 @@ import { DiceHistogram } from './DiceStats';
 import { Dock } from './Dock';
 import { GameOver } from './GameOver';
 import { LogPanel } from './LogPanel';
-import { PlayersPanel } from './PlayersPanel';
+import { PlayerStrip, PlayersPanel } from './PlayersPanel';
 import { DiscardDialog, FreeRoadsBanner, GoldDialog } from './Prompts';
 import { RobberPopup } from './RobberPopup';
 import { TopBar } from './TopBar';
@@ -40,6 +40,7 @@ import { TERRAIN_COMMODITY, TERRAIN_RESOURCE } from '@/engine/constants';
 import { FlyLayer } from './FlyLayer';
 import { DesktopHud, type HudSide } from './HudLayout';
 import { EventBanner, pushBanner } from './EventBanner';
+import { Modal } from '@/components/ui/Modal';
 
 function cardsText(h: PartialHand): string {
   return CARDS.filter((c) => (h[c] ?? 0) > 0)
@@ -335,14 +336,14 @@ export function GameScreen() {
 
   return (
     <div
-      className={`fixed inset-0 overflow-hidden ${prefs.view === '2d' ? 'sea-2d' : 'bg-sea-900'}`}
+      className={`game-screen fixed inset-0 overflow-hidden ${prefs.view === '2d' ? 'sea-2d' : 'bg-sea-900'}`}
       style={seaVars(PALETTES[prefs.boardTheme])}
     >
       {/* The 3D canvas fills the screen (the camera frames the island above the dock); the flat
           2D board is fitted into the space the panels leave free. */}
       <div
         className={
-          prefs.view === '2d' ? 'absolute inset-x-2 bottom-80 top-37.5 lg:top-(--hud-t) lg:right-(--hud-r) lg:bottom-(--hud-b) lg:left-(--hud-l)' : 'absolute inset-0'
+          prefs.view === '2d' ? 'game-board absolute inset-x-2 bottom-80 top-37.5 lg:top-(--hud-t) lg:right-(--hud-r) lg:bottom-(--hud-b) lg:left-(--hud-l)' : 'game-board-3d absolute inset-0'
         }
         style={prefs.view === '2d' ? board2d : undefined}
         data-board-anchor
@@ -367,7 +368,7 @@ export function GameScreen() {
       {/* top: z-30 so the menu dropdown (opened from TopBar) paints above the bottom dock row
           (dice box, mobile log/chat) instead of being covered by it — both are otherwise the same
           stacking level and the dock comes later in the DOM. */}
-      <div className="absolute inset-x-0 top-0 z-30" style={{ zoom }}>
+      <div className="game-top absolute inset-x-0 top-0 z-30" style={{ zoom }}>
         <TopBar view={view} room={room} />
         <div className="pointer-events-none mt-1 flex flex-col items-center gap-2">
           {myPrompt?.kind === 'freeRoads' && (
@@ -383,16 +384,12 @@ export function GameScreen() {
 
       {/* log/chat, bank, players, dice and offers on wide screens, wherever the player put them */}
       <DesktopHud render={renderPanel} />
-      <div className="absolute inset-x-2 top-26 z-10 lg:hidden" style={{ zoom }}>
-        <PlayersPanel
-          view={view}
-          room={room}
-          compact
-        />
+      <div className="game-players absolute inset-x-2 top-26 z-10 lg:hidden" style={{ zoom }}>
+        <PlayerStrip view={view} room={room} />
       </div>
 
       {/* trade offers on smaller screens: top-left, below the players strip */}
-      <div className="absolute left-2 top-45 z-20 lg:hidden" style={{ zoom }}>
+      <div className="game-offers absolute left-2 top-45 z-20 lg:hidden" style={{ zoom }}>
         <OffersTray view={view} className="w-max min-w-[min(330px,calc(100vw-16px))] max-w-[calc(100vw-16px)]" />
       </div>
 
@@ -400,19 +397,19 @@ export function GameScreen() {
           however tall the dock gets (C&K's action bar wraps to three rows on phones). While the
           trade panel is open (the dice are rolled by then) that row steps aside, so the taller
           dock doesn't push it into the players strip. */}
-      <div className={`pointer-events-none absolute inset-x-0 bottom-2 z-20 flex flex-col gap-2 px-2 ${dockClear}`} style={{ zoom }}>
-        <div className={`items-end justify-between gap-2 lg:hidden ${ui.panel === 'trade' ? 'hidden' : 'flex'}`}>
+      <div className={`game-bottom pointer-events-none absolute inset-x-0 bottom-2 z-20 flex flex-col gap-2 px-2 ${dockClear}`} style={{ zoom }}>
+        <div className={`game-utility items-end justify-between gap-2 lg:hidden ${ui.panel === 'trade' ? 'hidden' : 'flex'}`}>
           <div className="pointer-events-auto">
             <MobileSide view={view} unread={unread} />
           </div>
           <div className="pointer-events-auto">
-            <DiceBox view={view} size={54} />
+            <DiceBox view={view} size={32} compact />
           </div>
         </div>
         {/* Only the dock itself takes clicks: this row spans the screen and would otherwise cover
             the dice box on wide screens. */}
         <div className="flex justify-center">
-          <div className="pointer-events-auto max-w-full">
+          <div className="game-dock-wrap pointer-events-auto min-w-0 max-w-full">
             <Dock view={view} room={room} />
           </div>
         </div>
@@ -486,11 +483,11 @@ function MobileSide({ view, unread }: { view: PlayerView; unread: number }) {
   const [open, setOpen] = useState<null | SideTab>(null);
   return (
     <div className="flex flex-col items-start gap-2">
-      {open && (
-        <div className="glass flex h-60 w-[min(340px,calc(100vw-16px))] flex-col p-2.5">
-          <SideContent view={view} tab={open} />
+      <Modal open={open !== null} onClose={() => setOpen(null)} title={open === 'chat' ? 'Table chat' : open === 'dice' ? 'Dice statistics' : 'Game log'}>
+        <div className="mobile-side-content flex flex-col rounded-xl bg-sea-900 p-3 text-paper">
+          {open && <SideContent view={view} tab={open} />}
         </div>
-      )}
+      </Modal>
       <div className="flex gap-1.5">
         <button type="button" className={`btn btn-dark h-10 w-10 p-0 ${open === 'log' ? 'btn-primary' : ''}`} onClick={() => setOpen(open === 'log' ? null : 'log')} aria-label="Game log">
           <ScrollText size={17} />

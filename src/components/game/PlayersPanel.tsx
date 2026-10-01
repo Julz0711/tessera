@@ -12,6 +12,7 @@ import { KnightBadge } from '@/components/knight/KnightBadge';
 import { Framed } from '@/components/profile/Cosmetics';
 import { titleInfo } from '@/shared/cosmetics';
 import { ReactionBubble } from './Reactions';
+import { Modal } from '@/components/ui/Modal';
 
 /** A number beside its icon; `award` tints it when the player holds that award (Longest road, Largest army). */
 function Stat({ icon, value, title, award }: { icon: React.ReactNode; value: React.ReactNode; title: string; award?: string }) {
@@ -127,6 +128,7 @@ export function PlayersPanel({
   compact = false,
   leading,
   align = 'right',
+  highlight = true,
 }: {
   view: PlayerView;
   room: RoomDTO | null;
@@ -135,6 +137,8 @@ export function PlayersPanel({
   leading?: React.ReactNode;
   /** Which side of the screen the panel sits on: the current player's card sticks out towards the board. */
   align?: 'left' | 'right';
+  /** Mark whose move it is (off where something else on screen already does). */
+  highlight?: boolean;
 }) {
   // Whoever has to act: a pending prompt comes first (even a gold pick found during setup).
   const actors = new Set(
@@ -153,7 +157,7 @@ export function PlayersPanel({
       {view.players.map((p, seat) => {
         const c = PLAYER_COLORS[p.color];
         const seatInfo = room?.seats[seat];
-        const acting = actors.has(seat) && view.phase !== 'ended';
+        const acting = highlight && actors.has(seat) && view.phase !== 'ended';
         const vp = p.vp ?? p.publicVP;
         const clickable = me !== null && seat !== me && view.phase !== 'ended';
         const embargoed = myEmbargo.includes(seat);
@@ -268,7 +272,7 @@ export function PlayersPanel({
               },
             })}
             className={`paper-flat relative flex shrink-0 flex-col gap-1 p-2 pl-3 pr-2.5 transition-all duration-300 motion-reduce:transition-none ${
-              compact ? 'min-w-max' : `min-w-0 ${turnSeat === seat ? (align === 'right' ? '-ml-4' : '-mr-4') : ''}`
+              compact ? 'min-w-max' : `min-w-0 ${highlight && turnSeat === seat ? (align === 'right' ? '-ml-4' : '-mr-4') : ''}`
             } ${
               acting ? 'ring-4 ring-amber' : ''
             } ${clickable ? 'cursor-pointer hover:brightness-[0.97]' : ''}`}
@@ -311,5 +315,76 @@ export function PlayersPanel({
         );
       })}
     </ol>
+  );
+}
+
+/**
+ * The table at a glance on phones: every player's points, hand and awards in one row that fits four
+ * across (more scroll). Tapping it opens the full player cards, embargo options included.
+ */
+export function PlayerStrip({ view, room }: { view: PlayerView; room: RoomDTO | null }) {
+  const [details, setDetails] = useState(false);
+  const actors = new Set(
+    view.pending.length ? view.pending.map((p) => p.seat) : view.phase === 'setup' && view.setup ? [view.setup.order[view.setup.index]] : [view.turn.seat],
+  );
+  const ck = view.mode === 'ck';
+  const me = view.viewer;
+  return (
+    <>
+      <ol className="scroll-thin flex gap-1.5 overflow-x-auto p-1" aria-label="Players and scores">
+        {view.players.map((p, seat) => {
+          const acting = actors.has(seat) && view.phase !== 'ended';
+          const vp = p.vp ?? p.publicVP;
+          const limit = handLimit(view, seat);
+          const over = view.phase === 'play' && p.handCount > limit;
+          const special = ck ? TRACKS.reduce((n, t) => n + p.progressTracks[t], 0) : p.devCount;
+          const awards = [
+            view.longestRoad === seat && 'Longest road',
+            !ck && view.largestArmy === seat && 'Largest army',
+            p.defender > 0 && 'Defender',
+          ].filter(Boolean);
+          return (
+            <li key={p.id} className="min-w-19 flex-1">
+              <button
+                type="button"
+                onClick={() => setDetails(true)}
+                aria-haspopup="dialog"
+                aria-label={`${p.name}${seat === me ? ' (you)' : ''}: ${vp} points, ${p.handCount} cards${awards.length ? `, ${awards.join(', ')}` : ''}${acting ? ', to play' : ''}`}
+                className={`paper-flat relative grid w-full gap-0.5 py-1 pl-2 pr-1 text-left transition-colors ${acting ? 'bg-amber shadow-[0_3px_0_0_#1f1a14]' : ''}`}
+                style={{ boxShadow: `inset 4px 0 0 ${PLAYER_COLORS[p.color].hex}` }}
+              >
+                <span className="flex min-w-0 items-center gap-1">
+                  <span className="min-w-0 flex-1 truncate text-xs font-extrabold leading-tight">{seat === me ? 'You' : p.name}</span>
+                  {room?.seats[seat] && !room.seats[seat].isBot && !room.seats[seat].connected && <WifiOff size={11} className="shrink-0 text-terracotta" />}
+                  {view.longestRoad === seat && <Route size={12} className="shrink-0 rounded-sm bg-amber text-ink" />}
+                  {!ck && view.largestArmy === seat && <Swords size={12} className="shrink-0 rounded-sm bg-terracotta text-white" />}
+                  {p.defender > 0 && <ShieldHalf size={12} className="shrink-0 rounded-sm bg-sea-600 text-white" />}
+                </span>
+                <span className="flex items-center gap-[3px] text-[11px] font-black tabular text-ink-soft">
+                  <span className="relative mr-auto text-[15px] leading-none text-ink" data-seat-anchor={seat}>
+                    {view.winner === seat && <Crown size={11} className="mr-0.5 inline text-amber-deep" />}
+                    {vp}
+                    <ReactionBubble playerId={p.id} side="below" />
+                  </span>
+                  <span className={`flex items-center gap-0.5 ${over ? 'rounded bg-danger px-0.5 text-paper' : ''}`}>
+                    <CardBack bg={over ? WARN_BG : HAND_BG} />
+                    {p.handCount}
+                  </span>
+                  <span className="flex items-center gap-0.5">
+                    <CardBack bg={ck ? '#7c6a9e' : DEV_BG} />
+                    {special}
+                  </span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+      <Modal open={details} onClose={() => setDetails(false)} title="Players at the table">
+        <div className="rounded-xl bg-sea-900 p-3">
+          <PlayersPanel view={view} room={room} highlight={false} />
+        </div>
+      </Modal>
+    </>
   );
 }

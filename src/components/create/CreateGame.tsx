@@ -63,7 +63,7 @@ export function CreateGame() {
   };
 
   return (
-    <main className="min-h-dvh bg-sea-950 bg-[radial-gradient(ellipse_at_top,_#0f2f3b_0%,_#061419_60%)] px-4 py-6 sm:py-10">
+    <main className="page-shell min-h-dvh bg-sea-950 bg-[radial-gradient(ellipse_at_top,_#0f2f3b_0%,_#061419_60%)] px-4 py-6 sm:py-10">
       <div className="mx-auto max-w-2xl">
         <div className="mb-6 flex items-center justify-between">
           <Link
@@ -97,7 +97,7 @@ export function CreateGame() {
               {error}
             </p>
           )}
-          <div className="mt-7 flex justify-end">
+          <div className="create-submit mt-7 flex justify-end">
             <button
               type="submit"
               className="btn btn-primary px-7 py-3 text-lg"

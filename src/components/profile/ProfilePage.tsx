@@ -32,7 +32,7 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-ink/10 py-2 last:border-0">
       <span className="text-sm font-bold text-ink-soft">{label}</span>
-      <span className="display text-2xl font-black tabular">{value}</span>
+      <span className="display min-w-0 text-right text-2xl font-black tabular">{value}</span>
     </div>
   );
 }
@@ -86,17 +86,20 @@ export function ProfilePage() {
           <button key={name} type="button" aria-pressed={tab === name} onClick={() => change({ tab: name })} className={`btn px-4 py-2 capitalize ${tab === name ? 'btn-primary' : 'btn-dark'}`}>{name}</button>
         ))}</nav>}
         {data && tab === 'overview' && (
-          <section className="paper animate-rise grid gap-6 p-5 sm:grid-cols-[1fr_auto] sm:p-7">
-            <div className="grid content-start gap-4">
-              <div className="flex items-center gap-4">
+          <section className="paper animate-rise grid grid-cols-[minmax(0,1fr)] gap-6 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:p-7">
+            <div className="grid min-w-0 content-start gap-4">
+              <div className="flex items-start gap-4">
                 <PlayerPortrait knight={knight} color={color} avatarUrl={user ? s?.avatarUrl : null} frame={cosmetics.frame} size={92} />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <h1 className="display truncate text-4xl font-black">{name}</h1>
                   <TitleTag title={cosmetics.title} className="mb-1" />
                   <p className="text-sm font-bold text-ink-faint">
                     {user ? `Signed in with ${data.providers.map((p) => p[0].toUpperCase() + p.slice(1)).join(' & ') || 'your account'}` : 'Guest'}
                   </p>
                 </div>
+                <Link href="/profile/edit" className="btn shrink-0 px-3 py-2" aria-label="Edit profile" title="Edit profile">
+                  <Pencil size={16} /> <span className="hidden sm:inline">Edit profile</span>
+                </Link>
               </div>
               <div>
                 <Stat label="Games played" value={stats.gamesPlayed} />
@@ -105,10 +108,7 @@ export function ProfilePage() {
                 <Stat label="Recent favorite mode" value={data.favoriteMode ? MODE_LABEL[data.favoriteMode] : '—'} />
 
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Link href="/profile/edit" className="btn px-4 py-2">
-                  <Pencil size={16} /> Edit profile
-                </Link>
+              <div className="flex flex-wrap gap-2 empty:hidden">
                 {user ? (
                   <button type="button" className="btn btn-ghost px-4 py-2" onClick={() => void signOut()}>
                     <LogOut size={16} /> Sign out
@@ -129,7 +129,7 @@ export function ProfilePage() {
                 </p>
               )}
             </div>
-            <div className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-paper-2 p-3">
+            <div className="flex min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-2xl bg-paper-2 p-3">
               <KnightPreview3D knight={knight} color={color} size={200} />
               <span className="label">Your knight</span>
             </div>

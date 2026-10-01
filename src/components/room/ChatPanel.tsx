@@ -74,6 +74,7 @@ export function ChatPanel({ className = '', dark = false, autoFocus = false }: {
           maxLength={CHAT_MAX}
           placeholder="Message the table…"
           aria-label="Chat message"
+          enterKeyHint="send"
           autoFocus={autoFocus}
           className={
             dark

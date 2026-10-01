@@ -13,10 +13,13 @@ interface InstallPrompt extends Event {
 
 const InstallContext = createContext({ installed: false, open: () => {} });
 
+/** Whether the app already runs installed, and how to open the install guide. */
+export const useAppInstall = () => useContext(InstallContext);
+
 export function InstallAppButton({ className = 'btn btn-dark px-4 py-2 text-sm' }: { className?: string }) {
-  const { installed, open } = useContext(InstallContext);
+  const { installed, open } = useAppInstall();
   if (installed) return null;
-  return <button type="button" className={className} onClick={open}><Smartphone size={17} /> Install app</button>;
+  return <button type="button" className={className} onClick={open}><Smartphone size={17} /> Add to Home Screen</button>;
 }
 
 /** One install lifecycle for the entire app; never interrupts a live game to update. */
