@@ -343,7 +343,7 @@ export function GameScreen() {
           2D board is fitted into the space the panels leave free. */}
       <div
         className={
-          prefs.view === '2d' ? 'game-board absolute inset-x-2 bottom-80 top-37.5 lg:top-(--hud-t) lg:right-(--hud-r) lg:bottom-(--hud-b) lg:left-(--hud-l)' : 'game-board-3d absolute inset-0'
+          prefs.view === '2d' ? 'game-board absolute inset-x-2 bottom-80 top-37.5 lg:top-(--hud-t) lg:right-(--hud-r) lg:bottom-(--hud-b) lg:left-(--hud-l)' : 'game-board absolute inset-0'
         }
         style={prefs.view === '2d' ? board2d : undefined}
         data-board-anchor
@@ -393,19 +393,8 @@ export function GameScreen() {
         <OffersTray view={view} className="w-max min-w-[min(330px,calc(100vw-16px))] max-w-[calc(100vw-16px)]" />
       </div>
 
-      {/* dock; on smaller screens the log/chat buttons and dice/roll ride just above it,
-          however tall the dock gets (C&K's action bar wraps to three rows on phones). While the
-          trade panel is open (the dice are rolled by then) that row steps aside, so the taller
-          dock doesn't push it into the players strip. */}
+      {/* dock; on phones the log, chat and dice live in the top bar */}
       <div className={`game-bottom pointer-events-none absolute inset-x-0 bottom-2 z-20 flex flex-col gap-2 px-2 ${dockClear}`} style={{ zoom }}>
-        <div className={`game-utility items-end justify-between gap-2 lg:hidden ${ui.panel === 'trade' ? 'hidden' : 'flex'}`}>
-          <div className="pointer-events-auto">
-            <MobileSide view={view} unread={unread} />
-          </div>
-          <div className="pointer-events-auto">
-            <DiceBox view={view} size={32} compact />
-          </div>
-        </div>
         {/* Only the dock itself takes clicks: this row spans the screen and would otherwise cover
             the dice box on wide screens. */}
         <div className="flex justify-center">
@@ -475,31 +464,6 @@ function SideContent({ view, tab }: { view: PlayerView; tab: SideTab }) {
   return (
     <div className="scroll-thin min-h-0 flex-1 overflow-y-auto">
       {view.stats ? <DiceHistogram dice={view.stats.dice} compact /> : <p className="text-sm text-foam/40">No rolls recorded for this game.</p>}
-    </div>
-  );
-}
-
-function MobileSide({ view, unread }: { view: PlayerView; unread: number }) {
-  const [open, setOpen] = useState<null | SideTab>(null);
-  return (
-    <div className="flex flex-col items-start gap-2">
-      <Modal open={open !== null} onClose={() => setOpen(null)} title={open === 'chat' ? 'Table chat' : open === 'dice' ? 'Dice statistics' : 'Game log'}>
-        <div className="mobile-side-content flex flex-col rounded-xl bg-sea-900 p-3 text-paper">
-          {open && <SideContent view={view} tab={open} />}
-        </div>
-      </Modal>
-      <div className="flex gap-1.5">
-        <button type="button" className={`btn btn-dark h-10 w-10 p-0 ${open === 'log' ? 'btn-primary' : ''}`} onClick={() => setOpen(open === 'log' ? null : 'log')} aria-label="Game log">
-          <ScrollText size={17} />
-        </button>
-        <button type="button" className={`btn btn-dark h-10 w-10 p-0 ${open === 'dice' ? 'btn-primary' : ''}`} onClick={() => setOpen(open === 'dice' ? null : 'dice')} aria-label="Dice stats">
-          <ChartColumn size={17} />
-        </button>
-        <button type="button" className={`btn btn-dark relative h-10 w-10 p-0 ${open === 'chat' ? 'btn-primary' : ''}`} onClick={() => setOpen(open === 'chat' ? null : 'chat')} aria-label="Chat">
-          <MessageSquare size={17} />
-          {unread > 0 && open !== 'chat' && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-ink bg-amber" />}
-        </button>
-      </div>
     </div>
   );
 }

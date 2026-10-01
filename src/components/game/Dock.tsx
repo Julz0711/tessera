@@ -49,6 +49,7 @@ function ActionButton({
   danger,
   pulse,
   hint,
+  className = '',
   shortcut,
   left,
   bankAnchor,
@@ -70,6 +71,7 @@ function ActionButton({
   left?: number;
   /** Marks the button as the bank's spot on screen for flying cards (where the bank strip is hidden). */
   bankAnchor?: boolean;
+  className?: string;
 }) {
   return (
     <button
@@ -82,7 +84,7 @@ function ActionButton({
       aria-pressed={active}
       title={hint ?? label}
       data-bank-anchor={bankAnchor ? '' : undefined}
-      className={`btn group relative min-w-0 flex-col gap-0.5 px-1 py-1.5 text-[11px] sm:min-w-16 sm:px-2.5 ${primary ? 'btn-primary' : active ? 'btn-primary' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''}`}
+      className={`btn group relative min-w-0 flex-col gap-0.5 px-0 py-1.5 text-[10px] tracking-tight sm:min-w-16 sm:px-2.5 sm:text-[11px] sm:tracking-normal ${primary ? 'btn-primary' : active ? 'btn-primary' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''} ${className}`}
     >
       {icon}
       <span className="whitespace-nowrap leading-none">
@@ -165,7 +167,7 @@ export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
       {/* actions: one row where there's room; on phones the builds and the turn's other moves
           get a row each, every button the same width, so nothing hides off the edge. */}
       <div role="group" aria-label="Game actions" className="game-actions glass flex w-full flex-col gap-1.5 p-1.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-2 sm:p-2">
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(3rem,1fr))] gap-1.5 sm:flex sm:gap-2">
+        <div className="grid auto-cols-fr grid-flow-col gap-1 sm:flex sm:gap-2">
           <ActionButton
             label="Road"
             icon={<RoadGlyph size={20} />}
@@ -229,12 +231,14 @@ export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
                 hint="Recruit a basic knight"
               />
               <ActionButton label="Wall" icon={<BrickWall size={20} />} onClick={() => ui.toggleBuild('wall')} active={building === 'wall'} disabled={!wallOk} cost={COSTS.wall} left={left.walls} hint="City wall: +2 hand limit" />
-              <ActionButton label="Improve" icon={<Hammer size={20} />} onClick={() => ui.setPanel('improve')} active={ui.panel === 'improve'} disabled={view.phase !== 'play'} hint="City improvements" />
+              <ActionButton label="Improve" icon={<Hammer size={20} />} onClick={() => ui.setPanel('improve')} active={ui.panel === 'improve'} disabled={view.phase !== 'play'} hint="City improvements" className="max-sm:hidden" />
             </>
           )}
         </div>
         <span className="mx-0.5 hidden h-8 w-px bg-white/15 sm:block" />
-        <div className="grid grid-cols-[1fr_1fr_1.4fr] gap-1.5 sm:flex sm:items-center sm:gap-2">
+        <div className="grid auto-cols-fr grid-flow-col gap-1.5 sm:flex sm:items-center sm:gap-2">
+          {/* phones: Improve rides with the turn's other moves, keeping the build row short */}
+          {ck && <ActionButton label="Improve" icon={<Hammer size={20} />} onClick={() => ui.setPanel('improve')} active={ui.panel === 'improve'} disabled={view.phase !== 'play'} hint="City improvements" className="sm:hidden" />}
           <ActionButton
             label="Trade"
             icon={<ArrowLeftRight size={20} />}
