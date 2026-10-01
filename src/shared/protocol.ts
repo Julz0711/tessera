@@ -188,6 +188,8 @@ export interface ProfileData {
   history: GameSummary[];
   /** Signed-in players: rating and leaderboard place (null place until the first rated game). */
   rating: { rating: number; ratedGames: number; place: number | null } | null;
+  /** Listed in ADMIN_EMAILS: shows the link to /admin. */
+  isAdmin: boolean;
 }
 
 export interface ProfileUpdate {

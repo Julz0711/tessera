@@ -116,13 +116,13 @@ export function AdminPage() {
   const allSelected = !!games?.length && games.every((g) => selected.has(g.id));
 
   if (state === 'denied') {
-    return <main className="grid min-h-dvh place-items-center bg-[radial-gradient(ellipse_at_top,_#0f2f3b_0%,_#061419_60%)] p-4">
+    return <main className="page-safe-top grid min-h-dvh place-items-center bg-[radial-gradient(ellipse_at_top,_#0f2f3b_0%,_#061419_60%)] p-4">
       <div className="paper grid max-w-sm gap-3 p-6 text-center"><h1 className="display text-3xl font-black">Not found</h1>
         <p className="text-sm text-ink-soft">This page is only for server admins. <Link className="font-bold underline" href="/profile">Sign in</Link> with an admin account.</p></div>
     </main>;
   }
 
-  return <main className="min-h-dvh bg-[radial-gradient(ellipse_at_top,_#0f2f3b_0%,_#061419_60%)] px-4 py-8">
+  return <main className="page-safe-top min-h-dvh bg-[radial-gradient(ellipse_at_top,_#0f2f3b_0%,_#061419_60%)] px-4 py-8">
     <div className="mx-auto grid max-w-5xl gap-5"><Link className="text-sm font-bold text-foam/70 hover:text-paper" href="/">← Home</Link>
       <section className="paper grid gap-5 p-5 sm:p-7">
         <div><h1 className="display text-4xl font-black">Admin</h1>

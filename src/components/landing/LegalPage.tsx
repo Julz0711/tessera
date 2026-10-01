@@ -7,7 +7,7 @@ import { Logomark } from '@/components/ui/Logomark';
 export function LegalPage({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   const updated = new Date(`${LEGAL_UPDATED}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   return (
-    <main className="min-h-dvh bg-[radial-gradient(ellipse_at_top,_#0f2f3b_0%,_#061419_60%)] px-4 py-6 sm:py-10">
+    <main className="page-safe-top min-h-dvh bg-[radial-gradient(ellipse_at_top,_#0f2f3b_0%,_#061419_60%)] px-4 py-6 sm:py-10">
       <div className="mx-auto grid max-w-2xl gap-5">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-sm font-bold text-foam/70 hover:text-paper">

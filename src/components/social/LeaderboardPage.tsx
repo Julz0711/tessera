@@ -34,7 +34,7 @@ export function LeaderboardPage() {
     }, 150);
     return () => { clearTimeout(timer); controller.abort(); };
   }, [query, ready, attempt]);
-  return <main className="min-h-dvh bg-[radial-gradient(ellipse_at_top,_#0f2f3b_0%,_#061419_60%)] px-4 py-8">
+  return <main className="page-safe-top min-h-dvh bg-[radial-gradient(ellipse_at_top,_#0f2f3b_0%,_#061419_60%)] px-4 py-8">
     <div className="mx-auto grid max-w-3xl gap-5"><Link className="text-sm font-bold text-foam/70 hover:text-paper" href="/">← Home</Link>
       <section className="paper grid gap-5 p-5 sm:p-7">
         <div><h1 className="display text-4xl font-black">Leaderboards</h1><p className="mt-2 text-sm text-ink-soft">Four modes. Four ladders. Compete with friends or everyone on this server.</p></div>

@@ -327,15 +327,17 @@ export async function handleHttp(req: IncomingMessage, res: ServerResponse, ctx?
         logDbError(what, err);
         return fallback;
       });
-    const [session, history, providers, preferences, rating, ratings] = await Promise.all([
+    const db = getDb();
+    const [session, history, providers, preferences, rating, ratings, admin] = await Promise.all([
       sessionInfo(identity),
       orElse(historyFor(identity), [], 'game history'),
       orElse(linkedProviders(identity), [], 'linked accounts'),
       orElse(preferencesFor(identity), {}, 'profile preferences'),
       orElse(ratingFor(identity), null, 'rating'),
       identity.kind === 'user' ? orElse(modeRatingsFor(identity.id), emptyRatings(), 'mode ratings') : Promise.resolve(emptyRatings()),
+      db ? orElse(isAdmin(db, identity), false, 'admin check') : Promise.resolve(false),
     ]);
-    const data: ProfileData = { session, history, providers, preferences, favoriteMode: favoriteMode(history), rating, ratings };
+    const data: ProfileData = { session, history, providers, preferences, favoriteMode: favoriteMode(history), rating, ratings, isAdmin: admin };
     json(res, 200, data);
     return true;
   }
