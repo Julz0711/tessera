@@ -19,7 +19,7 @@ const ICON: Record<PatchSectionIcon, React.ReactNode> = {
 };
 
 function formatDate(iso: string): string {
-  return new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+  return new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 export function PatchNotesPage() {
