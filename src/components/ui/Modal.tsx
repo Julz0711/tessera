@@ -32,10 +32,10 @@ export function Modal({
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     // Native modal dialogs make the background inert and handle stacked dialogs.
     dialog.showModal();
-    contentRef.current?.focus();
+    contentRef.current?.focus({ preventScroll: true });
     return () => {
       dialog.close();
-      if (opener?.isConnected) opener.focus();
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
     };
   }, [open]);
   if (!open) return null;
@@ -44,7 +44,7 @@ export function Modal({
       ref={ref}
       aria-labelledby={title ? titleId : undefined}
       aria-label={title ? undefined : 'Game dialog'}
-      className={`fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none bg-transparent p-3 open:grid open:place-items-center ${dim ? 'backdrop:bg-sea-950/60 backdrop:backdrop-blur-[2px]' : 'backdrop:bg-transparent'}`}
+      className={`app-dialog fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none bg-transparent p-3 open:grid open:place-items-center ${dim ? 'backdrop:bg-sea-950/60 backdrop:backdrop-blur-[2px]' : 'backdrop:bg-transparent'}`}
       onCancel={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -78,13 +78,13 @@ export function Modal({
       <div
         ref={contentRef}
         tabIndex={-1}
-        className={`paper animate-pop max-h-[92dvh] w-full overflow-y-auto p-5 outline-none scroll-thin ${expansive ? 'max-w-6xl' : wide ? 'max-w-2xl' : 'max-w-md'}`}
+        className={`dialog-sheet paper animate-pop max-h-[92dvh] w-full overflow-y-auto p-5 outline-none scroll-thin ${expansive ? 'max-w-6xl' : wide ? 'max-w-2xl' : 'max-w-md'}`}
       >
         {(title || (dismissable && onClose)) && (
-          <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="dialog-heading mb-3 flex items-start justify-between gap-3">
             {title && <h2 id={titleId} className="display text-2xl font-black leading-tight">{title}</h2>}
             {dismissable && onClose && (
-              <button type="button" onClick={onClose} className="btn btn-ghost -mr-2 -mt-1 h-9 w-9 p-0" aria-label="Close">
+              <button type="button" onClick={onClose} className="btn btn-ghost -mr-2 -mt-1 h-11 w-11 shrink-0 p-0" aria-label="Close">
                 <X size={18} />
               </button>
             )}

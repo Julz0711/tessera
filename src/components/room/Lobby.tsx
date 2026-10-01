@@ -84,7 +84,7 @@ export function RoomHeader({
     }
   };
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3">
+    <header className="lobby-header flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -96,20 +96,21 @@ export function RoomHeader({
         </button>
         <Logomark size={30} />
       </div>
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <div className="glass flex shrink-0 items-center gap-3 px-3 py-1.5">
+      <div className="lobby-invite flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={copy}
+          className="glass flex shrink-0 items-center gap-3 px-3 py-1.5 transition hover:border-amber/60"
+          title="Copy invite link"
+        >
           <span className="label-light shrink-0">Room</span>
           <span className="whitespace-nowrap font-mono text-lg font-black tracking-[0.2em] text-paper">
             {formatCode(room.code)}
           </span>
-        </div>
-        <button
-          type="button"
-          onClick={copy}
-          className="btn btn-primary shrink-0 whitespace-nowrap px-3 py-2 text-sm"
-        >
-          {copied ? <Check size={16} /> : <Copy size={16} />}{" "}
-          {copied ? "Copied" : "Copy invite link"}
+          <span className={`ml-auto flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-extrabold ${copied ? "bg-moss text-white" : "bg-amber text-ink"}`}>
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+            {copied ? "Copied" : "Copy link"}
+          </span>
         </button>
         {typeof navigator !== "undefined" && "share" in navigator && (
           <button
@@ -233,7 +234,7 @@ function Segmented<T extends string | number>({
           disabled={disabled}
           onClick={() => onChange(o)}
           aria-pressed={value === o}
-          className={`rounded-lg border-2 px-3 py-1 text-sm font-bold transition disabled:cursor-default ${
+          className={`min-h-11 rounded-lg border-2 px-3 py-1 text-sm font-bold transition disabled:cursor-default ${
             value === o
               ? "border-ink bg-ink text-paper"
               : "border-ink/20 bg-white/40 enabled:hover:border-ink/60"
@@ -328,6 +329,7 @@ function Toggle({
         type="button"
         role="switch"
         aria-checked={checked}
+        aria-label={label}
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={`relative h-6 w-11 rounded-full border-2 border-ink transition ${checked ? "bg-moss" : "bg-paper-3"}`}
@@ -505,7 +507,7 @@ export function Lobby({ room }: { room: RoomDTO }) {
   };
 
   return (
-    <div className="mx-auto grid w-full max-w-6xl gap-5 px-4 py-5 sm:py-8">
+    <div className="lobby-page mx-auto grid w-full max-w-6xl gap-5 px-4 py-5 sm:py-8">
       <RoomHeader room={room} onLeave={leave} />
       <div className="grid gap-5 lg:grid-cols-[1.25fr_1fr]">
         <section className="grid content-start gap-4">
@@ -563,7 +565,7 @@ export function Lobby({ room }: { room: RoomDTO }) {
                 .join(", ")}
             </p>
           )}
-          <div className="glass flex min-h-56 flex-col p-3 lg:min-h-64">
+          <div className="glass flex h-64 min-h-56 flex-col p-3">
             <span className="label-light mb-2">Chat</span>
             <ChatPanel className="flex-1" dark />
           </div>
@@ -587,7 +589,7 @@ export function Lobby({ room }: { room: RoomDTO }) {
           {host ? (
             <button
               type="button"
-              className="btn btn-primary w-full py-3.5 text-lg"
+              className="lobby-start btn btn-primary w-full py-3.5 text-lg"
               onClick={start}
               disabled={starting || room.seats.length < 2}
             >

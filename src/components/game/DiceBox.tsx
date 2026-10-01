@@ -16,7 +16,7 @@ function lastRoll(view: PlayerView) {
 }
 
 /** Last roll + the Roll button, floated as its own HUD panel. Empty when there's nothing to show. */
-export function DiceBox({ view, size = 60 }: { view: PlayerView; size?: number }) {
+export function DiceBox({ view, size = 60, compact = false }: { view: PlayerView; size?: number; compact?: boolean }) {
   const roll = useMemo(() => lastRoll(view), [view]);
   const me = view.viewer;
   const canRoll = me !== null && view.phase === 'play' && view.turn.seat === me && !view.turn.rolled && view.pending.length === 0;
@@ -31,7 +31,7 @@ export function DiceBox({ view, size = 60 }: { view: PlayerView; size?: number }
 
   return (
     // Your turn and the dice still to roll: the box pulses like the "Your turn" pill up top.
-    <div className={`glass flex items-center gap-3 p-2.5 ${canRoll ? 'attention' : ''}`}>
+    <div className={`glass flex items-center ${compact ? 'gap-2 p-1.5' : 'gap-3 p-2.5'} ${canRoll ? 'attention' : ''}`}>
       {roll && (
         <div
           className={`flex items-center gap-1.5 ${canRoll ? 'cursor-pointer' : ''}`}
@@ -45,9 +45,11 @@ export function DiceBox({ view, size = 60 }: { view: PlayerView; size?: number }
         </div>
       )}
       {canRoll && (
-        <button type="button" onClick={rollNow} className="btn btn-primary flex-col gap-0.5 px-4 py-2 text-xs" title="Roll the dice (R)">
-          <Dices size={24} />
-          <span className="leading-none">Roll (R)</span>
+        <button type="button" onClick={rollNow} className={`btn btn-primary ${compact ? 'gap-1.5 px-3.5 py-2 text-sm' : 'flex-col gap-0.5 px-4 py-2 text-xs'}`} title="Roll the dice (R)">
+          <Dices size={compact ? 20 : 24} />
+          <span className="leading-none">
+            Roll<span className="pointer-coarse:hidden"> (R)</span>
+          </span>
         </button>
       )}
     </div>

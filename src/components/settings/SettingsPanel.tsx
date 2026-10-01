@@ -9,6 +9,7 @@ import { DEFAULT_HUD_LAYOUT, HUD_SCALE, useHud, type HudScale } from '@/client/h
 import { useSettingsUI, type SettingsTab } from '@/client/settingsUI';
 import { play, setVolume, setSfxVolumes, SFX_GROUPS } from '@/client/sound';
 import { ThemeSwatch } from '@/components/ui/ThemeSwatch';
+import { InstallAppButton, useAppInstall } from '@/components/ui/AppExperience';
 
 const TABS: { id: SettingsTab; label: string; icon: typeof Palette }[] = [
   { id: 'board', label: 'Board', icon: Palette },
@@ -49,16 +50,18 @@ export function SettingsPanel() {
   const pathname = usePathname();
   const inGame = pathname?.startsWith('/r/') ?? false;
   const wide = useIsWide();
+  const { installed } = useAppInstall();
 
   return (
-    <div className="grid h-full gap-4 sm:grid-cols-[9rem_1fr] sm:gap-6">
-      <div className="scroll-thin flex gap-1.5 overflow-x-auto pb-1 sm:flex-col sm:overflow-visible sm:pb-0">
+    <div className="settings-panel grid h-full min-h-0 min-w-0 gap-4 sm:grid-cols-[9rem_1fr] sm:gap-6">
+      <div className="scroll-thin flex min-w-0 gap-1.5 overflow-x-auto pb-1 sm:flex-col sm:overflow-visible sm:pb-0" aria-label="Settings categories">
         {TABS.map((t) => (
           <button
             key={t.id}
             type="button"
             className={`btn shrink-0 justify-start gap-2 px-3 py-2 text-sm ${tab === t.id ? 'btn-primary' : ''}`}
             onClick={() => setTab(t.id)}
+            aria-pressed={tab === t.id}
           >
             <t.icon size={16} /> {t.label}
           </button>
@@ -161,7 +164,7 @@ export function SettingsPanel() {
 
         {tab === 'interface' && (
           <>
-            <Section title="HUD scale" hint="Size of the in-game panels, top bar and dock.">
+            <Section title="HUD scale" hint="Size of the in-game panels, top bar and dock on wide screens. Phones fit them to the screen.">
               <div className="flex flex-wrap gap-2">
                 {(Object.keys(HUD_SCALE) as HudScale[]).map((s) => (
                   <button key={s} type="button" className={`btn px-4 py-2 ${prefs.hudScale === s ? 'btn-primary' : ''}`} onClick={() => prefs.set({ hudScale: s })}>
@@ -191,6 +194,13 @@ export function SettingsPanel() {
                 </button>
               </div>
             </Section>
+            {!installed && (
+              <Section title="Home Screen" hint="A shortcut that opens the game full screen, without the browser bars. Nothing to download.">
+                <div>
+                  <InstallAppButton className="btn px-4 py-2" />
+                </div>
+              </Section>
+            )}
           </>
         )}
 

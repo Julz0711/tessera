@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, LogIn, ScrollText, Settings, Trophy } from "lucide-react";
+import { ArrowRight, LogIn, Menu, ScrollText, Settings, Trophy } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -34,6 +34,7 @@ export function Landing() {
   const [sessionFailed, setSessionFailed] = useState(false);
   const [joining, setJoining] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
+  const [menu, setMenu] = useState(false);
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -75,7 +76,7 @@ export function Landing() {
   const knight = session?.knight ?? prefs.knight ?? DEFAULT_KNIGHT;
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-sea-950">
+    <main className="landing-page relative min-h-dvh overflow-hidden bg-sea-950">
       {/* the island */}
       <div className="absolute inset-0" aria-hidden>
         <ShowcaseIsland />
@@ -83,14 +84,14 @@ export function Landing() {
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-sea-950/95 via-sea-950/40 to-transparent max-md:bg-sea-950/55" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-sea-950 to-transparent" />
 
-      <header className="relative z-10 flex items-center justify-between px-5 pt-5 sm:px-10">
+      <header className="landing-header relative z-10 flex items-center justify-between gap-3 px-5 pt-5 sm:px-10">
         <div className="flex items-center gap-2.5">
           <Logomark size={30} />
           <span className="display text-lg font-black tracking-wide text-paper">
             {APP_WORDMARK}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="hidden items-center gap-2 md:flex">
           <Link
             href="/patch-notes"
             className="btn btn-dark relative h-9 w-9 p-0"
@@ -136,9 +137,13 @@ export function Landing() {
             <span className="max-w-28 truncate">{name}</span>
           </Link>
         </div>
+        <div className="flex shrink-0 items-center gap-2 md:hidden">
+          <Link href="/profile" className="btn btn-dark h-11 w-11 p-0" aria-label="Your profile"><KnightBadge knight={knight} color={color} size={28} /></Link>
+          <button className="btn btn-dark h-11 w-11 p-0" aria-label="Open navigation" aria-haspopup="dialog" onClick={() => setMenu(true)}><Menu size={20} /></button>
+        </div>
       </header>
 
-      <section className="relative z-10 flex min-h-[calc(100dvh-72px)] flex-col justify-center px-5 pb-16 sm:px-10 md:max-w-160">
+      <section className="landing-hero relative z-10 flex min-h-[calc(100dvh-72px)] flex-col justify-center px-5 pb-16 sm:px-10 md:max-w-160">
         <h1
           className="display animate-rise text-[clamp(3.6rem,13vw,8.5rem)] font-black leading-[0.86] tracking-[-0.02em] text-paper"
           style={{ fontVariationSettings: "'SOFT' 100, 'WONK' 1, 'opsz' 144" }}
@@ -146,7 +151,7 @@ export function Landing() {
           {APP_WORDMARK}
         </h1>
 
-        <div className="animate-rise mt-9 flex flex-wrap items-center gap-3 [animation-delay:160ms]">
+        <div className="landing-actions animate-rise mt-9 flex flex-wrap items-center gap-3 [animation-delay:160ms]">
           <Link href="/create" className="btn btn-primary px-7 py-3.5 text-lg">
             Create game <ArrowRight size={20} strokeWidth={3} />
           </Link>
@@ -172,7 +177,13 @@ export function Landing() {
                 }}
                 placeholder="ABCD-2345"
                 aria-label="Room code or invite link"
-                className="w-36 bg-transparent font-mono text-lg font-bold uppercase tracking-widest text-ink outline-none placeholder:text-ink/30"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="go"
+                aria-invalid={!!codeError}
+                aria-describedby={codeError ? 'room-code-error' : undefined}
+                className="min-w-0 w-36 flex-1 bg-transparent font-mono text-lg font-bold uppercase tracking-widest text-ink outline-none placeholder:text-ink/30"
               />
               <button type="submit" className="btn btn-dark px-4 py-2">
                 Join
@@ -181,13 +192,13 @@ export function Landing() {
           )}
         </div>
         {codeError && (
-          <p className="mt-2 text-sm font-semibold text-terracotta">
+          <p id="room-code-error" role="alert" className="mt-2 text-sm font-semibold text-terracotta">
             {codeError}
           </p>
         )}
       </section>
 
-      <footer className="absolute inset-x-0 bottom-0 z-10 flex gap-4 px-5 pb-4 text-xs font-bold text-foam/60 sm:px-10">
+      <footer className="landing-footer relative z-10 flex gap-4 px-5 pb-4 text-xs font-bold text-foam/60 sm:px-10">
         <Link href="/privacy" className="hover:text-paper">
           Privacy
         </Link>
@@ -195,6 +206,16 @@ export function Landing() {
           Terms
         </Link>
       </footer>
+
+      <Modal open={menu} onClose={() => setMenu(false)} title="Menu">
+        <nav className="grid gap-2" aria-label="Main navigation">
+          <Link href="/profile" className="btn justify-start px-4 py-3"><KnightBadge knight={knight} color={color} size={24} /> Your profile</Link>
+          <Link href="/leaderboard" className="btn justify-start px-4 py-3"><Trophy size={18} /> Leaderboard</Link>
+          <Link href="/patch-notes" className="btn justify-start px-4 py-3"><ScrollText size={18} /> What’s new {newPatch && <span className="ml-auto h-2 w-2 rounded-full bg-terracotta" />}</Link>
+          <button className="btn justify-start px-4 py-3" onClick={() => { setMenu(false); useSettingsUI.getState().show(); }}><Settings size={18} /> Settings</button>
+          {!signedIn && <button className="btn btn-primary justify-start px-4 py-3" onClick={() => { setMenu(false); setSigningIn(true); }}><LogIn size={18} /> Sign in</button>}
+        </nav>
+      </Modal>
 
       <Modal
         open={signingIn}

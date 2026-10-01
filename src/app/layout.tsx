@@ -5,6 +5,7 @@ import { Toasts } from '@/components/ui/Toasts';
 import { PrefsLoader } from '@/components/ui/PrefsLoader';
 import { SocialLayer } from '@/components/social/SocialLayer';
 import { SettingsOverlay } from '@/components/settings/SettingsOverlay';
+import { AppExperience } from '@/components/ui/AppExperience';
 import './globals.css';
 
 const fraunces = Fraunces({
@@ -24,6 +25,9 @@ export const metadata: Metadata = {
   title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
   description: APP_DESCRIPTION,
   applicationName: APP_NAME,
+  appleWebApp: { capable: true, title: APP_NAME, statusBarStyle: 'black-translucent' },
+  icons: { apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }] },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
@@ -37,11 +41,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${fraunces.variable} ${figtree.variable}`}>
       <body className="antialiased">
+        <AppExperience>
         {children}
         <Toasts />
         <PrefsLoader />
         <SocialLayer />
         <SettingsOverlay />
+        </AppExperience>
       </body>
     </html>
   );
