@@ -16,6 +16,8 @@ import { acceptFriend, friendProfileFor, friendsFor, inviteFriend, leaderboard, 
 import { pagedHistory, reportFor } from './historyApi';
 import { modeRatingsFor } from './modeRatings';
 import { emptyRatings } from '@/shared/ratings';
+import { activeRoomsFor } from './activeRooms';
+import { adminDeleteGames, adminDeleteGuest, adminDeleteUser, adminGames, adminGuests, adminOverview, adminUsers, idsFrom, isAdmin, type AdminContext } from './admin';
 
 function json(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
@@ -184,12 +186,57 @@ async function friendsRoute(req: IncomingMessage, res: ServerResponse): Promise<
   json(res, 200, await friendsFor(identity));
 }
 
+/** /api/admin/*: anyone who isn't an admin gets a plain 404. */
+async function adminRoute(req: IncomingMessage, res: ServerResponse, path: string, ctx: AdminContext): Promise<void> {
+  const db = getDb();
+  const identity = await resolveIdentity(req.headers.cookie);
+  if (!db || !identity || !(await isAdmin(db, identity))) return json(res, 404, { error: 'Not found' });
+  const params = new URL(req.url!, 'http://localhost').searchParams;
+  const lists = { '/api/admin/overview': () => adminOverview(db, ctx), '/api/admin/users': () => adminUsers(db, ctx, params),
+    '/api/admin/guests': () => adminGuests(db, ctx, params), '/api/admin/games': () => adminGames(db, ctx, params) } as const;
+  try {
+    if (req.method === 'GET' && path in lists) return json(res, 200, await lists[path as keyof typeof lists]());
+    if (req.method !== 'POST') return json(res, 404, { error: 'Not found' });
+    if (!originAllowed(req)) return json(res, 403, { error: 'Bad origin' });
+    const body = await readBody(req, 16 * 1024);
+    let parsed: unknown = null;
+    try {
+      parsed = body ? JSON.parse(body.toString('utf8')) : null;
+    } catch {
+      return json(res, 400, { error: 'Invalid request' });
+    }
+    const id = (parsed as { id?: unknown } | null)?.id;
+    if (path === '/api/admin/games/delete') return json(res, 200, await adminDeleteGames(db, ctx, idsFrom(parsed)));
+    if (typeof id !== 'string' || !id || id.length > 64) return json(res, 400, { error: 'Invalid request' });
+    if (path === '/api/admin/users/delete') return json(res, 200, await adminDeleteUser(db, ctx, identity, id));
+    if (path === '/api/admin/guests/delete') return json(res, 200, await adminDeleteGuest(db, ctx, id));
+    json(res, 404, { error: 'Not found' });
+  } catch (err) {
+    if (err instanceof UserError) return json(res, 400, { error: err.message });
+    logDbError('admin', err);
+    json(res, 500, { error: 'That failed. Check the server log.' });
+  }
+}
+
 /**
  * Plain HTTP endpoints owned by the game server (same module graph as the socket server).
  * Returns true when the request was handled here; otherwise Next.js handles it.
  */
-export async function handleHttp(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+export async function handleHttp(req: IncomingMessage, res: ServerResponse, ctx?: AdminContext): Promise<boolean> {
   const path = (req.url ?? '/').split('?')[0];
+  if (ctx && path.startsWith('/api/admin/')) {
+    await adminRoute(req, res, path, ctx);
+    return true;
+  }
+  if (ctx && path === '/api/rooms/active' && req.method === 'GET') {
+    const identity = await resolveIdentity(req.headers.cookie);
+    const rooms = identity ? await activeRoomsFor(identity, ctx.rooms, getDb()).catch((err: unknown) => {
+      logDbError('active rooms', err);
+      return activeRoomsFor(identity, ctx.rooms, null);
+    }) : [];
+    json(res, 200, { rooms });
+    return true;
+  }
   if (path === '/api/health') {
     json(res, 200, { ok: true });
     return true;

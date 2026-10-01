@@ -198,6 +198,22 @@ export interface ProfileUpdate {
   preferences?: ProfilePreferences;
 }
 
+/** A table you still hold a seat at (GET /api/rooms/active), for the main menu's "rejoin". */
+export interface ActiveRoom {
+  code: string;
+  status: 'lobby' | 'playing';
+  mode: Mode;
+  map: MapId;
+  /** Humans and bots seated / seats available. */
+  players: number;
+  maxPlayers: number;
+  /** Game turn number; null in the lobby, during setup, or when not loaded yet (after a server restart). */
+  turn: number | null;
+  yourTurn: boolean;
+  /** You left mid-game and autopilot is playing your seat. */
+  autopilot: boolean;
+}
+
 /** Summary of the current browser identity, served by GET /api/session. */
 export interface SessionInfo {
   kind: 'guest' | 'user' | 'none';

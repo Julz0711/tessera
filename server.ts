@@ -30,7 +30,7 @@ await app.prepare();
 const nextUpgrade = app.getUpgradeHandler();
 
 const server = createServer((req, res) => {
-  handleHttp(req, res)
+  handleHttp(req, res, { rooms: realtime.manager, persistence })
     .then((handled) => (handled ? undefined : handle(req, res)))
     .catch((err: unknown) => {
       console.error('[http] unhandled error', err);
