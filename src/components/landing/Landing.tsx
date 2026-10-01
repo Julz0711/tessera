@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, LogIn, Menu, ScrollText, Settings, Trophy } from "lucide-react";
+import { ArrowRight, Bot, LogIn, Menu, ScrollText, Settings, Trophy } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,7 +10,9 @@ import { LATEST_PATCH, PATCH_SEEN_KEY } from "@/config/patchNotes";
 import { usePrefs } from "@/client/prefs";
 import { useSettingsUI } from "@/client/settingsUI";
 import { fetchSession } from "@/client/session";
-import type { SessionInfo } from "@/shared/protocol";
+import { MAPS } from "@/engine/maps";
+import type { ActiveRoom, SessionInfo } from "@/shared/protocol";
+import { MODE_LABEL, ratingPoolFor } from "@/shared/ratings";
 import { DEFAULT_KNIGHT } from "@/shared/knight";
 import { SignInChoices } from "@/components/auth/SignInChoices";
 import { KnightBadge } from "@/components/knight/KnightBadge";
@@ -28,6 +30,52 @@ export function extractCode(input: string): string | null {
   return code.length === 8 ? code : null;
 }
 
+const roomStatus = (r: ActiveRoom) =>
+  r.status === "lobby"
+    ? `Lobby · ${r.players}/${r.maxPlayers} players`
+    : r.yourTurn
+      ? `Your turn${r.turn ? ` · turn ${r.turn}` : ""}`
+      : r.autopilot
+        ? `Autopilot is playing for you${r.turn ? ` · turn ${r.turn}` : ""}`
+        : r.turn
+          ? `In progress · turn ${r.turn}`
+          : "In progress";
+
+/** Tables you still hold a seat at, right above the main actions. */
+function ResumeTables({ rooms }: { rooms: ActiveRoom[] }) {
+  return (
+    <div className="animate-rise mt-8 grid max-w-md gap-2 [animation-delay:80ms]">
+      <p className="label-light">{rooms.length > 1 ? "Your tables" : "Your table"}</p>
+      {rooms.map((r) => (
+        <Link
+          key={r.code}
+          href={`/r/${r.code}`}
+          className="paper-flat group flex items-center gap-3 p-3 pl-4 transition hover:brightness-105"
+          aria-label={`Rejoin ${MODE_LABEL[ratingPoolFor(r.mode, r.map)]} table ${r.code}: ${roomStatus(r)}`}
+        >
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-extrabold text-ink">
+              {MODE_LABEL[ratingPoolFor(r.mode, r.map)]}
+              {r.map !== "standard" && <span className="font-semibold text-ink-soft"> · {MAPS[r.map]?.name ?? r.map}</span>}
+            </p>
+            <p className={`mt-0.5 flex items-center gap-1.5 text-sm ${r.yourTurn ? "font-bold text-terracotta" : "text-ink-soft"}`}>
+              {r.yourTurn && <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-terracotta" aria-hidden />}
+              {r.autopilot && <Bot size={14} className="shrink-0" aria-hidden />}
+              <span className="truncate">{roomStatus(r)}</span>
+              <span className="ml-auto shrink-0 pl-1 font-mono text-xs font-bold tracking-wider text-ink-faint">
+                {r.code.slice(0, 4)}-{r.code.slice(4)}
+              </span>
+            </p>
+          </div>
+          <span className="btn btn-primary shrink-0 px-4 py-2 text-sm group-hover:brightness-105" aria-hidden>
+            Rejoin <ArrowRight size={16} strokeWidth={3} />
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export function Landing() {
   const router = useRouter();
   const [session, setSession] = useState<SessionInfo | null>(null);
@@ -36,6 +84,7 @@ export function Landing() {
   const [signingIn, setSigningIn] = useState(false);
   const [menu, setMenu] = useState(false);
   const [code, setCode] = useState("");
+  const [tables, setTables] = useState<ActiveRoom[]>([]);
   const [codeError, setCodeError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const prefs = usePrefs();
@@ -54,6 +103,10 @@ export function Landing() {
     fetchSession()
       .then(setSession)
       .catch(() => setSessionFailed(true));
+    fetch("/api/rooms/active", { credentials: "same-origin", cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : { rooms: [] }))
+      .then((data: { rooms?: ActiveRoom[] }) => setTables(data.rooms ?? []))
+      .catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
@@ -151,8 +204,11 @@ export function Landing() {
           {APP_WORDMARK}
         </h1>
 
-        <div className="landing-actions animate-rise mt-9 flex flex-wrap items-center gap-3 [animation-delay:160ms]">
-          <Link href="/create" className="btn btn-primary px-7 py-3.5 text-lg">
+        {tables.length > 0 && <ResumeTables rooms={tables} />}
+
+        <div className={`landing-actions animate-rise ${tables.length ? "mt-5" : "mt-9"} flex flex-wrap items-center gap-3 [animation-delay:160ms]`}>
+          {/* With a table to go back to, Rejoin takes the accent colour. */}
+          <Link href="/create" className={`btn ${tables.length ? "" : "btn-primary"} px-7 py-3.5 text-lg`}>
             Create game <ArrowRight size={20} strokeWidth={3} />
           </Link>
           {!joining ? (
