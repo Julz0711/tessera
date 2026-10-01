@@ -387,10 +387,10 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
               />
             </div>
           )}
-        {s.map === "blackForest" && (
+        {(s.map === "blackForest" || s.map === "zealand") && (
           <div className="mt-1">
             <Toggle
-              label="Gold fields in the fog"
+              label={s.map === "zealand" ? "Two gold fields in the fog" : "Gold fields in the fog"}
               checked={s.gold ?? true}
               onChange={(gold) => set({ gold })}
               disabled={!host}

@@ -5,6 +5,8 @@
  * implementation detail. A new patch goes at the top; the home page marks the notes as new until a
  * player has opened this version.
  */
+import type { MapId } from "@/engine/types";
+
 export type PatchSectionIcon =
   | "players"
   | "turn"
@@ -20,10 +22,26 @@ export interface PatchNote {
   date: string;
   /** One line on what the patch is about. */
   summary: string;
-  sections: { title: string; icon: PatchSectionIcon; items: string[] }[];
+  sections: { title: string; icon: PatchSectionIcon; items: string[]; maps?: MapId[] }[];
 }
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "1.6",
+    date: "2026-10-01",
+    summary: "Two new Special maps: Zealand and Ironbound.",
+    sections: [
+      {
+        title: "New maps",
+        icon: "map",
+        items: [
+          "Zealand: start together on a ring of sheep with twelve wool harbors, then trade, build ships and sail to six fogged isles with harbors on their far shores, and hunt 21 treasures on their shores, with a lone desert isle of its own. Gold in the fog is a lobby toggle.",
+          "Ironbound: up to 6 players start on small isles ringing a great island. Gold sits in the middle, forests with lumber harbors on little ponds around it, then fog and desert, and a rim of ore. Each isle has up to three harbors facing away from the mainland.",
+        ],
+        maps: ["zealand", "citadel"],
+      },
+    ],
+  },
   {
     version: "1.5",
     date: "2026-10-01",
@@ -44,15 +62,15 @@ export const PATCH_NOTES: PatchNote[] = [
   {
     version: "1.4",
     date: "2026-09-30",
-    summary: "Two new maps and a clearer turn timer.",
+    summary: "A new map and a clearer turn timer.",
     sections: [
       {
-        title: "New maps",
+        title: "New map",
         icon: "map",
         items: [
           "Crossroads: start in one of four regions and race to claim the narrow routes between them.",
-          "The Citadel: sail from an outer island to an ore-rich center in a Knights & Barbarians game.",
         ],
+        maps: ["crossroads"],
       },
       {
         title: "Timed turns",
@@ -88,6 +106,7 @@ export const PATCH_NOTES: PatchNote[] = [
           "Veiled Isles: sail into the fog to uncover hidden islands and treasure.",
           "Pick Classic, Knights & Barbarians, Voyagers or Special as the mode, then choose a map.",
         ],
+        maps: ["farShores", "fourRealms", "veiledIsles"],
       },
       {
         title: "Knights & Barbarians",

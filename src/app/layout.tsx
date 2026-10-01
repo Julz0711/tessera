@@ -26,7 +26,11 @@ export const metadata: Metadata = {
   description: APP_DESCRIPTION,
   applicationName: APP_NAME,
   appleWebApp: { capable: true, title: APP_NAME, statusBarStyle: 'black-translucent' },
-  icons: { apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }] },
+  // Listing `apple` alone drops the tab icon Next would otherwise link from app/icon.svg, so name it too.
+  icons: {
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
   formatDetection: { telephone: false },
 };
 

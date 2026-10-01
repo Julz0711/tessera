@@ -1,7 +1,7 @@
 import { HARBOR_KINDS, NUMBER_TOKENS, TERRAIN_COUNTS, TREASURE_DECK, VEILED_NUMBERS } from '../constants';
 import { randomInt, shuffle, type RngHolder } from '../rng';
-import type { Board, Harbor, Hex, LandTerrain, Terrain, Treasure } from '../types';
-import { bag, dealTokens, spreadHarborEdges } from './generate';
+import { RESOURCES, TREASURE_KINDS, type Board, type Harbor, type HarborKind, type Hex, type LandTerrain, type Terrain, type Treasure } from '../types';
+import { bag, balancedTokens, dealTokens, spreadHarborEdges, spreadRedTokens } from './generate';
 import { getTopology, type HexCoord, type Topology } from './topology';
 
 /**
@@ -124,32 +124,307 @@ function sideOf(topo: Topology, hex: number, angle: number): number {
 
 const RESOURCES_TERRAIN: LandTerrain[] = ['forest', 'hills', 'pasture', 'fields', 'mountains'];
 
-/** A central seven-hex island separated from four equal home islands by a two-hex sea. */
+const hexDistance = (q: number, r: number) => Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r));
+
+/** A hex turned `k` sixths of a turn clockwise (on screen) about the centre of the board. */
+function rotate(h: HexCoord, k: number): HexCoord {
+  let p = h;
+  for (let i = 0; i < k; i++) p = { q: -p.r, r: p.q + p.r };
+  return p;
+}
+
+/** The hexes on the straight line from one hex to another, both included. */
+function hexLine(from: HexCoord, to: HexCoord): HexCoord[] {
+  const n = hexDistance(to.q - from.q, to.r - from.r);
+  const out: HexCoord[] = [];
+  for (let i = 0; i <= n; i++) {
+    const t = n === 0 ? 0 : i / n;
+    const [fq, fr] = [from.q + (to.q - from.q) * t, from.r + (to.r - from.r) * t];
+    const fs = -fq - fr;
+    let [q, r, sc] = [Math.round(fq), Math.round(fr), Math.round(fs)];
+    const [dq, dr, ds] = [Math.abs(q - fq), Math.abs(r - fr), Math.abs(sc - fs)];
+    if (dq > dr && dq > ds) q = -r - sc;
+    else if (dr > ds) r = -q - sc;
+    out.push({ q, r });
+  }
+  return out;
+}
+
+/** Where a point of the board lands when the whole board is turned `k` sixths of a turn clockwise (y down). */
+function turned(x: number, y: number, k: number): [number, number] {
+  const a = (k * Math.PI) / 3;
+  return [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];
+}
+
+const placeKey = (x: number, y: number) => `${Math.round(x * 100)},${Math.round(y * 100)}`;
+
+/**
+ * Coast edges of an isle that face away from the middle of the board (never the side towards the
+ * mainland). With `joined`, only edges with a corner where two of the isle's hexes meet: a harbor
+ * there sits between two tiles, so settling at that end gets two resources as well as the harbor.
+ */
+function outerCoast(topo: Topology, terrains: Terrain[], ids: number[], joined = false) {
+  const mine = new Set(ids);
+  const landAt = (v: number) => topo.vertices[v].hexes.filter((h) => mine.has(h)).length;
+  return topo.edges.filter((e) => {
+    const own = e.hexes.find((h) => mine.has(h));
+    if (own === undefined || !e.hexes.some((h) => terrains[h] === 'sea')) return false;
+    if (joined && landAt(e.a) < 2 && landAt(e.b) < 2) return false;
+    const h = topo.hexes[own];
+    const [dx, dy] = [e.x - h.x, e.y - h.y];
+    return (dx * h.x + dy * h.y) / (Math.hypot(dx, dy) * Math.hypot(h.x, h.y)) > 0.3;
+  });
+}
+
+/** Up to `n` of `edges`, drawn at random, none sharing a corner with another or with `used`. */
+function pickApart<T extends { a: number; b: number }>(rng: RngHolder, edges: T[], n: number, used = new Set<number>()): T[] {
+  const out: T[] = [];
+  const taken = new Set(used);
+  for (const e of shuffle(rng, edges)) {
+    if (out.length === n) break;
+    if (taken.has(e.a) || taken.has(e.b)) continue;
+    taken.add(e.a).add(e.b);
+    out.push(e);
+  }
+  return out;
+}
+
+/** The six outer isles of the Citadel (five hexes, in the north), as they lie on the board; the rest are this one turned. */
+const CITADEL_ISLE: HexCoord[] = [{ q: 3, r: -7 }, { q: 4, r: -7 }, { q: 2, r: -6 }, { q: 3, r: -6 }, { q: 4, r: -6 }];
+
+/** What the Citadel's 18 fogged hexes hide, dealt at random. */
+const CITADEL_FOG: Partial<Record<LandTerrain, number>> = { forest: 4, hills: 5, fields: 5, pasture: 4 };
+
+/** The rim of ore: three of each number from 3 to 11 (no 7), 24 in all. */
+const CITADEL_ORE_TOKENS = [3, 4, 5, 6, 8, 9, 10, 11].flatMap((n) => [n, n, n]);
+
+/**
+ * The Citadel (shown as Ironbound), for up to six players: a hexagonal island of four rings around a gold field (always a 6
+ * or an 8). Ring 1 is six forests; ring 2 has a pond at each corner, with a 2:1 lumber harbor on the
+ * forest beside it, and fog between; ring 3 has a desert at each corner and fog between (18 fogged
+ * hexes in all); ring 4 is all ore, numbered 3 to 11. A hex of sea lies all around it, and beyond that
+ * six isles of five hexes with no ore, turned about the centre so no isle is nearer or shaped better
+ * than another. Each isle's numbers are one 6 or 8 and a 4, 5, 9 and 10. Every isle may have three 3:1
+ * harbors, all on the sides facing away from the mainland, laid out the same on each. The pirate
+ * starts in the open sea, as far from any land as it can be.
+ */
 export function citadelBoard(rng: RngHolder): Board {
-  const distance = (q: number, r: number) => Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r));
-  const centers: HexCoord[] = [{ q: -5, r: 0 }, { q: 5, r: 0 }, { q: 0, r: -5 }, { q: 0, r: 5 }];
+  const distance = hexDistance;
+  const isles = [0, 1, 2, 3, 4, 5].map((k) => CITADEL_ISLE.map((h) => rotate(h, k)));
+  const nearIsle = (q: number, r: number) => isles.some((tiles) => tiles.some((t) => distance(q - t.q, r - t.r) <= 1));
   const coords: HexCoord[] = [];
-  for (let r = -6; r <= 6; r++) for (let q = -6; q <= 6; q++) {
-    if (distance(q, r) <= 3 || centers.some((c) => distance(q - c.q, r - c.r) <= 1)) coords.push({ q, r });
+  for (let r = -9; r <= 9; r++) for (let q = -9; q <= 9; q++) {
+    if (distance(q, r) <= 6 || nearIsle(q, r)) coords.push({ q, r });
   }
   const topo = getTopology(coords);
   const terrains: Terrain[] = topo.hexes.map(() => 'sea');
-  const homeGroups = centers.map((c) => topo.hexes.filter((h) => distance(h.q - c.q, h.r - c.r) <= 1).map((h) => h.id));
-  const central = topo.hexes.filter((h) => distance(h.q, h.r) <= 1).map((h) => h.id);
-  const homeBag: Terrain[] = ['forest', 'forest', 'hills', 'pasture', 'fields', 'fields', 'mountains'];
-  for (const group of homeGroups) shuffle(rng, [...homeBag]).forEach((t, i) => { terrains[group[i]] = t; });
-  terrains[topo.hexAt(0, 0)!] = 'gold';
-  const ring = central.filter((id) => id !== topo.hexAt(0, 0));
-  shuffle(rng, ['mountains', 'mountains', 'mountains', 'forest', 'pasture', 'fields'] as Terrain[])
-    .forEach((t, i) => { terrains[ring[i]] = t; });
-  const tokens = dealTokens(rng, topo, [
-    ...homeGroups.map((ids): [number[], number[]] => [ids, [3, 4, 5, 6, 8, 9, 10]]),
-    [central, [3, 4, 5, 6, 8, 9, 10]],
-  ], topo.hexes.map(() => null));
+  const straight = (h: { q: number; r: number }) => h.q === 0 || h.r === 0 || h.q + h.r === 0;
+  const ring = (h: { q: number; r: number }) => distance(h.q, h.r);
+  const centre = topo.hexAt(0, 0)!;
+  const forest = topo.hexes.filter((h) => ring(h) === 1).map((h) => h.id);
+  const ponds = topo.hexes.filter((h) => ring(h) === 2 && straight(h)).map((h) => h.id);
+  const fog = topo.hexes.filter((h) => (ring(h) === 2 || ring(h) === 3) && !straight(h)).map((h) => h.id);
+  const desert = topo.hexes.filter((h) => ring(h) === 3 && straight(h)).map((h) => h.id);
+  const ore = topo.hexes.filter((h) => ring(h) === 4).map((h) => h.id);
+  const isleIds = isles.map((tiles) => tiles.map((t) => topo.hexAt(t.q, t.r)!));
+
+  terrains[centre] = 'gold';
+  for (const id of forest) terrains[id] = 'forest';
+  for (const id of desert) terrains[id] = 'desert';
+  for (const id of ore) terrains[id] = 'mountains';
+  shuffle(rng, bag(CITADEL_FOG)).forEach((t, i) => { terrains[fog[i]] = t; });
+  // No ore on the isles: each has one of every other resource and a fifth, repeating one of them.
+  const homeBag: Terrain[] = ['forest', 'hills', 'pasture', 'fields'];
+  for (const ids of isleIds) shuffle(rng, [...homeBag, homeBag[randomInt(rng, homeBag.length)]]).forEach((t, i) => { terrains[ids[i]] = t; });
+
+  const fixed: (number | null)[] = topo.hexes.map(() => null);
+  fixed[centre] = shuffle(rng, [6, 8])[0];
+  // Each isle has exactly one 6 or 8: three isles a 6, three an 8.
+  const reds = shuffle(rng, [6, 6, 6, 8, 8, 8]);
+  const tokens = spreadRedTokens(rng, topo, [
+    ...isleIds.map((ids, k): [number[], number[]] => [ids, [reds[k], 4, 5, 9, 10]]),
+    [forest, [3, 4, 5, 9, 10, 11]],
+    [ore, [...CITADEL_ORE_TOKENS]],
+    [fog, balancedTokens(fog.length)],
+  ], fixed);
+
   const hexes = hexesOf(topo, terrains, tokens);
-  for (const group of homeGroups) for (const id of group) hexes[id].start = true;
-  const pirateStart = topo.hexAt(0, 2)!;
-  return { hexes, harbors: harborsOn(rng, topo, terrains, homeGroups, [3, 3, 3, 3]), pirateStart };
+  for (const ids of isleIds) for (const id of ids) hexes[id].start = true;
+  for (const id of fog) hexes[id].fog = true;
+
+  // A lumber harbor on the edge between each pond and the forest beside it.
+  const harbors: Harbor[] = ponds.map((pond) => {
+    const wood = topo.hexes[pond].neighbors.find((n) => terrains[n] === 'forest')!;
+    return { edge: topo.edges.find((e) => e.hexes.includes(pond) && e.hexes.includes(wood))!.id, kind: 'lumber' as const };
+  });
+  // Three harbors per isle, drawn once on the first isle and turned onto the others.
+  const edgeAt = new Map(topo.edges.map((e) => [placeKey(e.x, e.y), e.id]));
+  for (const e of pickApart(rng, outerCoast(topo, terrains, isleIds[0]), 3)) {
+    for (let k = 0; k < 6; k++) {
+      const [x, y] = turned(e.x, e.y, k);
+      harbors.push({ edge: edgeAt.get(placeKey(x, y))!, kind: 'any' });
+    }
+  }
+
+  // The pirate starts in the open sea as far from every coast as it gets, so nobody is hurt early on.
+  const land = topo.hexes.filter((h) => terrains[h.id] !== 'sea');
+  const clearance = (h: { q: number; r: number }) => Math.min(...land.map((l) => distance(h.q - l.q, h.r - l.r)));
+  const seas = topo.hexes.filter((h) => terrains[h.id] === 'sea').map((h) => ({ id: h.id, gap: clearance(h) }));
+  const widest = Math.max(...seas.map((x) => x.gap));
+  const oceans = seas.filter((x) => x.gap === widest).map((x) => x.id);
+  return { hexes, harbors, pirateStart: oceans[randomInt(rng, oceans.length)], robberStart: desert[randomInt(rng, desert.length)] };
+}
+
+/**
+ * One of Zealand's six fogged isles (ten hexes, in the north-east), as it lies on the board; the
+ * other five are this one turned about the centre. Copied from the reference board hex by hex.
+ */
+const ZEALAND_ISLE: HexCoord[] = [
+  { q: 3, r: -7 }, { q: 4, r: -7 },
+  { q: 3, r: -6 }, { q: 4, r: -6 }, { q: 5, r: -6 }, { q: 6, r: -6 },
+  { q: 4, r: -5 }, { q: 5, r: -5 }, { q: 6, r: -5 },
+  { q: 5, r: -4 },
+];
+
+/** What the six fogged isles of Zealand hide, dealt at random across all of them (60 hexes, all land). */
+const zealandFog = (gold: boolean): Partial<Record<LandTerrain, number>> =>
+  gold ? { forest: 13, hills: 13, fields: 13, mountains: 13, pasture: 6, gold: 2 } : { forest: 14, hills: 14, fields: 14, mountains: 14, pasture: 4 };
+
+/** The 18 sheep numbers: good ones, never a 2 or a 12. */
+const ZEALAND_SHEEP_TOKENS = [3, 3, 4, 4, 5, 5, 5, 6, 6, 8, 8, 9, 9, 9, 10, 10, 11, 11];
+
+/**
+ * Zealand: everyone starts on one island of sheep (pasture), a ring of 18 hexes around a lake, with twelve
+ * wool 2:1 harbors on its shore, two on each side, each between two tiles. Two sea hexes out lie the isles, ten
+ * hexes each, under fog; settling one is worth a point. Twelve harbors line the isles' outer coasts, two on
+ * each, between two tiles: a 3:1 and a 2:1, laid out the same way on every isle. With `gold`, two gold fields (each a 6 or
+ * an 8) hide among them. A one-hex desert island lies far out at sea, at least three sea hexes from
+ * the nearest isle, where the robber starts; sailing there is rewarded with three treasures on its
+ * corners. Every isle has three treasures on its coast, one on the side facing the mainland and two on
+ * the outer side (18), so 21 in all, each a random kind. The pirate starts beside the desert island, on its
+ * outer side.
+ */
+export function zealandBoard(rng: RngHolder, gold = true): Board {
+  const distance = hexDistance;
+  const isles = [0, 1, 2, 3, 4, 5].map((k) => ZEALAND_ISLE.map((h) => rotate(h, k)));
+  const landed = new Set(isles.flat().map((h) => `${h.q},${h.r}`));
+  const nearIsle = (q: number, r: number) => isles.some((tiles) => tiles.some((t) => distance(q - t.q, r - t.r) <= 1));
+  // The desert island lies far out, on a hex at least four steps (three sea hexes between) from every isle.
+  const far: HexCoord[] = [];
+  for (let r = -12; r <= 12; r++) for (let q = -12; q <= 12; q++) {
+    const d = distance(q, r);
+    if (d >= 9 && d <= 11 && isles.every((tiles) => tiles.every((t) => distance(q - t.q, r - t.r) >= 4))) far.push({ q, r });
+  }
+  const spot = far[randomInt(rng, far.length)];
+  const coords: HexCoord[] = [];
+  const have = new Set<string>();
+  const add = (q: number, r: number) => {
+    if (have.has(`${q},${r}`)) return;
+    have.add(`${q},${r}`);
+    coords.push({ q, r });
+  };
+  for (let r = -9; r <= 9; r++) for (let q = -9; q <= 9; q++) {
+    if (distance(q, r) <= 6 || nearIsle(q, r)) add(q, r);
+  }
+  // The sea round the desert island, and a lane of sea back to the isles for ships to sail.
+  for (let r = spot.r - 2; r <= spot.r + 2; r++) for (let q = spot.q - 2; q <= spot.q + 2; q++) {
+    if (distance(q - spot.q, r - spot.r) <= 2) add(q, r);
+  }
+  for (const h of hexLine({ q: 0, r: 0 }, spot)) {
+    for (let r = h.r - 1; r <= h.r + 1; r++) for (let q = h.q - 1; q <= h.q + 1; q++) {
+      if (distance(q - h.q, r - h.r) <= 1 && distance(q, r) >= 5) add(q, r);
+    }
+  }
+  const topo = getTopology(coords);
+  const terrains: Terrain[] = topo.hexes.map(() => 'sea');
+  const home = topo.hexes.filter((h) => distance(h.q, h.r) >= 1 && distance(h.q, h.r) <= 2).map((h) => h.id);
+  const fogged = topo.hexes.filter((h) => landed.has(`${h.q},${h.r}`)).map((h) => h.id);
+  const isleIds = isles.map((tiles) => tiles.map((t) => topo.hexAt(t.q, t.r)!));
+  for (const id of home) terrains[id] = 'pasture';
+  // Two gold fields never touch (each is a 6 or an 8).
+  const goldTouches = () => fogged.some((id) => terrains[id] === 'gold' && topo.hexes[id].neighbors.some((n) => terrains[n] === 'gold'));
+  do shuffle(rng, bag(zealandFog(gold))).forEach((t, i) => { terrains[fogged[i]] = t; }); while (goldTouches());
+
+  const desert = topo.hexAt(spot.q, spot.r)!;
+  terrains[desert] = 'desert';
+
+  const fixed: (number | null)[] = topo.hexes.map(() => null);
+  for (const id of fogged) if (terrains[id] === 'gold') fixed[id] = shuffle(rng, [6, 8])[0];
+  const land = fogged.filter((id) => terrains[id] !== 'gold');
+  const homeTokens = dealTokens(rng, topo, [[home, [...ZEALAND_SHEEP_TOKENS]]], topo.hexes.map(() => null), false);
+  const tokens = spreadRedTokens(rng, topo, [[land, balancedTokens(land.length)]], fixed.map((t, id) => t ?? homeTokens[id]));
+
+  const hexes = hexesOf(topo, terrains, tokens);
+  for (const id of home) hexes[id].start = true;
+  for (const id of fogged) hexes[id].fog = true;
+
+  // Twelve wool harbors on the sheep island, two on each of its six sides: one at every place where two
+  // of its outer tiles meet, on the coast edge just clockwise of it. Each therefore sits between two
+  // tiles, no two share a corner, and every side looks the same.
+  const homeSet = new Set(home);
+  const turn = (x: number, y: number) => {
+    const a = Math.atan2(x, -y);
+    return a < 0 ? a + 2 * Math.PI : a;
+  };
+  const rim = (e: { hexes: number[] }) => e.hexes.some((h) => homeSet.has(h)) && e.hexes.some((h) => terrains[h] === 'sea' && distance(topo.hexes[h].q, topo.hexes[h].r) >= 3);
+  const harbors: Harbor[] = [];
+  for (const v of topo.vertices) {
+    if (v.hexes.filter((h) => homeSet.has(h)).length !== 2 || !v.hexes.some((h) => terrains[h] === 'sea' && distance(topo.hexes[h].q, topo.hexes[h].r) >= 3)) continue;
+    const next = v.edges.map((id) => topo.edges[id]).filter(rim).map((e) => ({ e, other: e.a === v.id ? e.b : e.a }))
+      .map(({ e, other }) => ({ e, ahead: (turn(topo.vertices[other].x, topo.vertices[other].y) - turn(v.x, v.y) + 2 * Math.PI) % (2 * Math.PI) }))
+      .sort((p, q) => p.ahead - q.ahead)[0];
+    harbors.push({ edge: next.e.id, kind: 'wool' });
+  }
+  // Twelve more on the isles' outer coasts, two on each. Fair: the two spots are drawn once, on the
+  // first isle, and turned onto the others; each isle gets one 3:1 and one 2:1 (every resource once,
+  // the sixth isle's a repeat).
+  const edgeAt = new Map(topo.edges.map((e) => [placeKey(e.x, e.y), e.id]));
+  const specials: HarborKind[] = shuffle(rng, [...RESOURCES, RESOURCES[randomInt(rng, RESOURCES.length)]]);
+  pickApart(rng, outerCoast(topo, terrains, isleIds[0], true), 2).forEach((e, i) => {
+    for (let k = 0; k < 6; k++) {
+      const [x, y] = turned(e.x, e.y, k);
+      harbors.push({ edge: edgeAt.get(placeKey(x, y))!, kind: i === 0 ? 'any' : specials[k] });
+    }
+  });
+
+  // Treasures, on corners of land hexes that a ship can reach: three on every isle, one on the side
+  // facing the mainland and two on the outer side. Drawn once on the first isle and turned onto the
+  // rest, and never on a harbor's corner or touching another treasure.
+  const vertexAt = new Map(topo.vertices.map((v) => [placeKey(v.x, v.y), v.id]));
+  const harborCorners = new Set(harbors.flatMap((h) => [topo.edges[h.edge].a, topo.edges[h.edge].b]));
+  const first = new Set(isleIds[0]);
+  const [cx, cy] = [isleIds[0].reduce((n, id) => n + topo.hexes[id].x, 0) / 10, isleIds[0].reduce((n, id) => n + topo.hexes[id].y, 0) / 10];
+  const reach = Math.hypot(cx, cy);
+  /** How far a corner lies beyond the isle's middle, away from the board's centre (negative: towards it). */
+  const outward = (v: { x: number; y: number }) => ((v.x - cx) * cx + (v.y - cy) * cy) / reach;
+  const shore = topo.vertices.filter((v) => !harborCorners.has(v.id) && v.hexes.some((h) => first.has(h)) && v.hexes.some((h) => terrains[h] === 'sea'));
+  const inner = shore.filter((v) => outward(v) < -1);
+  const outer = shore.filter((v) => outward(v) > 1);
+  // Three on the desert island, on every other corner of its one hex.
+  const around = topo.hexes[desert].vertices;
+  const parity = randomInt(rng, 2);
+  const chests: number[] = [];
+  for (let i = parity; i < 6; i += 2) chests.push(around[i]);
+  const clear = (v: number, among: number[]) => among.every((o) => o !== v && !topo.vertices[o].vertices.includes(v));
+  for (const side of [inner, outer, outer]) {
+    const pick = shuffle(rng, side).find((v) => {
+      const orbit = [0, 1, 2, 3, 4, 5].map((k) => {
+        const [x, y] = turned(v.x, v.y, k);
+        return vertexAt.get(placeKey(x, y))!;
+      });
+      return orbit.every((id, i) => clear(id, chests) && clear(id, orbit.slice(i + 1)));
+    });
+    if (!pick) throw new Error('No room for the isle treasures');
+    for (let k = 0; k < 6; k++) {
+      const [x, y] = turned(pick.x, pick.y, k);
+      chests.push(vertexAt.get(placeKey(x, y))!);
+    }
+  }
+  const treasures: Treasure[] = chests.map((vertex) => ({ vertex, kind: TREASURE_KINDS[randomInt(rng, TREASURE_KINDS.length)] }));
+
+  // The pirate starts beside the desert island, on its outer side.
+  const beside = topo.hexes[desert].neighbors.filter((n) => distance(topo.hexes[n].q, topo.hexes[n].r) >= distance(spot.q, spot.r));
+  return { hexes, harbors, pirateStart: beside[randomInt(rng, beside.length)], robberStart: desert, treasures };
 }
 
 const idsOf = (layout: Layout, test: (code: string) => boolean) =>

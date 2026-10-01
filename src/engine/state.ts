@@ -133,6 +133,7 @@ export function createGame(opts: CreateGameOptions): GameState {
   const order = [...Array(n).keys(), ...[...Array(n).keys()].reverse()];
   // The robber starts in the desert; maps without one (Four Realms) start it on the 12, as the rules say.
   const robber =
+    board.hexes[board.robberStart ?? -1] ??
     board.hexes.find((h) => h.terrain === 'desert') ??
     board.hexes.find((h) => h.token === 12 && !h.fog) ??
     board.hexes.find((h) => h.terrain !== 'sea' && !h.fog)!;

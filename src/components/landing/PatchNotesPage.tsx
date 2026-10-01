@@ -4,7 +4,9 @@ import { ArrowLeft, ArrowLeftRight, Dices, Hand, Map as MapIcon, Move, ScrollTex
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { LATEST_PATCH, PATCH_NOTES, PATCH_SEEN_KEY, type PatchSectionIcon } from '@/config/patchNotes';
+import { MapPreview } from '@/components/room/MapPreview';
 import { Logomark } from '@/components/ui/Logomark';
+import { MAPS } from '@/engine/maps';
 
 const ICON: Record<PatchSectionIcon, React.ReactNode> = {
   players: <Users size={17} />,
@@ -68,6 +70,16 @@ export function PatchNotesPage() {
                       </li>
                     ))}
                   </ul>
+                  {section.maps && (
+                    <div className="mt-3 flex flex-wrap gap-2.5 pl-9">
+                      {section.maps.map((map) => (
+                        <figure key={map} className="grid w-[112px] justify-items-center gap-1 rounded-xl border-2 border-ink bg-paper-2 p-2">
+                          <MapPreview map={map} size={92} />
+                          <figcaption className="text-center text-xs font-extrabold leading-tight">{MAPS[map].name}</figcaption>
+                        </figure>
+                      ))}
+                    </div>
+                  )}
                 </section>
               ))}
             </div>
