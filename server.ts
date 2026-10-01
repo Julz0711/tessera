@@ -13,6 +13,9 @@ import { findFreePort } from './src/server/port';
 import { attachRealtime } from './src/server/realtime';
 import { acquirePrivacyLock } from './src/server/privacyMaintenance';
 
+// One stray async error must not end every game on the server: report it and keep serving.
+process.on('unhandledRejection', (err) => console.error('[process] unhandled rejection', err));
+
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = process.env.HOST || undefined; // default: all interfaces (dual-stack)
 const requestedPort = Number(process.env.PORT) || 3000;

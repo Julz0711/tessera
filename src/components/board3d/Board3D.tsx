@@ -1,6 +1,6 @@
 'use client';
 
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, PerformanceMonitor } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { MOUSE } from 'three';
@@ -228,6 +228,11 @@ export default function Board3D({
 }: BoardProps) {
   const shadows = quality === 'high';
   const palette = PALETTES[theme];
+  // Sharpness follows the frame rate: a device that can't keep up renders fewer pixels (back up to
+  // the full pixel ratio once it can).
+  const [sharpness, setSharpness] = useState(1);
+  const maxDpr = quality === 'high' ? 2 : 1.25;
+  const dpr = Math.round((1 + (maxDpr - 1) * sharpness) * 4) / 4;
   // Where the last press started: a click away closes the build popup, a drag (orbit/pan) doesn't.
   const pressed = useRef<{ x: number; y: number } | null>(null);
   const fontsReady = useFontReady();
@@ -256,7 +261,7 @@ export default function Board3D({
   return (
     <Canvas
       shadows={shadows ? 'percentage' : false}
-      dpr={[1, quality === 'high' ? 2 : 1.25]}
+      dpr={[1, dpr]}
       camera={{ position: [0, 11, 8.5], fov: 38, near: 0.1, far: HORIZON_HALF }}
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       onPointerDown={(e) => {
@@ -268,6 +273,7 @@ export default function Board3D({
         if (onBackground && p && Math.hypot(e.clientX - p.x, e.clientY - p.y) < 6) onBackground();
       }}
     >
+      <PerformanceMonitor factor={1} flipflops={3} onChange={({ factor }) => setSharpness(factor)} onFallback={() => setSharpness(0)} />
       <BoardThemeContext.Provider value={theme}>
         <color attach="background" args={[backdrop]} />
         <fog attach="fog" args={[backdrop, (showcase ? 14 : 18) * scale * (palette.light.haze ?? 1), (showcase ? 34 : 44) * scale * (palette.light.haze ?? 1)]} />

@@ -1,6 +1,7 @@
 'use client';
 
 import { Anchor, Scroll, ShieldHalf, Ship } from 'lucide-react';
+import { memo } from 'react';
 import type { EventFace } from '@/engine/types';
 
 const FACE_TRANSFORM: Record<number, string> = {
@@ -30,7 +31,8 @@ const SIDES: { value: number; transform: string }[] = [
   { value: 2, transform: 'rotateX(-90deg) translateZ(var(--half))' },
 ];
 
-function Face({ value, pip, bg, transform }: { value: number; pip: string; bg: string; transform: string }) {
+// Memoized: six faces of nine cells per die, and the dice re-render with every game update.
+const Face = memo(function Face({ value, pip, bg, transform }: { value: number; pip: string; bg: string; transform: string }) {
   return (
     <div
       className="absolute inset-0 grid grid-cols-3 grid-rows-3 rounded-[22%] border-2 border-ink p-[14%]"
@@ -43,7 +45,7 @@ function Face({ value, pip, bg, transform }: { value: number; pip: string; bg: s
       ))}
     </div>
   );
-}
+});
 
 /** A CSS 3D die that tumbles to `value` whenever `rollKey` changes. */
 export function Die({ value, rollKey, size = 44, bg = '#f6eddb', pip = '#1f1a14' }: { value: number; rollKey: number; size?: number; bg?: string; pip?: string }) {
@@ -89,7 +91,7 @@ export function EventDie({ face, size = 44 }: { face: EventFace; size?: number }
 }
 
 /** A small flat die showing `value` (log lines). */
-export function FlatDie({ value, size = 16, bg = '#f6eddb', pip = '#1f1a14' }: { value: number; size?: number; bg?: string; pip?: string }) {
+export const FlatDie = memo(function FlatDie({ value, size = 16, bg = '#f6eddb', pip = '#1f1a14' }: { value: number; size?: number; bg?: string; pip?: string }) {
   return (
     <span
       className="inline-grid shrink-0 grid-cols-3 grid-rows-3 rounded-[22%] border border-ink p-[12%] align-middle"
@@ -104,7 +106,7 @@ export function FlatDie({ value, size = 16, bg = '#f6eddb', pip = '#1f1a14' }: {
       ))}
     </span>
   );
-}
+});
 
 /** The C&K event die as a small flat face (log lines). */
 export function FlatEventDie({ face, size = 16 }: { face: EventFace; size?: number }) {

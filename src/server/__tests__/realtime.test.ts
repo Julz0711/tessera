@@ -78,7 +78,8 @@ function autoplay(c: Client, getSeat: () => number | null) {
     });
   };
   c.on('game:state', ({ view }) => {
-    latest = view;
+    // Mid-game updates leave the log out (the client appends the events); the bots don't read it.
+    latest = { ...view, log: view.log ?? latest?.log ?? [] };
     step();
   });
   return { view: () => latest };
@@ -137,7 +138,13 @@ describe('realtime server', () => {
 
     // A late visitor becomes a spectator and sees no private information.
     const watcher = client(await guestCookie());
-    const firstSpectatorView = new Promise<PlayerView>((resolve) => watcher.once('game:state', ({ view }) => resolve(view)));
+    const firstSpectatorView = new Promise<PlayerView>((resolve) =>
+      watcher.once('game:state', ({ view }) => {
+        // Joining mid-game brings the whole log; later updates only add to it.
+        expect(Array.isArray(view.log)).toBe(true);
+        resolve(view as PlayerView);
+      }),
+    );
     const watched = await call<{ room: RoomDTO }>((ack) => watcher.emit('room:join', { code }, ack));
     expect(watched.ok).toBe(true);
     expect((watched as { room: RoomDTO }).room.you.isSpectator).toBe(true);

@@ -111,10 +111,17 @@ export interface ClientToServerEvents {
   'game:action': (action: Action, ack: Ack) => void;
   'chat:send': (text: string, ack: Ack) => void;
   'room:react': (reaction: ReactionId, ack: Ack) => void;
+  /** The client's log no longer lines up with the updates (see `GameUpdate`): send the whole view again. */
+  'game:sync': () => void;
 }
 
 export interface GameUpdate {
-  view: PlayerView;
+  /**
+   * The viewer's game. Mid-game `log` is usually left out: the client appends `events` to the log it
+   * already holds (the log is most of the view, and it only ever grows by these events). A view whose
+   * `seq` doesn't follow on from the client's must be re-requested with `game:sync`.
+   */
+  view: Omit<PlayerView, 'log'> & { log?: PlayerView['log'] };
   /** Events produced by the latest action (redacted for this viewer), for animations and toasts. */
   events: GameEvent[];
 }
