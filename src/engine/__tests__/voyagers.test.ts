@@ -129,6 +129,8 @@ describe('Voyagers maps', () => {
       for (const h of lumber) {
         const sides = t.edges[h.edge].hexes.map((id) => hexes[id].terrain).sort();
         expect(sides).toEqual(['forest', 'sea']);
+        // The forest is the one in ring 1, not a fogged forest in ring 2.
+        expect(ring(hexes[t.edges[h.edge].hexes.find((id) => hexes[id].terrain === 'forest')!])).toBe(1);
       }
       expect(new Set(lumber.map((h) => t.edges[h.edge].hexes.find((id) => hexes[id].terrain === 'sea'))).size).toBe(6);
       // Three 3:1 harbors per isle, only on sides facing away from the mainland.
