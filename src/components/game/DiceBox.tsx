@@ -31,8 +31,9 @@ export function DiceBox({ view, size = 60, compact = false }: { view: PlayerView
 
   return (
     // Your turn and the dice still to roll: the box pulses like the "Your turn" pill up top.
-    <div className={`glass flex items-center ${compact ? 'gap-2 p-1.5' : 'gap-3 p-2.5'} ${canRoll ? 'attention' : ''}`}>
-      {roll && (
+    <div className={`glass flex items-center ${compact ? 'h-11 w-28 justify-center gap-1.5 p-1' : 'gap-3 p-2.5'} ${canRoll ? 'attention' : ''}`}>
+      {/* Compact and about to roll: the Roll button alone, the old roll is stale. */}
+      {roll && !(compact && canRoll) && (
         <div
           className={`flex items-center gap-1.5 ${canRoll ? 'cursor-pointer' : ''}`}
           onClick={canRoll ? rollNow : undefined}
@@ -45,7 +46,7 @@ export function DiceBox({ view, size = 60, compact = false }: { view: PlayerView
         </div>
       )}
       {canRoll && (
-        <button type="button" onClick={rollNow} className={`btn btn-primary ${compact ? 'gap-1.5 px-3.5 py-2 text-sm' : 'flex-col gap-0.5 px-4 py-2 text-xs'}`} title="Roll the dice (R)">
+        <button type="button" onClick={rollNow} className={`btn btn-primary ${compact ? 'h-full min-h-0! flex-1 gap-1.5 px-2 text-sm' : 'flex-col gap-0.5 px-4 py-2 text-xs'}`} title="Roll the dice (R)">
           <Dices size={compact ? 20 : 24} />
           <span className="leading-none">
             Roll<span className="pointer-coarse:hidden"> (R)</span>

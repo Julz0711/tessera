@@ -97,7 +97,9 @@ function FitCamera({ showcase, scale }: { showcase: boolean; scale: number }) {
   const { camera, size } = useThree();
   useEffect(() => {
     const aspect = size.width / Math.max(1, size.height);
-    const k = (aspect < 1 ? 1 + (1 - aspect) * 1.25 : aspect < 1.3 ? 1.08 : 1) * scale;
+    // A squarish frame (a phone's boxed board) is height-limited, not width-limited: sit closer.
+    const squarish = !showcase && aspect >= 0.7 && aspect < 1.3;
+    const k = (squarish ? 0.92 : aspect < 1 ? 1 + (1 - aspect) * 1.25 : aspect < 1.3 ? 1.08 : 1) * scale;
     const shift = showcase && aspect > 1.2 ? -Math.min(4.2, (aspect - 1) * 5) : 0;
     const base = showcase ? [0, 8.6, 11] : [0, 12.2, 9.4];
     camera.position.set(base[0] * k + shift, base[1] * k, base[2] * k);
