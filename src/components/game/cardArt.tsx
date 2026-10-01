@@ -5,6 +5,7 @@
  * Illustrations live in a 100×100 box; card faces in a 100×140 box. Everything is generated once
  * per card and cached, so rendering a hand of cards is just a list of polygons.
  */
+import { memo, useLayoutEffect } from 'react';
 import type { Card, DevCardType } from '@/engine/types';
 
 type Pt = readonly [number, number];
@@ -845,7 +846,7 @@ function renderedArt(card: ArtKey): RenderedArt {
 }
 
 /** The illustration as SVG elements in its 100×100 box (no `<svg>` wrapper). */
-export function ArtShapes({ card, shadow, outline = 2.6 }: { card: ArtKey; shadow?: string; outline?: number }) {
+export const ArtShapes = memo(function ArtShapes({ card, shadow, outline = 2.6 }: { card: ArtKey; shadow?: string; outline?: number }) {
   const art = renderedArt(card);
   return (
     <>
@@ -866,7 +867,7 @@ export function ArtShapes({ card, shadow, outline = 2.6 }: { card: ArtKey; shado
       ))}
     </>
   );
-}
+});
 
 // ── faceted card background ──────────────────────────────────────────────────
 
@@ -923,7 +924,7 @@ export function facetBackground(color: string, seed: string): { points: string; 
   return out;
 }
 
-export function FacetBackground({ color, seed }: { color: string; seed: string }) {
+export const FacetBackground = memo(function FacetBackground({ color, seed }: { color: string; seed: string }) {
   return (
     <>
       {facetBackground(color, seed).map((f, i) => (
@@ -931,16 +932,59 @@ export function FacetBackground({ color, seed }: { color: string; seed: string }
       ))}
     </>
   );
+});
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const MINI_OUTLINE = 4.5;
+let sprite: SVGSVGElement | null = null;
+
+/**
+ * Puts the icon-sized art for `card` into a hidden page-wide sprite (once). Each art is ~100
+ * polygons, and a long game log shows hundreds of icons: drawn inline they were tens of thousands
+ * of elements, re-rendered on every update.
+ */
+function ensureSpriteArt(card: ArtKey): void {
+  if (!sprite?.isConnected) {
+    sprite = document.createElementNS(SVG_NS, 'svg');
+    sprite.setAttribute('aria-hidden', 'true');
+    sprite.setAttribute('style', 'position:absolute;width:0;height:0;overflow:hidden');
+    document.body.appendChild(sprite);
+  }
+  const id = miniArtId(card);
+  if (sprite.querySelector(`#${id}`)) return;
+  const g = document.createElementNS(SVG_NS, 'g');
+  g.id = id;
+  const polygon = (parent: Element, points: string, attrs: Record<string, string>) => {
+    const el = document.createElementNS(SVG_NS, 'polygon');
+    el.setAttribute('points', points);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    parent.appendChild(el);
+  };
+  for (const part of renderedArt(card).parts) {
+    const pg = document.createElementNS(SVG_NS, 'g');
+    if (!part.bare) {
+      const ink = document.createElementNS(SVG_NS, 'g');
+      for (const [k, v] of Object.entries({ fill: INK, stroke: INK, 'stroke-width': String(MINI_OUTLINE * 2), 'stroke-linejoin': 'round' })) ink.setAttribute(k, v);
+      for (const f of part.facets) polygon(ink, f.points, {});
+      pg.appendChild(ink);
+    }
+    for (const f of part.facets) polygon(pg, f.points, { fill: f.fill, stroke: f.fill, 'stroke-width': '0.5', 'stroke-linejoin': 'round' });
+    g.appendChild(pg);
+  }
+  sprite.appendChild(g);
 }
 
+const miniArtId = (card: ArtKey) => `mini-art-${card}`;
+
 /** The art on its own at icon size (log lines, costs, the bank), with a bolder outline to hold up small. */
-export function MiniArt({ card, size = 16 }: { card: ArtKey; size?: number }) {
+export const MiniArt = memo(function MiniArt({ card, size = 16 }: { card: ArtKey; size?: number }) {
+  useLayoutEffect(() => ensureSpriteArt(card), [card]);
   return (
     <svg width={size} height={size} viewBox="4 8 92 88" aria-hidden className="shrink-0">
-      <ArtShapes card={card} outline={4.5} />
+      <use href={`#${miniArtId(card)}`} />
     </svg>
   );
-}
+});
 
 /** A cream, faceted hexagon token (for progress cards' icons), centred at (cx, cy) in a card face. */
 export function Medallion({ cx, cy, r, outline = 2.4 }: { cx: number; cy: number; r: number; outline?: number }) {

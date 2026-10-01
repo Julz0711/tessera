@@ -2,6 +2,7 @@
 
 import { io, type Socket } from 'socket.io-client';
 import { create } from 'zustand';
+import { LOG_LIMIT } from '@/engine/constants';
 import type { Action, GameEvent } from '@/engine/types';
 import type { PlayerView } from '@/engine/view';
 import type {
@@ -112,7 +113,17 @@ function wire(s: ClientSocket): void {
   });
   // Back in the lobby, the finished game's view goes away.
   s.on('room:state', (room) => useGame.setState(room.status === 'lobby' ? { room, view: null } : { room }));
-  s.on('game:state', ({ view, events }) => useGame.setState((st) => ({ view, events, updateId: st.updateId + 1 })));
+  s.on('game:state', ({ view, events }) => {
+    const prev = useGame.getState().view;
+    let log = view.log;
+    if (!log) {
+      // Only the new events came: they continue the log we hold, unless an update went missing.
+      const follows = prev !== null && (events.length ? events[0].seq === prev.seq + 1 : view.seq === prev.seq);
+      if (!follows) s.emit('game:sync');
+      log = prev ? (events.length && follows ? [...prev.log, ...events].slice(-LOG_LIMIT) : prev.log) : [];
+    }
+    useGame.setState((st) => ({ view: { ...view, log }, events, updateId: st.updateId + 1 }));
+  });
   s.on('chat:history', (chat) => useGame.setState({ chat }));
   s.on('chat:message', (m) => {
     useGame.setState((st) => ({ chat: [...st.chat.slice(-149), m], unread: st.unread + 1 }));
@@ -141,7 +152,15 @@ export function startConnection(): Promise<void> {
     const session = await ensureSession();
     useGame.setState({ session });
     if (!socket) {
-      socket = io({ transports: ['websocket', 'polling'], autoConnect: false, withCredentials: true });
+      // WebSocket first; where a proxy or firewall blocks it, fall back to long-polling instead of failing.
+      socket = io({
+        transports: ['websocket', 'polling'],
+        tryAllTransports: true,
+        autoConnect: false,
+        withCredentials: true,
+        // This client appends log events itself; the server sends older clients the whole log.
+        auth: { logDeltas: true },
+      });
       wire(socket);
     }
     if (!socket.connected) {

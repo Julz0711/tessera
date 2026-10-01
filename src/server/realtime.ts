@@ -17,6 +17,8 @@ export interface SocketData {
   identity: ServerIdentity;
   ip: string;
   roomCode: string | null;
+  /** The client keeps the game log itself and takes only new events (see `GameUpdate`). */
+  logDeltas: boolean;
   /** Cosmetics state, refreshed whenever the socket creates or joins a room. */
   cosmetics: Awaited<ReturnType<typeof cosmeticStateFor>>;
 }
@@ -74,6 +76,8 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
   const io: IO = new Server(server, {
     destroyUpgrade: false,
     maxHttpBufferSize: 100_000,
+    // Game views are repetitive JSON: compressed they shrink about sixfold.
+    perMessageDeflate: { threshold: 1024 },
     pingInterval: 20_000,
     pingTimeout: 25_000,
     allowRequest: (req, cb) => cb(null, originAllowed(req)),
@@ -87,6 +91,7 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
       const s = io.sockets.sockets.get(sid);
       if (s) s.data.roomCode = null;
     },
+    logDeltas: (sid) => io.sockets.sockets.get(sid)?.data.logDeltas === true,
   };
   const manager = new RoomManager({
     io: roomIO,
@@ -102,6 +107,7 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
       socket.data.identity = identity;
       socket.data.ip = clientIp({ headers: socket.handshake.headers, address: socket.handshake.address });
       socket.data.roomCode = null;
+      socket.data.logDeltas = (socket.handshake.auth as { logDeltas?: unknown } | undefined)?.logDeltas === true;
       socket.data.cosmetics = { unlocks: NO_UNLOCKS, chosen: null };
       next();
     } catch (err) {
@@ -282,6 +288,12 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
         currentRoom().react(socket.id, reaction);
       }),
     );
+
+    socket.on('game:sync', () => {
+      if (!limits.lobby.take(socket.id)) return;
+      const room = socket.data.roomCode ? manager.get(socket.data.roomCode) : undefined;
+      room?.resync(socket.id);
+    });
 
     socket.on('disconnect', () => {
       const room = socket.data.roomCode ? manager.get(socket.data.roomCode) : undefined;

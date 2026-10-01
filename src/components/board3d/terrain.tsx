@@ -181,27 +181,107 @@ export function classicProps(terrain: Terrain, seed: number): Prop[] {
   return out;
 }
 
-export const TerrainProps = memo(function TerrainProps({ terrain, seed, shadows }: { terrain: Terrain; seed: number; shadows: boolean }) {
-  const kit = useBoardKit();
-  const props = useMemo(() => kit.props?.(terrain, seed) ?? classicProps(terrain, seed), [kit, terrain, seed]);
+type PropLook = { rough?: number; metal?: number; opacity?: number; emissive?: string; glow?: number };
+/** A prop that may also set its roughness (fog clouds are fully matte). */
+type BakedProp = Prop & { rough?: number };
+
+function propLook(p: BakedProp): PropLook {
+  return {
+    ...(p.rough !== undefined ? { rough: p.rough } : {}),
+    ...(p.metal ? { metal: 0.35, rough: 0.3, emissive: p.emissive ?? '#ff9d00' } : p.emissive ? { emissive: p.emissive, glow: 0.9 } : {}),
+    opacity: p.opacity,
+  };
+}
+
+const flatCache = new WeakMap<THREE.BufferGeometry, THREE.BufferGeometry>();
+
+/** Non-indexed copy with positions only (flat shading derives its normals in the shader). */
+function flatPositions(geo: THREE.BufferGeometry): THREE.BufferGeometry {
+  let flat = flatCache.get(geo);
+  if (!flat) {
+    flat = new THREE.BufferGeometry();
+    flat.setAttribute('position', (geo.index ? geo.toNonIndexed() : geo).getAttribute('position').clone());
+    flatCache.set(geo, flat);
+  }
+  return flat;
+}
+
+/**
+ * Bakes a tile's props into one mesh per look (shine, glow, see-through), with each prop's colour
+ * stored per vertex. A forest is ~45 props: drawn one by one (twice with shadows) they were most of
+ * the board's draw calls.
+ */
+function mergeProps(props: BakedProp[]): { geometry: THREE.BufferGeometry; material: THREE.Material; opaque: boolean }[] {
+  const groups = new Map<string, { look: PropLook; props: Prop[] }>();
+  for (const p of props) {
+    const look = propLook(p);
+    const key = JSON.stringify(look);
+    const g = groups.get(key);
+    if (g) g.props.push(p);
+    else groups.set(key, { look, props: [p] });
+  }
+  const m = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  const e = new THREE.Euler();
+  const v = new THREE.Vector3();
+  const sc = new THREE.Vector3();
+  const c = new THREE.Color();
+  return [...groups.values()].map(({ look, props: list }) => {
+    const parts = list.map((p) => flatPositions(typeof p.geo === 'string' ? TG[p.geo] : p.geo).getAttribute('position'));
+    const total = parts.reduce((n, a) => n + a.count, 0);
+    const pos = new Float32Array(total * 3);
+    const col = new Float32Array(total * 3);
+    let o = 0;
+    list.forEach((p, i) => {
+      const src = parts[i];
+      const s = p.s ?? 1;
+      m.compose(v.set(...p.p), q.setFromEuler(e.set(...(p.r ?? [0, 0, 0]))), typeof s === 'number' ? sc.set(s, s, s) : sc.set(...s));
+      c.set(p.color);
+      for (let k = 0; k < src.count; k++, o++) {
+        v.fromBufferAttribute(src, k).applyMatrix4(m);
+        pos.set([v.x, v.y, v.z], o * 3);
+        col.set([c.r, c.g, c.b], o * 3);
+      }
+    });
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geometry.computeBoundingSphere();
+    return { geometry, material: vertexColorMat(look), opaque: look.opacity === undefined };
+  });
+}
+
+const vcCache = new Map<string, THREE.Material>();
+
+/** `mat()` with the colour taken from the vertices. */
+function vertexColorMat(look: PropLook): THREE.Material {
+  const key = JSON.stringify(look);
+  let m = vcCache.get(key);
+  if (!m) {
+    m = (mat('#ffffff', look) as THREE.MeshStandardMaterial).clone();
+    (m as THREE.MeshStandardMaterial).vertexColors = true;
+    vcCache.set(key, m);
+  }
+  return m;
+}
+
+/** A tile's props, baked into a few meshes (see `mergeProps`). */
+function BakedProps({ props, shadows }: { props: BakedProp[]; shadows: boolean }) {
+  const meshes = useMemo(() => mergeProps(props), [props]);
+  useEffect(() => () => meshes.forEach((x) => x.geometry.dispose()), [meshes]);
   return (
     <group>
-      {props.map((p, i) => (
-        <mesh
-          key={i}
-          geometry={typeof p.geo === 'string' ? TG[p.geo] : p.geo}
-          material={mat(p.color, {
-            ...(p.metal ? { metal: 0.35, rough: 0.3, emissive: p.emissive ?? '#ff9d00' } : p.emissive ? { emissive: p.emissive, glow: 0.9 } : {}),
-            opacity: p.opacity,
-          })}
-          position={p.p}
-          rotation={p.r ?? [0, 0, 0]}
-          scale={p.s ?? 1}
-          castShadow={shadows && p.opacity === undefined}
-        />
+      {meshes.map((x, i) => (
+        <mesh key={i} geometry={x.geometry} material={x.material} castShadow={shadows && x.opaque} />
       ))}
     </group>
   );
+}
+
+export const TerrainProps = memo(function TerrainProps({ terrain, seed, shadows }: { terrain: Terrain; seed: number; shadows: boolean }) {
+  const kit = useBoardKit();
+  const props = useMemo(() => kit.props?.(terrain, seed) ?? classicProps(terrain, seed), [kit, terrain, seed]);
+  return <BakedProps props={props} shadows={shadows} />;
 });
 
 /** Black Forest: an undiscovered tile, blanketed in low cloud. */
@@ -214,19 +294,15 @@ const FogClouds = memo(function FogClouds({ seed, shadows }: { seed: number; sha
       const r = i === 0 ? 0 : 0.42 + rand() * 0.24;
       const size = 0.9 + rand() * 0.55;
       return {
-        p: [Math.cos(a) * r, TILE_TOP + 0.1 + rand() * 0.08, Math.sin(a) * r] as [number, number, number],
-        s: [size * 1.25, size * 0.6, size] as [number, number, number],
+        geo: 'cloud',
+        p: [Math.cos(a) * r, TILE_TOP + 0.1 + rand() * 0.08, Math.sin(a) * r],
+        s: [size * 1.25, size * 0.6, size],
         color: rand() > 0.5 ? cloud : '#e3e7ec',
-      };
+        rough: 1,
+      } satisfies BakedProp;
     });
   }, [seed, cloud]);
-  return (
-    <group>
-      {puffs.map((c, i) => (
-        <mesh key={i} geometry={TG.cloud} material={mat(c.color, { rough: 1 })} position={c.p} scale={c.s} castShadow={shadows} />
-      ))}
-    </group>
-  );
+  return <BakedProps props={puffs} shadows={shadows} />;
 });
 
 const SPARKLE = new THREE.OctahedronGeometry(0.05, 0);
@@ -309,12 +385,17 @@ export function HexTile({
 }) {
   const palette = useBoardPalette();
   const kit = useBoardKit();
-  // Open water (Voyagers): the sea shows through; only an invisible tile catches clicks for the pirate.
-  if (hex.terrain === 'sea' && !hex.fog) return <SeaTile x={x} z={z} onClick={onClick} />;
+  const openSea = hex.terrain === 'sea' && !hex.fog;
   const colors = hex.fog ? palette.fog : palette.terrain[hex.terrain];
   // Gold fields glow a little so they stand out from the wheat-yellow fields.
   const gold = hex.terrain === 'gold' && !hex.fog;
-  const top = useMemo(() => [mat(colors.side), mat(colors.top, gold ? { rough: 0.5, emissive: '#b85e00' } : {}), mat(colors.side)], [colors, gold]);
+  // Every hook runs before the sea return below: a fogged tile can turn out to be open water.
+  const top = useMemo(
+    () => [mat(colors.side), mat(colors.top, gold ? { rough: 0.5, emissive: '#b85e00' } : {}), mat(colors.side)],
+    [colors, gold],
+  );
+  // Open water (Voyagers): the sea shows through; only an invisible tile catches clicks for the pirate.
+  if (openSea) return <SeaTile x={x} z={z} onClick={onClick} />;
   return (
     <group position={[x, producing ? 0.06 : 0, z]}>
       <mesh geometry={TG.beach} material={mat(palette.beach)} position={[0, -0.12, 0]} receiveShadow={shadows} />

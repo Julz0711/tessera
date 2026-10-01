@@ -15,6 +15,7 @@ import {
   type GameEvent,
   type GameState,
   type PlayerColor,
+  type PlayerView,
 } from '@/engine';
 import { MAPS, defaultVP, mapSupports } from '@/engine/maps';
 import { COLOR_ORDER, isPlayerColor } from '@/shared/colors';
@@ -45,6 +46,8 @@ export interface RoomIO {
   send<E extends keyof ServerToClientEvents>(socketId: string, event: E, ...args: Parameters<ServerToClientEvents[E]>): void;
   /** Forget the socket's room association (it was replaced, kicked, or the room closed). */
   detach(socketId: string): void;
+  /** Whether the client appends log events itself (see `GameUpdate`); older clients need every view whole. */
+  logDeltas?(socketId: string): boolean;
 }
 
 export interface RoomDeps {
@@ -81,6 +84,8 @@ interface Spectator {
 }
 
 const CHAT_HISTORY = 100;
+/** Events between saved snapshots (a restart replays at most this many actions). */
+const SNAPSHOT_EVERY = 25;
 const MAX_BOT_ACTIONS_PER_TURN = 120;
 
 export class Room {
@@ -106,6 +111,12 @@ export class Room {
   private botTimer: ReturnType<typeof setTimeout> | null = null;
   private ticker: ReturnType<typeof setInterval> | null = null;
   private botGuard = { marker: '', count: 0 };
+  /** Sockets holding this game's full log (later updates send only the new events), by game id. */
+  private logSynced = new Map<string, string>();
+  /** The room as each socket last received it. */
+  private roomSent = new Map<string, string>();
+  /** Seq of the latest saved snapshot (snapshots are taken every `SNAPSHOT_EVERY` events). */
+  private snapshotSeq = 0;
   private readonly now: () => number;
 
   constructor(
@@ -143,6 +154,7 @@ export class Room {
       left: false,
     }));
     room.game = data.state;
+    room.snapshotSeq = data.state.seq;
     room.gameId = data.gameId;
     room.gameNumber = data.gameNumber;
     room.status = data.state.phase === 'ended' ? 'finished' : 'playing';
@@ -167,7 +179,7 @@ export class Room {
       for (const old of seat.sockets) {
         if (old === socketId) continue;
         this.deps.io.send(old, 'session:replaced');
-        this.sockets.delete(old);
+        this.forgetSocket(old);
         this.deps.io.detach(old);
       }
       const wasAway = seat.sockets.size === 0 && this.status === 'playing';
@@ -217,7 +229,7 @@ export class Room {
     }
     this.deps.io.send(socketId, 'chat:history', this.chat);
     this.broadcastRoom();
-    if (this.game) this.sendGame(socketId, []);
+    if (this.game) this.sendGame(socketId, [], true);
     return this.dto(socketId);
   }
 
@@ -225,8 +237,7 @@ export class Room {
   leave(socketId: string): void {
     const key = this.sockets.get(socketId);
     if (!key) return;
-    this.sockets.delete(socketId);
-    this.spectators.delete(socketId);
+    this.forgetSocket(socketId);
     const seat = this.seats.find((s) => s.identityKey === key);
     if (seat) {
       seat.sockets.delete(socketId);
@@ -247,8 +258,7 @@ export class Room {
   disconnect(socketId: string): void {
     const key = this.sockets.get(socketId);
     if (!key) return;
-    this.sockets.delete(socketId);
-    this.spectators.delete(socketId);
+    this.forgetSocket(socketId);
     const seat = this.seats.find((s) => s.identityKey === key);
     if (seat) {
       seat.sockets.delete(socketId);
@@ -380,7 +390,7 @@ export class Room {
     if (seat.identityKey === this.hostKey) throw new UserError("You can't remove yourself");
     this.seats = this.seats.filter((s) => s !== seat);
     for (const sid of seat.sockets) {
-      this.sockets.delete(sid);
+      this.forgetSocket(sid);
       this.deps.io.send(sid, 'room:closed', 'You were removed from the room');
       this.deps.io.detach(sid);
     }
@@ -438,6 +448,7 @@ export class Room {
       },
     });
     this.gameId = randomUUID();
+    this.snapshotSeq = this.game.seq;
     this.gameNumber++;
     this.status = 'playing';
     this.window = { key: '', startedAt: this.now() };
@@ -473,7 +484,11 @@ export class Room {
     this.game = result.state;
     if (this.gameId) {
       this.deps.persistence.gameAction(this.gameId, result.state.seq, this.seats[seat]?.playerId ?? null, action, result.events);
-      if (result.state.seq % 25 === 0) this.deps.persistence.snapshot(this.gameId, result.state);
+      // An action can emit several events, so `seq` may step over any fixed multiple: count instead.
+      if (result.state.seq - this.snapshotSeq >= SNAPSHOT_EVERY) {
+        this.snapshotSeq = result.state.seq;
+        this.deps.persistence.snapshot(this.gameId, result.state);
+      }
     }
     this.afterChange(result.events);
     // Acting with the clock nearly out earns a bit more time, but only within the same decision
@@ -525,16 +540,42 @@ export class Room {
       if (!this.seats[seat].isBot) continue;
       const marker = `${g.turn.n}:${seat}`;
       if (this.botGuard.marker !== marker) this.botGuard = { marker, count: 0 };
-      let action = botAction(viewFor(g, seat), seat, { tradeTimedOut: true });
+      // A bot or engine bug must not escape the timer: that would take down every room on the server.
+      let action: Action | null;
+      try {
+        action = botAction(viewFor(g, seat), seat, { tradeTimedOut: true });
+      } catch (err) {
+        console.error(`[room ${this.code}] bot ${seat} crashed`, err);
+        action = this.safeAutopilot(seat);
+      }
       if (!action) continue;
-      if (++this.botGuard.count > MAX_BOT_ACTIONS_PER_TURN) action = autopilotAction(viewFor(g, seat), seat) ?? action;
-      const err = this.apply(seat, action);
+      if (++this.botGuard.count > MAX_BOT_ACTIONS_PER_TURN) action = this.safeAutopilot(seat) ?? action;
+      const err = this.safeApply(seat, action);
       if (err) {
         console.error(`[room ${this.code}] bot ${seat} action rejected: ${err}`, JSON.stringify(action));
-        const fallback = autopilotAction(viewFor(this.game!, seat), seat);
-        if (!fallback || this.apply(seat, fallback)) console.error(`[room ${this.code}] bot ${seat} is stuck`);
+        const fallback = this.safeAutopilot(seat);
+        if (!fallback || this.safeApply(seat, fallback)) console.error(`[room ${this.code}] bot ${seat} is stuck`);
       }
       return;
+    }
+  }
+
+  /** `apply` for timer-driven moves: an engine exception is reported as an error, not thrown. */
+  private safeApply(seat: number, action: Action): string | null {
+    try {
+      return this.apply(seat, action);
+    } catch (err) {
+      console.error(`[room ${this.code}] seat ${seat} action crashed`, JSON.stringify(action), err);
+      return 'crashed';
+    }
+  }
+
+  private safeAutopilot(seat: number): Action | null {
+    try {
+      return this.game ? autopilotAction(viewFor(this.game, seat), seat) : null;
+    } catch (err) {
+      console.error(`[room ${this.code}] autopilot crashed for seat ${seat}`, err);
+      return null;
     }
   }
 
@@ -595,8 +636,8 @@ export class Room {
       if (s.isBot) continue;
       const away = s.sockets.size === 0 && (s.left || this.now() - Math.max(s.lastSeen, this.window.startedAt) >= grace);
       if (!away && !timedOut) continue;
-      const action = autopilotAction(viewFor(g, seat), seat);
-      if (action && !this.apply(seat, action)) return;
+      const action = this.safeAutopilot(seat);
+      if (action && !this.safeApply(seat, action)) return;
     }
   }
 
@@ -680,7 +721,14 @@ export class Room {
   }
 
   broadcastRoom(): void {
-    for (const sid of this.sockets.keys()) this.deps.io.send(sid, 'room:state', this.dto(sid));
+    for (const sid of this.sockets.keys()) {
+      const dto = this.dto(sid);
+      // Most game actions leave the room as it was: don't resend it with every move.
+      const json = JSON.stringify(dto);
+      if (this.roomSent.get(sid) === json) continue;
+      this.roomSent.set(sid, json);
+      this.deps.io.send(sid, 'room:state', dto);
+    }
   }
 
   private viewerSeat(socketId: string): number | null {
@@ -688,15 +736,39 @@ export class Room {
     return i >= 0 ? i : null;
   }
 
-  private sendGame(socketId: string, events: GameEvent[]): void {
-    if (!this.game) return;
+  /** Sends a socket its view; the log only in full when the socket lacks it (see `GameUpdate`). */
+  private sendGame(socketId: string, events: GameEvent[], full = false, views?: Map<number | null, PlayerView>): void {
+    if (!this.game || !this.gameId) return;
     const viewer = this.viewerSeat(socketId);
+    // The end of the game reveals every secret in the log, so it goes out whole once more.
     const reveal = this.game.phase === 'ended';
-    this.deps.io.send(socketId, 'game:state', { view: viewFor(this.game, viewer), events: eventsFor(events, viewer, reveal) });
+    let whole = views?.get(viewer);
+    if (!whole) {
+      whole = viewFor(this.game, viewer);
+      views?.set(viewer, whole);
+    }
+    const { log, ...view } = whole;
+    const sendLog = full || reveal || !this.deps.io.logDeltas?.(socketId) || this.logSynced.get(socketId) !== this.gameId;
+    this.logSynced.set(socketId, this.gameId);
+    this.deps.io.send(socketId, 'game:state', { view: sendLog ? { ...view, log } : view, events: eventsFor(events, viewer, reveal) });
+  }
+
+  /** The client's log fell out of step with the updates: send everything again. */
+  resync(socketId: string): void {
+    if (this.sockets.has(socketId)) this.sendGame(socketId, [], true);
+  }
+
+  private forgetSocket(socketId: string): void {
+    this.sockets.delete(socketId);
+    this.spectators.delete(socketId);
+    this.logSynced.delete(socketId);
+    this.roomSent.delete(socketId);
   }
 
   private broadcastGame(events: GameEvent[]): void {
-    for (const sid of this.sockets.keys()) this.sendGame(sid, events);
+    // Spectators (and a player's extra tabs) share a view: work each one out once.
+    const views = new Map<number | null, PlayerView>();
+    for (const sid of this.sockets.keys()) this.sendGame(sid, events, false, views);
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -711,6 +783,8 @@ export class Room {
       this.deps.io.detach(sid);
     }
     this.sockets.clear();
+    this.logSynced.clear();
+    this.roomSent.clear();
     this.status = this.status === 'playing' ? 'finished' : this.status;
     this.deps.persistence.roomStatus({ ...this.persistRoom(), status: 'closed' });
   }
