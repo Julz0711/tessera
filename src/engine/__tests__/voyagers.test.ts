@@ -73,27 +73,220 @@ describe('Voyagers maps', () => {
     expect(game('veiledIsles', 'ck').settings.vpToWin).toBe(MAPS.veiledIsles.vpToWin!.ck);
   });
 
-  it('The Citadel has four fair home islands and an ore-rich island across the sea', () => {
+  it('The Citadel is a four-ring island of gold, wood, ponds, fog, desert and an ore rim, with six fair isles around it', () => {
     expect(() => game('citadel', 'classic')).toThrow(/not compatible/);
+    expect(MAPS.citadel.maxPlayers).toBe(6);
+    const ring = (h: { q: number; r: number }) => Math.max(Math.abs(h.q), Math.abs(h.r), Math.abs(h.q + h.r));
+    const straight = (h: { q: number; r: number }) => h.q === 0 || h.r === 0 || h.q + h.r === 0;
     for (const seed of seeds) {
-      const s = game('citadel', 'ck', seed, 4);
+      const s = game('citadel', 'ck', seed, 6);
       const t = getTopology(s.board.hexes);
-      const islands = islandsOf(s.board, t);
-      expect(new Set(islands.filter((i) => i >= 0)).size).toBe(5);
-      expect(s.board.hexes.filter((h) => h.start)).toHaveLength(28);
-      const center = s.board.hexes.filter((h) => Math.max(Math.abs(h.q), Math.abs(h.r), Math.abs(h.q + h.r)) <= 1);
-      expect(center).toHaveLength(7);
-      expect(center.filter((h) => h.terrain === 'mountains')).toHaveLength(3);
-      expect(center.filter((h) => h.terrain === 'gold')).toHaveLength(1);
-      expect(center.every((h) => !h.start)).toBe(true);
-      expect(s.board.harbors).toHaveLength(12);
+      const hexes = s.board.hexes;
+      const centre = hexes.filter((h) => ring(h) <= 4);
+      const ponds = centre.filter((h) => h.terrain === 'sea');
+      expect(centre).toHaveLength(61);
+      expect(ponds).toHaveLength(6);
+      expect(ponds.every((h) => ring(h) === 2 && straight(h))).toBe(true);
+      const gold = hexes.find((h) => ring(h) === 0)!;
+      expect(gold.terrain).toBe('gold');
+      expect([6, 8]).toContain(gold.token);
+      expect(hexes.filter((h) => ring(h) === 1).every((h) => h.terrain === 'forest' && !h.fog)).toBe(true);
+      // The rim is all ore, numbered 3 to 11, three of each.
+      const rim = hexes.filter((h) => ring(h) === 4);
+      expect(rim).toHaveLength(24);
+      expect(rim.every((h) => h.terrain === 'mountains' && !h.fog)).toBe(true);
+      expect(rim.map((h) => h.token!).sort((x, y) => x - y)).toEqual([3, 4, 5, 6, 8, 9, 10, 11].flatMap((n) => [n, n, n]));
+      expect(hexes.filter((h) => h.fog)).toHaveLength(18);
+      expect(hexes.filter((h) => h.fog).every((h) => (ring(h) === 2 || ring(h) === 3) && !straight(h) && h.terrain !== 'desert' && h.terrain !== 'mountains')).toBe(true);
+      const desert = hexes.filter((h) => h.terrain === 'desert');
+      expect(desert).toHaveLength(6);
+      expect(desert.every((h) => ring(h) === 3 && straight(h))).toBe(true);
+      expect(hexes[s.robber].terrain).toBe('desert');
+      // Six isles of five hexes, each with every resource, one 6 or 8 and a 4, 5, 9 and 10.
+      const isleOf = islandsOf(s.board, t);
+      expect(new Set(isleOf.filter((i) => i >= 0)).size).toBe(7);
+      const start = hexes.filter((h) => h.start);
+      expect(start).toHaveLength(30);
+      const isles = [...new Set(start.map((h) => isleOf[h.id]))].map((i) => start.filter((h) => isleOf[h.id] === i));
+      expect(isles).toHaveLength(6);
+      for (const isle of isles) {
+        expect(isle).toHaveLength(5);
+        expect(isle.some((h) => h.terrain === 'mountains')).toBe(false);
+        expect(new Set(isle.map((h) => h.terrain))).toEqual(new Set(['fields', 'forest', 'hills', 'pasture']));
+        const nums = isle.map((h) => h.token!).sort((x, y) => x - y);
+        expect([4, 5, 9, 10].every((n) => nums.includes(n))).toBe(true);
+        expect(nums.filter((n) => n === 6 || n === 8)).toHaveLength(1);
+        expect(isle.every((h) => ring(h) >= 6)).toBe(true);
+      }
+      // Turned copies of one another: the same distances from the middle.
+      const profiles = new Set(isles.map((isle) => isle.map((h) => ring(h)).sort((x, y) => x - y).join()));
+      expect(profiles.size).toBe(1);
+      expect(isles.filter((isle) => isle.some((h) => h.token === 6))).toHaveLength(3);
+      for (const h of start) expect(t.hexes[h.id].neighbors.every((n) => hexes[n].start || hexes[n].terrain === 'sea')).toBe(true);
+      // A 2:1 lumber harbor on each pond, facing the forest beside it.
+      const lumber = s.board.harbors.filter((h) => h.kind === 'lumber');
+      expect(lumber).toHaveLength(6);
+      for (const h of lumber) {
+        const sides = t.edges[h.edge].hexes.map((id) => hexes[id].terrain).sort();
+        expect(sides).toEqual(['forest', 'sea']);
+      }
+      expect(new Set(lumber.map((h) => t.edges[h.edge].hexes.find((id) => hexes[id].terrain === 'sea'))).size).toBe(6);
+      // Three 3:1 harbors per isle, only on sides facing away from the mainland.
+      expect(s.board.harbors).toHaveLength(24);
+      expect(s.board.harbors.every((h) => canHoldShip(s.board, t, h.edge))).toBe(true);
       const harborCorners = s.board.harbors.flatMap((h) => [t.edges[h.edge].a, t.edges[h.edge].b]);
       expect(new Set(harborCorners).size).toBe(harborCorners.length);
-      expect(s.board.harbors.every((h) => canHoldShip(s.board, t, h.edge) && t.edges[h.edge].hexes.some((id) => s.board.hexes[id].terrain !== 'sea'))).toBe(true);
-      expect(s.board.hexes[s.pirate!].terrain).toBe('sea');
+      for (const h of s.board.harbors.filter((x) => x.kind === 'any')) {
+        const own = t.edges[h.edge].hexes.find((id) => hexes[id].start)!;
+        expect(own).toBeDefined();
+        const [dx, dy] = [t.edges[h.edge].x - t.hexes[own].x, t.edges[h.edge].y - t.hexes[own].y];
+        expect(dx * t.hexes[own].x + dy * t.hexes[own].y).toBeGreaterThan(0);
+      }
+      expect(hexes[s.pirate!].terrain).toBe('sea');
+      // Out in open water: no land touches the pirate or its neighbours, so no early settlement or ship is next to it.
+      for (const h of hexes) if (h.terrain !== 'sea') expect(ring({ q: h.q - hexes[s.pirate!].q, r: h.r - hexes[s.pirate!].r })).toBeGreaterThanOrEqual(2);
       expect(s.settings.vpToWin).toBe(16);
-      expect(legalSettlementSpots(s, 0, true).every((v) => t.vertices[v].hexes.some((h) => s.board.hexes[h].start))).toBe(true);
+      expect(legalSettlementSpots(s, 0, true).every((v) => t.vertices[v].hexes.some((h) => hexes[h].start))).toBe(true);
     }
+  });
+});
+
+describe('Zealand', () => {
+  const ring = (h: { q: number; r: number }) => Math.max(Math.abs(h.q), Math.abs(h.r), Math.abs(h.q + h.r));
+
+  it('starts on a ring of sheep around a lake, two sea hexes from six fogged isles', () => {
+    for (const seed of seeds) {
+      const s = game('zealand', 'classic', seed, 4);
+      const t = getTopology(s.board.hexes);
+      const start = s.board.hexes.filter((h) => h.start);
+      expect(start).toHaveLength(18);
+      expect(start.every((h) => h.terrain === 'pasture' && ring(h) >= 1 && ring(h) <= 2)).toBe(true);
+      expect(s.board.hexes.find((h) => ring(h) === 0)!.terrain).toBe('sea');
+      const fog = s.board.hexes.filter((h) => h.fog);
+      expect(fog).toHaveLength(60);
+      expect(fog.every((h) => h.terrain !== 'sea' && h.terrain !== 'desert' && h.token !== null && ring(h) >= 4)).toBe(true);
+      const gold = fog.filter((h) => h.terrain === 'gold');
+      expect(gold).toHaveLength(2);
+      for (const h of gold) expect([6, 8]).toContain(h.token);
+      expect(gold.some((h) => t.hexes[h.id].neighbors.includes(gold.find((o) => o.id !== h.id)!.id))).toBe(false);
+      // One desert: a lone, unfogged isle in open water, where the robber starts.
+      const desert = s.board.hexes.filter((h) => h.terrain === 'desert');
+      expect(desert).toHaveLength(1);
+      expect(desert[0].fog).toBeUndefined();
+      expect(t.hexes[desert[0].id].neighbors.every((n) => s.board.hexes[n].terrain === 'sea')).toBe(true);
+      expect(s.robber).toBe(desert[0].id);
+      // Far out: at least three sea hexes from the nearest fogged isle.
+      const apart = (a: { q: number; r: number }, b: { q: number; r: number }) => ring({ q: a.q - b.q, r: a.r - b.r });
+      expect(ring(desert[0])).toBeGreaterThanOrEqual(9);
+      expect(Math.min(...fog.map((h) => apart(h, desert[0])))).toBeGreaterThanOrEqual(4);
+      expect(new Set(islandsOf(s.board, t).filter((i) => i >= 0)).size).toBe(8);
+      // The six isles are the same shape turned about the middle: the same number of hexes at each distance.
+      const profile = (ids: number[]) => ids.map((id) => ring(s.board.hexes[id])).sort((a, b) => a - b).join();
+      const isles = new Map<number, number[]>();
+      islandsOf(s.board, t).forEach((i, id) => { if (i >= 0 && s.board.hexes[id].fog) isles.set(i, [...(isles.get(i) ?? []), id]); });
+      expect([...isles.values()].every((ids) => ids.length === 10 && profile(ids) === profile([...isles.values()][0]))).toBe(true);
+    }
+  });
+
+  it('has no gold with the gold toggle off', () => {
+    for (const seed of seeds.slice(0, 10)) {
+      const board = generateBoard({ rng: seed }, 'zealand', { gold: false });
+      expect(board.hexes.filter((h) => h.terrain === 'gold')).toHaveLength(0);
+      expect(board.hexes.filter((h) => h.fog)).toHaveLength(60);
+    }
+  });
+
+  it('has twelve wool harbors on the sheep island, twelve more outside the isles, two on each, and a pirate in open water', () => {
+    for (const seed of seeds) {
+      const s = game('zealand', 'classic', seed, 4);
+      const t = getTopology(s.board.hexes);
+      expect(s.board.harbors).toHaveLength(24);
+      const onStart = (h: { edge: number }) => t.edges[h.edge].hexes.some((id) => s.board.hexes[id].start);
+      const home = s.board.harbors.filter(onStart);
+      expect(home).toHaveLength(12);
+      // Between two tiles: one corner of each is where two sheep tiles meet; two on each of the six sides.
+      for (const h of home) {
+        const { a, b } = t.edges[h.edge];
+        expect([a, b].some((v) => t.vertices[v].hexes.filter((id) => s.board.hexes[id].start).length === 2)).toBe(true);
+      }
+      const sideOf = (h: { edge: number }) => Math.floor(((Math.atan2(t.edges[h.edge].x, -t.edges[h.edge].y) + 2 * Math.PI + Math.PI / 6) % (2 * Math.PI)) / (Math.PI / 3));
+      expect([0, 1, 2, 3, 4, 5].map((side) => home.filter((h) => sideOf(h) === side).length)).toEqual([2, 2, 2, 2, 2, 2]);
+      expect(home.every((h) => h.kind === 'wool')).toBe(true);
+      const outer = s.board.harbors.filter((h) => !onStart(h));
+      expect(outer).toHaveLength(12);
+      // Each sits between two tiles: one of its corners is where two land hexes meet.
+      for (const h of outer) {
+        const { a, b } = t.edges[h.edge];
+        expect([a, b].some((v) => t.vertices[v].hexes.filter((id) => s.board.hexes[id].terrain !== 'sea').length === 2)).toBe(true);
+      }
+      expect(outer.filter((h) => h.kind === 'any')).toHaveLength(6);
+      expect(new Set(outer.filter((h) => h.kind !== 'any').map((h) => h.kind))).toEqual(new Set(['brick', 'lumber', 'wool', 'grain', 'ore']));
+      // Two on every isle: one 3:1 and one 2:1.
+      const isleOf = islandsOf(s.board, t);
+      for (const i of new Set(outer.map((h) => isleOf[t.edges[h.edge].hexes.find((id) => s.board.hexes[id].fog)!]))) {
+        const here = outer.filter((h) => isleOf[t.edges[h.edge].hexes.find((id) => s.board.hexes[id].fog)!] === i);
+        expect(here.map((h) => h.kind === 'any')).toHaveLength(2);
+        expect(here.filter((h) => h.kind === 'any')).toHaveLength(1);
+      }
+      for (const h of outer) {
+        const own = t.edges[h.edge].hexes.find((id) => s.board.hexes[id].fog)!;
+        expect(own).toBeDefined();
+        const [dx, dy] = [t.edges[h.edge].x - t.hexes[own].x, t.edges[h.edge].y - t.hexes[own].y];
+        expect(dx * t.hexes[own].x + dy * t.hexes[own].y).toBeGreaterThan(0);
+      }
+      const corners = s.board.harbors.flatMap((h) => [t.edges[h.edge].a, t.edges[h.edge].b]);
+      expect(new Set(corners).size).toBe(corners.length);
+      expect(s.board.harbors.every((h) => canHoldShip(s.board, t, h.edge))).toBe(true);
+      // The pirate starts in the water right beside the desert island, on its outer side.
+      const desert = s.board.hexes.find((h) => h.terrain === 'desert')!;
+      expect(t.hexes[s.pirate!].neighbors).toContain(desert.id);
+      expect(s.board.hexes[s.pirate!].terrain).toBe('sea');
+      expect(ring(s.board.hexes[s.pirate!])).toBeGreaterThanOrEqual(ring(desert));
+      expect(s.settings.vpToWin).toBe(16);
+    }
+  });
+
+  it('has 3 treasures on every isle (1 inner, 2 outer) and 3 on the desert island, all of random kinds', () => {
+    const kinds = new Set<string>();
+    for (const seed of seeds) {
+      const board = generateBoard({ rng: seed }, 'zealand');
+      const t = getTopology(board.hexes);
+      expect(board.treasures).toHaveLength(21);
+      for (const x of board.treasures!) kinds.add(x.kind!);
+      const spots = new Set(board.treasures!.map((x) => x.vertex));
+      for (const x of board.treasures!) {
+        expect(t.vertices[x.vertex].vertices.some((n) => spots.has(n))).toBe(false);
+        expect(t.vertices[x.vertex].hexes.some((h) => board.hexes[h].start)).toBe(false);
+        // On the coast of land, where a ship can reach it.
+        expect(t.vertices[x.vertex].hexes.some((h) => board.hexes[h].terrain !== 'sea')).toBe(true);
+        expect(t.vertices[x.vertex].hexes.some((h) => board.hexes[h].terrain === 'sea')).toBe(true);
+      }
+      const desert = board.hexes.find((h) => h.terrain === 'desert')!;
+      expect(board.treasures!.filter((x) => t.vertices[x.vertex].hexes.includes(desert.id))).toHaveLength(3);
+      const isleOf = islandsOf(board, t);
+      const perIsle = new Map<number, number>();
+      for (const x of board.treasures!) {
+        const land = t.vertices[x.vertex].hexes.find((h) => board.hexes[h].fog);
+        if (land !== undefined) perIsle.set(isleOf[land], (perIsle.get(isleOf[land]) ?? 0) + 1);
+      }
+      expect([...perIsle.values()]).toEqual([3, 3, 3, 3, 3, 3]);
+      // On each isle, one corner faces the sheep island and two face away from it.
+      const toward = new Map<number, number[]>();
+      for (const x of board.treasures!) {
+        const land = t.vertices[x.vertex].hexes.find((h) => board.hexes[h].fog);
+        if (land === undefined) continue;
+        const ids = islandsOf(board, t).flatMap((i, id) => (i === isleOf[land] ? [id] : []));
+        const [cx, cy] = [ids.reduce((n, id) => n + t.hexes[id].x, 0) / ids.length, ids.reduce((n, id) => n + t.hexes[id].y, 0) / ids.length];
+        const side = ((t.vertices[x.vertex].x - cx) * cx + (t.vertices[x.vertex].y - cy) * cy) > 0 ? 1 : 0;
+        toward.set(isleOf[land], [...(toward.get(isleOf[land]) ?? []), side]);
+      }
+      for (const sides of toward.values()) expect(sides.sort()).toEqual([0, 1, 1]);
+    }
+    expect(kinds.size).toBe(4);
+  });
+
+  it('fits eight starting settlements', () => {
+    for (const seed of seeds) expect(autoSetup(game('zealand', 'classic', seed, 4)).phase, `seed ${seed}`).not.toBe('setup');
   });
 });
 

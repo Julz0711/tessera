@@ -68,6 +68,8 @@ export interface Board {
   harbors: Harbor[];
   /** Voyagers: the sea hex the pirate starts on. */
   pirateStart?: number;
+  /** Where the robber starts when it isn't in the desert (Zealand: on the gold field). */
+  robberStart?: number;
   /** Veiled Isles: treasure spots. */
   treasures?: Treasure[];
 }
@@ -91,7 +93,8 @@ export type MapId =
   | 'farShores'
   | 'fourRealms'
   | 'veiledIsles'
-  | 'citadel';
+  | 'citadel'
+  | 'zealand';
 export const MAP_IDS: readonly MapId[] = [
   'standard',
   'large',
@@ -106,6 +109,7 @@ export const MAP_IDS: readonly MapId[] = [
   'fourRealms',
   'veiledIsles',
   'citadel',
+  'zealand',
 ];
 export const isMapId = (v: unknown): v is MapId => typeof v === 'string' && (MAP_IDS as readonly string[]).includes(v);
 export type Track = 'trade' | 'politics' | 'science';

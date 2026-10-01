@@ -36,7 +36,7 @@ import {
   type HexCoord,
   type Topology,
 } from './topology';
-import { citadelBoard, farShoresBoard, fourRealmsBoard, veiledIslesBoard } from './voyagers';
+import { citadelBoard, farShoresBoard, fourRealmsBoard, veiledIslesBoard, zealandBoard } from './voyagers';
 
 interface MapSpec {
   coords: readonly HexCoord[];
@@ -51,7 +51,7 @@ interface MapSpec {
   allowEqual?: boolean;
 }
 
-const MAPS: Record<Exclude<MapId, 'blackForest' | 'goldRush' | 'vulcan' | 'crossroads' | 'farShores' | 'fourRealms' | 'veiledIsles' | 'citadel'>, MapSpec> = {
+const MAPS: Record<Exclude<MapId, 'blackForest' | 'goldRush' | 'vulcan' | 'crossroads' | 'farShores' | 'fourRealms' | 'veiledIsles' | 'citadel' | 'zealand'>, MapSpec> = {
   standard: { coords: STANDARD_HEX_COORDS, terrains: TERRAIN_COUNTS, tokens: NUMBER_TOKENS, harbors: HARBOR_KINDS, slots: HARBOR_COAST_SLOTS },
   large: { coords: LARGE_HEX_COORDS, terrains: LARGE_TERRAIN_COUNTS, tokens: LARGE_NUMBER_TOKENS, harbors: LARGE_HARBOR_KINDS },
   fourLakes: {
@@ -192,7 +192,7 @@ export function dealTokens(
  * the rest at random. Every hex always gets a number; of many deals, the one with the fewest touching
  * 6s and 8s is kept (almost always none).
  */
-function spreadRedTokens(rng: RngHolder, topo: Topology, groups: [ids: number[], pool: number[]][], fixed: (number | null)[]): (number | null)[] {
+export function spreadRedTokens(rng: RngHolder, topo: Topology, groups: [ids: number[], pool: number[]][], fixed: (number | null)[]): (number | null)[] {
   let best = [...fixed];
   let bestClashes = Infinity;
   for (let attempt = 0; attempt < 500 && bestClashes > 0; attempt++) {
@@ -396,6 +396,7 @@ function blackForestBoard(rng: RngHolder, gold: boolean): Board {
  */
 export function generateBoard(rng: RngHolder, map: MapId = 'standard', opts: { gold?: boolean } = {}): Board {
   if (map === 'citadel') return citadelBoard(rng);
+  if (map === 'zealand') return zealandBoard(rng, opts.gold ?? true);
   if (map === 'crossroads') return crossroadsBoard(rng);
   if (map === 'farShores') return farShoresBoard(rng);
   if (map === 'fourRealms') return fourRealmsBoard(rng);

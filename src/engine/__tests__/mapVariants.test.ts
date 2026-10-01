@@ -40,7 +40,7 @@ describe('map variants', () => {
       expect(mapSupports(map, MAPS[map].modes[0], new Set(['base']))).toBe(MAPS[map].category === 'base');
       expect(MAX_PLAYERS[map]).toBe(MAPS[map].maxPlayers);
     }
-    expect([...BIG_MAPS].sort()).toEqual(['blackForest', 'citadel', 'crossroads', 'fourLakes', 'goldRush', 'large', 'vulcan']);
+    expect([...BIG_MAPS].sort()).toEqual(['blackForest', 'citadel', 'crossroads', 'fourLakes', 'goldRush', 'large', 'vulcan', 'zealand']);
     // Every map appears in exactly one lobby group.
     const grouped = mapsByCategory().flatMap((g) => g.maps.map((m) => m.id));
     expect([...grouped].sort()).toEqual([...MAP_IDS].sort());
@@ -48,7 +48,7 @@ describe('map variants', () => {
 
   it('offers every map under a game type, and switching type lands on a playable map', () => {
     expect(mapsForType('voyagers').map((m) => m.id)).toEqual(['farShores', 'fourRealms']);
-    expect(mapsForType('special').map((m) => m.id)).toEqual(['veiledIsles', 'citadel']);
+    expect(mapsForType('special').map((m) => m.id)).toEqual(['veiledIsles', 'citadel', 'zealand']);
     for (const map of MAP_IDS) {
       for (const mode of MAPS[map].modes) expect(mapsForType(gameTypeOf(map, mode)).map((m) => m.id)).toContain(map);
     }
@@ -291,5 +291,21 @@ describe('map variants', () => {
     const result = simulateGame(11, 4, 'ck', 12_000, 'citadel');
     if (result.error) throw new Error(result.error);
     expect(result.state.phase).toBe('ended');
+  });
+
+  it('bots can finish The Citadel with six players', () => {
+    for (const seed of [11, 12]) {
+      const result = simulateGame(seed, 6, 'ck', 20_000, 'citadel');
+      if (result.error) throw new Error(`seed ${seed}: ${result.error}`);
+      expect(result.state.phase).toBe('ended');
+    }
+  });
+
+  it('bots can finish Zealand in both modes', () => {
+    for (const mode of ['classic', 'ck'] as const) {
+      const result = simulateGame(11, 4, mode, 20_000, 'zealand');
+      if (result.error) throw new Error(`${mode}: ${result.error}`);
+      expect(result.state.phase, mode).toBe('ended');
+    }
   });
 });
