@@ -73,12 +73,12 @@ function ResumeTables({ rooms, onAbandon }: { rooms: ActiveRoom[]; onAbandon: (r
           </Link>
           <button
             type="button"
-            className="btn shrink-0 px-2.5 py-2"
+            className="btn btn-danger ml-1 shrink-0 px-2.5 py-2"
             onClick={() => onAbandon(r)}
             aria-label={`Abandon table ${r.code}`}
             title={r.status === "lobby" ? "Leave this table" : "Abandon this game: a bot takes your seat"}
           >
-            <LogOut size={16} />
+            <LogOut size={18} strokeWidth={2.75} aria-hidden />
           </button>
         </div>
       ))}
