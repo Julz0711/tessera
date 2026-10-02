@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Bot, LogIn, Menu, ScrollText, Settings, Trophy } from "lucide-react";
+import { ArrowRight, Bot, LogIn, LogOut, Menu, ScrollText, Settings, Trophy } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -42,35 +42,45 @@ const roomStatus = (r: ActiveRoom) =>
           : "In progress";
 
 /** Tables you still hold a seat at, right above the main actions. */
-function ResumeTables({ rooms }: { rooms: ActiveRoom[] }) {
+function ResumeTables({ rooms, onAbandon }: { rooms: ActiveRoom[]; onAbandon: (room: ActiveRoom) => void }) {
   return (
     <div className="animate-rise mt-8 grid max-w-md gap-2 [animation-delay:80ms]">
       <p className="label-light">{rooms.length > 1 ? "Your tables" : "Your table"}</p>
       {rooms.map((r) => (
-        <Link
-          key={r.code}
-          href={`/r/${r.code}`}
-          className="paper-flat group flex items-center gap-3 p-3 pl-4 transition hover:brightness-105"
-          aria-label={`Rejoin ${MODE_LABEL[ratingPoolFor(r.mode, r.map)]} table ${r.code}: ${roomStatus(r)}`}
-        >
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-extrabold text-ink">
-              {MODE_LABEL[ratingPoolFor(r.mode, r.map)]}
-              {r.map !== "standard" && <span className="font-semibold text-ink-soft"> · {MAPS[r.map]?.name ?? r.map}</span>}
-            </p>
-            <p className={`mt-0.5 flex items-center gap-1.5 text-sm ${r.yourTurn ? "font-bold text-terracotta" : "text-ink-soft"}`}>
-              {r.yourTurn && <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-terracotta" aria-hidden />}
-              {r.autopilot && <Bot size={14} className="shrink-0" aria-hidden />}
-              <span className="truncate">{roomStatus(r)}</span>
-              <span className="ml-auto shrink-0 pl-1 font-mono text-xs font-bold tracking-wider text-ink-faint">
-                {r.code.slice(0, 4)}-{r.code.slice(4)}
-              </span>
-            </p>
-          </div>
-          <span className="btn btn-primary shrink-0 px-4 py-2 text-sm group-hover:brightness-105" aria-hidden>
-            Rejoin <ArrowRight size={16} strokeWidth={3} />
-          </span>
-        </Link>
+        <div key={r.code} className="paper-flat group flex items-center gap-2 p-3 pl-4 transition hover:brightness-105">
+          <Link
+            href={`/r/${r.code}`}
+            className="flex min-w-0 flex-1 items-center gap-3"
+            aria-label={`Rejoin ${MODE_LABEL[ratingPoolFor(r.mode, r.map)]} table ${r.code}: ${roomStatus(r)}`}
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-extrabold text-ink">
+                {MODE_LABEL[ratingPoolFor(r.mode, r.map)]}
+                {r.map !== "standard" && <span className="font-semibold text-ink-soft"> · {MAPS[r.map]?.name ?? r.map}</span>}
+              </p>
+              <p className={`mt-0.5 flex items-center gap-1.5 text-sm ${r.yourTurn ? "font-bold text-terracotta" : "text-ink-soft"}`}>
+                {r.yourTurn && <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-terracotta" aria-hidden />}
+                {r.autopilot && <Bot size={14} className="shrink-0" aria-hidden />}
+                <span className="truncate">{roomStatus(r)}</span>
+                <span className="ml-auto shrink-0 pl-1 font-mono text-xs font-bold tracking-wider text-ink-faint">
+                  {r.code.slice(0, 4)}-{r.code.slice(4)}
+                </span>
+              </p>
+            </div>
+            <span className="btn btn-primary shrink-0 px-4 py-2 text-sm group-hover:brightness-105" aria-hidden>
+              Rejoin <ArrowRight size={16} strokeWidth={3} />
+            </span>
+          </Link>
+          <button
+            type="button"
+            className="btn shrink-0 px-2.5 py-2"
+            onClick={() => onAbandon(r)}
+            aria-label={`Abandon table ${r.code}`}
+            title={r.status === "lobby" ? "Leave this table" : "Abandon this game: a bot takes your seat"}
+          >
+            <LogOut size={16} />
+          </button>
+        </div>
       ))}
     </div>
   );
@@ -112,6 +122,30 @@ export function Landing() {
   useEffect(() => {
     if (joining) inputRef.current?.focus();
   }, [joining]);
+
+  const [abandoning, setAbandoning] = useState<ActiveRoom | null>(null);
+  const [abandonBusy, setAbandonBusy] = useState(false);
+  const [abandonError, setAbandonError] = useState<string | null>(null);
+  const confirmAbandon = async () => {
+    if (!abandoning) return;
+    setAbandonBusy(true);
+    setAbandonError(null);
+    try {
+      const res = await fetch("/api/rooms/abandon", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code: abandoning.code }),
+      });
+      if (!res.ok) throw new Error();
+      setTables((t) => t.filter((r) => r.code !== abandoning.code));
+      setAbandoning(null);
+    } catch {
+      setAbandonError("Couldn't leave that table right now. Try again in a moment.");
+    } finally {
+      setAbandonBusy(false);
+    }
+  };
 
   const submitJoin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,7 +238,7 @@ export function Landing() {
           {APP_WORDMARK}
         </h1>
 
-        {tables.length > 0 && <ResumeTables rooms={tables} />}
+        {tables.length > 0 && <ResumeTables rooms={tables} onAbandon={(r) => { setAbandonError(null); setAbandoning(r); }} />}
 
         <div className={`landing-actions animate-rise ${tables.length ? "mt-5" : "mt-9"} flex flex-wrap items-center gap-3 [animation-delay:160ms]`}>
           {/* With a table to go back to, Rejoin takes the accent colour. */}
@@ -262,6 +296,19 @@ export function Landing() {
           Terms
         </Link>
       </footer>
+
+      <Modal open={!!abandoning} onClose={() => !abandonBusy && setAbandoning(null)} title={abandoning?.status === "lobby" ? "Leave this table?" : "Abandon this game?"}>
+        <p className="mb-4 text-sm text-ink-soft">
+          {abandoning?.status === "lobby"
+            ? "You give up your seat at this table."
+            : "A bot takes over your seat and the game disappears from your home screen. You can't rejoin it."}
+        </p>
+        {abandonError && <p role="alert" className="mb-3 text-sm font-bold text-terracotta">{abandonError}</p>}
+        <div className="flex justify-end gap-2">
+          <button className="btn px-4 py-2" disabled={abandonBusy} onClick={() => setAbandoning(null)}>Keep playing</button>
+          <button className="btn btn-danger px-4 py-2" disabled={abandonBusy} onClick={confirmAbandon}>{abandoning?.status === "lobby" ? "Leave" : "Abandon"}</button>
+        </div>
+      </Modal>
 
       <Modal open={menu} onClose={() => setMenu(false)} title="Menu">
         <nav className="grid gap-2" aria-label="Main navigation">

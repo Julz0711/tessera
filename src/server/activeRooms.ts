@@ -13,6 +13,22 @@ import type { RoomManager } from './rooms';
 const RESTORE_WINDOW_MS = 2 * 86400_000;
 const MAX_ROOMS = 3;
 
+/**
+ * Drops the caller's seat at `code` for good: a live room swaps in a bot, a game only in the database
+ * is rewritten the same way (it comes back as a bot after a restart). False when they held no seat.
+ */
+export async function abandonRoom(identity: ServerIdentity, code: string, rooms: RoomManager, db: Db | null): Promise<boolean> {
+  const room = rooms.get(code);
+  if (room) return room.abandon(identity.key);
+  if (!db) return false;
+  const who = identity.kind === 'user' ? { userId: identity.id } : { guestSessionId: identity.id };
+  const { count } = await db.player.updateMany({
+    where: { ...who, game: { status: 'playing', room: { code, status: 'playing' } } },
+    data: { userId: null, guestSessionId: null, isBot: true },
+  });
+  return count > 0;
+}
+
 export async function activeRoomsFor(identity: ServerIdentity, rooms: RoomManager, db: Db | null, now = Date.now()): Promise<ActiveRoom[]> {
   const out: (ActiveRoom & { at: number })[] = [];
   for (const room of rooms.rooms.values()) {

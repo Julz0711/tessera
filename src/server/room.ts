@@ -255,6 +255,43 @@ export class Room {
     this.closeIfAbandoned();
   }
 
+  /**
+   * Gives up the identity's seat for good (the main menu's "abandon"; the player may have no socket
+   * here). In the lobby the seat is freed; mid-game a bot takes it over, and the game is gone from
+   * the player's rejoin list. Returns whether the identity held a seat.
+   */
+  abandon(identityKey: string): boolean {
+    const seat = this.seats.find((s) => s.identityKey === identityKey);
+    if (!seat || this.closed || (this.status !== 'lobby' && this.status !== 'playing')) return false;
+    for (const sid of seat.sockets) {
+      this.forgetSocket(sid);
+      this.deps.io.send(sid, 'room:closed', 'You abandoned this game');
+      this.deps.io.detach(sid);
+    }
+    seat.sockets.clear();
+    if (this.status === 'lobby') {
+      this.seats = this.seats.filter((s) => s !== seat);
+      this.system(`${seat.name} left`);
+    } else {
+      seat.isBot = true;
+      seat.isGuest = false;
+      seat.identityKey = null;
+      seat.avatarUrl = undefined;
+      seat.left = false;
+      if (this.gameId) this.deps.persistence.seatAbandoned(this.gameId, seat.playerId);
+      this.system(`${seat.name} abandoned the game. A bot took their seat.`);
+    }
+    this.touch();
+    this.migrateHost();
+    this.broadcastRoom();
+    if (this.status === 'playing' && !this.seats.some((s) => !s.isBot) && this.spectators.size === 0) this.close('Everyone left');
+    else {
+      this.closeIfAbandoned();
+      this.scheduleBots();
+    }
+    return true;
+  }
+
   disconnect(socketId: string): void {
     const key = this.sockets.get(socketId);
     if (!key) return;
