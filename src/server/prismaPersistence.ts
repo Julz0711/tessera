@@ -143,6 +143,15 @@ export function createPrismaPersistence(db: Db): DurablePersistence {
       );
     },
 
+    seatAbandoned(gameId: string, playerId: string) {
+      const roomId = gameRoom.get(gameId);
+      if (!roomId) return;
+      // Detached from the account, so it leaves their rejoin list and comes back as a bot after a restart.
+      enqueue(roomId, 'seat abandoned', () =>
+        db.player.updateMany({ where: { id: playerId, gameId }, data: { userId: null, guestSessionId: null, isBot: true } }),
+      );
+    },
+
     gameEnded(game: PersistGame) {
       enqueue(game.room.id, 'game end', () => finalizeGame(db, game));
     },

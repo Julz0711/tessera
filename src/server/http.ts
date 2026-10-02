@@ -16,7 +16,8 @@ import { acceptFriend, friendProfileFor, friendsFor, inviteFriend, leaderboard, 
 import { pagedHistory, reportFor } from './historyApi';
 import { modeRatingsFor } from './modeRatings';
 import { emptyRatings } from '@/shared/ratings';
-import { activeRoomsFor } from './activeRooms';
+import { abandonRoom, activeRoomsFor } from './activeRooms';
+import { normalizeCode } from './rooms';
 import { adminDeleteGames, adminDeleteGuest, adminDeleteUser, adminGames, adminGuests, adminOverview, adminUsers, idsFrom, isAdmin, type AdminContext } from './admin';
 
 function json(res: ServerResponse, status: number, body: unknown): void {
@@ -235,6 +236,32 @@ export async function handleHttp(req: IncomingMessage, res: ServerResponse, ctx?
       return activeRoomsFor(identity, ctx.rooms, null);
     }) : [];
     json(res, 200, { rooms });
+    return true;
+  }
+  if (ctx && path === '/api/rooms/abandon' && req.method === 'POST') {
+    const identity = await resolveIdentity(req.headers.cookie);
+    if (!originAllowed(req) || !identity) {
+      json(res, identity ? 403 : 401, { error: identity ? 'Bad origin' : 'No session' });
+      return true;
+    }
+    const body = await readBody(req, 1024);
+    let code: string | null = null;
+    try {
+      code = normalizeCode((body ? JSON.parse(body.toString('utf8')) : null)?.code);
+    } catch {
+      code = null;
+    }
+    if (!code) {
+      json(res, 400, { error: 'Invalid request' });
+      return true;
+    }
+    try {
+      await abandonRoom(identity, code, ctx.rooms, getDb());
+      json(res, 200, { ok: true });
+    } catch (err) {
+      logDbError('abandon', err);
+      json(res, 503, { error: "Couldn't leave that table right now. Try again in a moment." });
+    }
     return true;
   }
   if (path === '/api/health') {

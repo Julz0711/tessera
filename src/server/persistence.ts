@@ -33,6 +33,8 @@ export interface Persistence {
   gameStarted(game: PersistGame): void;
   gameAction(gameId: string, seq: number, playerId: string | null, action: Action, events: GameEvent[]): void;
   snapshot(gameId: string, state: GameState): void;
+  /** A player gave up their seat for good: a bot plays it from now on (also after a restart). */
+  seatAbandoned(gameId: string, playerId: string): void;
   gameEnded(game: PersistGame): void;
 }
 
@@ -43,5 +45,6 @@ export const noopPersistence: Persistence = {
   gameStarted() {},
   gameAction() {},
   snapshot() {},
+  seatAbandoned() {},
   gameEnded() {},
 };

@@ -47,7 +47,9 @@ export function AdminPage() {
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [overview, setOverview] = useState<Overview | null>(null);
-  const [data, setData] = useState<Paged<GameRow | UserRow | GuestRow> | null>(null);
+  // Tagged with its tab so a stale page of another tab's rows is never rendered against this tab's columns.
+  const [loaded, setLoaded] = useState<(Paged<GameRow | UserRow | GuestRow> & { tab: Tab }) | null>(null);
+  const data = loaded?.tab === tab ? loaded : null;
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [state, setState] = useState<'loading' | 'ready' | 'denied' | 'error'>('loading');
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
@@ -57,10 +59,10 @@ export function AdminPage() {
   const query = new URLSearchParams({ q, page: String(page), ...(tab === 'games' && status ? { status } : {}) }).toString();
   useEffect(() => {
     let cancelled = false;
-    setData(null);
+    setLoaded(null);
     const timer = setTimeout(() => {
       Promise.all([api<Overview>('/api/admin/overview'), api<Paged<GameRow | UserRow | GuestRow>>(`/api/admin/${tab}?${query}`)])
-        .then(([o, d]) => { if (!cancelled) { setOverview(o); setData(d); setState('ready'); } })
+        .then(([o, d]) => { if (!cancelled) { setOverview(o); setLoaded({ ...d, tab }); setState('ready'); } })
         .catch((err: { status?: number }) => { if (!cancelled) setState(err.status === 404 ? 'denied' : 'error'); });
     }, 150);
     return () => { cancelled = true; clearTimeout(timer); };
