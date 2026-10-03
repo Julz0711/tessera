@@ -6,6 +6,7 @@ import { mat } from '../materials';
 import { usePieceScale } from '../pieceScale';
 import { classicProps } from '../terrain';
 import { CORNERS, EDGE, TG, TILE_TOP, TOKEN_CLEAR, inFront, polar, seeded, spread, type Prop } from '../terrainKit';
+import { gableRoof, roofMat } from './shared';
 import type { KnightFigureProps, ModelProps, PieceColors, ThemeKit } from './types';
 
 const y = TILE_TOP;
@@ -202,23 +203,24 @@ function props(terrain: Terrain, seed: number): Prop[] | null {
       break;
     }
     case 'desert': {
-      // A zen rock garden: raked sand rings, three dark stones, and a vermilion torii gate in the
-      // middle (a desert has no number token; the robber stands in front of the centre).
+      // A zen rock garden: raked sand rings, three dark stones, and a vermilion torii gate back and
+      // left of the middle (a desert has no number token; the robber stands right of the centre).
       const ringGeo = [G.ring0, G.ring1, G.ring2];
       ringGeo.forEach((geo, i) => {
         out.push({ geo, color: i % 2 ? '#c9bb95' : '#d3c6a0', p: [0, y + 0.003, 0], r: [-Math.PI / 2, 0, 0] });
       });
       const t = 1.3;
-      const tz = 0;
+      const tx = -0.12;
+      const tz = -0.18;
       const red = '#d8412f';
       out.push(
-        { geo: G.toriiPost, color: red, p: [-0.13 * t, y + 0.11 * t, tz], s: t },
-        { geo: G.toriiPost, color: red, p: [0.13 * t, y + 0.11 * t, tz], s: t },
-        { geo: G.toriiTie, color: red, p: [0, y + 0.17 * t, tz], s: t },
-        { geo: G.toriiBeam, color: red, p: [0, y + 0.225 * t, tz], s: t },
-        { geo: G.toriiCap, color: '#2b2522', p: [0, y + 0.25 * t, tz], s: t },
+        { geo: G.toriiPost, color: red, p: [tx - 0.13 * t, y + 0.11 * t, tz], s: t },
+        { geo: G.toriiPost, color: red, p: [tx + 0.13 * t, y + 0.11 * t, tz], s: t },
+        { geo: G.toriiTie, color: red, p: [tx, y + 0.17 * t, tz], s: t },
+        { geo: G.toriiBeam, color: red, p: [tx, y + 0.225 * t, tz], s: t },
+        { geo: G.toriiCap, color: '#2b2522', p: [tx, y + 0.25 * t, tz], s: t },
       );
-      const stones = spread(rand, 5, TOKEN_CLEAR + 0.1, EDGE - 0.12).filter(([x, z]) => Math.hypot(x, z - tz) > 0.34);
+      const stones = spread(rand, 5, TOKEN_CLEAR + 0.1, EDGE - 0.12).filter(([x, z]) => Math.hypot(x - tx, z - tz) > 0.34 && Math.hypot(x - 0.5, z - 0.08) > 0.24);
       for (const [x, z] of stones.slice(0, 3)) {
         out.push({ geo: 'stone', color: pick(['#454138', '#38352f', '#504b41']), p: [x, y + 0.03, z], r: [rand(), rand(), 0] });
       }
@@ -233,8 +235,6 @@ function props(terrain: Terrain, seed: number): Prop[] | null {
 
 /** Piece geometries, shared across renders (created once at module scope, like GEO in materials.ts). */
 const PIECE_GEO = {
-  houseBody: new THREE.BoxGeometry(0.24, 0.14, 0.24),
-  houseRoof: new THREE.ConeGeometry(0.3, 0.13, 4),
   pagodaBase: new THREE.BoxGeometry(0.3, 0.14, 0.3),
   pagodaRoof1: new THREE.ConeGeometry(0.34, 0.06, 4),
   pagodaTier2: new THREE.BoxGeometry(0.22, 0.12, 0.22),
@@ -248,15 +248,46 @@ const PIECE_GEO = {
   hat: new THREE.ConeGeometry(0.21, 0.09, 8),
 };
 
-/** Minka farmhouse: a wide, low, overhanging hip roof over a body in the owner's colour. */
+/**
+ * A tea house: a room in the owner's colour with paper sliding doors on a low stone base, a little
+ * veranda in front, under a hip-and-gable (irimoya) roof in the dark tone whose eaves flare out.
+ */
 function Settlement({ c, o, ghost }: ModelProps) {
+  const shadow = !ghost;
   return (
     <>
-      <mesh geometry={PIECE_GEO.houseBody} material={mat(c.hex, o)} position={[0, 0.08, 0]} castShadow={!ghost} />
-      <mesh geometry={PIECE_GEO.houseRoof} material={mat(c.dark, o)} position={[0, 0.19, 0]} rotation={[0, Math.PI / 4, 0]} castShadow={!ghost} />
+      <mesh geometry={TEA.base} material={mat('#8d8a82', o)} position={[0, 0.0175, 0]} castShadow={shadow} />
+      <mesh geometry={TEA.deck} material={mat('#8a6139', o)} position={[0, 0.042, 0.1]} castShadow={shadow} />
+      <mesh geometry={TEA.body} material={mat(c.hex, o)} position={[0, 0.1, -0.02]} castShadow={shadow} />
+      {[-0.066, 0, 0.066].map((x) => (
+        <mesh key={x} geometry={TEA.door} material={mat('#f3ecd8', o)} position={[x, 0.095, 0.066]} />
+      ))}
+      {[-0.13, 0.13].map((x) => (
+        <mesh key={x} geometry={TEA.post} material={mat('#3a2a1e', o)} position={[x, 0.1, 0.125]} castShadow={shadow} />
+      ))}
+      {/* the roof in the owner's dark tone: a shallow flared eave, a steeper hip above it (the kink reads as upturned eaves), a small gable on top */}
+      <group position={[0, 0, 0.0]} scale={[1.08, 1, 0.88]}>
+        <mesh geometry={TEA.eave} material={mat(c.dark, o)} position={[0, 0.175, 0]} castShadow={shadow} />
+        <mesh geometry={TEA.hip} material={mat(c.dark, o)} position={[0, 0.23, 0]} castShadow={shadow} />
+      </group>
+      <mesh geometry={TEA.gable} material={roofMat(c.dark, o)} position={[0, 0.275, 0]} castShadow={shadow} />
+      <mesh geometry={TEA.ridge} material={mat('#2b2522', o)} position={[0, 0.365, 0]} />
     </>
   );
 }
+
+/** Tea house geometries (see `Settlement`); the 4-sided cylinders turn 45° so their faces line up with the axes. */
+const TEA = {
+  base: new THREE.BoxGeometry(0.3, 0.035, 0.26),
+  deck: new THREE.BoxGeometry(0.3, 0.014, 0.07),
+  body: new THREE.BoxGeometry(0.22, 0.13, 0.17),
+  door: new THREE.BoxGeometry(0.056, 0.082, 0.004),
+  post: new THREE.CylinderGeometry(0.009, 0.009, 0.12, 5),
+  eave: new THREE.CylinderGeometry(0.2, 0.245, 0.02, 4, 1).rotateY(Math.PI / 4),
+  hip: new THREE.CylinderGeometry(0.1, 0.2, 0.09, 4, 1).rotateY(Math.PI / 4),
+  gable: gableRoof(0.13, 0.19, 0.09).rotateY(Math.PI / 2),
+  ridge: new THREE.BoxGeometry(0.21, 0.012, 0.016),
+};
 
 /** A small pagoda: stacked tiers in the owner's colour, each under a wide flat overhanging roof. */
 function City({ c, o, ghost }: ModelProps) {

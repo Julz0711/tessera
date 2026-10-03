@@ -32,6 +32,7 @@ import {
 } from "@/engine/maps";
 import { type MapId, type PlayerColor } from "@/engine/types";
 import {
+  DEFAULT_ROOM_SETTINGS,
   TURN_TIMER_OPTIONS,
   type RoomDTO,
   type RoomSettings,
@@ -391,7 +392,7 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
           <div className="mt-1">
             <Toggle
               label={s.map === "zealand" ? "Two gold fields in the fog" : "Gold fields in the fog"}
-              checked={s.gold ?? true}
+              checked={!!(s.gold ?? DEFAULT_ROOM_SETTINGS.gold)}
               onChange={(gold) => set({ gold })}
               disabled={!host}
             />
@@ -445,6 +446,9 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
           onChange={(turnTimer) => set({ turnTimer })}
           disabled={!host}
         />
+        {s.turnTimer > 0 && room.seats.filter((seat) => !seat.isBot).length < 2 && (
+          <p className="text-xs text-ink-faint">Only counts down with two or more players at the table.</p>
+        )}
       </div>
       <div className="grid gap-1.5">
         <span className="label">Dice</span>

@@ -14,6 +14,7 @@ import {
   sailableShips,
   shipsInPlay,
   wallSpots,
+  type Card,
   type PartialHand,
 } from '@/engine';
 import type { PlayerView } from '@/engine/view';
@@ -23,7 +24,8 @@ import { api } from '@/client/store';
 import { buildMode, useUi } from '@/client/ui';
 import { CityGlyph, KnightGlyph, RoadGlyph, SettlementGlyph } from '@/components/ui/Glyphs';
 import type { RoomDTO } from '@/shared/protocol';
-import { CardList } from './cards';
+import { CARD_COLORS } from '@/client/palette';
+import { MiniArt } from './cardArt';
 import { Hand } from './Hand';
 import { TradePanel } from './TradePanel';
 
@@ -45,6 +47,7 @@ function ActionButton({
   disabled,
   active,
   cost,
+  hand,
   primary,
   danger,
   pulse,
@@ -62,6 +65,8 @@ function ActionButton({
   disabled?: boolean;
   active?: boolean;
   cost?: PartialHand;
+  /** The player's hand, to fade the cost's cards they don't have enough of. */
+  hand?: PartialHand;
   primary?: boolean;
   danger?: boolean;
   /** Draws attention to the button (e.g. the turn timer running low). */
@@ -84,24 +89,54 @@ function ActionButton({
       aria-pressed={active}
       title={hint ?? label}
       data-bank-anchor={bankAnchor ? '' : undefined}
-      className={`btn group relative min-w-0 flex-col gap-0.5 px-0 py-1.5 text-[10px] tracking-tight sm:min-w-16 sm:px-2.5 sm:text-[11px] sm:tracking-normal ${primary ? 'btn-primary' : active ? 'btn-primary' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''} ${className}`}
+      className={`btn group relative min-w-0 flex-col gap-0.5 px-0 py-1.5 ${cost ? 'disabled:bg-paper/50 disabled:opacity-100' : ''} text-[10px] tracking-tight sm:min-w-16 sm:px-2.5 sm:text-[11px] sm:tracking-normal ${primary ? 'btn-primary' : active ? 'btn-primary' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''} ${className}`}
     >
-      {icon}
-      <span className="whitespace-nowrap leading-none">
-        {label}
-        {shortcut && <span className="pointer-coarse:hidden"> ({shortcut})</span>}
+      {/* A build you can't make fades its icon and label but keeps its costs crisp, so the
+          missing cards stand out (see CostPips). */}
+      <span className={`flex flex-col items-center gap-0.5 ${cost ? 'group-disabled:opacity-45' : ''}`}>
+        {icon}
+        <span className="whitespace-nowrap leading-none">
+          {label}
+          {shortcut && <span className="pointer-coarse:hidden"> ({shortcut})</span>}
+        </span>
       </span>
       {left !== undefined && (
         <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full border-2 border-ink bg-paper px-1 text-[10px] font-black leading-none text-ink" title={`${left} left`}>
           {left}
         </span>
       )}
-      {cost && (
-        <span className="pointer-events-none absolute -top-9 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border-2 border-ink bg-paper px-2 py-1 group-hover:block">
-          <CardList cards={cost} />
-        </span>
-      )}
+      {cost && <CostPips cost={cost} hand={hand} />}
     </button>
+  );
+}
+
+/**
+ * What a build costs, always on show (the printed building-costs card): a chip per card kind with
+ * its count. Kinds the hand can't cover yet are faded, so what's missing stands out.
+ */
+function CostPips({ cost, hand }: { cost: PartialHand; hand?: PartialHand }) {
+  const entries = (Object.entries(cost) as [Card, number][]).filter(([, n]) => n > 0);
+  const label = entries.map(([c, n]) => `${n} ${CARD_COLORS[c].label}`).join(', ');
+  return (
+    <span className="flex items-center justify-center gap-0.5" aria-label={`Costs ${label}`} title={`Costs ${label}`}>
+      {entries.map(([c, n]) => {
+        const short = hand !== undefined && (hand[c] ?? 0) < n;
+        return (
+          <span
+            key={c}
+            className={`relative grid h-3.5 min-w-3.5 place-items-center rounded-sm sm:h-4 sm:min-w-4 border border-black/40 ${short ? 'opacity-30 grayscale' : ''}`}
+            style={{ background: CARD_COLORS[c].bg }}
+          >
+            <MiniArt card={c} size={12} />
+            {n > 1 && (
+              <span className="absolute -bottom-1 -right-1 grid h-2.5 min-w-2.5 place-items-center rounded-full bg-ink px-px text-[8px] font-black leading-none text-paper">
+                {n}
+              </span>
+            )}
+          </span>
+        );
+      })}
+    </span>
   );
 }
 
@@ -174,7 +209,7 @@ export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
             onClick={() => ui.toggleBuild('road')}
             active={building === 'road'}
             disabled={!roadOk}
-            cost={COSTS.road}
+            cost={COSTS.road} hand={p.hand}
             left={left.roads}
           />
           {voyage && (
@@ -185,7 +220,7 @@ export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
                 onClick={() => ui.toggleBuild('ship')}
                 active={building === 'ship'}
                 disabled={!shipOk}
-                cost={COSTS.ship}
+                cost={COSTS.ship} hand={p.hand}
                 left={left.ships}
                 hint="Build a ship on a sea or coast edge"
               />
@@ -205,7 +240,7 @@ export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
             onClick={() => ui.toggleBuild('settlement')}
             active={building === 'settlement'}
             disabled={!settlementOk}
-            cost={COSTS.settlement}
+            cost={COSTS.settlement} hand={p.hand}
             left={left.settlements}
           />
           <ActionButton
@@ -214,10 +249,10 @@ export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
             onClick={() => ui.toggleBuild('city')}
             active={building === 'city'}
             disabled={!cityOk}
-            cost={COSTS.city}
+            cost={COSTS.city} hand={p.hand}
             left={left.cities}
           />
-          {!ck && <ActionButton label="Buy card" icon={<Sparkles size={20} />} onClick={() => api.act({ type: 'buyDevCard' })} disabled={!devOk} cost={COSTS.devCard} />}
+          {!ck && <ActionButton label="Buy card" icon={<Sparkles size={20} />} onClick={() => api.act({ type: 'buyDevCard' })} disabled={!devOk} cost={COSTS.devCard} hand={p.hand} />}
           {ck && (
             <>
               <ActionButton
@@ -226,11 +261,11 @@ export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
                 onClick={() => ui.toggleBuild('knight')}
                 active={building === 'knight'}
                 disabled={!knightOk}
-                cost={COSTS.knight}
+                cost={COSTS.knight} hand={p.hand}
                 left={left.knights[1]}
                 hint="Recruit a basic knight"
               />
-              <ActionButton label="Wall" icon={<BrickWall size={20} />} onClick={() => ui.toggleBuild('wall')} active={building === 'wall'} disabled={!wallOk} cost={COSTS.wall} left={left.walls} hint="City wall: +2 hand limit" />
+              <ActionButton label="Wall" icon={<BrickWall size={20} />} onClick={() => ui.toggleBuild('wall')} active={building === 'wall'} disabled={!wallOk} cost={COSTS.wall} hand={p.hand} left={left.walls} hint="City wall: +2 hand limit" />
               <ActionButton label="Improve" icon={<Hammer size={20} />} onClick={() => ui.setPanel('improve')} active={ui.panel === 'improve'} disabled={view.phase !== 'play'} hint="City improvements" className="max-sm:hidden" />
             </>
           )}

@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowRight, Bot, LogIn, LogOut, Menu, ScrollText, Settings, Trophy } from "lucide-react";
+import { ArrowRight, BookOpen, Bot, LogIn, LogOut, Menu, ScrollText, Settings, Trophy } from "lucide-react";
+import { RulebookDialog } from "@/components/rules/RulebookDialog";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -93,6 +94,7 @@ export function Landing() {
   const [joining, setJoining] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [rules, setRules] = useState(false);
   const [code, setCode] = useState("");
   const [tables, setTables] = useState<ActiveRoom[]>([]);
   const [codeError, setCodeError] = useState<string | null>(null);
@@ -301,7 +303,7 @@ export function Landing() {
         <p className="mb-4 text-sm text-ink-soft">
           {abandoning?.status === "lobby"
             ? "You give up your seat at this table."
-            : "A bot takes over your seat and the game disappears from your home screen. You can't rejoin it."}
+            : "A bot takes over your seat and the game disappears from your home screen. You can't rejoin it. It counts as a loss in last place, and in a rated game it costs extra rating."}
         </p>
         {abandonError && <p role="alert" className="mb-3 text-sm font-bold text-terracotta">{abandonError}</p>}
         <div className="flex justify-end gap-2">
@@ -310,11 +312,14 @@ export function Landing() {
         </div>
       </Modal>
 
+      <RulebookDialog open={rules} onClose={() => setRules(false)} />
+
       <Modal open={menu} onClose={() => setMenu(false)} title="Menu">
         <nav className="grid gap-2" aria-label="Main navigation">
           <Link href="/profile" className="btn justify-start px-4 py-3"><KnightBadge knight={knight} color={color} size={24} /> Your profile</Link>
           <Link href="/leaderboard" className="btn justify-start px-4 py-3"><Trophy size={18} /> Leaderboard</Link>
           <Link href="/patch-notes" className="btn justify-start px-4 py-3"><ScrollText size={18} /> What’s new {newPatch && <span className="ml-auto h-2 w-2 rounded-full bg-terracotta" />}</Link>
+          <button className="btn justify-start px-4 py-3" onClick={() => { setMenu(false); setRules(true); }}><BookOpen size={18} /> Rules</button>
           <button className="btn justify-start px-4 py-3" onClick={() => { setMenu(false); useSettingsUI.getState().show(); }}><Settings size={18} /> Settings</button>
           {!signedIn && <button className="btn btn-primary justify-start px-4 py-3" onClick={() => { setMenu(false); setSigningIn(true); }}><LogIn size={18} /> Sign in</button>}
         </nav>

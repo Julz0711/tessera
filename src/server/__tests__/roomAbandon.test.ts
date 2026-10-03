@@ -9,11 +9,16 @@ const host = { key: 'g:host', kind: 'guest' as const, id: 'host', displayName: '
 function setup() {
   const sent: string[] = [];
   const abandoned: string[] = [];
+  const gamesAbandoned: string[] = [];
   const io: RoomIO = { send: (_sid, event, ..._args) => void sent.push(event), detach: () => {} };
-  const persistence = { ...noopPersistence, seatAbandoned: (_g: string, playerId: string) => void abandoned.push(playerId) };
+  const persistence = {
+    ...noopPersistence,
+    seatAbandoned: (_g: string, playerId: string) => void abandoned.push(playerId),
+    gameAbandoned: (gameId: string) => void gamesAbandoned.push(gameId),
+  };
   const room = new Room('ABCDEFGH', host, undefined, { io, persistence, botDelayScale: 0 });
   room.join('s1', host, { profile });
-  return { room, sent, abandoned };
+  return { room, sent, abandoned, gamesAbandoned };
 }
 
 describe('abandoning a seat', () => {
@@ -26,10 +31,11 @@ describe('abandoning a seat', () => {
   });
 
   it('hands a running game seat to a bot for good and disconnects its sockets', () => {
-    const { room, sent, abandoned } = setup();
+    const { room, sent, abandoned, gamesAbandoned } = setup();
     room.addBot('s1');
     room.addBot('s1');
     room.start('s1');
+    const gameId = room.gameId;
     const me = room.seats.find((s) => s.identityKey === 'g:host')!;
     const playerId = me.playerId;
     expect(room.abandon('g:host')).toBe(true);
@@ -37,8 +43,21 @@ describe('abandoning a seat', () => {
     expect(me.sockets.size).toBe(0);
     expect(abandoned).toEqual([playerId]);
     expect(sent).toContain('room:closed');
-    // Nobody human is left, so the table closes.
+    // Nobody human is left, so the table closes, and the unfinished game is recorded as abandoned.
     expect(room.closed).toBe(true);
+    expect(gamesAbandoned).toEqual([gameId]);
+  });
+
+  it('marks the seat as bot-played in the game itself (the end-of-game report reads it)', () => {
+    const { room } = setup();
+    const other = { key: 'g:other', kind: 'guest' as const, id: 'other', displayName: 'Other', avatarUrl: null };
+    room.join('s2', other, { profile: { ...profile, name: 'Other', color: 'blue' } });
+    room.start('s1');
+    const seat = room.seats.findIndex((s) => s.identityKey === 'g:host');
+    room.abandon('g:host');
+    expect(room.game!.players[seat].isBot).toBe(true);
+    expect(room.game!.players.filter((p) => p.isBot)).toHaveLength(1);
+    room.close('done');
   });
 
   it('keeps the table running for the remaining humans', () => {

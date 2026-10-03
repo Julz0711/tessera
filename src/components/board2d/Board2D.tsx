@@ -12,7 +12,7 @@ import { THEME_BARBARIAN_SHIPS, THEME_GLYPHS, THEME_PIECES, type BarbarianShipGl
 import { OUTLINE, ROAD_WEIGHT, RoadBase } from "./themes/shared";
 import { VOYAGE_GLYPHS } from "./themes/voyage";
 import { PLAYER_COLORS } from "@/shared/colors";
-import { harborAnchor } from "@/components/board/harbor";
+import { harborAnchor, pirateSpot } from "@/components/board/harbor";
 import { BARBARIAN_HEADER_H, barbarianTrackLayout, type BarbarianLayout } from "@/components/board/barbarian";
 import type { BoardProps, BoardScene } from "@/components/board/types";
 import { useZoomPan } from "./useZoomPan";
@@ -488,7 +488,7 @@ function ShipPiece({
   );
 }
 
-/** The pirate (Voyagers): the theme's dark craft in the middle of its sea hex. */
+/** The pirate (Voyagers): the theme's dark craft in its sea hex (see `pirateSpot`). */
 function PirateShip({ x, y, theme, ghost, k = 1 }: { x: number; y: number; theme: BoardThemeId; ghost?: boolean; k?: number }) {
   return (
     <g pointerEvents="none" opacity={ghost ? 0.6 : 1} transform={`translate(${x} ${y}) scale(${k * 1.3})`}>
@@ -601,14 +601,19 @@ function Gloom({
         return (
           <g key={h.id}>
             <circle cx={x} cy={y} r="46" fill={`url(#gloom-glow-${i})`} />
-            <circle
-              cx={x}
-              cy={y}
-              r="6"
+            {/* A lantern on a post, not a dot: a round lamp near a corner reads as a build spot. */}
+            <line x1={x} y1={y + 3} x2={x} y2={y + 15} stroke={gloom.lampRim} strokeWidth="3" strokeLinecap="round" />
+            <rect
+              x={x - 4.5}
+              y={y - 7}
+              width="9"
+              height="10"
+              rx="2"
               fill={lights[i].lamp}
               stroke={gloom.lampRim}
               strokeWidth="2"
             />
+            <path d={`M${x - 6} ${y - 7}L${x} ${y - 12}L${x + 6} ${y - 7}Z`} fill={gloom.lampRim} />
           </g>
         );
       })}
@@ -801,6 +806,8 @@ export default function Board2D({
   const TOKEN = palette.token;
   const ps = pieceScale;
   const topo = getTopology(scene.board.hexes);
+  const harborEdges = scene.board.harbors.map((h) => h.edge);
+  const pirate = scene.pirate != null ? pirateSpot(topo, scene.board.hexes, scene.pirate, harborEdges) : null;
   const [hover, setHover] = useState<string | null>(null);
   const barbarian = scene.barbarian;
   const barbLayout = useMemo(
@@ -1075,7 +1082,7 @@ export default function Board2D({
         {/* harbors */}
         {scene.board.harbors.map((hb) => {
           const e = topo.edges[hb.edge];
-          const at = harborAnchor(topo, scene.board.hexes, hb.edge, 0.66);
+          const at = harborAnchor(topo, scene.board.hexes, hb.edge, 0.66, harborEdges);
           const px = at.x * S;
           const py = at.y * S;
           const label =
@@ -1344,8 +1351,8 @@ export default function Board2D({
           k={ps}
         />
         {/* pirate (Voyagers) */}
-        {scene.pirate != null && (
-          <PirateShip x={topo.hexes[scene.pirate].x * S} y={topo.hexes[scene.pirate].y * S} theme={theme} k={ps} />
+        {pirate && (
+          <PirateShip x={pirate.x * S} y={pirate.y * S} theme={theme} k={ps} />
         )}
 
         {/* barbarian ship's voyage (C&K) */}

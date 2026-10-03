@@ -7,6 +7,7 @@ import type { Terrain } from '@/engine/types';
 import { reducedMotion } from '@/client/fx';
 import { KNIGHT_STEEL } from '@/shared/knight';
 import { mat } from '../materials';
+import { usePieceScale } from '../pieceScale';
 import { ClassicCity, ClassicSettlement } from '../models';
 import { CORNERS, polar, seeded } from '../terrainKit';
 import type { KnightFigureProps, ModelProps, PieceColors, ThemeKit } from './types';
@@ -234,9 +235,11 @@ function CityWall({ c }: { c: PieceColors }) {
 
 /** A lantern on a short post beside the road. */
 function Road({ ghost }: { ghost: boolean }) {
+  // The road gets wider with the Board size setting: the lantern steps aside (and grows) with it.
+  const k = usePieceScale();
   if (ghost) return null;
   return (
-    <group position={[0.12, 0, 0.09]}>
+    <group position={[0.12, 0, 0.09 * k]} scale={k}>
       <mesh geometry={GEO.lanternPost} material={mat('#3a2f22')} position={[0, 0.02, 0]} />
       <mesh geometry={GEO.lantern} material={lit(1.5)} position={[0, 0.1, 0]} />
     </group>

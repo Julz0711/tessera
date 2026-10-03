@@ -10,7 +10,7 @@ import { PALETTES } from '@/client/themes';
 import type { BoardProps, BoardScene, BoardTargets } from '@/components/board/types';
 import { barbarianTrackLayout } from '@/components/board/barbarian';
 import { Barbarians } from './barbarians';
-import { City, CityWall, HarborPiece, Merchant, MetropolisTower, NumberToken, Road, Robber, Settlement } from './pieces';
+import { City, CityWall, HarborPiece, Merchant, MetropolisTower, NumberToken, ROBBER_OFFSET, Road, Robber, Settlement } from './pieces';
 import { Targets } from './targets';
 import { Pirate, Ship, TreasureChest } from './voyage';
 import { HexTile } from './terrain';
@@ -20,6 +20,7 @@ import { KnightPieces } from './knights';
 import { PieceScale } from './pieceScale';
 import { BoardThemeContext } from './themes';
 import { Weather } from './weather';
+import { pirateSpot } from '../board/harbor';
 
 /** Aiming the camera slightly "below" the island centre lifts it above the bottom dock. */
 const GAME_TARGET_Z = 1.3;
@@ -99,7 +100,9 @@ function FitCamera({ showcase, scale }: { showcase: boolean; scale: number }) {
     const aspect = size.width / Math.max(1, size.height);
     // A squarish frame (a phone's boxed board) is height-limited, not width-limited: sit closer.
     const squarish = !showcase && aspect >= 0.7 && aspect < 1.3;
-    const k = (squarish ? 0.92 : aspect < 1 ? 1 + (1 - aspect) * 1.25 : aspect < 1.3 ? 1.08 : 1) * scale;
+    // Narrower than square (a phone's board box), its sides limit it again: back off so the harbors at
+    // the island's sides stay on-screen.
+    const k = (squarish ? 0.92 + Math.max(0, 1 - aspect) * 0.75 : aspect < 1 ? 1 + (1 - aspect) * 1.25 : aspect < 1.3 ? 1.08 : 1) * scale;
     const shift = showcase && aspect > 1.2 ? -Math.min(4.2, (aspect - 1) * 5) : 0;
     const base = showcase ? [0, 8.6, 11] : [0, 12.2, 9.4];
     camera.position.set(base[0] * k + shift, base[1] * k, base[2] * k);
@@ -136,6 +139,8 @@ function Island({
   fontsReady: boolean;
 }) {
   const topo = getTopology(scene.board.hexes);
+  const harborEdges = scene.board.harbors.map((h) => h.edge);
+  const pirate = scene.pirate != null ? pirateSpot(topo, scene.board.hexes, scene.pirate, harborEdges) : null;
   const robberHex = topo.hexes[scene.robber];
   const hexTargetSet = useMemo(() => new Set(targets.hexes), [targets.hexes]);
   return (
@@ -170,12 +175,19 @@ function Island({
           ) : null,
         )}
         {scene.board.harbors.map((h) => (
-          <HarborPiece key={h.edge} harbor={h} topo={topo} hexes={scene.board.hexes} />
+          <HarborPiece key={h.edge} harbor={h} topo={topo} hexes={scene.board.hexes} harbors={harborEdges} />
         ))}
       </group>
       {scene.roads.map((owner, e) =>
         owner === null ? null : (
-          <Road key={`r${e}`} x={topo.edges[e].x} z={topo.edges[e].y} angle={topo.edges[e].angle} color={scene.colors[owner]} />
+          <Road
+            key={`r${e}`}
+            x={topo.edges[e].x}
+            z={topo.edges[e].y}
+            angle={topo.edges[e].angle}
+            color={scene.colors[owner]}
+            walled={[!!scene.buildings[topo.edges[e].a]?.wall, !!scene.buildings[topo.edges[e].b]?.wall]}
+          />
         ),
       )}
       {(scene.ships ?? []).map((owner, e) =>
@@ -188,7 +200,7 @@ function Island({
           <TreasureChest key={`t${tr.vertex}`} x={topo.vertices[tr.vertex].x} y={0.02} z={topo.vertices[tr.vertex].y} />
         ),
       )}
-      {scene.pirate != null && <Pirate x={topo.hexes[scene.pirate].x} z={topo.hexes[scene.pirate].y} />}
+      {pirate && <Pirate x={pirate.x} z={pirate.y} />}
       {scene.buildings.map((b, v) => {
         if (!b) return null;
         const p = topo.vertices[v];
@@ -205,7 +217,7 @@ function Island({
         <Merchant x={topo.hexes[scene.merchant.hex].x} z={topo.hexes[scene.merchant.hex].y} color={scene.colors[scene.merchant.owner]} />
       )}
       <KnightPieces scene={scene} topo={topo} />
-      <Robber x={robberHex.x} z={robberHex.y + 0.46} />
+      <Robber x={robberHex.x + ROBBER_OFFSET.x} z={robberHex.y + ROBBER_OFFSET.z} />
       {scene.barbarian && <Barbarians barbarian={scene.barbarian} topo={topo} />}
       <Targets targets={targets} topo={topo} board={scene.board} color={scene.myColor} popup={popup} onVertex={onVertex} onEdge={onEdge} onHex={onHex} />
     </group>
@@ -241,10 +253,13 @@ export default function Board3D({
     const topo = getTopology(scene.board.hexes);
     const base = boardFrame(topo);
     // The barbarian track sits west of the island. A landscape screen has sea to spare beside the
-    // island; a portrait one pulls the camera back so the track stays on-screen.
+    // island; a portrait one frames island and track together (centred between them, not around the
+    // island, which would pull the camera back as far on the empty east side).
     if (!scene.barbarian || landscape) return base;
     const track = barbarianTrackLayout(topo, scene.barbarian.distance + 1);
-    return { ...base, extent: Math.max(base.extent, track.reach) };
+    const west = track.header.x - 0.8;
+    const east = Math.max(...topo.vertices.map((v) => v.x)) + 0.3;
+    return { ...base, cx: (west + east) / 2, extent: Math.max(base.extent, (east - west) / 2) };
   }, [scene.board.hexes, scene.barbarian, landscape]);
   // Bigger maps pull the camera, fog, shadows and sea shelf out to match; a long, wide island a
   // little further, so its ends stay clear of the side panel.

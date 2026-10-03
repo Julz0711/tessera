@@ -45,12 +45,15 @@ const GEO = {
 };
 
 /** A hexagonal sea-step; the landing (last) step glows warm orange, red when the barbarians are close. */
-function Step({ x, z, landing, danger, wood }: { x: number; z: number; landing: boolean; danger: boolean; wood: typeof NEUTRAL_WOOD }) {
+function Step({ x, z, landing, danger, wood, dark }: { x: number; z: number; landing: boolean; danger: boolean; wood: typeof NEUTRAL_WOOD; dark: boolean }) {
   const glow = landing ? (danger ? DANGER : LANDING) : null;
+  // Under a night sky the plain steps would vanish into the sea: they glow faintly, so the track and
+  // the ship's silhouette on it stay readable.
+  const lit = (c: string) => (dark ? mat(c, { emissive: c, glow: 0.45 }) : mat(c));
   return (
     <group position={[x, 0, z]}>
-      <mesh geometry={GEO.plate} material={glow ? mat(glow, { emissive: glow, glow: 0.6 }) : mat(wood.post)} castShadow />
-      <mesh geometry={GEO.plateTop} material={glow ? mat('#fbe3b0', { emissive: glow, glow: 0.4 }) : mat(wood.deck)} position={[0, 0.041, 0]} />
+      <mesh geometry={GEO.plate} material={glow ? mat(glow, { emissive: glow, glow: 0.6 }) : lit(wood.post)} castShadow />
+      <mesh geometry={GEO.plateTop} material={glow ? mat('#fbe3b0', { emissive: glow, glow: 0.4 }) : lit(wood.deck)} position={[0, 0.041, 0]} />
     </group>
   );
 }
@@ -179,7 +182,7 @@ export function Barbarians({ barbarian, topo }: { barbarian: BarbarianInfo; topo
     <group>
       <Swell>
         {Array.from({ length: steps }, (_, i) => (
-          <Step key={i} x={layout.at(i).x} z={layout.at(i).y} landing={i === barbarian.distance} danger={danger} wood={wood} />
+          <Step key={i} x={layout.at(i).x} z={layout.at(i).y} landing={i === barbarian.distance} danger={danger} wood={wood} dark={!!palette.gloom2d} />
         ))}
       </Swell>
       <Field

@@ -8,7 +8,7 @@ import type { Topology } from '@/engine/board/topology';
 import type { Board, PlayerColor } from '@/engine/types';
 import type { BoardTargets } from '@/components/board/types';
 import { GEO, mat } from './materials';
-import { City, Road, Robber, Settlement } from './pieces';
+import { City, ROBBER_OFFSET, Road, Robber, Settlement } from './pieces';
 import { TILE_TOP } from './terrain';
 import { Pirate, Ship } from './voyage';
 
@@ -169,7 +169,7 @@ function ArmedSpot({ armed, topo, board, color, popup }: { armed: NonNullable<Bo
   const lift = armed.target === 'hex' ? 1.3 : 0.45;
   return (
     <group>
-      {armed.what === 'robber' && (board.hexes[armed.at].terrain === 'sea' ? <Pirate x={x} z={z} ghost /> : <Robber x={x} z={z + 0.46} ghost />)}
+      {armed.what === 'robber' && (board.hexes[armed.at].terrain === 'sea' ? <Pirate x={x} z={z} ghost /> : <Robber x={x + ROBBER_OFFSET.x} z={z + ROBBER_OFFSET.z} ghost />)}
       {color && armed.what === 'ship' && <Ship x={x} z={z} angle={topo.edges[armed.at].angle} color={color} ghost />}
       {color && armed.what === 'road' && <Road x={x} z={z} angle={topo.edges[armed.at].angle} color={color} ghost />}
       {color && armed.what === 'settlement' && <Settlement x={x} z={z} color={color} ghost />}

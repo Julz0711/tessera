@@ -290,7 +290,8 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
     );
 
     socket.on('game:sync', () => {
-      if (!limits.lobby.take(socket.id)) return;
+      // Its own budget: lobby clicks must never use up the client's way back to a whole log.
+      if (!limits.sync.take(socket.id)) return;
       const room = socket.data.roomCode ? manager.get(socket.data.roomCode) : undefined;
       room?.resync(socket.id);
     });

@@ -408,7 +408,8 @@ function BarbarianShip({ danger }: { danger: boolean }) {
       {STACKS.map(([sx, sz]) => (
         <mesh key={`p${sx}`} geometry={SHIP.puff} material={smoke} position={[sx, 0.34, sz - 0.02]} />
       ))}
-      <mesh geometry={SHIP.wheel} material={mat('#8a4a2a')} position={[0, 0.07, -0.24]} rotation={[Math.PI / 2, 0, 0]} castShadow />
+      {/* the wheel's axle runs across the hull, so it turns like a paddle wheel */}
+      <mesh geometry={SHIP.wheel} material={mat('#8a4a2a')} position={[0, 0.07, -0.24]} rotation={[0, 0, Math.PI / 2]} castShadow />
     </group>
   );
 }
