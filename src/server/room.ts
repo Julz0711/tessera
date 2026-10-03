@@ -2,8 +2,11 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { botAction } from '@/bots';
 import { seatsToAsk } from '@/bots/simulate';
 import {
+  CARDS,
   DEFAULT_VP,
+  EVENT_DIE,
   MAX_PLAYERS,
+  RESOURCES,
   actorsFor,
   applyAction,
   createGame,
@@ -12,11 +15,13 @@ import {
   isMapId,
   viewFor,
   type Action,
+  type Card,
   type GameEvent,
   type GameState,
   type PlayerColor,
   type PlayerView,
 } from '@/engine';
+import { buildReport, type GameReport } from '@/engine/report';
 import { MAPS, defaultVP, mapSupports } from '@/engine/maps';
 import { COLOR_ORDER, isPlayerColor } from '@/shared/colors';
 import { DEFAULT_COSMETICS, sanitizeCosmetics, type Cosmetics } from '@/shared/cosmetics';
@@ -25,6 +30,7 @@ import {
   DEFAULT_ROOM_SETTINGS,
   ERR_NEEDS_PROFILE,
   TURN_TIMER_OPTIONS,
+  type AdminGameCommand,
   type ChatMessage,
   type JoinProfile,
   type RoomDTO,
@@ -48,6 +54,8 @@ export interface RoomIO {
   detach(socketId: string): void;
   /** Whether the client appends log events itself (see `GameUpdate`); older clients need every view whole. */
   logDeltas?(socketId: string): boolean;
+  /** Whether the socket belongs to a server admin (in-game admin tools). */
+  isAdmin?(socketId: string): boolean;
 }
 
 export interface RoomDeps {
@@ -87,6 +95,13 @@ const CHAT_HISTORY = 100;
 /** Events between saved snapshots (a restart replays at most this many actions). */
 const SNAPSHOT_EVERY = 25;
 const MAX_BOT_ACTIONS_PER_TURN = 120;
+/** Game states kept for the admins' undo (in memory only, and only while an admin is in the room). */
+const UNDO_DEPTH = 30;
+/** After an admin change, bots wait this long before moving, so the admin can undo again (or look). */
+const ADMIN_BOT_PAUSE_MS = 4000;
+
+/** 'buildRoad' → 'build road', for the chat line an undo leaves. */
+const actionName = (type: string) => type.replace(/([A-Z])/g, ' $1').toLowerCase();
 
 export class Room {
   id: string = randomUUID();
@@ -117,6 +132,10 @@ export class Room {
   private roomSent = new Map<string, string>();
   /** Seq of the latest saved snapshot (snapshots are taken every `SNAPSHOT_EVERY` events). */
   private snapshotSeq = 0;
+  /** Earlier states of the running game, newest last, each with what came after it (admin undo). */
+  private history: { state: GameState; label: string }[] = [];
+  /** Bots hold off until then (see `ADMIN_BOT_PAUSE_MS`). */
+  private botPauseUntil = 0;
   private readonly now: () => number;
 
   constructor(
@@ -462,6 +481,7 @@ export class Room {
     this.stopTicker();
     this.game = null;
     this.gameId = null;
+    this.history = [];
     this.status = 'lobby';
     this.deps.persistence.roomStatus(this.persistRoom());
     this.system('Back in the lobby.');
@@ -490,6 +510,7 @@ export class Room {
     });
     this.gameId = randomUUID();
     this.snapshotSeq = this.game.seq;
+    this.history = [];
     this.gameNumber++;
     this.status = 'playing';
     this.window = { key: '', startedAt: this.now() };
@@ -522,6 +543,9 @@ export class Room {
     const prevKey = this.window.key;
     const result = applyAction(this.game, seat, action);
     if (!result.ok) return result.error;
+    // States are never mutated (see `applyAction`): keeping the old one is all an undo needs. Only
+    // tables with an admin at them keep any, so ordinary games don't carry the memory.
+    if (this.adminPresent()) this.remember(this.game, `${this.seats[seat]?.name ?? 'someone'}: ${actionName(action.type)}`);
     this.game = result.state;
     if (this.gameId) {
       this.deps.persistence.gameAction(this.gameId, result.state.seq, this.seats[seat]?.playerId ?? null, action, result.events);
@@ -567,7 +591,8 @@ export class Room {
     const botSeat = seatsToAsk(g).find((i) => this.seats[i].isBot);
     if (botSeat === undefined) return;
     const base = g.pending.length ? 750 : g.phase === 'setup' ? 850 : g.turn.rolled ? 600 : 800;
-    const delay = Math.round((base + randomInt(0, 400)) * (this.deps.botDelayScale ?? 1));
+    const pause = Math.max(0, this.botPauseUntil - this.now());
+    const delay = Math.round((base + randomInt(0, 400)) * (this.deps.botDelayScale ?? 1)) + pause;
     this.botTimer = setTimeout(() => {
       this.botTimer = null;
       this.runBots();
@@ -683,6 +708,103 @@ export class Room {
     }
   }
 
+  // ── Live stats & admin tools ──────────────────────────────────────────────
+
+  /** The match report so far, for anyone in the room: public information only until the game ends. */
+  liveReport(socketId: string): GameReport {
+    if (!this.sockets.has(socketId)) throw new UserError('You are not in this room');
+    if (!this.game) throw new UserError('No game is running');
+    return buildReport(this.game, { live: this.game.phase !== 'ended' });
+  }
+
+  /**
+   * Admin tools for testing a running game (see `AdminGameCommand`). Server admins only; every change
+   * is announced in the chat, can itself be undone, and leaves the game unrated. Returns what happened.
+   */
+  admin(socketId: string, cmd: AdminGameCommand): string {
+    this.assertOpen();
+    if (!this.deps.io.isAdmin?.(socketId)) throw new UserError('Only admins can do that');
+    const g = this.game;
+    if (this.status !== 'playing' || !g || g.phase === 'ended') throw new UserError('The game is not running');
+    this.touch();
+    switch (cmd?.type) {
+      case 'undo': {
+        const last = this.history.pop();
+        if (!last) throw new UserError('Nothing to undo');
+        const message = `An admin undid the last move (${last.label})`;
+        this.replaceGame(last.state, message);
+        return message;
+      }
+      case 'cards': {
+        const seat = cmd.seat;
+        if (!Number.isInteger(seat) || seat < 0 || seat >= g.players.length) throw new UserError('Unknown player');
+        const allowed: readonly string[] = g.mode === 'ck' ? CARDS : RESOURCES;
+        const next = structuredClone(g);
+        const changed: string[] = [];
+        for (const [card, n] of Object.entries(cmd.cards && typeof cmd.cards === 'object' ? cmd.cards : {})) {
+          if (!allowed.includes(card)) throw new UserError(`Unknown card: ${card}`);
+          if (!Number.isInteger(n) || Math.abs(n!) > 20) throw new UserError('Pick between -20 and 20 of each card');
+          const c = card as Card;
+          // Through the bank: a give takes what the bank has, a take what the hand has.
+          const moved = n! > 0 ? Math.min(n!, next.bank[c]) : -Math.min(-n!, next.players[seat].hand[c]);
+          if (!moved) continue;
+          next.bank[c] -= moved;
+          next.players[seat].hand[c] += moved;
+          changed.push(`${moved > 0 ? '+' : ''}${moved} ${c}`);
+        }
+        if (!changed.length) throw new UserError('Nothing changed: the bank (or their hand) is out of those cards');
+        const message = `An admin changed ${this.seats[seat]?.name ?? 'a player'}'s cards: ${changed.join(', ')}`;
+        this.remember(g, `cards for ${this.seats[seat]?.name ?? 'a player'}`);
+        this.replaceGame(next, message);
+        return message;
+      }
+      case 'nextRoll': {
+        const die = (n: unknown) => Number.isInteger(n) && (n as number) >= 1 && (n as number) <= 6;
+        if (!die(cmd.red) || !die(cmd.yellow)) throw new UserError('Pick both dice (1 to 6)');
+        if (cmd.event != null && (g.mode !== 'ck' || !EVENT_DIE.includes(cmd.event))) throw new UserError('Unknown event die face');
+        const nextRoll = { red: cmd.red, yellow: cmd.yellow, ...(cmd.event ? { event: cmd.event } : {}) };
+        // The chat says only that the dice were set, not to what: the roll stays a surprise for the table.
+        this.replaceGame({ ...g, nextRoll }, 'An admin set the dice for the next roll');
+        return `The next roll will be ${cmd.red} + ${cmd.yellow}${cmd.event ? ` (${cmd.event})` : ''}`;
+      }
+      default:
+        throw new UserError('Unknown admin command');
+    }
+  }
+
+  private adminPresent(): boolean {
+    for (const sid of this.sockets.keys()) if (this.deps.io.isAdmin?.(sid)) return true;
+    return false;
+  }
+
+  /** Keeps a state for the admins' undo, `label` naming the move that came after it. */
+  private remember(state: GameState, label: string): void {
+    this.history.push({ state, label });
+    if (this.history.length > UNDO_DEPTH) this.history.shift();
+  }
+
+  /**
+   * Swaps in an admin-edited game. Its seq moves past every event already stored (so new ones never
+   * collide, and a restart restores this state from its snapshot instead of replaying what was
+   * undone), the decision window starts afresh, and every client gets the whole view again (their
+   * logs may hold events that no longer happened).
+   */
+  private replaceGame(next: GameState, message: string): void {
+    const prev = this.game!;
+    this.game = { ...next, seq: Math.max(prev.seq, next.seq) + 1, adminEdited: true };
+    if (this.gameId) {
+      this.snapshotSeq = this.game.seq;
+      this.deps.persistence.snapshot(this.gameId, this.game);
+    }
+    this.system(message);
+    this.window = { key: '', startedAt: this.now() };
+    this.updateWindow();
+    this.botPauseUntil = this.now() + ADMIN_BOT_PAUSE_MS;
+    for (const sid of this.sockets.keys()) this.sendGame(sid, [], true);
+    this.broadcastRoom();
+    this.scheduleBots();
+  }
+
   // ── Chat ──────────────────────────────────────────────────────────────────
 
   say(socketId: string, raw: string): void {
@@ -756,6 +878,7 @@ export class Room {
         seat: seatIndex >= 0 ? seatIndex : null,
         isHost: key === this.hostKey,
         isSpectator: this.spectators.has(socketId),
+        ...(this.deps.io.isAdmin?.(socketId) ? { isAdmin: true } : {}),
       },
       deadline: this.deadline(),
       gameNumber: this.gameNumber,

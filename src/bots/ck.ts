@@ -25,6 +25,7 @@ import {
   legalCitySpots,
   legalKnightSpots,
   legalSettlementSpots,
+  masterMerchantVictims,
   merchantHexes,
   metropolisSpots,
   ownsCity,
@@ -379,7 +380,7 @@ function progressAction(view: PlayerView, seat: number, card: ProgressCard): Act
       return victim !== undefined && me.progress.length <= 4 ? play({ victim }) : null;
     }
     case 'masterMerchant': {
-      const victim = argmax(rich.filter((o) => view.players[o].handCount > 0), (o) => view.players[o].handCount);
+      const victim = argmax(masterMerchantVictims(view, seat).filter((o) => view.players[o].handCount > 0), (o) => view.players[o].handCount);
       return victim !== undefined ? play({ victim }) : null;
     }
     case 'deserter': {

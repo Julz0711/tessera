@@ -4,7 +4,7 @@ import { ChartColumn, MessageSquare, ScrollText } from 'lucide-react';
 import { useState } from 'react';
 import type { PlayerView } from '@/engine/view';
 import { useGame } from '@/client/store';
-import type { SideTab } from '@/client/ui';
+import { useGameDialog, type SideTab } from '@/client/ui';
 import { ChatPanel } from '@/components/room/ChatPanel';
 import { Modal } from '@/components/ui/Modal';
 import { DiceHistogram } from './DiceStats';
@@ -49,8 +49,18 @@ export function MobileSide({ view }: { view: PlayerView }) {
           {open === 'log' && <LogPanel view={view} className="min-h-0 flex-1" />}
           {open === 'chat' && <ChatPanel className="min-h-0 flex-1" dark />}
           {open === 'dice' && (
-            <div className="scroll-thin min-h-0 flex-1 overflow-y-auto">
+            <div className="scroll-thin grid min-h-0 flex-1 content-start gap-2 overflow-y-auto">
               {view.stats ? <DiceHistogram dice={view.stats.dice} compact /> : <p className="text-sm text-foam/40">No rolls recorded for this game.</p>}
+              <button
+                type="button"
+                className="btn justify-self-start px-3 py-1.5 text-xs"
+                onClick={() => {
+                  setOpen(null);
+                  useGameDialog.getState().show('stats');
+                }}
+              >
+                <ChartColumn size={14} /> Full stats
+              </button>
             </div>
           )}
         </div>

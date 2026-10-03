@@ -322,7 +322,7 @@ export function PlayersPanel({
  * The table at a glance on phones: every player's points, hand and awards in one row that fits four
  * across (more scroll). Tapping it opens the full player cards, embargo options included.
  */
-export function PlayerStrip({ view, room }: { view: PlayerView; room: RoomDTO | null }) {
+export function PlayerStrip({ view, room, leading }: { view: PlayerView; room: RoomDTO | null; leading?: React.ReactNode }) {
   const [details, setDetails] = useState(false);
   const actors = new Set(
     view.pending.length ? view.pending.map((p) => p.seat) : view.phase === 'setup' && view.setup ? [view.setup.order[view.setup.index]] : [view.turn.seat],
@@ -332,6 +332,7 @@ export function PlayerStrip({ view, room }: { view: PlayerView; room: RoomDTO | 
   return (
     <>
       <ol className="scroll-thin flex gap-1.5 overflow-x-auto p-1" aria-label="Players and scores">
+        {leading && <li className="flex shrink-0">{leading}</li>}
         {view.players.map((p, seat) => {
           const acting = actors.has(seat) && view.phase !== 'ended';
           const vp = p.vp ?? p.publicVP;

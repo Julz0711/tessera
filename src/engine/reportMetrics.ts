@@ -10,7 +10,7 @@ const DEFINITIONS: Record<string, string> = {
   blockedProduction: 'Cards or gold picks prevented by the robber on matching rolls.', shortageLoss: 'Ordinary production cards denied by bank shortages.',
   longestRoadTurns: 'Completed player turns holding longest route, not full table rounds.', largestArmyTurns: 'Completed player turns holding largest army.',
   offersClosed: 'Offers closed when every recipient declined or embargoed them.', responsesAccepted: 'Explicit accept responses, including changed responses; not necessarily completed trades.',
-  responsesDeclined: 'Explicit decline responses; automatic declines for lack of cards are excluded.',
+  responsesDeclined: 'Decline responses, including those sent by a player\'s auto-decline setting; embargoes are excluded.',
   offersExpired: 'Open offers removed at the end of a turn.', firstCityTurn: 'Turn of the first city built after setup. Zero means none recorded.',
   bestProduction: 'Most cards gained from ordinary hex production on a single roll.',
 };

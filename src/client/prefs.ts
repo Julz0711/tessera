@@ -37,6 +37,10 @@ export interface Prefs {
   sfxVolume: Partial<Record<Sfx, number>>;
   /** Themed weather over the 3D board (rain, petals, snow…). */
   weather: boolean;
+  /** Trade offers you don't have the cards for decline themselves after a few seconds (off: they wait for you). */
+  autoDeclineTrades: boolean;
+  /** Background music in games, 0..1 on top of the master volume (0: off, the default). */
+  musicVolume: number;
 }
 
 const KEY = 'prefs.v1';
@@ -64,6 +68,8 @@ const defaults = (): Prefs => ({
   hudLayout: DEFAULT_HUD_LAYOUT,
   sfxVolume: {},
   weather: true,
+  autoDeclineTrades: true,
+  musicVolume: 0,
 });
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -102,6 +108,8 @@ export function sanitizePrefs(raw: unknown): Prefs {
     hudLayout: sanitizeHudLayout(p.hudLayout),
     sfxVolume: sanitizeSfxVolume(p.sfxVolume),
     weather: typeof p.weather === 'boolean' ? p.weather : base.weather,
+    autoDeclineTrades: typeof p.autoDeclineTrades === 'boolean' ? p.autoDeclineTrades : base.autoDeclineTrades,
+    musicVolume: typeof p.musicVolume === 'number' && Number.isFinite(p.musicVolume) ? clamp01(p.musicVolume) : base.musicVolume,
   };
 }
 
@@ -117,6 +125,7 @@ export function read(): Prefs {
 /** The settings that follow a signed-in player to their profile. Name, colour, knight and cosmetics already live there. */
 export const SYNCED_FIELDS = [
   'view', 'graphics', 'volume', 'buildHints', 'confirmBuilds', 'boardScale', 'motion', 'boardTheme', 'hudScale', 'hudLayout', 'sfxVolume', 'weather',
+  'autoDeclineTrades', 'musicVolume',
 ] as const satisfies readonly (keyof Prefs)[];
 
 interface PrefsStore extends Prefs {

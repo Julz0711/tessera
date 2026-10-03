@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction } from '../apply';
 import { checkProgressLimit } from '../ck/events';
-import { relocationSpots, roadMoveTargets } from '../ck/queries';
+import { canKnightAct, knightStrength, masterMerchantVictims, relocationSpots, roadMoveTargets } from '../ck/queries';
 import { handLimit, topo } from '../queries';
 import type { GameState, ProgressCardType } from '../types';
 import { makeCtx } from '../state';
@@ -396,9 +396,68 @@ describe('improvements and progress cards', () => {
     s.knights[theirs] = { id: 200, owner: 1, level: 2, active: true, activatedOn: -1, promotedOn: -1 };
     s = act(s, 0, { type: 'playProgress', card: giveCard(s, 0, 'deserter', 1), params: { victim: 1 } });
     s = act(s, 1, { type: 'removeKnight', vertex: theirs });
-    expect(s.pending).toEqual([{ kind: 'deserterPlace', seat: 0, level: 1 }]);
+    expect(s.pending).toEqual([{ kind: 'deserterPlace', seat: 0, level: 1, active: true }]);
     const spot = t.edges[t.coast[0]].b;
     s = act(s, 0, { type: 'placeKnight', vertex: spot });
     expect(s.knights[spot]).toMatchObject({ owner: 0, level: 1 });
+  });
+
+  it('Deserter places the knight with the same status as the one removed', () => {
+    const setup = (active: boolean) => {
+      const s = ck();
+      const t = topo(s);
+      city(s, 0, t.edges[t.coast[0]].a);
+      s.roads[t.coast[0]] = 0;
+      const theirs = t.edges[t.coast[12]].a;
+      s.knights[theirs] = { id: 200, owner: 1, level: 2, active, activatedOn: active ? 0 : -1, promotedOn: -1 };
+      let after = act(s, 0, { type: 'playProgress', card: giveCard(s, 0, 'deserter', 1), params: { victim: 1 } });
+      after = act(after, 1, { type: 'removeKnight', vertex: theirs });
+      const spot = t.edges[t.coast[0]].b;
+      return { s: act(after, 0, { type: 'placeKnight', vertex: spot }), spot };
+    };
+    const active = setup(true);
+    expect(active.s.knights[active.spot]).toMatchObject({ owner: 0, level: 2, active: true });
+    // It defends against the barbarians at once, but counts as activated this turn: no moves until the next.
+    expect(knightStrength(active.s, 0)).toBe(2);
+    expect(canKnightAct(active.s, 0, active.spot)).toBe(false);
+    const inactive = setup(false);
+    expect(inactive.s.knights[inactive.spot]).toMatchObject({ owner: 0, level: 2, active: false });
+    expect(knightStrength(inactive.s, 0)).toBe(0);
+  });
+
+  it('Master Merchant only targets a player with strictly more points', () => {
+    let s = ck();
+    const t = topo(s);
+    // Seat 0 and seat 1: a city each (2 VP). Seat 2: a city and a settlement (3 VP).
+    city(s, 0, t.edges[t.coast[0]].a);
+    city(s, 1, t.edges[t.coast[6]].a);
+    city(s, 2, t.edges[t.coast[12]].a);
+    s.buildings[t.edges[t.coast[18]].a] = { owner: 2, city: false, wall: false, metropolis: null };
+    setHand(s, 1, { ore: 3 });
+    setHand(s, 2, { wool: 3 });
+    expect(masterMerchantVictims(s, 0)).toEqual([2]);
+    const card = giveCard(s, 0, 'masterMerchant', 1);
+    expect(reject(s, 0, { type: 'playProgress', card, params: { victim: 1 } })).toMatch(/more points than you/);
+    s = act(s, 0, { type: 'playProgress', card, params: { victim: 2 } });
+    expect(s.pending[0]).toMatchObject({ kind: 'masterMerchant', seat: 0, victim: 2, count: 2 });
+  });
+
+  it('Crane takes one commodity off one improvement, and only one', () => {
+    let s = ck();
+    const t = topo(s);
+    city(s, 0, t.edges[t.coast[0]].a);
+    s.players[0].improvements.science = 2;
+    setHand(s, 0, { paper: 1 });
+    s = act(s, 0, { type: 'playProgress', card: giveCard(s, 0, 'crane', 1), params: {} });
+    // Level 3 costs 3 paper, 2 with the Crane: a single paper is not enough.
+    expect(reject(s, 0, { type: 'improveCity', track: 'science' })).toMatch(/need 2 paper/);
+    setHand(s, 0, { paper: 2, coin: 2 });
+    s = act(s, 0, { type: 'improveCity', track: 'science' });
+    expect(s.players[0].improvements.science).toBe(3);
+    expect(s.players[0].hand.paper).toBe(0);
+    // The discount is used up: the next improvement (politics level 1) costs its full 1 coin.
+    expect(s.turn.crane).toBe(false);
+    s = act(s, 0, { type: 'improveCity', track: 'politics' });
+    expect(s.players[0].hand.coin).toBe(1);
   });
 });

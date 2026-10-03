@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 
 /** The HUD panels a player can move around (desktop). The top bar and the dock stay put. */
-export type HudPanel = 'side' | 'players' | 'bank' | 'dice' | 'offers' | 'zoom';
+export type HudPanel = 'side' | 'barbarian' | 'players' | 'bank' | 'dice' | 'offers' | 'zoom';
 /**
  * Where a panel can go: the top or bottom of the left or right column, or a corner beside the dock
  * (only the small ones fit there: the dice and the 2D board's zoom buttons).
@@ -12,7 +12,7 @@ export type HudSlot = 'leftTop' | 'leftBottom' | 'rightTop' | 'rightBottom' | 'c
 export type HudLayout = Record<HudPanel, { slot: HudSlot; order: number }>;
 export type HudScale = 'small' | 'medium' | 'large';
 
-export const HUD_PANELS: readonly HudPanel[] = ['side', 'players', 'bank', 'dice', 'offers', 'zoom'];
+export const HUD_PANELS: readonly HudPanel[] = ['side', 'barbarian', 'players', 'bank', 'dice', 'offers', 'zoom'];
 export const HUD_SLOTS: readonly HudSlot[] = ['leftTop', 'leftBottom', 'rightTop', 'rightBottom', 'cornerLeft', 'cornerRight'];
 export const CORNER_SLOTS: readonly HudSlot[] = ['cornerLeft', 'cornerRight'];
 
@@ -21,6 +21,7 @@ export const HUD_SCALE: Record<HudScale, number> = { small: 0.85, medium: 1, lar
 
 export const PANEL_LABEL: Record<HudPanel, string> = {
   side: 'Log & chat',
+  barbarian: 'Barbarians',
   players: 'Players',
   bank: 'Bank',
   dice: 'Dice',
@@ -28,10 +29,15 @@ export const PANEL_LABEL: Record<HudPanel, string> = {
   zoom: 'Zoom',
 };
 
-/** Offers top-left, log/bank/players down the right, dice bottom-right and the zoom buttons bottom-left. */
+/**
+ * Offers top-left, log/bank/players down the right (the barbarians' progress, in Knights &
+ * Barbarians games, right under the log), dice bottom-right and the zoom buttons bottom-left. The
+ * barbarians' 0.5 slots them in between in layouts saved before the panel existed, too.
+ */
 export const DEFAULT_HUD_LAYOUT: HudLayout = {
   offers: { slot: 'leftTop', order: 0 },
   side: { slot: 'rightTop', order: 0 },
+  barbarian: { slot: 'rightTop', order: 0.5 },
   bank: { slot: 'rightTop', order: 1 },
   players: { slot: 'rightTop', order: 2 },
   dice: { slot: 'cornerRight', order: 0 },

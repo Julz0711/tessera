@@ -161,6 +161,15 @@ function audio(): AudioContext | null {
   return ctx;
 }
 
+/**
+ * The shared audio graph (created on first use, null while muted): background music plays through
+ * the same master bus and reverb as the sound effects, so the master volume covers both.
+ */
+export function audioGraph(): { ctx: AudioContext; master: GainNode; reverb: GainNode } | null {
+  const c = audio();
+  return c && master && reverb ? { ctx: c, master, reverb } : null;
+}
+
 interface Voice {
   /** Seconds from now. */
   at?: number;

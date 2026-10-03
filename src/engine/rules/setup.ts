@@ -60,6 +60,7 @@ export function setupRoad(ctx: Ctx, edge: number): void {
   s.roads[edge] = ctx.seat;
   emit(ctx, { type: 'built', seat: ctx.seat, piece: 'road', at: edge, free: true });
   finishSetupRoute(ctx, edge);
+  collectTreasures(ctx, edge);
 }
 
 /** Voyagers: a coastal starting settlement may launch a ship instead of a road. */

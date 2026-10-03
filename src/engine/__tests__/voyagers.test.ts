@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { generateBoard } from '../board/generate';
-import { canHoldShip, islandsOf } from '../board/sea';
+import { canHoldRoad, canHoldSettlement, canHoldShip, islandsOf } from '../board/sea';
 import { getTopology } from '../board/topology';
 import { HARBOR_KINDS, TREASURE_DECK } from '../constants';
 import { MAPS } from '../maps';
@@ -293,12 +293,15 @@ describe('Zealand', () => {
 });
 
 describe('Veiled Isles', () => {
-  it('hides 0–2 sea and 0–1 gold under fog, numbered 3–11 without 7', () => {
+  it('hides exactly 2 sea and 0–1 gold under fog, numbered 3–11 without 7', () => {
+    const seaSpots = new Set<string>();
     for (const seed of seeds) {
       const board = generateBoard({ rng: seed }, 'veiledIsles');
       const fog = board.hexes.filter((h) => h.fog);
       expect(fog).toHaveLength(15);
-      expect(fog.filter((h) => h.terrain === 'sea').length).toBeLessThanOrEqual(2);
+      const seas = fog.filter((h) => h.terrain === 'sea');
+      expect(seas, `seed ${seed}`).toHaveLength(2);
+      seaSpots.add(seas.map((h) => h.id).join());
       expect(fog.filter((h) => h.terrain === 'gold').length).toBeLessThanOrEqual(1);
       expect(fog.filter((h) => h.terrain === 'desert')).toHaveLength(0);
       for (const h of fog) {
@@ -306,6 +309,8 @@ describe('Veiled Isles', () => {
         else expect([3, 4, 5, 6, 8, 9, 10, 11]).toContain(h.token);
       }
     }
+    // Where the two seas hide still changes from game to game.
+    expect(seaSpots.size).toBeGreaterThan(1);
   });
 
   it('places exactly 15 treasures with the 5/4/3/3 mix, apart and off the home island', () => {
@@ -443,6 +448,38 @@ describe('Veiled Isles rewards', () => {
     expect(after.board.treasures!.find((x) => x.vertex === tr.vertex)!.takenBy).toBe(0);
     expect(after.pending.some((p) => p.kind === prompt && p.seat === 0)).toBe(true);
     expect(after.log.some((ev) => ev.type === 'treasure' && ev.kind === kind)).toBe(true);
+  });
+
+  it('a road reaching a treasure corner collects it too', () => {
+    const s = autoSetup(game('veiledIsles', 'ck', 9));
+    const t = getTopology(s.board.hexes);
+    s.turn.seat = 0;
+    s.turn.rolled = true;
+    s.pending = [];
+    s.steps = [];
+    s.players[0].hand.lumber = 5;
+    s.players[0].hand.brick = 5;
+    for (const h of s.board.hexes) delete h.fog;
+    // A lone settlement of seat 0 with a road on the first of two land edges leading to a treasure.
+    for (const tr of s.board.treasures!) {
+      for (const e1 of t.vertices[tr.vertex].edges) {
+        if (!canHoldRoad(s.board, t, e1)) continue;
+        const mid = t.edges[e1].a === tr.vertex ? t.edges[e1].b : t.edges[e1].a;
+        const e0 = t.vertices[mid].edges.find((e) => e !== e1 && canHoldRoad(s.board, t, e));
+        if (e0 === undefined || s.buildings[mid] || s.knights[mid]) continue;
+        const home = t.edges[e0].a === mid ? t.edges[e0].b : t.edges[e0].a;
+        if (s.buildings[home] || !canHoldSettlement(s.board, t, home)) continue;
+        s.buildings[home] = { owner: 0, city: false, wall: false, metropolis: null };
+        s.roads[e0] = 0;
+        tr.kind = 'bundle';
+        const after = act(s, 0, { type: 'buildRoad', edge: e1 });
+        expect(after.board.treasures!.find((x) => x.vertex === tr.vertex)!.takenBy).toBe(0);
+        expect(after.log.some((ev) => ev.type === 'treasure' && ev.kind === 'bundle' && ev.at === tr.vertex)).toBe(true);
+        expect(after.players[0].hand.grain).toBe(s.players[0].hand.grain + 1);
+        return;
+      }
+    }
+    throw new Error('no treasure reachable by road in two edges');
   });
 
   it('a three-resource treasure pays wool, grain and brick', () => {

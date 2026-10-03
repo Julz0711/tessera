@@ -6,6 +6,7 @@ import { cardList, handTotal, hasCards, parseHand, removeCards, transfer } from 
 import { isVertex, piecesLeft, topo } from '../queries';
 import { removePrompt, requireMode, requireRolled } from '../rules/common';
 import { revealAround } from '../rules/fog';
+import { collectTreasures } from '../rules/treasure';
 import { endTurn } from '../rules/flow';
 import { relocateRobber } from '../rules/robber';
 import { emit, nextId, type Ctx } from '../state';
@@ -245,11 +246,12 @@ export function resolveCkPrompt(ctx: Ctx, prompt: Prompt, action: Action): void 
       s.knights[action.vertex] = null;
       emit(ctx, { type: 'knightRemoved', seat: ctx.seat, at: action.vertex });
       removePrompt(ctx, prompt);
-      // The thief places a knight of the same strength, or failing that the strongest weaker one they have left.
+      // The thief places a knight of the same strength, or failing that the strongest weaker one they have left,
+      // with the same status (active or inactive) as the knight that deserted.
       const thief = prompt.to;
       const left = piecesLeft(s, thief).knights;
       const level = ([3, 2, 1] as KnightLevel[]).find((l) => l <= k.level && left[l] > 0 && KNIGHTS_PER_LEVEL[l] > 0);
-      if (level && legalKnightSpots(s, thief).length) s.pending.push({ kind: 'deserterPlace', seat: thief, level });
+      if (level && legalKnightSpots(s, thief).length) s.pending.push({ kind: 'deserterPlace', seat: thief, level, active: k.active });
       return;
     }
     case 'moveRoad': {
@@ -261,14 +263,17 @@ export function resolveCkPrompt(ctx: Ctx, prompt: Prompt, action: Action): void 
       emit(ctx, { type: 'roadRemoved', seat: ctx.seat, owner: ctx.seat, at: prompt.from });
       emit(ctx, { type: 'built', seat: ctx.seat, piece: 'road', at: action.edge, free: true });
       revealAround(ctx, [topo(s).edges[action.edge].a, topo(s).edges[action.edge].b]);
-      return removePrompt(ctx, prompt);
+      removePrompt(ctx, prompt);
+      return collectTreasures(ctx, action.edge);
     }
     case 'deserterPlace': {
       if (action.type !== 'placeKnight') break;
       if (action.vertex !== null) {
         assertRule(legalKnightSpots(s, ctx.seat).includes(action.vertex), 'Place it on an empty spot next to your roads');
         assertRule(piecesLeft(s, ctx.seat).knights[prompt.level] > 0 && KNIGHTS_PER_LEVEL[prompt.level] > 0, 'No knight of that strength left');
-        s.knights[action.vertex] = { id: nextId(s), owner: ctx.seat, level: prompt.level, active: false, activatedOn: -1, promotedOn: -1 };
+        // An active deserter arrives ready for the barbarians, but counts as activated this turn (it can't act yet).
+        const active = prompt.active === true;
+        s.knights[action.vertex] = { id: nextId(s), owner: ctx.seat, level: prompt.level, active, activatedOn: active ? s.turn.n : -1, promotedOn: -1 };
         emit(ctx, { type: 'knightBuilt', seat: ctx.seat, at: action.vertex });
       }
       return removePrompt(ctx, prompt);

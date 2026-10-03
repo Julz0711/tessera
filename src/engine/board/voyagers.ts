@@ -1,4 +1,4 @@
-import { HARBOR_KINDS, NUMBER_TOKENS, TERRAIN_COUNTS, TREASURE_DECK, VEILED_NUMBERS } from '../constants';
+import { HARBOR_KINDS, NUMBER_TOKENS, TERRAIN_COUNTS, TREASURE_DECK, VEILED_FOG_SEAS, VEILED_NUMBERS } from '../constants';
 import { randomInt, shuffle, type RngHolder } from '../rng';
 import { RESOURCES, TREASURE_KINDS, type Board, type Harbor, type HarborKind, type Hex, type LandTerrain, type Terrain, type Treasure } from '../types';
 import { bag, balancedTokens, dealTokens, spreadHarborEdges, spreadRedTokens } from './generate';
@@ -510,11 +510,12 @@ export function fourRealmsBoard(rng: RngHolder): Board {
 }
 
 /**
- * Veiled Isles: the home island is dealt like the base game's. Under the fog: 0–2 sea, 0–1 gold,
- * the rest random resource terrain, numbered at random from 3, 4, 5, 6, 8, 9, 10, 11 (repeats
- * allowed: the rules call it completely random). The contents are drawn now with the game's seeded
- * RNG and kept server-side until revealed, the same as Black Forest. Fifteen treasures lie on the
- * reference board's chest corners, one reward each from a shuffled 5/4/3/3 deck.
+ * Veiled Isles: the home island is dealt like the base game's. Under the fog: always exactly 2 sea,
+ * 0–1 gold, the rest random resource terrain, numbered at random from 3, 4, 5, 6, 8, 9, 10, 11
+ * (repeats allowed: the rules call it completely random). Which fog hexes hold the sea is shuffled.
+ * The contents are drawn now with the game's seeded RNG and kept server-side until revealed, the
+ * same as Black Forest. Fifteen treasures lie on the reference board's chest corners, one reward
+ * each from a shuffled 5/4/3/3 deck.
  */
 export function veiledIslesBoard(rng: RngHolder): Board {
   const L = VEILED_ISLES;
@@ -524,7 +525,7 @@ export function veiledIslesBoard(rng: RngHolder): Board {
   const fog = idsOf(L, (c) => c === 'f');
   dealMain(rng, main, terrains);
 
-  const seas = randomInt(rng, 3);
+  const seas = VEILED_FOG_SEAS;
   const golds = randomInt(rng, 2);
   const hidden: Terrain[] = [
     ...Array<Terrain>(seas).fill('sea'),

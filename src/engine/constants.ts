@@ -187,6 +187,8 @@ export const TREASURE_DECK: readonly TreasureKind[] = [
   ...Array<TreasureKind>(3).fill('bundle'),
   ...Array<TreasureKind>(3).fill('devCard'),
 ];
+/** Veiled Isles: sea hexes hidden under the fog, every game. */
+export const VEILED_FOG_SEAS = 2;
 /** Veiled Isles: numbers for hidden and outer land (never 2, 7 or 12). */
 export const VEILED_NUMBERS: readonly number[] = [3, 4, 5, 6, 8, 9, 10, 11];
 /** Veiled Isles "three resources" treasure. */

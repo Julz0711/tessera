@@ -45,5 +45,9 @@ export const limits = {
   lobby: new RateLimiter(20, 2),
   // A client out of step asks again every couple of seconds until the whole log arrives.
   sync: new RateLimiter(5, 1),
+  // The live stats panel refreshes as the game moves: a few at once, then about one a second.
+  stats: new RateLimiter(6, 1),
+  // In-game admin tools (undo, cards, dice).
+  admin: new RateLimiter(10, 2),
   friends: new RateLimiter(20, 0.5),
 };

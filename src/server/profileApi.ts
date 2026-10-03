@@ -20,6 +20,8 @@ export function sanitizePreferences(input: unknown): ProfilePreferences {
   if (typeof src.buildHints === 'boolean') out.buildHints = src.buildHints;
   if (typeof src.confirmBuilds === 'boolean') out.confirmBuilds = src.confirmBuilds;
   if (typeof src.weather === 'boolean') out.weather = src.weather;
+  if (typeof src.autoDeclineTrades === 'boolean') out.autoDeclineTrades = src.autoDeclineTrades;
+  if (typeof src.musicVolume === 'number' && Number.isFinite(src.musicVolume)) out.musicVolume = Math.min(1, Math.max(0, src.musicVolume));
   if (src.boardScale === 'small' || src.boardScale === 'medium' || src.boardScale === 'large') out.boardScale = src.boardScale;
   if (src.motion === 'system' || src.motion === 'full' || src.motion === 'reduced') out.motion = src.motion;
   if (src.hudScale === 'small' || src.hudScale === 'medium' || src.hudScale === 'large') out.hudScale = src.hudScale;
