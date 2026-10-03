@@ -213,7 +213,7 @@ export function KnightCustomizer({
                 <span className="text-sm font-black">Knight {n}</span>
                 <span className="text-[11px] font-bold text-ink-faint">
                   {KNIGHT_SLOT_NAMES[n]}
-                  {!hasOwnLook(value, n) && ' · as knight 1'}
+                  {!hasOwnLook(value, n) && ' · same look as knight 1'}
                 </span>
               </span>
             </button>

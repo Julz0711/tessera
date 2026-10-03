@@ -51,16 +51,39 @@ export function useAppear(instant = false) {
   return ref;
 }
 
-export function Road({ x, z, angle, color, ghost = false }: { x: number; z: number; angle: number; color: PlayerColor; ghost?: boolean }) {
+/** Half the road box's length: a road reaches this far each way from its edge's midpoint. */
+const ROAD_HALF = 0.31;
+/** A walled city's wall reaches about this far from its corner (times the Board size). */
+const WALL_REACH = 0.37;
+
+/**
+ * `walled`: whether the city at the edge's first / second corner (`a`, `b`; local -x / +x) has a
+ * wall. That end of the road then stops at the wall instead of running through it.
+ */
+export function Road({ x, z, angle, color, ghost = false, walled }: { x: number; z: number; angle: number; color: PlayerColor; ghost?: boolean; walled?: [boolean, boolean] }) {
   const c = PLAYER_COLORS[color];
   const ref = useAppear(ghost);
   const k = usePieceScale();
   const Decor = useBoardKit().Road;
+  // The road starts ROAD_HALF short of the edge's middle, i.e. 0.5 - ROAD_HALF from each corner.
+  const trim = Math.max(0, WALL_REACH * k - (0.5 - ROAD_HALF));
+  const [ta, tb] = walled ? walled.map((w) => (w ? trim : 0)) : [0, 0];
+  const shift = (ta - tb) / 2;
   return (
     <group ref={ref} position={[x, TILE_TOP + 0.06, z]} rotation={[0, -angle, 0]} scale={ghost ? 1 : 0.001}>
-      {/* Thicker or thinner, never longer: the road still spans exactly one edge. */}
-      <mesh geometry={GEO.road} material={mat(c.hex, ghost ? { opacity: 0.55 } : {})} position={[0, 0.045 * (k - 1), 0]} scale={[1, k, k]} castShadow={!ghost} />
-      {Decor && <Decor ghost={ghost} c={c} />}
+      {/* Thicker or thinner, never longer: the road still spans exactly one edge (less a city wall). */}
+      <mesh
+        geometry={GEO.road}
+        material={mat(c.hex, ghost ? { opacity: 0.55 } : {})}
+        position={[shift, 0.045 * (k - 1), 0]}
+        scale={[(2 * ROAD_HALF - ta - tb) / (2 * ROAD_HALF), k, k]}
+        castShadow={!ghost}
+      />
+      {Decor && (
+        <group position={[shift, 0, 0]}>
+          <Decor ghost={ghost} c={c} />
+        </group>
+      )}
     </group>
   );
 }
@@ -151,12 +174,16 @@ export function CityWall({ x, z, color }: { x: number; z: number; color: PlayerC
   );
 }
 
-/** Metropolis: a tall tower beside the city flying the track's flag. */
+/**
+ * Metropolis: a tall tower beside the city flying the track's flag. It stands back and to the right,
+ * 60° round from the roads (which leave a corner at 30°, 90°, 150°… from east), so no road runs
+ * through it, and out past the themed cities' side buildings (water tower, obelisk, turret).
+ */
 export function MetropolisTower({ x, z, color, track }: { x: number; z: number; color: PlayerColor; track: 'trade' | 'politics' | 'science' }) {
   const c = PLAYER_COLORS[color];
   const k = usePieceScale();
   return (
-    <group position={[x + 0.16 * k, TILE_TOP, z - 0.12 * k]} scale={k}>
+    <group position={[x + 0.17 * k, TILE_TOP, z - 0.29 * k]} scale={k}>
       <mesh geometry={CK_GEO.tower} material={mat(c.hex)} position={[0, 0.23, 0]} castShadow />
       <mesh geometry={CK_GEO.towerRoof} material={mat(c.dark)} position={[0, 0.54, 0]} rotation={[0, Math.PI / 4, 0]} castShadow />
       <mesh geometry={CK_GEO.pole} material={mat('#5a3d22')} position={[0, 0.71, 0]} />
@@ -179,6 +206,12 @@ export function Merchant({ x, z, color }: { x: number; z: number; color: PlayerC
 }
 
 /** The robber hops over to a new hex; a ghost previews a move waiting for confirmation. */
+/**
+ * Where the robber stands from its hex's centre: beside the number token, not in front of it, and on
+ * the other side from the merchant (west of centre), who may share the hex.
+ */
+export const ROBBER_OFFSET = { x: 0.5, z: 0.08 };
+
 export function Robber({ x, z, ghost = false }: { x: number; z: number; ghost?: boolean }) {
   const ref = useRef<THREE.Group>(null);
   const target = useRef(new THREE.Vector3(x, 0, z));
@@ -209,7 +242,7 @@ const SIGN_Y = 0.3;
 const WOOD_PIER = { deck: '#9c6f42', plank: '#8a6139', post: '#6b4a2b' };
 
 /** A little wooden pier out at sea with its rate sign on a pole. */
-export function HarborPiece({ harbor, topo, hexes }: { harbor: Harbor; topo: Topology; hexes: readonly Pick<Hex, 'terrain'>[] }) {
+export function HarborPiece({ harbor, topo, hexes, harbors }: { harbor: Harbor; topo: Topology; hexes: readonly Pick<Hex, 'terrain'>[]; harbors: readonly number[] }) {
   const face = useMemo(() => new THREE.MeshBasicMaterial({ map: harborTexture(harbor.kind) }), [harbor.kind]);
   const label = useRef<THREE.Group>(null);
   const k = usePieceScale();
@@ -219,7 +252,7 @@ export function HarborPiece({ harbor, topo, hexes }: { harbor: Harbor; topo: Top
     if (label.current) faceCamera(label.current, state.camera);
   });
   const e = topo.edges[harbor.edge];
-  const at = harborAnchor(topo, hexes, harbor.edge, 0.62);
+  const at = harborAnchor(topo, hexes, harbor.edge, 0.62, harbors);
   const [ox, oz, px, pz] = [at.ox, at.oy, at.x, at.y];
   const planks = [e.a, e.b].map((v) => {
     const vx = topo.vertices[v].x;

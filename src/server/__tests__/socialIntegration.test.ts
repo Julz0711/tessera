@@ -6,7 +6,8 @@ import { createGame } from '@/engine';
 import type { MapId, Mode } from '@/engine/types';
 import { DEFAULT_KNIGHT } from '@/shared/knight';
 import { DEFAULT_ROOM_SETTINGS } from '@/shared/protocol';
-import { finalizeGame } from '../finalizeGame';
+import { ABANDON_PENALTY, finalizeAbandonedGame, finalizeGame } from '../finalizeGame';
+import { ABANDONED_SEAT } from '../prismaPersistence';
 import { friendProfileFor, leaderboard } from '../social';
 import { pagedHistory, reportFor } from '../historyApi';
 import type { ServerIdentity } from '../identity';
@@ -45,6 +46,40 @@ describe.skipIf(!url)('social and reports with PostgreSQL', () => {
     expect(await db.profile.findUnique({ where: { userId: a.id } })).toMatchObject({ gamesPlayed: 2, rating: 1400, ratedGames: 20 });
     expect(await db.player.findUnique({ where: { id: classic.seats[0].playerId } })).toMatchObject({ ratingBefore: 1000, ratingAfter: 1024, ratingPool: 'classic', ratingDelta: 24 });
     expect((await reportFor(identity(a.id), classic.gameId))?.players[0].rating?.delta).toBe(24);
+  });
+  it('rates an abandoned seat as a forfeit, even when the bot playing it wins', async () => {
+    const [a, b] = await users();
+    const game = await match([a.id, b.id]);
+    // Alice (seat 0) gave up her seat mid-game and the bot that took over won.
+    await db.player.updateMany({ where: { id: game.seats[0].playerId }, data: ABANDONED_SEAT });
+    await finalizeGame(db, game);
+    const [alice, bob] = await Promise.all(game.seats.map((s) => db.player.findUniqueOrThrow({ where: { id: s.playerId } })));
+    expect(alice).toMatchObject({ won: false, rank: 2, unratedReason: null });
+    // Equal ratings: the forfeit alone moves both by the same amount; Alice also pays the penalty.
+    expect(bob.ratingDelta).toBeGreaterThan(0);
+    expect(alice.ratingDelta).toBe(-bob.ratingDelta! - ABANDON_PENALTY);
+    expect(await db.playerRating.findUnique({ where: { userId_poolKey: { userId: a.id, poolKey: 'classic' } } })).toMatchObject({ ratedWins: 0 });
+    expect(await db.profile.findUnique({ where: { userId: a.id } })).toMatchObject({ gamesPlayed: 1, gamesWon: 0 });
+    const report = await reportFor(identity(b.id), game.gameId);
+    expect(report?.players[0]).toMatchObject({ isBot: true, rank: 2 });
+  });
+  it('rates abandoners of a game that never finishes, and nobody else when nobody abandoned', async () => {
+    const [a, b, c] = await users();
+    const game = await match([a.id, b.id, c.id]);
+    await db.player.updateMany({ where: { id: game.seats[0].playerId }, data: ABANDONED_SEAT });
+    await finalizeAbandonedGame(db, game.gameId);
+    await finalizeAbandonedGame(db, game.gameId); // a retry does nothing
+    const [alice, bob, carol] = await Promise.all(game.seats.map((s) => db.player.findUniqueOrThrow({ where: { id: s.playerId } })));
+    expect(alice.ratingDelta).toBeLessThan(-ABANDON_PENALTY);
+    expect(bob.ratingDelta).toBeGreaterThan(0);
+    expect(carol.ratingDelta).toBe(bob.ratingDelta);
+    expect(await db.game.findUnique({ where: { id: game.gameId } })).toMatchObject({ status: 'abandoned' });
+    expect(await db.playerRating.findUnique({ where: { userId_poolKey: { userId: b.id, poolKey: 'classic' } } })).toMatchObject({ ratedGames: 1, ratedWins: 0 });
+
+    const quiet = await match([a.id, b.id]);
+    await finalizeAbandonedGame(db, quiet.gameId);
+    expect((await db.player.findUniqueOrThrow({ where: { id: quiet.seats[1].playerId } })).ratingDelta).toBeNull();
+    expect(await db.game.findUnique({ where: { id: quiet.gameId } })).toMatchObject({ status: 'abandoned' });
   });
   it('rates and filters all four lobby modes without mixing map-based modes into the base ladders', async () => {
     const [a, b] = await users();

@@ -96,6 +96,8 @@ export function createGame(opts: CreateGameOptions): GameState {
   if (!mapSupports(map, mode)) throw new Error(`Map ${map} is not compatible with ${mode} mode`);
   if (players.length < 2 || players.length > MAX_PLAYERS[map]) throw new Error(`This map seats 2–${MAX_PLAYERS[map]} players`);
   const rng = { rng: normalizeSeed(opts.seed) };
+  // Unset means the map as designed (gold on). Rooms always pass the lobby choice, which starts off
+  // (DEFAULT_ROOM_SETTINGS); this default only serves tests and demo boards.
   const gold = opts.settings?.gold ?? true;
   const board = generateBoard(rng, map, { gold });
   const topo = getTopology(board.hexes);

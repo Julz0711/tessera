@@ -217,27 +217,37 @@ function City({ c, o, ghost }: ModelProps) {
 }
 
 /** City wall (C&K): sun-baked mud-brick, its merlons rounded like an adobe wall's. */
+/** Corner radius of the wall's hexagon; a side is as long as the radius. */
+const WALL_R = 0.335;
+const WALL_H = 0.09;
 const WALL = {
-  ring: new THREE.CylinderGeometry(0.32, 0.35, 0.11, 6, 1, true),
+  // A solid stretch of wall from corner to corner (a hollow ring read as loose planks from above).
+  side: new THREE.BoxGeometry(WALL_R + 0.02, WALL_H, 0.045),
   merlonBase: new THREE.CylinderGeometry(0.045, 0.05, 0.05, 8),
   merlonCap: new THREE.SphereGeometry(0.045, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2),
   banner: new THREE.BoxGeometry(0.045, 0.08, 0.006),
 };
 const WALL_ANGLES = [0, 1, 2, 3, 4, 5].map((i) => (i * Math.PI) / 3);
+/** Middle of each side, at its angle (sides face 30° round from the corners). */
+const WALL_SIDES = WALL_ANGLES.map((a) => a + Math.PI / 6);
 
 /** The city wall: mud-brick with rounded merlons, a painted linen banner in the owner's colour at the gate. */
 function CityWall({ c }: { c: PieceColors }) {
   const brick = mat('#c98a5a');
   return (
     <group rotation={[0, Math.PI / 6, 0]}>
-      <mesh geometry={WALL.ring} material={brick} position={[0, 0.055, 0]} castShadow />
+      {WALL_SIDES.map((a, i) => {
+        const r = WALL_R * Math.cos(Math.PI / 6);
+        return <mesh key={i} geometry={WALL.side} material={brick} position={[Math.sin(a) * r, WALL_H / 2, Math.cos(a) * r]} rotation={[0, a, 0]} castShadow />;
+      })}
       {WALL_ANGLES.map((a, i) => (
-        <group key={i} position={[Math.sin(a) * 0.335, 0.11, Math.cos(a) * 0.335]}>
+        <group key={i} position={[Math.sin(a) * WALL_R, WALL_H, Math.cos(a) * WALL_R]}>
           <mesh geometry={WALL.merlonBase} material={brick} position={[0, 0.025, 0]} castShadow />
           <mesh geometry={WALL.merlonCap} material={brick} position={[0, 0.05, 0]} />
         </group>
       ))}
-      <mesh geometry={WALL.banner} material={mat(c.hex)} position={[0, 0.09, 0.335]} />
+      {/* the banner hangs on the outside of the front wall (this group turns by 30°, so local -30° faces the camera) */}
+      <mesh geometry={WALL.banner} material={mat(c.hex)} position={[Math.sin(-Math.PI / 6) * 0.315, 0.06, Math.cos(-Math.PI / 6) * 0.315]} rotation={[0, -Math.PI / 6, 0]} />
     </group>
   );
 }
@@ -347,40 +357,80 @@ function Road({ ghost }: { ghost: boolean; c: PieceColors }) {
   );
 }
 
-/** A lateen sail: a tall triangle on a slanting yard, drawn from both sides. */
-const SAIL = (() => {
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-0.1, 0.05, 0, 0.1, 0.03, 0, 0.13, 0.34, 0]), 3));
-  g.computeVertexNormals();
-  return g;
-})();
+/** The sail cloth, drawn from both sides. */
 const SAIL_MAT = new THREE.MeshStandardMaterial({ color: '#f4efe0', flatShading: true, roughness: 0.9, side: THREE.DoubleSide });
 
 const SHIP_DANGER = '#c23a2a';
-/** The lateen sail's danger tint: same double-sided material as SAIL_MAT, but pale red. */
+/** The sail's danger tint: same double-sided material as SAIL_MAT, but pale red. */
 const SAIL_MAT_DANGER = new THREE.MeshStandardMaterial({ color: '#f3d9d3', flatShading: true, roughness: 0.9, side: THREE.DoubleSide });
 
-/** A reed boat: a papyrus-bundle hull curling up at both ends, under a triangular lateen sail. */
-const SHIP = {
-  hull: new THREE.CylinderGeometry(0.065, 0.065, 0.34, 7),
-  curl: new THREE.TorusGeometry(0.06, 0.02, 4, 8, Math.PI * 1.1),
-  mast: new THREE.CylinderGeometry(0.009, 0.011, 0.32, 5),
-  yard: new THREE.CylinderGeometry(0.006, 0.006, 0.34, 4),
-};
+/** The reed boat's keel line, stern (-z) to bow (+z): a shallow crescent rising into upturned ends. */
+const REED_LINE = new THREE.CatmullRomCurve3(
+  [
+    [0, 0.23, -0.21],
+    [0, 0.17, -0.25],
+    [0, 0.08, -0.2],
+    [0, 0.05, -0.1],
+    [0, 0.045, 0],
+    [0, 0.05, 0.1],
+    [0, 0.08, 0.2],
+    [0, 0.17, 0.25],
+    [0, 0.23, 0.22],
+  ].map(([x, y, z]) => new THREE.Vector3(x, y, z)),
+);
+/** Its fat middle: the same line, without the slender ends. */
+const REED_BELLY = new THREE.CatmullRomCurve3(REED_LINE.getPoints(32).slice(9, 24));
 
-/** The barbarian ship as a reed boat: a papyrus hull curling up at bow and stern, a lateen sail. */
+/** A papyrus reed boat: bundled reeds bound with rope, both ends swept up, a square sail and a steering oar. */
+const SHIP = {
+  reeds: new THREE.TubeGeometry(REED_LINE, 28, 0.03, 6),
+  belly: new THREE.TubeGeometry(REED_BELLY, 14, 0.055, 7),
+  tip: new THREE.SphereGeometry(0.03, 6, 4),
+  lashing: new THREE.TorusGeometry(0.057, 0.009, 4, 10),
+  mast: new THREE.CylinderGeometry(0.008, 0.01, 0.3, 5),
+  spar: new THREE.CylinderGeometry(0.006, 0.006, 0.25, 4),
+  sail: new THREE.PlaneGeometry(0.22, 0.18),
+  band: new THREE.BoxGeometry(0.22, 0.024, 0.004),
+  oar: new THREE.CylinderGeometry(0.006, 0.006, 0.24, 4),
+  blade: new THREE.BoxGeometry(0.012, 0.07, 0.035),
+};
+const REED_TIPS = [REED_LINE.getPoint(0), REED_LINE.getPoint(1)];
+
+/** The barbarian ship as a reed boat: a papyrus hull curling up at bow and stern under a square sail. */
 function BarbarianShip({ danger }: { danger: boolean }) {
   const hullMat = mat(danger ? SHIP_DANGER : '#d4a84a', danger ? { emissive: SHIP_DANGER, glow: 0.3 } : {});
+  const ropeMat = mat(danger ? '#7a2a1e' : '#7a5a2e');
   const trimMat = mat(danger ? '#8a4a2a' : '#5a3d22');
   const sailMat = danger ? SAIL_MAT_DANGER : SAIL_MAT;
+  const bandMat = mat(danger ? '#8a1e14' : '#2f6fa8');
   return (
     <group>
-      <mesh geometry={SHIP.hull} material={hullMat} position={[0, 0.06, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow />
-      <mesh geometry={SHIP.curl} material={hullMat} position={[0, 0.13, 0.17]} rotation={[0, Math.PI / 2, 0]} />
-      <mesh geometry={SHIP.curl} material={hullMat} position={[0, 0.13, -0.17]} rotation={[0, -Math.PI / 2, Math.PI]} />
-      <mesh geometry={SHIP.mast} material={trimMat} position={[0, 0.22, 0]} />
-      <mesh geometry={SHIP.yard} material={trimMat} position={[0, 0.24, 0]} rotation={[0, 0, -0.72]} />
-      <mesh geometry={SAIL} material={sailMat} position={[0, 0.07, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.1} castShadow />
+      {/* the bundle is pressed wide and flat, so from above it reads as a boat, not a rope */}
+      <group scale={[1.7, 0.8, 1]}>
+        <mesh geometry={SHIP.reeds} material={hullMat} castShadow />
+        <mesh geometry={SHIP.belly} material={hullMat} castShadow />
+        {REED_TIPS.map((p, i) => (
+          <mesh key={i} geometry={SHIP.tip} material={hullMat} position={p} />
+        ))}
+        {/* rope lashings around the bundle (a torus faces along z, ringing the hull) */}
+        {[-0.09, 0.09].map((z) => (
+          <mesh key={z} geometry={SHIP.lashing} material={ropeMat} position={[0, 0.05, z]} />
+        ))}
+      </group>
+      <mesh geometry={SHIP.mast} material={trimMat} position={[0, 0.2, 0.02]} />
+      {/* square sail across the deck, between the yard and the boom, with painted bands */}
+      {[0.335, 0.155].map((y) => (
+        <mesh key={y} geometry={SHIP.spar} material={trimMat} position={[0, y, 0.025]} rotation={[0, 0, Math.PI / 2]} />
+      ))}
+      <mesh geometry={SHIP.sail} material={sailMat} position={[0, 0.245, 0.03]} castShadow />
+      {[0.2, 0.29].map((y) => (
+        <mesh key={y} geometry={SHIP.band} material={bandMat} position={[0, y, 0.033]} />
+      ))}
+      {/* steering oar trailing off the stern quarter */}
+      <group position={[0.055, 0.15, -0.16]} rotation={[0.75, 0, 0]}>
+        <mesh geometry={SHIP.oar} material={trimMat} />
+        <mesh geometry={SHIP.blade} material={trimMat} position={[0, -0.13, 0]} />
+      </group>
     </group>
   );
 }

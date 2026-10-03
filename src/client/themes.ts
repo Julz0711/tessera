@@ -143,23 +143,24 @@ export const PALETTES: Record<BoardThemeId, BoardPalette> = {
   },
   night: {
     terrain: tiles({
-      forest: ['#2f6242', '#1a3a27', '#1d4a2e'],
-      hills: ['#a8603f', '#643622', '#833f25'],
-      pasture: ['#7aa862', '#48703d', '#d8ddd2'],
-      fields: ['#c6a650', '#7f6828', '#e0c874'],
-      mountains: ['#767a88', '#474a56', '#d6deeb'],
-      desert: ['#b3a47a', '#766a4a', '#978659'],
+      forest: ['#3a7550', '#1f4430', '#1d4a2e'],
+      hills: ['#b86a45', '#6e3c26', '#833f25'],
+      pasture: ['#8cb86c', '#527d44', '#d8ddd2'],
+      fields: ['#d4b45a', '#8a722c', '#e0c874'],
+      mountains: ['#878b9a', '#51545f', '#d6deeb'],
+      desert: ['#c4b488', '#7f7250', '#978659'],
       gold: GOLD,
     }),
     fog: { top: '#5f6778', side: '#3b4252', cloud: '#949db0' },
     sea: { shallow: '#173553', deep: '#081326', shelf: '#1f4460', sky: '#03060d', foam: '#4d6a8a' },
     beach: '#948a6c',
     token: { rim: '#2a3f6b', face: '#f6eddb', ink: '#1f1a14', hot: '#c2412d', disc: '#1b2a4a' },
-    // Dim, nearly neutral moonlight (a strong blue tint turns white wool lilac); the tiles' own
-    // lights (themes/night.tsx) do the rest.
-    light: { sky: '#8f99b3', ground: '#04070d', hemi: 0.34, ambient: 0.05, sun: '#d9deec', sunIntensity: 0.7, haze: 0.8 },
+    // Bright, nearly neutral moonlight (a strong blue tint turns white wool lilac): the night lives
+    // in the sky, the sea and the tiles' own lights (themes/night.tsx), while the board stays bright
+    // enough to tell every terrain and every player's pieces apart.
+    light: { sky: '#a9b3cc', ground: '#0d1220', hemi: 0.85, ambient: 0.2, sun: '#e2e6f2', sunIntensity: 1.5, haze: 0.8 },
     sea2d: ['#1f4468', '#152f52', '#0b1a33'],
-    gloom2d: { shade: '#040a1a', opacity: 0.45, lights: [{ lamp: '#ffc15a', glow: ['#ffbe6e', '#ffa050', '#ff8c3c'] }], lampRim: '#2f261c' },
+    gloom2d: { shade: '#040a1a', opacity: 0.18, lights: [{ lamp: '#ffc15a', glow: ['#ffbe6e', '#ffa050', '#ff8c3c'] }], lampRim: '#2f261c' },
   },
   sakura: {
     terrain: tiles({
@@ -261,12 +262,12 @@ export const PALETTES: Record<BoardThemeId, BoardPalette> = {
   },
   cyberpunk: {
     terrain: tiles({
-      forest: ['#2c5a44', '#16302a', '#3dffb0'],
-      hills: ['#9a4a32', '#4e2418', '#ff8a5c'],
-      pasture: ['#5f9a5a', '#2f5a34', '#e8eef2'],
-      fields: ['#b8963c', '#5e4a1a', '#ffe066'],
-      mountains: ['#5e6272', '#2e3140', '#3de8ff'],
-      desert: ['#8a8275', '#4f4a42', '#ff3d9a'],
+      forest: ['#357058', '#1b3a30', '#3dffb0'],
+      hills: ['#ad5638', '#58291b', '#ff8a5c'],
+      pasture: ['#6eaa66', '#36633a', '#e8eef2'],
+      fields: ['#c9a545', '#68521d', '#ffe066'],
+      mountains: ['#727788', '#363a4a', '#3de8ff'],
+      desert: ['#9a9284', '#57524a', '#ff3d9a'],
       gold: GOLD,
     }),
     // Undiscovered tiles lie under smog.
@@ -275,14 +276,15 @@ export const PALETTES: Record<BoardThemeId, BoardPalette> = {
     // A dark concrete seawall.
     beach: '#2a2833',
     token: { rim: '#ff3d9a', face: '#f2f0f7', ink: '#141220', hot: '#e03050', disc: '#1a0f24' },
-    // Dim city night; neon signs on the tiles and the towns' windows (themes/cyberpunk.tsx) do the rest.
-    light: { sky: '#8a7aff', ground: '#05030a', hemi: 0.4, ambient: 0.07, sun: '#c4ccff', sunIntensity: 0.75, haze: 0.8 },
+    // City night under a bright smog glow: the neon signs and windows (themes/cyberpunk.tsx) set the
+    // mood, but the board stays lit enough to tell every terrain and player's pieces apart.
+    light: { sky: '#a89cff', ground: '#0c0816', hemi: 0.85, ambient: 0.2, sun: '#d4daff', sunIntensity: 1.5, haze: 0.8 },
     sea2d: ['#1d1648', '#0e0b27', '#05050f'],
     sea2dPattern: NEON_RAIN,
     pier: { deck: '#3a3f4c', plank: '#2a2d38', post: '#5a606e' },
     gloom2d: {
       shade: '#05030f',
-      opacity: 0.25,
+      opacity: 0.12,
       lights: [
         { lamp: '#3de8ff', glow: ['#8af4ff', '#3de8ff', '#12b8d8'] },
         { lamp: '#ff3d9a', glow: ['#ff8fcf', '#ff3d9a', '#d81f78'] },
@@ -294,7 +296,7 @@ export const PALETTES: Record<BoardThemeId, BoardPalette> = {
   },
   orbital: {
     terrain: tiles({
-      forest: ['#2e6b4f', '#1b4332', '#5ce1c6'],
+      forest: ['#38795a', '#1f4a38', '#5ce1c6'],
       hills: ['#b8613f', '#6e3522', '#e08a5e'],
       pasture: ['#8fc46a', '#5a8a44', '#f4f1e6'],
       fields: ['#d9b44e', '#8f7427', '#ffe28a'],
@@ -311,7 +313,7 @@ export const PALETTES: Record<BoardThemeId, BoardPalette> = {
     beach: '#3b3f52',
     token: { rim: '#26305e', face: '#eef3ff', ink: '#141a2e', hot: '#d9483b', disc: '#1c2350' },
     // Hard, white sunlight and no air to haze the distance.
-    light: { sky: '#cfd8ff', ground: '#05050f', hemi: 0.55, ambient: 0.1, sun: '#f4f6ff', sunIntensity: 1.7, haze: 2 },
+    light: { sky: '#cfd8ff', ground: '#0d0d1f', hemi: 0.72, ambient: 0.16, sun: '#f4f6ff', sunIntensity: 1.8, haze: 2 },
     sea2d: ['#241d5c', '#140f3a', '#06051a'],
     sea2dPattern: STAR_FIELD,
     pier: { deck: '#5a6278', plank: '#454b5e', post: '#8a93a8' },

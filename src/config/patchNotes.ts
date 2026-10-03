@@ -27,6 +27,41 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: "1.7",
+    date: "2026-10-03",
+    summary: "A rulebook, building costs on every button, readable night themes and fairer abandoned games.",
+    sections: [
+      {
+        title: "Rules and costs",
+        icon: "hand",
+        items: [
+          "New rulebook: open Rules from the menu, in a game or on the home screen. It opens on the rules of the game you're playing, with every mode one tap away.",
+          "Every build button now shows what it costs. Cards you already have light up, missing ones are greyed out, so you see at a glance what you still need.",
+          "The bank tells you why you can't trade yet, and the trade panel labels which row you give and which you get.",
+        ],
+      },
+      {
+        title: "Fair play",
+        icon: "players",
+        items: [
+          "Abandoning a game now counts as a forfeit: last place, plus a rating penalty. Everyone else still wins or loses rating as normal.",
+          "The turn timer is on by default (120 seconds), and only runs when at least two people share the table, so solo games against bots never rush you.",
+          "Server updates no longer end running games: your table is back where it was as soon as you reconnect.",
+        ],
+      },
+      {
+        title: "Board",
+        icon: "board",
+        items: [
+          "Night, Cyberpunk and Orbital are much easier to read in 2D and 3D: every terrain and every player's pieces stand out, and the lanterns no longer look like build spots.",
+          "Sakura settlements are now tea houses, and the Nile barbarians sail a proper reed boat.",
+          "Roads stop at city walls instead of running through them, and the Nile wall is solid.",
+          "The robber stands beside the number instead of hiding it, metropolis towers no longer clip into themed cities, and harbor signs and the pirate keep out of each other's way.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.6",
     date: "2026-10-01",
     summary: "Two new Special maps: Zealand and Ironbound.",

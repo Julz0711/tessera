@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Copy, Grid2x2, LogOut, Menu, Settings, Volume2, VolumeX, Wifi, WifiOff } from 'lucide-react';
+import { BookOpen, Box, Copy, Grid2x2, LogOut, Menu, Settings, Volume2, VolumeX, Wifi, WifiOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { statusLine } from '@/client/describe';
@@ -15,6 +15,9 @@ import { DiceBox } from './DiceBox';
 import { LeaveDialog } from './LeaveDialog';
 import { MobileSide } from './MobileSide';
 import { ReactionPicker } from './Reactions';
+import { RulebookDialog } from '@/components/rules/RulebookDialog';
+import { gameTypeOf } from '@/engine/maps';
+import type { RuleMode } from '@/config/rulebook';
 
 export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
   const router = useRouter();
@@ -22,6 +25,9 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
   const prefs = usePrefs();
   const [menu, setMenu] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [rules, setRules] = useState(false);
+  // The rulebook opens on this game: its type (a Voyagers or Special map) and its rules mode.
+  const ruleModes = [...new Set<RuleMode>([gameTypeOf(view.settings.map ?? 'standard', view.mode), view.mode])];
   const status = statusLine(view);
 
   useEffect(() => setVolume(prefs.volume), [prefs.volume]);
@@ -64,6 +70,9 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
               <button type="button" className="btn py-1.5 text-sm" onClick={() => prefs.set({ volume: prefs.volume > 0 ? 0 : 0.6 })}>
                 {prefs.volume > 0 ? <Volume2 size={15} /> : <VolumeX size={15} />} {prefs.volume > 0 ? 'Mute' : 'Unmute'}
               </button>
+              <button type="button" className="btn py-1.5 text-sm" onClick={() => { setMenu(false); setRules(true); }}>
+                <BookOpen size={15} /> Rules
+              </button>
               <button type="button" className="btn py-1.5 text-sm" onClick={copy}>
                 <Copy size={15} /> Copy invite link
               </button>
@@ -72,6 +81,7 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
               </button>
             </div>
           )}
+          <RulebookDialog open={rules} onClose={() => setRules(false)} modes={ruleModes} />
           {confirmLeave && <LeaveDialog view={view} room={room} onStay={() => setConfirmLeave(false)} onLeave={leave} />}
         </div>
         <button type="button" className="btn btn-dark h-10 w-10 p-0 max-lg:hidden" onClick={() => useSettingsUI.getState().show()} aria-label="Settings" title="Settings">

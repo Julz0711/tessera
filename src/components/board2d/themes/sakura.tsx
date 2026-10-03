@@ -11,13 +11,25 @@ function PagodaRoof({ x, apexY, eaveY, half, color }: { x: number; apexY: number
   );
 }
 
-/** Sakura Isle's settlement: a single-storey house under one wide, upturned pagoda roof. */
+/**
+ * Sakura Isle's settlement: a tea house on a stone base, paper doors in a dark timber front, under
+ * a hip-and-gable roof in the owner's colour whose eaves flick up at the ends.
+ */
 const sakuraSettlement: PieceGlyph = ({ x, y, color }) => {
   const c = pc(color);
   return (
     <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
-      <rect x={x - 12} y={y - 1} width="24" height="16" fill={c.hex} />
-      <PagodaRoof x={x} apexY={y - 19} eaveY={y - 1} half={22} color={c.dark} />
+      <rect x={x - 16} y={y + 9} width="32" height="5" fill="#8d8a82" />
+      <rect x={x - 12} y={y - 3} width="24" height="12" fill="#3a2a1e" />
+      <path
+        d={`M${x - 23} ${y - 7}L${x - 17} ${y - 2}L${x + 17} ${y - 2}L${x + 23} ${y - 7}L${x + 11} ${y - 12}L${x - 11} ${y - 12}Z M${x - 9} ${y - 12}L${x} ${y - 19}L${x + 9} ${y - 12}Z`}
+        fill={c.hex}
+      />
+      <g stroke="none" fill="#f3ecd8">
+        {[-9, -2.5, 4].map((dx) => (
+          <rect key={dx} x={x + dx} y={y} width="5" height="7" />
+        ))}
+      </g>
     </g>
   );
 };

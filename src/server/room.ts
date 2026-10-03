@@ -153,8 +153,9 @@ export class Room {
       lastSeen: room.now(),
       left: false,
     }));
-    room.game = data.state;
-    room.snapshotSeq = data.state.seq;
+    // Seats abandoned after the snapshot are bots now (the replayed actions don't say so).
+    room.game = { ...data.state, players: data.state.players.map((p, i) => (room.seats[i]?.isBot && !p.isBot ? { ...p, isBot: true } : p)) };
+    room.snapshotSeq = data.snapshotSeq;
     room.gameId = data.gameId;
     room.gameNumber = data.gameNumber;
     room.status = data.state.phase === 'ended' ? 'finished' : 'playing';
@@ -278,6 +279,9 @@ export class Room {
       seat.identityKey = null;
       seat.avatarUrl = undefined;
       seat.left = false;
+      const index = this.seats.indexOf(seat);
+      // The end-of-game report reads this, so it marks the seat as bot-played too.
+      if (this.game) this.game = { ...this.game, players: this.game.players.map((p, i) => (i === index ? { ...p, isBot: true } : p)) };
       if (this.gameId) this.deps.persistence.seatAbandoned(this.gameId, seat.playerId);
       this.system(`${seat.name} abandoned the game. A bot took their seat.`);
     }
@@ -480,7 +484,7 @@ export class Room {
         vpToWin: this.settings.vpToWin,
         friendlyRobber: this.settings.friendlyRobber,
         map: this.settings.map ?? 'standard',
-        gold: this.settings.gold ?? true,
+        gold: this.settings.gold ?? DEFAULT_ROOM_SETTINGS.gold,
         dice: this.settings.dice ?? 'random',
       },
     });
@@ -630,7 +634,8 @@ export class Room {
   private windowLimitMs(): number {
     const g = this.game!;
     const t = this.settings.turnTimer;
-    if (!t) return Infinity;
+    // Bots don't mind waiting: the clock only runs while two or more people share the table.
+    if (!t || this.seats.filter((s) => !s.isBot).length < 2) return Infinity;
     // Prompts (discards, robber…) and setup placements get a shorter window than a full turn.
     return (g.pending.length || g.phase === 'setup' ? Math.min(t, 45) : t) * 1000;
   }
@@ -822,8 +827,22 @@ export class Room {
     this.sockets.clear();
     this.logSynced.clear();
     this.roomSent.clear();
+    // A game that can't go on anymore is recorded as abandoned, not left "playing" for good.
+    if (this.status === 'playing' && this.gameId) this.deps.persistence.gameAbandoned(this.gameId);
     this.status = this.status === 'playing' ? 'finished' : this.status;
     this.deps.persistence.roomStatus({ ...this.persistRoom(), status: 'closed' });
+  }
+
+  /**
+   * Server shutdown with the game still running: stop playing, but leave it open in storage so the
+   * next server restores it when the players reconnect (their clients rejoin on their own).
+   */
+  suspend(): void {
+    if (this.closed) return;
+    this.system('The server is restarting. Your game will be back in a moment.');
+    this.closed = true;
+    this.stopTicker();
+    if (this.botTimer) clearTimeout(this.botTimer);
   }
 
   /** Closes the room when nobody human is left in the lobby. */

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { SYNCED_FIELDS, usePrefs } from '@/client/prefs';
+import { fetchSession } from '@/client/session';
 import type { ProfileData } from '@/shared/protocol';
 import { setSfxVolumes } from '@/client/sound';
 
@@ -14,6 +15,8 @@ function useProfileSync() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let unsubscribe: (() => void) | undefined;
     (async () => {
+      // A first-time visitor has no session yet, and the profile would answer 401.
+      if ((await fetchSession()).kind !== 'user' || cancelled) return;
       const res = await fetch('/api/profile', { credentials: 'same-origin' });
       if (!res.ok || cancelled) return;
       const data = (await res.json()) as ProfileData;

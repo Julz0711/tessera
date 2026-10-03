@@ -18,6 +18,9 @@ export function BankPanel({ view }: { view: PlayerView }) {
   const [give, setGive] = useState<Card | null>(null);
   const [get, setGet] = useState<Card | null>(null);
   const [count, setCount] = useState(1);
+  // The cheapest rate the player has: what they need of one card to trade at all.
+  const bestRatio = Math.min(...cards.map((c) => bankRatio(view, me, c)));
+  const canTrade = cards.some((c) => hand[c] >= bankRatio(view, me, c));
   const ratio = give ? bankRatio(view, me, give) : 0;
   const maxCount = give && get ? Math.min(Math.floor(hand[give] / ratio), view.bank[get]) : 0;
 
@@ -63,23 +66,30 @@ export function BankPanel({ view }: { view: PlayerView }) {
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <button type="button" className="btn h-8 w-8 p-0" disabled={count <= 1} onClick={() => setCount((n) => n - 1)}>
-              −
-            </button>
-            <span className="text-sm font-bold">
-              {give && get ? (
-                <>
-                  {ratio * count} <span style={{ color: CARD_COLORS[give].bg }}>■</span> {CARD_COLORS[give].label} → {count} {CARD_COLORS[get].label}
-                </>
-              ) : (
-                'Pick what to give and receive'
-              )}
-            </span>
-            <button type="button" className="btn h-8 w-8 p-0" disabled={count >= maxCount} onClick={() => setCount((n) => n + 1)}>
-              +
-            </button>
-          </div>
+          {canTrade ? (
+            <div className="flex items-center gap-2">
+              <button type="button" className="btn h-8 w-8 p-0" disabled={count <= 1} onClick={() => setCount((n) => n - 1)}>
+                −
+              </button>
+              <span className="text-sm font-bold">
+                {give && get ? (
+                  <>
+                    {ratio * count} <span style={{ color: CARD_COLORS[give].bg }}>■</span> {CARD_COLORS[give].label} → {count} {CARD_COLORS[get].label}
+                  </>
+                ) : (
+                  'Pick what to give and receive'
+                )}
+              </span>
+              <button type="button" className="btn h-8 w-8 p-0" disabled={count >= maxCount} onClick={() => setCount((n) => n + 1)}>
+                +
+              </button>
+            </div>
+          ) : (
+            <p className="min-w-0 flex-1 text-sm font-bold text-ink-soft">
+              You need {bestRatio} of one card to trade
+              {bestRatio > 3 ? ' (3 with a 3:1 harbor, 2 with a matching 2:1 harbor)' : bestRatio === 3 ? ' (2 with a matching 2:1 harbor)' : ''}.
+            </p>
+          )}
           <button type="button" className="btn btn-primary px-5 py-2" disabled={!give || !get || maxCount < 1} onClick={trade}>
             <Landmark size={16} /> Trade
           </button>

@@ -8,7 +8,7 @@ import { sanitizeKnight } from '@/shared/knight';
 import type { JoinProfile, RoomSettings } from '@/shared/protocol';
 import type { Db } from './db';
 import type { Persistence, PersistGame, PersistRoom, PersistSeat } from './persistence';
-import { finalizeGame } from './finalizeGame';
+import { finalizeAbandonedGame, finalizeGame } from './finalizeGame';
 
 const GUEST_TTL_MS = 30 * 86400_000;
 
@@ -17,12 +17,18 @@ function json<T>(value: T): never {
   return JSON.parse(JSON.stringify(value)) as never;
 }
 
-function identityRefs(key: string | null): { userId?: string; guestSessionId?: string } {
+export function identityRefs(key: string | null): { userId?: string; guestSessionId?: string } {
   if (!key) return {};
   if (key.startsWith('u:')) return { userId: key.slice(2) };
   if (key.startsWith('g:')) return { guestSessionId: key.slice(2) };
   return {};
 }
+
+/**
+ * A seat given up mid-game: a bot plays it, but the account stays linked so the game is still counted
+ * (and rated, as a forfeit) for its owner. Rejoin lists and restores skip bot-played seats.
+ */
+export const ABANDONED_SEAT = { isBot: true } as const;
 
 export interface RestoredRoom {
   id: string;
@@ -31,6 +37,8 @@ export interface RestoredRoom {
   gameId: string;
   gameNumber: number;
   state: GameState;
+  /** Seq of the snapshot `state` was rebuilt from (the next one is due `SNAPSHOT_EVERY` events later). */
+  snapshotSeq: number;
   /** `cosmetics`: the frame and title the player saved, when they saved one. */
   seats: (PersistSeat & { cosmetics?: Cosmetics })[];
 }
@@ -146,14 +154,17 @@ export function createPrismaPersistence(db: Db): DurablePersistence {
     seatAbandoned(gameId: string, playerId: string) {
       const roomId = gameRoom.get(gameId);
       if (!roomId) return;
-      // Detached from the account, so it leaves their rejoin list and comes back as a bot after a restart.
-      enqueue(roomId, 'seat abandoned', () =>
-        db.player.updateMany({ where: { id: playerId, gameId }, data: { userId: null, guestSessionId: null, isBot: true } }),
-      );
+      enqueue(roomId, 'seat abandoned', () => db.player.updateMany({ where: { id: playerId, gameId }, data: ABANDONED_SEAT }));
     },
 
     gameEnded(game: PersistGame) {
       enqueue(game.room.id, 'game end', () => finalizeGame(db, game));
+    },
+
+    gameAbandoned(gameId: string) {
+      const roomId = gameRoom.get(gameId);
+      if (!roomId) return;
+      enqueue(roomId, 'game abandoned', () => finalizeAbandonedGame(db, gameId));
     },
 
     rememberProfile(identityKey: string, profile: JoinProfile) {
@@ -215,8 +226,10 @@ export function createPrismaPersistence(db: Db): DurablePersistence {
         gameId: current.id,
         gameNumber: games.length,
         state,
+        snapshotSeq: snapshot.seq,
         seats: players.map((p) => {
-          const identityKey = p.userId ? `u:${p.userId}` : p.guestSessionId ? `g:${p.guestSessionId}` : null;
+          // An abandoned seat keeps its owner on record (see `ABANDONED_SEAT`), but nobody can reclaim it.
+          const identityKey = p.isBot ? null : p.userId ? `u:${p.userId}` : p.guestSessionId ? `g:${p.guestSessionId}` : null;
           return {
             playerId: p.id,
             identityKey,

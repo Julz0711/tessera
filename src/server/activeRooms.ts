@@ -7,6 +7,7 @@ import type { MapId, Mode } from '@/engine';
 import { DEFAULT_ROOM_SETTINGS, type ActiveRoom, type RoomSettings } from '@/shared/protocol';
 import type { Db } from './db';
 import type { ServerIdentity } from './identity';
+import { ABANDONED_SEAT, identityRefs } from './prismaPersistence';
 import type { RoomManager } from './rooms';
 
 /** Older unfinished games in the database are treated as abandoned. */
@@ -18,14 +19,17 @@ const MAX_ROOMS = 3;
  * is rewritten the same way (it comes back as a bot after a restart). False when they held no seat.
  */
 export async function abandonRoom(identity: ServerIdentity, code: string, rooms: RoomManager, db: Db | null): Promise<boolean> {
-  const room = rooms.get(code);
+  const room = await rooms.live(code);
   if (room) return room.abandon(identity.key);
   if (!db) return false;
-  const who = identity.kind === 'user' ? { userId: identity.id } : { guestSessionId: identity.id };
   const { count } = await db.player.updateMany({
-    where: { ...who, game: { status: 'playing', room: { code, status: 'playing' } } },
-    data: { userId: null, guestSessionId: null, isBot: true },
+    where: { ...identityRefs(identity.key), isBot: false, game: { status: 'playing', room: { code, status: 'playing' } } },
+    data: ABANDONED_SEAT,
   });
+  // Someone may have opened the room meanwhile, and its restore may have read the seat before our
+  // write: give it up in the live room too (a no-op when the restore already saw the bot).
+  const restored = await rooms.live(code);
+  if (restored) restored.abandon(identity.key);
   return count > 0;
 }
 
@@ -47,7 +51,7 @@ export async function activeRoomsFor(identity: ServerIdentity, rooms: RoomManage
     const games = await db.game.findMany({
       where: {
         status: 'playing', startedAt: { gte: new Date(now - RESTORE_WINDOW_MS) }, room: { status: 'playing' },
-        players: { some: identity.kind === 'user' ? { userId: identity.id } : { guestSessionId: identity.id } },
+        players: { some: { ...identityRefs(identity.key), isBot: false } },
       },
       orderBy: { startedAt: 'desc' }, take: MAX_ROOMS,
       select: { startedAt: true, room: { select: { code: true, settings: true } }, _count: { select: { players: true } } },

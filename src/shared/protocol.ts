@@ -34,7 +34,8 @@ export const DEFAULT_ROOM_SETTINGS: RoomSettings = {
   map: 'standard',
   maxPlayers: 4,
   vpToWin: 10,
-  turnTimer: 0,
+  // Players who go quiet without disconnecting would otherwise hold the table up for good.
+  turnTimer: 120,
   friendlyRobber: false,
   allowSpectators: true,
   gold: false,

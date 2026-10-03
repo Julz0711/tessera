@@ -256,8 +256,9 @@ export async function handleHttp(req: IncomingMessage, res: ServerResponse, ctx?
       return true;
     }
     try {
-      await abandonRoom(identity, code, ctx.rooms, getDb());
-      json(res, 200, { ok: true });
+      // Not abandoned: no seat there anymore (the game ended or they already left), so it's gone either way.
+      const abandoned = await abandonRoom(identity, code, ctx.rooms, getDb());
+      json(res, 200, { ok: true, abandoned });
     } catch (err) {
       logDbError('abandon', err);
       json(res, 503, { error: "Couldn't leave that table right now. Try again in a moment." });

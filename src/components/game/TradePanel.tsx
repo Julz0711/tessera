@@ -46,19 +46,25 @@ function DealRow({
   who,
   cards,
   onCard,
+  hint,
 }: {
   side: TradeSide;
   who: React.ReactNode;
   cards: PartialHand;
   /** Clicking a card (the draft takes one back). */
   onCard?: (c: Card) => void;
+  /** Shown while the row is empty. */
+  hint?: string;
 }) {
   const held = CARDS.filter((c) => (cards[c] ?? 0) > 0);
   return (
     <div className="flex min-h-13 items-center gap-1.5 py-1">
-      <div className="flex w-11 shrink-0 items-center">
-        {who}
-        {side === 'want' ? <ArrowDown size={15} strokeWidth={3} className="text-moss" /> : <ArrowUp size={15} strokeWidth={3} className="text-danger" />}
+      <div className="flex w-16 shrink-0 flex-col items-start gap-0.5">
+        <div className="flex items-center">
+          {who}
+          {side === 'want' ? <ArrowDown size={15} strokeWidth={3} className="text-moss" /> : <ArrowUp size={15} strokeWidth={3} className="text-danger" />}
+        </div>
+        <span className="text-[10px] font-bold uppercase leading-none tracking-[0.1em] text-ink-soft">{side === 'want' ? 'You get' : 'You give'}</span>
       </div>
       {/* the box widens for a deal with many kinds of card; only at the screen edge does a row wrap */}
       <div className="flex min-w-0 flex-wrap items-center gap-1.5 pt-1">
@@ -68,6 +74,7 @@ function DealRow({
             <CardStack card={c} count={cards[c]!} size="xs" onClick={onCard ? () => onCard(c) : undefined} />
           </span>
         ))}
+        {!held.length && hint && <span className="text-xs font-bold text-ink-faint">{hint}</span>}
       </div>
     </div>
   );
@@ -342,8 +349,8 @@ export function TradePanel({ view }: { view: PlayerView }) {
           </>
         }
       >
-        <DealRow side="want" who={<Users size={22} className="text-ink-soft" />} cards={want} onCard={(c) => draft.remove('want', c)} />
-        <DealRow side="give" who={<Avatar view={view} seat={me} size={26} />} cards={give} onCard={(c) => draft.remove('give', c)} />
+        <DealRow side="want" who={<Users size={22} className="text-ink-soft" />} cards={want} onCard={(c) => draft.remove('want', c)} hint="Tap a card above to add it" />
+        <DealRow side="give" who={<Avatar view={view} seat={me} size={26} />} cards={give} onCard={(c) => draft.remove('give', c)} hint="Tap a card in your hand to add it" />
       </DealCard>
     </div>
   );

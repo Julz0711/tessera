@@ -85,6 +85,8 @@ export function toast(text: string, tone: Toast['tone'] = 'info'): void {
 
 function wire(s: ClientSocket): void {
   let everConnected = false;
+  /** When the client last asked for the whole log after missing an update (0: the log is in step). */
+  let syncAskedAt = 0;
   s.on('connect', () => {
     useGame.setState({ conn: 'online', error: null });
     const code = useGame.getState().code;
@@ -117,11 +119,15 @@ function wire(s: ClientSocket): void {
     const prev = useGame.getState().view;
     let log = view.log;
     if (!log) {
-      // Only the new events came: they continue the log we hold, unless an update went missing.
-      const follows = prev !== null && (events.length ? events[0].seq === prev.seq + 1 : view.seq === prev.seq);
-      if (!follows) s.emit('game:sync');
+      // Only the new events came: they continue the log we hold, unless an update went missing. Once
+      // one has, nothing appends until the whole log is back (asked for again if the answer is slow).
+      const follows = !syncAskedAt && prev !== null && (events.length ? events[0].seq === prev.seq + 1 : view.seq === prev.seq);
+      if (!follows && Date.now() - syncAskedAt > 2000) {
+        syncAskedAt = Date.now();
+        s.emit('game:sync');
+      }
       log = prev ? (events.length && follows ? [...prev.log, ...events].slice(-LOG_LIMIT) : prev.log) : [];
-    }
+    } else syncAskedAt = 0;
     useGame.setState((st) => ({ view: { ...view, log }, events, updateId: st.updateId + 1 }));
   });
   s.on('chat:history', (chat) => useGame.setState({ chat }));

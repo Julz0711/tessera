@@ -74,6 +74,15 @@ export class RoomManager {
 
   private restoring = new Map<string, Promise<Room | undefined>>();
 
+  /** The room in memory, waiting for it when a restore is under way; never starts a restore itself. */
+  async live(code: unknown): Promise<Room | undefined> {
+    const normalized = normalizeCode(code);
+    if (!normalized) return undefined;
+    const pending = this.restoring.get(normalized);
+    if (pending) await pending;
+    return this.get(normalized);
+  }
+
   private async doRestore(code: string, persistence: DurablePersistence): Promise<Room | undefined> {
     try {
       const data = await persistence.restoreRoom(code);
@@ -110,7 +119,13 @@ export class RoomManager {
 
   dispose(): void {
     clearInterval(this.sweeper);
-    for (const room of this.rooms.values()) room.close('Server shutting down');
+    // Saved games stay open in the database, so they're restored when the players reconnect to the
+    // next server; everything else can't outlive this process.
+    const durable = !!this.opts.persistence && 'restoreRoom' in this.opts.persistence;
+    for (const room of this.rooms.values()) {
+      if (durable && room.status === 'playing') room.suspend();
+      else room.close('Server shutting down');
+    }
     this.rooms.clear();
   }
 }
