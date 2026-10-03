@@ -90,21 +90,18 @@ export function EventDie({ face, size = 44 }: { face: EventFace; size?: number }
   );
 }
 
-/** A small flat die showing `value` (log lines). */
+/**
+ * A small flat die showing `value` (log lines). Drawn as SVG: at this size a CSS grid of pips
+ * collapsed and every die read as a 1.
+ */
 export const FlatDie = memo(function FlatDie({ value, size = 16, bg = '#f6eddb', pip = '#1f1a14' }: { value: number; size?: number; bg?: string; pip?: string }) {
   return (
-    <span
-      className="inline-grid shrink-0 grid-cols-3 grid-rows-3 rounded-[22%] border border-ink p-[12%] align-middle"
-      style={{ width: size, height: size, background: bg }}
-      role="img"
-      aria-label={String(value)}
-    >
-      {Array.from({ length: 9 }, (_, i) => (
-        <span key={i} className="grid place-items-center">
-          {PIP_LAYOUT[value]?.includes(i) && <span className="block h-[75%] w-[75%] rounded-full" style={{ background: pip }} />}
-        </span>
+    <svg width={size} height={size} viewBox="0 0 30 30" className="inline-block shrink-0 align-middle" role="img" aria-label={String(value)}>
+      <rect x="1" y="1" width="28" height="28" rx="6.5" fill={bg} stroke="#1f1a14" strokeWidth="2" />
+      {(PIP_LAYOUT[value] ?? []).map((i) => (
+        <circle key={i} cx={7.5 + (i % 3) * 7.5} cy={7.5 + Math.floor(i / 3) * 7.5} r="3" fill={pip} />
       ))}
-    </span>
+    </svg>
   );
 });
 

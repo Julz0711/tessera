@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { Maximize2, Minus, Plus } from "lucide-react";
 import { PIPS } from "@/engine/constants";
 import { getTopology, type Topology } from "@/engine/board/topology";
-import type { PlayerColor, Terrain } from "@/engine/types";
+import type { Hex, PlayerColor, Terrain } from "@/engine/types";
 import { CARD_COLORS } from "@/client/palette";
 import { PALETTES, type BoardPalette, type BoardThemeId, type TileColors } from "@/client/themes";
 import { THEME_BARBARIAN_SHIPS, THEME_GLYPHS, THEME_PIECES, type BarbarianShipGlyph } from "./themes";
@@ -34,6 +34,17 @@ function useWide(): boolean {
 const S = 100; // world units → SVG units
 /** How much of its hex a tile fills; the rest is a strip of beach between neighbours. */
 const TILE_SIZE = 0.93;
+
+/** Whether tiles are lit up right now: after a roll, or the Inventor's swap. */
+function lighting(scene: BoardScene): boolean {
+  return !!scene.highlightHexes || scene.highlightToken !== null;
+}
+
+/** Whether this tile is one of those lit up (the rolled number's, or one the Inventor swapped). */
+function isLit(scene: BoardScene, h: Hex): boolean {
+  if (scene.highlightHexes) return scene.highlightHexes.includes(h.id);
+  return h.token !== null && h.token === scene.highlightToken && !h.fog;
+}
 
 function hexPoints(topo: Topology, hexId: number, scale = 1): string {
   const h = topo.hexes[hexId];
@@ -587,9 +598,7 @@ function Gloom({
       {/* Gold and the tiles paying out after a roll stay bright. */}
       {scene.board.hexes.map((h) =>
         h.terrain === "gold" ||
-        (h.token !== null &&
-          h.token === scene.highlightToken &&
-          h.id !== scene.robber) ? null : (
+        (isLit(scene, h) && h.id !== scene.robber) ? null : (
           <polygon
             key={h.id}
             points={hexPoints(topo, h.id, 1.12)}
@@ -1049,17 +1058,17 @@ export default function Board2D({
                   />
                 ))
               )}
-              {/* after a roll: the tiles that pay out glow, the rest of the board steps back */}
-              {scene.highlightToken !== null && !sea &&
-                (h.token === scene.highlightToken && !h.fog ? (
+              {/* after a roll (or the Inventor's swap): the tiles that pay out glow, the rest of the board steps back */}
+              {lighting(scene) && !sea &&
+                (isLit(scene, h) ? (
                   <polygon
                     points={hexPoints(topo, h.id, 0.9)}
                     fill="none"
-                    stroke={h.id === scene.robber ? "#d9483b" : "#f2b33d"}
+                    stroke={h.id === scene.robber && !scene.highlightHexes ? "#d9483b" : "#f2b33d"}
                     strokeWidth="9"
                     strokeLinejoin="round"
                     strokeDasharray={
-                      h.id === scene.robber ? "16 10" : undefined
+                      h.id === scene.robber && !scene.highlightHexes ? "16 10" : undefined
                     }
                     pointerEvents="none"
                   >
@@ -1183,7 +1192,7 @@ export default function Board2D({
           if (!h.token) return null;
           const t = topo.hexes[h.id];
           const red = h.token === 6 || h.token === 8;
-          const lit = scene.highlightToken === h.token && h.id !== scene.robber;
+          const lit = scene.highlightHexes ? scene.highlightHexes.includes(h.id) : scene.highlightToken === h.token && h.id !== scene.robber;
           const pips = PIPS[h.token];
           return (
             <g

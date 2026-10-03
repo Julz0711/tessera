@@ -16,7 +16,7 @@ import { computeTargets, handlePick } from '@/client/interaction';
 import { sceneFromView } from '@/client/targets';
 import { useAutoDecline } from '@/client/trade';
 import { useBackgroundMusic } from '@/client/music';
-import { useGameDialog, useUi, type SideTab } from '@/client/ui';
+import { useBoardFlash, useGameDialog, useUi, type SideTab } from '@/client/ui';
 import { BoardView } from '@/components/board/BoardView';
 import { BuildPopup } from './BuildPopup';
 import { ChatPanel } from '@/components/room/ChatPanel';
@@ -257,6 +257,8 @@ export function GameScreen() {
   const ui = useUi();
   const setZoomHost = useZoomHost((s) => s.set);
   const [highlight, setHighlight] = useState<number | null>(null);
+  const flash = useBoardFlash();
+  const [flashHexes, setFlashHexes] = useState<number[] | null>(null);
   const [showResults, setShowResults] = useState(true);
 
   useEventFeedback(view, events, updateId);
@@ -272,6 +274,18 @@ export function GameScreen() {
     const t = setTimeout(() => setHighlight(null), 3500);
     return () => clearTimeout(t);
   }, [updateId, events]);
+
+  // The Inventor's two tiles light up as they're swapped, and again from the log's "Show".
+  useEffect(() => {
+    const swap = events.find((e) => e.type === 'tokensSwapped');
+    if (swap?.type === 'tokensSwapped') useBoardFlash.getState().flash([swap.a, swap.b]);
+  }, [updateId, events]);
+  useEffect(() => {
+    if (!flash.hexes) return;
+    setFlashHexes(flash.hexes);
+    const t = setTimeout(() => setFlashHexes(null), 5000);
+    return () => clearTimeout(t);
+  }, [flash.key, flash.hexes]);
 
   // A new turn cancels any build mode or panel; a card being read stays open (bots move fast).
   useEffect(() => {
@@ -289,7 +303,10 @@ export function GameScreen() {
   }, [view?.phase]);
 
   const styles = useMemo(() => room?.seats.map((s) => s.knight) ?? [], [room?.seats]);
-  const scene = useMemo(() => (view ? { ...sceneFromView(view, styles), highlightToken: highlight } : null), [view, styles, highlight]);
+  const scene = useMemo(
+    () => (view ? { ...sceneFromView(view, styles), highlightToken: highlight, highlightHexes: flashHexes } : null),
+    [view, styles, highlight, flashHexes],
+  );
   const targets = useMemo(
     () => computeTargets(view, ui.mode, prefs.buildHints, ui.armed, ui.robber),
     [view, ui.mode, prefs.buildHints, ui.armed, ui.robber],

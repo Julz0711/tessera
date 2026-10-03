@@ -66,6 +66,8 @@ export interface BoardScene {
   myColor: PlayerColor | null;
   /** Last dice total, to highlight producing hexes. */
   highlightToken: number | null;
+  /** Hexes to light up instead (the Inventor's swap); while set, `highlightToken` is ignored. */
+  highlightHexes?: number[] | null;
   /** The barbarian ship's voyage (C&K only; unset for classic games and demo scenes). */
   barbarian?: { position: number; distance: number; strength: number; defense: number } | null;
 }

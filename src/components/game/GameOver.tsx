@@ -67,7 +67,7 @@ export function GameOver({ view, room, onClose }: { view: PlayerView; room: Room
   return (
     <>
       {iWon && <Confetti />}
-      <Modal open onClose={onClose} title={winner !== null ? (iWon ? 'Victory!' : `${view.players[winner].name} wins`) : 'Game over'} wide expansive={tab === 'stats'}>
+      <Modal open onClose={onClose} title={winner !== null ? (iWon ? 'Victory!' : `${view.players[winner].name} wins`) : 'Game over'} wide expansive={tab === 'stats'} top>
         <div className="mb-3 flex gap-1.5">
           {(['standings', 'stats'] as const).map((t) => (
             <button

@@ -1,7 +1,9 @@
 'use client';
 
+import { Eye } from 'lucide-react';
 import { memo, useEffect, useMemo, useRef } from 'react';
 import { describe, type Part } from '@/client/describe';
+import { useBoardFlash } from '@/client/ui';
 import type { GameEvent, PlayerColor } from '@/engine/types';
 import type { PlayerView } from '@/engine/view';
 import { PLAYER_COLORS } from '@/shared/colors';
@@ -45,6 +47,18 @@ const Line = memo(function Line({ parts, who }: { parts: Part[]; who: Who }) {
               <FlatDie value={p.dice.yellow} bg={ck ? '#f2c14e' : undefined} />
               {p.dice.event && <FlatEventDie face={p.dice.event} />}
             </span>
+          );
+        if ('hexes' in p)
+          return (
+            <button
+              key={i}
+              type="button"
+              className="ml-1 inline-flex -translate-y-px items-center gap-0.5 rounded border border-white/25 px-1 align-middle text-[11px] font-bold text-foam hover:bg-white/10"
+              onClick={() => useBoardFlash.getState().flash(p.hexes)}
+              title="Light up these tiles on the board"
+            >
+              <Eye size={11} /> Show
+            </button>
           );
         return <CardChip key={i} card={p.card} n={p.n} />;
       })}

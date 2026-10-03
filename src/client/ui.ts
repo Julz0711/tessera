@@ -104,6 +104,13 @@ export function buildMode(mode: UiMode): BuildWhat | null {
   return mode?.t === 'build' ? mode.what : null;
 }
 
+/** Hexes lit up on the board for a moment (the Inventor's swap, from the log or as it happens). */
+export const useBoardFlash = create<{ hexes: number[] | null; key: number; flash(hexes: number[]): void }>((set) => ({
+  hexes: null,
+  key: 0,
+  flash: (hexes) => set((s) => ({ hexes, key: s.key + 1 })),
+}));
+
 /**
  * In-game dialogs that stay open while the game moves on (live stats, admin tools): unlike panels,
  * new turns and prompts leave them be.

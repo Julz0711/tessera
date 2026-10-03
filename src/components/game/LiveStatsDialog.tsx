@@ -53,7 +53,7 @@ export function LiveStatsDialog({ view }: { view: PlayerView }) {
 
   if (!open) return null;
   return (
-    <Modal open onClose={hide} title="Live stats" wide expansive>
+    <Modal open onClose={hide} title="Live stats" wide expansive top>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-ink-soft">
         <span>Updates as the game goes on. Only public information: cards in hand and unplayed cards stay hidden.</span>
         <button type="button" className="btn px-2.5 py-1 text-xs" onClick={() => void load()} disabled={loading} aria-label="Refresh the stats">
