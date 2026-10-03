@@ -88,6 +88,45 @@ function Field({ x, top, bottom, width }: { x: number; top: number; bottom: numb
   return <mesh geometry={geometry} material={material} position={[x, 0.005, top]} />;
 }
 
+/** Width of the lane on the field's outer (west) side that holds the voyage arrow. */
+const ARROW_LANE = 0.24;
+
+/**
+ * Lying on the water in the field's outer lane: a dashed arrow down the track, from the first step to
+ * the landing, so the way the ship sails (and where it lands) reads at a glance.
+ */
+function VoyageArrow({ x, from, to, danger }: { x: number; from: number; to: number; danger: boolean }) {
+  const geometry = useMemo(() => {
+    const shapes: THREE.Shape[] = [];
+    const w = 0.03;
+    // dashes along the shaft (shape y runs down the track, world +z, once laid flat)
+    const head = 0.16;
+    const end = to - from - head;
+    for (let y = 0; y < end - 0.02; y += 0.11) {
+      const dash = new THREE.Shape();
+      const y2 = Math.min(y + 0.055, end);
+      dash.moveTo(-w, y);
+      dash.lineTo(w, y);
+      dash.lineTo(w, y2);
+      dash.lineTo(-w, y2);
+      dash.closePath();
+      shapes.push(dash);
+    }
+    const tip = new THREE.Shape();
+    tip.moveTo(-0.11, end);
+    tip.lineTo(0.11, end);
+    tip.lineTo(0, to - from);
+    tip.closePath();
+    shapes.push(tip);
+    return new THREE.ShapeGeometry(shapes).rotateX(Math.PI / 2);
+  }, [from, to]);
+  const material = useMemo(
+    () => new THREE.MeshBasicMaterial({ color: danger ? '#ff8a73' : '#f6eddb', transparent: true, opacity: danger ? 0.95 : 0.75, depthWrite: false, side: THREE.DoubleSide }),
+    [danger],
+  );
+  return <mesh geometry={geometry} material={material} position={[x, 0.012, from]} renderOrder={1} />;
+}
+
 /** Above the field, turned to the camera: the barbarians' strength against the island's knight defense. */
 function StatusSign({ x, z, strength, defense }: { x: number; z: number; strength: number; defense: number }) {
   const ref = useRef<THREE.Group>(null);
@@ -178,6 +217,8 @@ export function Barbarians({ barbarian, topo }: { barbarian: BarbarianInfo; topo
   const steps = barbarian.distance + 1;
   const layout = useMemo(() => barbarianTrackLayout(topo, steps), [topo, steps]);
   const danger = barbarian.position >= barbarian.distance - 2;
+  // Room for the steps either side of the axis, plus the arrow's lane on the outer side.
+  const fieldWidth = (Math.sqrt(3) / 2) * layout.r * 2 + (Math.sqrt(3) / 2) * layout.r + 0.2 + ARROW_LANE;
   return (
     <group>
       <Swell>
@@ -186,10 +227,16 @@ export function Barbarians({ barbarian, topo }: { barbarian: BarbarianInfo; topo
         ))}
       </Swell>
       <Field
-        x={layout.header.x}
+        x={layout.header.x - ARROW_LANE / 2}
         top={layout.header.y - BARBARIAN_HEADER_H / 2 - 0.05}
         bottom={layout.at(steps - 1).y + layout.r + 0.1}
-        width={(Math.sqrt(3) / 2) * layout.r * 2 + (Math.sqrt(3) / 2) * layout.r + 0.2}
+        width={fieldWidth}
+      />
+      <VoyageArrow
+        x={layout.header.x - (fieldWidth - ARROW_LANE) / 2 - ARROW_LANE / 2}
+        from={layout.at(0).y - layout.r * 0.5}
+        to={layout.at(steps - 1).y + layout.r * 0.35}
+        danger={danger}
       />
       <StatusSign x={layout.header.x} z={layout.header.y} strength={barbarian.strength} defense={barbarian.defense} />
       <Ship x={layout.at(barbarian.position).x} z={layout.at(barbarian.position).y} danger={danger} wood={wood} k={k} />

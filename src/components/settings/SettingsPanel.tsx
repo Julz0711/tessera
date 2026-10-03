@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Gamepad2, Grid2x2, LayoutGrid, Languages, Palette, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { Box, Gamepad2, Grid2x2, LayoutGrid, Languages, Music, Palette, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { usePrefs } from '@/client/prefs';
@@ -8,6 +8,7 @@ import { BOARD_THEMES } from '@/client/themes';
 import { DEFAULT_HUD_LAYOUT, HUD_SCALE, useHud, type HudScale } from '@/client/hud';
 import { useSettingsUI, type SettingsTab } from '@/client/settingsUI';
 import { play, setVolume, setSfxVolumes, SFX_GROUPS } from '@/client/sound';
+import { MUSIC_MOOD_NAMES } from '@/client/music';
 import { ThemeSwatch } from '@/components/ui/ThemeSwatch';
 import { InstallAppButton, useAppInstall } from '@/components/ui/AppExperience';
 
@@ -150,6 +151,23 @@ export function SettingsPanel() {
                 ))}
               </div>
             </Section>
+            <Section
+              title="Auto-decline trades"
+              hint="A trade offer asking for cards you don't have declines itself after 5 seconds (a bar on the offer counts down). Off: it waits until you answer."
+            >
+              <div className="flex flex-wrap gap-2">
+                {([true, false] as const).map((on) => (
+                  <button
+                    key={String(on)}
+                    type="button"
+                    className={`btn px-4 py-2 ${prefs.autoDeclineTrades === on ? 'btn-primary' : ''}`}
+                    onClick={() => prefs.set({ autoDeclineTrades: on })}
+                  >
+                    {on ? 'After 5 seconds' : 'Off'}
+                  </button>
+                ))}
+              </div>
+            </Section>
             <Section title="Animations" hint="Cards flying to whoever gets them. System follows your device's reduce-motion setting; Reduced shows cards where they land instead.">
               <div className="flex flex-wrap gap-2">
                 {(['system', 'full', 'reduced'] as const).map((m) => (
@@ -238,6 +256,33 @@ function AudioTab() {
             aria-label="Master volume"
           />
           <span className="w-10 text-right text-sm font-bold tabular">{Math.round(prefs.volume * 100)}%</span>
+        </div>
+      </Section>
+      <Section
+        title="Music"
+        hint={`Calm background music in games (off unless you turn it on), made up as it plays. Each board theme has its own; yours is ${MUSIC_MOOD_NAMES[prefs.boardTheme]}. It follows the master volume.`}
+      >
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="btn btn-ghost h-9 w-9 p-0"
+            onClick={() => prefs.set({ musicVolume: prefs.musicVolume > 0 ? 0 : 0.5 })}
+            aria-label={prefs.musicVolume > 0 ? 'Turn the music off' : 'Turn the music on'}
+            aria-pressed={prefs.musicVolume > 0}
+          >
+            {prefs.musicVolume > 0 ? <Music size={17} /> : <VolumeX size={17} />}
+          </button>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={prefs.musicVolume}
+            onChange={(e) => prefs.set({ musicVolume: Number(e.target.value) })}
+            className="flex-1 accent-ink"
+            aria-label="Music volume"
+          />
+          <span className="w-10 text-right text-sm font-bold tabular">{prefs.musicVolume > 0 ? `${Math.round(prefs.musicVolume * 100)}%` : 'Off'}</span>
         </div>
       </Section>
       {SFX_GROUPS.map((group) => (

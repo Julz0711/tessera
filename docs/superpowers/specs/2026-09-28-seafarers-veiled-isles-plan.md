@@ -15,10 +15,10 @@ Built on branch `codex/find-rules-for-treasure-islands-mode`:
   island, robber starts on the 12), Veiled Isles (Special, C&K only, 16 VP, 1 VP per foreign isle). Each is our
   own layout after the rulebook's scenario; terrain and numbers are dealt per game.
 - **Veiled Isles:** laid out after the reference board: the base island in a 9-row frame (8–12 wide) with 15 fog
-  hexes scattered around it and no visible outer isles (0–2 sea, 0–1 gold, numbers 3–11 without 7, repeats
+  hexes scattered around it and no visible outer isles (exactly 2 sea, 0–1 gold, numbers 3–11 without 7, repeats
   allowed), discovery pays the terrain's resource (gold: a pick), 15 treasures from a shuffled 5/4/3/3 deck on the
   reference board's fixed chest corners, collected by a
-  ship reaching the corner; hidden sea pays an independent random bonus treasure. Treasure contents and fog are
+  road or ship reaching the corner; hidden sea pays an independent random bonus treasure. Treasure contents and fog are
   redacted from views.
 - **Clients:** open water, ships, the pirate and treasure chests on the 2D and 3D boards; Ship and Sail buttons;
   road-or-ship popups in setup, Road Building and build hints; lobby map groups (Base game / Voyagers / Special).
@@ -156,7 +156,7 @@ assign one reward to every spot:
 | 3 | Development card of choice | Player selects a development-card type and receives that card. |
 
 The pool is shuffled **without replacement**, so every game has this distribution rather than 15 independent random
-rewards. A treasure is collected when one of the player's ships reaches its marked intersection. The 0–2 hidden-ocean
+rewards. A treasure is collected when one of the player's roads or ships reaches its marked intersection. The 2 hidden-ocean
 bonuses are separate random rewards and therefore may make the total rewards received in a game exceed 15.
 
 ### Decisions required for deterministic implementation
@@ -245,7 +245,7 @@ only the base rules enabled.
 - Store roads and ships separately (or use a discriminated route piece) so ownership, supply, legal placement, and
   movement are unambiguous.
 - Add pirate position, movable-ship state, discovered tile state, and public treasure tokens/rewards to `GameState`.
-- Generate fog contents with the seeded RNG: 0–2 water, 0–1 gold, otherwise random resource terrain, and land numbers
+- Generate fog contents with the seeded RNG: exactly 2 water, 0–1 gold, otherwise random resource terrain, and land numbers
   limited to `3, 4, 5, 6, 8, 9, 10, 11`. Keep the draw strategy configurable until its bag/replacement rules are
   confirmed.
 - Represent the placed treasure rewards as a seeded shuffle of the exact 5/4/3/3 multiset. Resolve hidden-ocean
@@ -329,7 +329,7 @@ labelled house rule.
 ## 6. Test matrix and acceptance criteria
 
 - **Generation:** tile/token/harbor/treasure counts, fixed coordinates, setup zones, and constraints for every supported
-  player count and seed; fog has 0–2 ocean and 0–1 gold tiles, every hidden land number is 3–11 excluding 7, and no
+  player count and seed; fog has exactly 2 ocean and 0–1 gold tiles, every hidden land number is 3–11 excluding 7, and no
   hidden land ever receives 2 or 12. Add distribution/adjacency assertions after the draw rules are confirmed.
 - **Ships:** all legal/illegal placements; road/ship transitions; movable-route endpoints; closed routes; piece
   exhaustion; pirate blocks; trade-route ties and interruption.

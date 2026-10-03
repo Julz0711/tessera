@@ -323,6 +323,8 @@ export function bestRoad(view: PlayerView, seat: number): { edge: number; value:
     // Black Forest: each tile the road uncovers pays a card straight away.
     const uncovered = new Set([edge.a, edge.b].flatMap((w) => t.vertices[w].hexes).filter((h) => view.board.hexes[h].fog));
     value += 1.5 * uncovered.size;
+    // A road reaching a treasure's corner collects it.
+    if ((view.board.treasures ?? []).some((tr) => tr.takenBy === undefined && (tr.vertex === edge.a || tr.vertex === edge.b))) value += 3;
     // Longest-road pressure.
     const roads = [...view.roads];
     roads[e] = seat;

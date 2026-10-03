@@ -1,5 +1,6 @@
 /** Typed Socket.IO protocol shared by client and server. */
-import type { Action, DiceMode, GameEvent, MapId, Mode, PlayerColor } from '@/engine/types';
+import type { Action, Card, DiceMode, EventFace, GameEvent, MapId, Mode, PlayerColor } from '@/engine/types';
+import type { GameReport } from '@/engine/report';
 import type { PlayerView } from '@/engine/view';
 import type { Cosmetics, UnlockStats } from './cosmetics';
 import type { KnightCustomization } from './knight';
@@ -79,7 +80,8 @@ export interface RoomDTO {
   settings: RoomSettings;
   seats: SeatDTO[];
   spectators: { name: string; isYou: boolean }[];
-  you: { playerId: string | null; seat: number | null; isHost: boolean; isSpectator: boolean };
+  /** `isAdmin`: a server admin, who gets the in-game admin tools (see `AdminGameCommand`). */
+  you: { playerId: string | null; seat: number | null; isHost: boolean; isSpectator: boolean; isAdmin?: boolean };
   /** Epoch ms when the current decision window times out (turn timer / autopilot), if any. */
   deadline: number | null;
   gameNumber: number;
@@ -94,6 +96,16 @@ export interface ChatMessage {
   text: string;
   system?: boolean;
 }
+
+/**
+ * In-game admin tools, for testing on a live server (admins only; every use is announced in the chat
+ * and the game is no longer rated): undo the last move, give or take cards (to and from the bank:
+ * negative counts take), and set the dice of the next roll.
+ */
+export type AdminGameCommand =
+  | { type: 'undo' }
+  | { type: 'cards'; seat: number; cards: Partial<Record<Card, number>> }
+  | { type: 'nextRoll'; red: number; yellow: number; event?: EventFace | null };
 
 export type AckResult<T extends object = object> = ({ ok: true } & T) | { ok: false; error: string };
 export type Ack<T extends object = object> = (res: AckResult<T>) => void;
@@ -114,6 +126,10 @@ export interface ClientToServerEvents {
   'room:react': (reaction: ReactionId, ack: Ack) => void;
   /** The client's log no longer lines up with the updates (see `GameUpdate`): send the whole view again. */
   'game:sync': () => void;
+  /** The match report so far, with nothing hidden in it (the full one once the game is over). */
+  'game:stats': (ack: Ack<{ report: GameReport }>) => void;
+  /** Admin tools (see `AdminGameCommand`); refused unless the caller is a server admin. */
+  'admin:game': (cmd: AdminGameCommand, ack: Ack<{ message: string }>) => void;
 }
 
 export interface GameUpdate {
@@ -157,6 +173,8 @@ export interface ProfilePreferences {
   hudLayout?: Record<string, { slot: string; order: number }>;
   sfxVolume?: Record<string, number>;
   weather?: boolean;
+  autoDeclineTrades?: boolean;
+  musicVolume?: number;
 }
 
 export interface GameSummary {

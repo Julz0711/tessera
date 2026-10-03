@@ -2,6 +2,7 @@
 import { ABILITY_LEVEL, MAX_IMPROVEMENT, METROPOLIS_LEVEL, TERRAIN_RESOURCE, TRACK_COMMODITY } from '../constants';
 import { blockedFor, legalRoadSpots, piecesLeft, topo, touchesOwnRoute, type Q } from '../queries';
 import type { KnightLevel, Track } from '../types';
+import { victoryPoints } from '../vp';
 
 export function isVertexFree(s: Q, v: number): boolean {
   return !s.buildings[v] && !s.knights[v];
@@ -215,4 +216,14 @@ export function intrigueTargets(s: Q, seat: number): number[] {
     if (k && k.owner !== seat && touchesOwnRoute(s, seat, v)) out.push(v);
   });
   return out;
+}
+
+/**
+ * Master Merchant: opponents with strictly more points than the seat (a tie isn't enough). Public
+ * points on both sides, so it reads the same on a redacted view. Whether they hold cards is checked
+ * when the card is played.
+ */
+export function masterMerchantVictims(s: Q, seat: number): number[] {
+  const mine = victoryPoints(s, seat, false);
+  return s.players.map((_, i) => i).filter((i) => i !== seat && victoryPoints(s, i, false) > mine);
 }

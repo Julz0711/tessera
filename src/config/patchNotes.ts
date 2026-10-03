@@ -27,6 +27,47 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: "1.8",
+    date: "2026-10-03",
+    summary: "Live stats, background music, the barbarians always in view, and fairer trading.",
+    sections: [
+      {
+        title: "During the game",
+        icon: "log",
+        items: [
+          "Live stats: open Menu → Live stats (or Full stats under the dice) for the whole match report while you play. It updates as the game goes on and shows only what everyone can see.",
+          "Background music: calm music with a different mood for each board theme. It's off by default: turn it on under Settings → Audio, or from the in-game menu.",
+          "Knights & Barbarians: the barbarian ship's progress now has its own panel under the game log, so it stays in view however far you zoom in. Move it like the other panels; on phones it leads the players strip. An arrow on the board shows the ship's course.",
+          "The game is in beta, and now says so: look for the tag next to the name.",
+        ],
+      },
+      {
+        title: "Trading",
+        icon: "trade",
+        items: [
+          "Offers asking for cards you don't have no longer disappear on their own straight away.",
+          "New setting, Auto-decline trades (Settings → Gameplay): such an offer declines itself after 5 seconds, with a bar counting down. Turn it off to answer every offer yourself.",
+        ],
+      },
+      {
+        title: "Rule fixes",
+        icon: "hand",
+        items: [
+          "Deserter: the knight you place keeps the deserter's status, so an active knight stays active.",
+          "Master Merchant: you can only pick a player with more points than you; a tie isn't enough.",
+          "City improvements show the full price of every level, and the Crane's discount right on the button.",
+          "Treasure chests are collected by roads too, not just ships.",
+        ],
+      },
+      {
+        title: "Maps",
+        icon: "map",
+        items: ["Veiled Isles: the fog always hides exactly two sea tiles."],
+        maps: ["veiledIsles"],
+      },
+    ],
+  },
+  {
     version: "1.7",
     date: "2026-10-03",
     summary: "A rulebook, building costs on every button, readable night themes and fairer abandoned games.",

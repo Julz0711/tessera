@@ -95,7 +95,6 @@ export function respondTrade(ctx: Ctx, id: number, accept: boolean): void {
   assertRule(offer.to.includes(ctx.seat) && offer.from !== ctx.seat, 'That offer is not for you');
   offer.accepted = offer.accepted.filter((i) => i !== ctx.seat);
   offer.declined = offer.declined.filter((i) => i !== ctx.seat);
-  offer.auto = offer.auto?.filter((i) => i !== ctx.seat);
   if (!accept) {
     // The active player turning down a counter-offer removes it.
     if (ctx.seat === s.turn.seat) s.trades = s.trades.filter((t) => t.id !== id);
@@ -131,22 +130,30 @@ export function setEmbargo(ctx: Ctx, seat: number, on: boolean): void {
 }
 
 /**
- * Tidies the open offers after every action: whoever can't give what an offer asks for, or has an
- * embargo on its sender, declines it; an offer everyone has declined closes. Declines for lack of
- * cards are marked `auto` and stay hidden from others (see `viewFor`), so they don't close the offer.
+ * Tidies the open offers after every action: whoever has an embargo on the sender declines (openly);
+ * whoever accepted but no longer holds what the offer asks for goes back to undecided; an offer
+ * everyone has declined closes. An offer a player can't afford stays theirs to answer: they can
+ * decline it, or their client declines it for them after a few seconds (a setting).
  */
 export function sweepTrades(ctx: Ctx): void {
   const s = ctx.s;
   for (const offer of [...s.trades]) {
+    // Saves from before the setting declined unaffordable offers on the spot, hidden from everyone
+    // else (`auto`): those players simply haven't answered yet.
+    if (offer.auto) {
+      offer.declined = offer.declined.filter((seat) => !offer.auto!.includes(seat));
+      delete offer.auto;
+    }
     for (const seat of offer.to) {
       if (offer.declined.includes(seat)) continue;
-      const embargoed = embargoes(s, seat, offer.from);
-      if (!embargoed && hasCards(s.players[seat].hand, offer.want)) continue;
-      offer.accepted = offer.accepted.filter((i) => i !== seat);
-      offer.declined.push(seat);
-      if (!embargoed) offer.auto = [...(offer.auto ?? []), seat];
+      if (embargoes(s, seat, offer.from)) {
+        offer.accepted = offer.accepted.filter((i) => i !== seat);
+        offer.declined.push(seat);
+      } else if (offer.accepted.includes(seat) && !hasCards(s.players[seat].hand, offer.want)) {
+        offer.accepted = offer.accepted.filter((i) => i !== seat);
+      }
     }
-    if (offer.to.every((seat) => offer.declined.includes(seat) && !offer.auto?.includes(seat))) {
+    if (offer.to.every((seat) => offer.declined.includes(seat))) {
       s.trades = s.trades.filter((t) => t.id !== offer.id);
       emit(ctx, { type: 'tradeClosed', seat: offer.from, id: offer.id });
     }

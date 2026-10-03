@@ -2,7 +2,7 @@
 
 import { ArrowLeft, Play } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { CARDS, COMMODITIES, RESOURCES, robberActive, type Card, type ProgressCard, type ProgressParams, type Resource } from '@/engine';
+import { CARDS, COMMODITIES, RESOURCES, masterMerchantVictims, robberActive, type Card, type ProgressCard, type ProgressParams, type Resource } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { PROGRESS_NAMES } from '@/client/describe';
 import { ProgressCounts } from '../PlayersPanel';
@@ -37,12 +37,44 @@ function chooserFor(card: ProgressCard): Chooser {
   }
 }
 
+/**
+ * For cards aimed at a player: why an opponent can't be picked (null when they can). Mirrors the
+ * engine's checks, so the picker only offers players the card can actually be played on.
+ */
+function targetBlocker(view: PlayerView, card: ProgressCard, seat: number): string | null {
+  const p = view.players[seat];
+  switch (card.type) {
+    case 'masterMerchant':
+      if (!masterMerchantVictims(view, view.viewer!).includes(seat)) return 'Not more points than you';
+      return p.handCount > 0 ? null : 'No cards in hand';
+    case 'deserter':
+      return view.knights.some((k) => k?.owner === seat) ? null : 'No knights';
+    case 'spy':
+      return p.progressCount > 0 ? null : 'No progress cards';
+    default:
+      return null;
+  }
+}
+
+/** Opponents a player-aimed card can be played on. */
+function validTargets(view: PlayerView, card: ProgressCard): number[] {
+  return view.players.map((_, i) => i).filter((i) => i !== view.viewer && !targetBlocker(view, card, i));
+}
+
+/** Why nobody can be picked for a player-aimed card. */
+const NO_TARGET: Partial<Record<ProgressCard['type'], string>> = {
+  masterMerchant: 'Nobody has more points than you (with cards in hand).',
+  deserter: 'No opponent has a knight on the board.',
+  spy: 'No opponent has progress cards.',
+};
+
 /** Whether the viewer can play this progress card right now. */
 export function canPlayProgress(view: PlayerView, card: ProgressCard): boolean {
   if (view.viewer === null || view.phase !== 'play' || view.turn.seat !== view.viewer || view.pending.length > 0) return false;
   if (card.type === 'alchemist') return !view.turn.rolled && !view.turn.alchemist;
   if (!view.turn.rolled) return false;
   if (card.type === 'bishop') return robberActive(view);
+  if (chooserFor(card) === 'player') return validTargets(view, card).length > 0;
   return true;
 }
 
@@ -54,6 +86,7 @@ function blocker(view: PlayerView, card: ProgressCard): string | null {
   if (card.type === 'alchemist') return view.turn.rolled ? 'The Alchemist is played before you roll.' : 'You already set the dice this turn.';
   if (!view.turn.rolled) return 'Roll the dice first.';
   if (card.type === 'bishop') return 'The robber joins the game after the first barbarian attack.';
+  if (chooserFor(card) === 'player' && !validTargets(view, card).length) return NO_TARGET[card.type] ?? 'Nobody to play it on.';
   return null;
 }
 
@@ -120,15 +153,21 @@ export function ProgressCardDialog({ view, id }: { view: PlayerView; id: number 
               {opponents.map((seat) => {
                 const pl = view.players[seat];
                 const c = PLAYER_COLORS[pl.color];
+                const no = targetBlocker(view, card, seat);
                 return (
                   <button
                     key={seat}
                     type="button"
                     className="btn justify-between px-4 py-2.5"
                     style={{ ['--btn-bg' as string]: c.hex, ['--btn-fg' as string]: c.ink }}
+                    disabled={!!no}
+                    title={no ?? undefined}
                     onClick={() => play({ victim: seat })}
                   >
-                    <span>{pl.name}</span>
+                    <span className="flex flex-col items-start">
+                      {pl.name}
+                      {no && <span className="text-[11px] font-bold opacity-80">{no}</span>}
+                    </span>
                     <span className="flex items-center gap-2 text-xs">
                       {pl.publicVP} VP · {pl.handCount} cards ·
                       <ProgressCounts tracks={pl.progressTracks} />

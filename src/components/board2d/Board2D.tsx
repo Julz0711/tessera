@@ -499,7 +499,7 @@ function PirateShip({ x, y, theme, ghost, k = 1 }: { x: number; y: number; theme
   );
 }
 
-/** A treasure on a corner (Veiled Isles): what's inside stays hidden until a ship reaches it. */
+/** A treasure on a corner (Veiled Isles): what's inside stays hidden until a road or ship reaches it. */
 function TreasureChest({ x, y, theme, k = 1 }: { x: number; y: number; theme: BoardThemeId; k?: number }) {
   return (
     <g pointerEvents="none" transform={`translate(${x} ${y}) scale(${k})`}>
@@ -728,6 +728,20 @@ function ShipIcon({ x, y, color }: { x: number; y: number; color: string }) {
   );
 }
 
+/** Width of the lane beside the barbarian steps that holds the voyage arrow. */
+const BARBARIAN_ARROW_LANE = 22;
+
+/** A slim arrow pointing down the barbarian track, from the first step to the landing. */
+function VoyageArrow({ x, from, to, danger }: { x: number; from: number; to: number; danger: boolean }) {
+  const color = danger ? "#ff8a73" : "#f6eddb";
+  return (
+    <g opacity={danger ? 0.95 : 0.7} stroke={color} strokeLinecap="round" strokeLinejoin="round" fill="none">
+      <path d={`M${x} ${from} V${to - 4}`} strokeWidth="4" strokeDasharray="2 9" />
+      <path d={`M${x - 8} ${to - 12} L${x} ${to} L${x + 8} ${to - 12}`} strokeWidth="4.5" />
+    </g>
+  );
+}
+
 /**
  * The barbarian ship's voyage (C&K): a dark field west of the island with the status on top
  * (barbarian strength against the island's knight defense) and a zigzag strip of touching hex steps
@@ -750,8 +764,9 @@ function BarbarianTrack2D({
   const r = layout.r * S;
   const steps = Array.from({ length: barbarian.distance + 1 }, (_, i) => layout.at(i));
   const xs = steps.map((p) => p.x * S);
-  const left = Math.min(...xs) - r - 10;
-  const width = Math.max(...xs) - Math.min(...xs) + 2 * r + 20;
+  // The field leaves a lane on its outer (west) side for the arrow of the voyage.
+  const left = Math.min(...xs) - r - 10 - BARBARIAN_ARROW_LANE;
+  const width = Math.max(...xs) - Math.min(...xs) + 2 * r + 20 + BARBARIAN_ARROW_LANE;
   const hx = layout.header.x * S;
   const hy = layout.header.y * S;
   const top = hy - (BARBARIAN_HEADER_H * S) / 2 - 4;
@@ -761,6 +776,8 @@ function BarbarianTrack2D({
   return (
     <g pointerEvents="none">
       <rect x={left} y={top} width={width} height={bottom - top} rx="16" fill="#0b2233" opacity="0.5" />
+      {/* the way the ship sails: down the steps to the landing, where it attacks the island */}
+      <VoyageArrow x={left + BARBARIAN_ARROW_LANE / 2 + 4} from={steps[0].y * S - r * 0.5} to={steps[steps.length - 1].y * S + r * 0.35} danger={danger} />
       <g aria-label={`Barbarians ${barbarian.strength}, knights ${barbarian.defense}`}>
         <ShipIcon x={hx - 38} y={hy} color={losing ? "#ff8a73" : paper} />
         <text x={hx - 20} y={hy + 8} className="display" fontSize="22" fontWeight="900" fill={losing ? "#ff8a73" : paper}>
@@ -822,7 +839,7 @@ export default function Board2D({
     let minY = Math.min(...ys) - pad;
     // Room for the barbarian track's steps and badges, west of the island.
     if (barbLayout) {
-      minX = Math.min(minX, (barbLayout.at(0).x - barbLayout.r) * S - 30);
+      minX = Math.min(minX, (barbLayout.at(0).x - barbLayout.r) * S - 30 - BARBARIAN_ARROW_LANE);
       minY = Math.min(minY, (barbLayout.header.y - BARBARIAN_HEADER_H / 2) * S - 20);
     }
     return {

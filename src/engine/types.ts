@@ -289,7 +289,8 @@ export type Prompt =
   | { kind: 'giveCards'; seat: number; to: number; count: number }
   | { kind: 'commercialHarbor'; seat: number; from: number }
   | { kind: 'deserterRemove'; seat: number; to: number }
-  | { kind: 'deserterPlace'; seat: number; level: KnightLevel }
+  /** `active`: the deserting knight was active, so the one placed is too (missing on older saves: inactive). */
+  | { kind: 'deserterPlace'; seat: number; level: KnightLevel; active?: boolean }
   /** Diplomat on your own open road: pick where it moves (it stays put until then). */
   | { kind: 'moveRoad'; seat: number; from: number }
   | { kind: 'spy'; seat: number; victim: number; cards: ProgressCard[] }
@@ -319,7 +320,10 @@ export interface TradeOffer {
   want: PartialHand;
   accepted: number[];
   declined: number[];
-  /** Seats in `declined` that couldn't afford the offer (declined for them); only that seat sees it as declined. */
+  /**
+   * Legacy (saves from before the auto-decline setting): seats in `declined` that couldn't afford the
+   * offer and were declined for them. Read only to undo that (see `sweepTrades`); never written.
+   */
   auto?: number[];
 }
 
@@ -439,7 +443,8 @@ export interface DetailedStats {
   drought: number[];
   longestDrought: number[];
   expectedDice: number[];
-  timeline: { turn: number; vp: number[]; production: number[]; spent: number[]; hand: number[]; improvements: number[] }[];
+  /** End-of-turn samples. `publicVp` leaves out hidden VP cards (live stats show it as `vp`); older saves lack it. */
+  timeline: { turn: number; vp: number[]; publicVp?: number[]; production: number[]; spent: number[]; hand: number[]; improvements: number[] }[];
   milestones: { turn: number; seat: number | null; label: string }[];
 }
 
@@ -490,6 +495,10 @@ export interface GameState {
   diceBag?: DiceBag;
   /** Running totals for the end-of-game stats screen; see `GameStats`. */
   stats: GameStats;
+  /** An admin changed this game by hand (undo, cards, dice): it isn't rated. */
+  adminEdited?: boolean;
+  /** Admin tools: the dice the next roll will show (the event die too, if set) — server-only. */
+  nextRoll?: { red: number; yellow: number; event?: EventFace } | null;
 }
 
 // ── Actions ─────────────────────────────────────────────────────────────────

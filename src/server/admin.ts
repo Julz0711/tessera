@@ -4,7 +4,7 @@
  * writes flushed, so nothing gets written back after the rows are gone. Formal privacy erasure
  * (replays, reports, orphaned portraits) stays with `npm run privacy:delete`.
  */
-import type { Db } from './db';
+import { getDb, type Db } from './db';
 import type { ServerIdentity } from './identity';
 import type { RoomManager } from './rooms';
 import { UserError } from './room';
@@ -32,6 +32,27 @@ export async function isAdmin(db: Db, identity: ServerIdentity | null): Promise<
   if (list.has(identity.id.toLowerCase())) return true;
   const user = await db.user.findUnique({ where: { id: identity.id }, select: { email: true, accounts: { where: { provider: 'google' }, select: { id: true } } } });
   return !!user?.email && user.accounts.length > 0 && list.has(user.email.toLowerCase());
+}
+
+/**
+ * Development only: `DEV_ADMIN=1` gives every player the in-game admin tools, to test them without a
+ * database or a sign-in. Ignored in production builds.
+ */
+export function devAdmin(): boolean {
+  return process.env.DEV_ADMIN === '1' && process.env.NODE_ENV !== 'production';
+}
+
+/** Whether a socket's identity gets the in-game admin tools (never throws: no database means no). */
+export async function isAdminIdentity(identity: ServerIdentity): Promise<boolean> {
+  if (devAdmin()) return true;
+  const db = getDb();
+  if (!db) return false;
+  try {
+    return await isAdmin(db, identity);
+  } catch (err) {
+    console.error('[admin] admin check failed', err);
+    return false;
+  }
 }
 
 const page = (params: URLSearchParams) => Math.max(1, Math.floor(Number(params.get('page')) || 1));

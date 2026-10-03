@@ -1,6 +1,6 @@
 'use client';
 
-import { BookOpen, Box, Copy, Grid2x2, LogOut, Menu, Settings, Volume2, VolumeX, Wifi, WifiOff } from 'lucide-react';
+import { BookOpen, Box, ChartColumn, Copy, Grid2x2, LogOut, Menu, Music, Settings, ShieldCheck, Volume2, VolumeX, Wifi, WifiOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { statusLine } from '@/client/describe';
@@ -8,6 +8,7 @@ import { usePrefs } from '@/client/prefs';
 import { useSettingsUI } from '@/client/settingsUI';
 import { setVolume, setSfxVolumes } from '@/client/sound';
 import { api, toast, useGame } from '@/client/store';
+import { useGameDialog } from '@/client/ui';
 import type { PlayerView } from '@/engine/view';
 import type { RoomDTO } from '@/shared/protocol';
 import { formatCode } from '@/components/room/Lobby';
@@ -16,6 +17,7 @@ import { LeaveDialog } from './LeaveDialog';
 import { MobileSide } from './MobileSide';
 import { ReactionPicker } from './Reactions';
 import { RulebookDialog } from '@/components/rules/RulebookDialog';
+import { BetaBadge } from '@/components/ui/BetaBadge';
 import { gameTypeOf } from '@/engine/maps';
 import type { RuleMode } from '@/config/rulebook';
 
@@ -70,15 +72,30 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
               <button type="button" className="btn py-1.5 text-sm" onClick={() => prefs.set({ volume: prefs.volume > 0 ? 0 : 0.6 })}>
                 {prefs.volume > 0 ? <Volume2 size={15} /> : <VolumeX size={15} />} {prefs.volume > 0 ? 'Mute' : 'Unmute'}
               </button>
+              <button type="button" className="btn py-1.5 text-sm" onClick={() => prefs.set({ musicVolume: prefs.musicVolume > 0 ? 0 : 0.5 })} aria-pressed={prefs.musicVolume > 0}>
+                <Music size={15} /> {prefs.musicVolume > 0 ? 'Music off' : 'Music on'}
+              </button>
               <button type="button" className="btn py-1.5 text-sm" onClick={() => { setMenu(false); setRules(true); }}>
                 <BookOpen size={15} /> Rules
               </button>
+              <button type="button" className="btn py-1.5 text-sm" onClick={() => { setMenu(false); useGameDialog.getState().show('stats'); }}>
+                <ChartColumn size={15} /> Live stats
+              </button>
+              {room.you.isAdmin && view.phase !== 'ended' && (
+                <button type="button" className="btn py-1.5 text-sm" onClick={() => { setMenu(false); useGameDialog.getState().show('admin'); }}>
+                  <ShieldCheck size={15} /> Admin tools
+                </button>
+              )}
               <button type="button" className="btn py-1.5 text-sm" onClick={copy}>
                 <Copy size={15} /> Copy invite link
               </button>
               <button type="button" className="btn btn-danger py-1.5 text-sm" onClick={askLeave}>
                 <LogOut size={15} /> Leave game
               </button>
+              <p className="flex items-start gap-1.5 pt-1 text-[11px] leading-snug text-ink-soft">
+                <BetaBadge />
+                <span>Expect changes and the odd bug.</span>
+              </p>
             </div>
           )}
           <RulebookDialog open={rules} onClose={() => setRules(false)} modes={ruleModes} />
@@ -90,6 +107,7 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
         <button type="button" onClick={copy} className="game-code glass hidden items-center gap-2 px-3 py-2 lg:flex" title="Copy invite link">
           <span className="font-mono text-sm font-black tracking-[0.18em] text-paper">{formatCode(room.code)}</span>
         </button>
+        <BetaBadge className="max-lg:hidden" />
         <span className={`game-connection glass flex h-10 items-center px-2.5 ${conn === 'online' ? 'text-moss max-lg:hidden' : 'text-terracotta'}`} title={conn} role="status" aria-label={conn === 'online' ? 'Connected' : 'Reconnecting to your table'}>
           {conn === 'online' ? <Wifi size={16} /> : <WifiOff size={16} className="animate-pulse" />}
         </span>

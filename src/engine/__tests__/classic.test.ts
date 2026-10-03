@@ -378,25 +378,39 @@ describe('trading', () => {
     expect(s.trades).toHaveLength(0);
   });
 
-  it('declines for players without the cards, without telling anyone else', () => {
+  it('leaves an offer a player cannot afford for them to answer', () => {
     let s = playing();
     setHand(s, 0, { brick: 2 });
     setHand(s, 1, { ore: 1 });
     s = act(s, 0, { type: 'offerTrade', give: { brick: 1 }, want: { ore: 1 }, to: [] });
     const id = s.trades[0].id;
-    expect(s.trades[0].declined).toEqual([2]);
-    // Only player 2 sees their own decline; the offerer and player 1 see no answer from them.
-    expect(viewFor(s, 2).trades[0].declined).toEqual([2]);
+    // Player 2 has no ore, but nothing is declined for them: they answer (or their client does).
+    expect(s.trades[0].declined).toEqual([]);
     expect(viewFor(s, 0).trades[0].declined).toEqual([]);
-    expect(viewFor(s, 1).trades[0].declined).toEqual([]);
-    // Player 1 accepts, then spends the ore: the acceptance turns into a hidden decline too, and
-    // the offer stays open so the offerer can't tell that nobody can take it.
+    expect(reject(s, 2, { type: 'respondTrade', id, accept: true })).toMatch(/don't have the cards/);
+    s = act(s, 2, { type: 'respondTrade', id, accept: false });
+    expect(viewFor(s, 0).trades[0].declined).toEqual([2]);
+    // Player 1 accepts, then spends the ore: the acceptance is withdrawn (they're undecided again),
+    // so the offerer can't complete a trade that would fail.
     s = act(s, 1, { type: 'respondTrade', id, accept: true });
     setHand(s, 1, {});
     s = act(s, 0, { type: 'embargo', seat: 2, on: true });
     expect(s.trades).toHaveLength(1);
-    expect(viewFor(s, 0).trades[0].accepted).toEqual([]);
-    expect(viewFor(s, 0).trades[0].declined).toEqual([]);
+    expect(s.trades[0].accepted).toEqual([]);
+    expect(s.trades[0].declined).toEqual([2]);
+  });
+
+  it('turns legacy hidden declines (older saves) back into no answer', () => {
+    let s = playing();
+    setHand(s, 0, { brick: 2 });
+    s = act(s, 0, { type: 'offerTrade', give: { brick: 1 }, want: { ore: 1 }, to: [1, 2] });
+    s.trades[0].declined = [2];
+    s.trades[0].auto = [2];
+    expect(viewFor(s, 1).trades[0].declined).toEqual([]);
+    s = act(s, 1, { type: 'respondTrade', id: s.trades[0].id, accept: false });
+    expect(s.trades).toHaveLength(1);
+    expect(s.trades[0]).toMatchObject({ declined: [1] });
+    expect(s.trades[0].auto).toBeUndefined();
   });
 
   it('closes an offer once everyone has actually declined it', () => {

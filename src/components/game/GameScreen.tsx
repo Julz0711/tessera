@@ -14,12 +14,15 @@ import { play } from '@/client/sound';
 import { api, toast, useGame } from '@/client/store';
 import { computeTargets, handlePick } from '@/client/interaction';
 import { sceneFromView } from '@/client/targets';
-import { useUi, type SideTab } from '@/client/ui';
+import { useAutoDecline } from '@/client/trade';
+import { useBackgroundMusic } from '@/client/music';
+import { useGameDialog, useUi, type SideTab } from '@/client/ui';
 import { BoardView } from '@/components/board/BoardView';
 import { BuildPopup } from './BuildPopup';
 import { ChatPanel } from '@/components/room/ChatPanel';
 import { BankPanel } from './BankPanel';
 import { BankStrip } from './BankStrip';
+import { BarbarianMeter } from './ck/BarbarianMeter';
 import { CkPromptDialog, PickBanner } from './ck/CkPrompts';
 import { ImprovementsPanel } from './ck/ImprovementsPanel';
 import { KnightMenu } from './ck/KnightMenu';
@@ -29,6 +32,8 @@ import { DiceBox } from './DiceBox';
 import { DiceHistogram } from './DiceStats';
 import { Dock } from './Dock';
 import { GameOver } from './GameOver';
+import { LiveStatsDialog } from './LiveStatsDialog';
+import { AdminToolsDialog } from './AdminToolsDialog';
 import { LogPanel } from './LogPanel';
 import { PlayerStrip, PlayersPanel } from './PlayersPanel';
 import { DiscardDialog, FreeRoadsBanner, GoldDialog } from './Prompts';
@@ -256,6 +261,8 @@ export function GameScreen() {
 
   useEventFeedback(view, events, updateId);
   useUiSounds(view);
+  useAutoDecline(view);
+  useBackgroundMusic();
 
   // Light up the rolled number for a few seconds.
   useEffect(() => {
@@ -300,9 +307,11 @@ export function GameScreen() {
   const myPrompt = me !== null ? view.pending.find((p) => p.seat === me) : undefined;
   const zoom = HUD_SCALE[prefs.hudScale];
   const layout = prefs.hudLayout;
+  // Panels with nothing to show in this game: the barbarians outside Knights & Barbarians.
+  const unused = (panel: HudPanel) => panel === 'barbarian' && view.mode !== 'ck';
   // A side column takes room from the flat board when it holds more than the (usually empty) offers.
   const columnUsed = (side: HudSide) =>
-    HUD_PANELS.some((p) => p !== 'offers' && (layout[p].slot === `${side}Top` || layout[p].slot === `${side}Bottom`));
+    HUD_PANELS.some((p) => p !== 'offers' && !unused(p) && (layout[p].slot === `${side}Top` || layout[p].slot === `${side}Bottom`));
   const board2d = {
     '--hud-t': `${64 * zoom}px`,
     '--hud-b': `${168 * zoom}px`,
@@ -320,6 +329,8 @@ export function GameScreen() {
             <SidePanel view={view} unread={unread} />
           </div>
         );
+      case 'barbarian':
+        return <BarbarianMeter view={view} />;
       case 'bank':
         return <BankStrip view={view} />;
       case 'players':
@@ -383,9 +394,9 @@ export function GameScreen() {
       </div>
 
       {/* log/chat, bank, players, dice and offers on wide screens, wherever the player put them */}
-      <DesktopHud render={renderPanel} />
+      <DesktopHud render={renderPanel} skip={unused} />
       <div className="game-players absolute inset-x-2 top-26 z-10 lg:hidden" style={{ zoom }}>
-        <PlayerStrip view={view} room={room} />
+        <PlayerStrip view={view} room={room} leading={view.mode === 'ck' && view.phase !== 'ended' ? <BarbarianMeter view={view} compact /> : undefined} />
       </div>
 
       {/* trade offers on smaller screens: top-left, below the players strip */}
@@ -416,6 +427,8 @@ export function GameScreen() {
       {ui.card?.kind === 'dev' && me !== null && <DevCardDialog key={ui.card.type} view={view} type={ui.card.type} />}
       {ui.knightMenu !== null && me !== null && <KnightMenu view={view} vertex={ui.knightMenu} />}
       {ui.panel === 'bank' && me !== null && <BankPanel view={view} />}
+      <LiveStatsDialog view={view} />
+      {room.you.isAdmin && <AdminToolsDialog view={view} room={room} />}
       {view.phase === 'ended' && showResults && <GameOver view={view} room={room} onClose={() => setShowResults(false)} />}
       {view.phase === 'ended' && !showResults && (
         <button type="button" className="btn btn-primary absolute bottom-40 left-1/2 z-30 -translate-x-1/2 px-5 py-2.5" onClick={() => setShowResults(true)}>
@@ -462,8 +475,18 @@ function SideContent({ view, tab }: { view: PlayerView; tab: SideTab }) {
   if (tab === 'log') return <LogPanel view={view} className="min-h-0 flex-1" />;
   if (tab === 'chat') return <ChatPanel className="min-h-0 flex-1" dark />;
   return (
-    <div className="scroll-thin min-h-0 flex-1 overflow-y-auto">
+    <div className="scroll-thin grid min-h-0 flex-1 content-start gap-2 overflow-y-auto">
       {view.stats ? <DiceHistogram dice={view.stats.dice} compact /> : <p className="text-sm text-foam/40">No rolls recorded for this game.</p>}
+      <FullStatsButton />
     </div>
+  );
+}
+
+/** Opens the live stats: everything the end-of-game report shows, so far. */
+function FullStatsButton() {
+  return (
+    <button type="button" className="btn justify-self-start px-3 py-1.5 text-xs" onClick={() => useGameDialog.getState().show('stats')}>
+      <ChartColumn size={14} /> Full stats
+    </button>
   );
 }

@@ -5,8 +5,9 @@ import { emit, type Ctx } from '../state';
 import { TREASURE_KINDS, type PartialHand, type TreasureKind } from '../types';
 
 /**
- * Veiled Isles treasures. A ship reaching a treasure corner collects it; revealing hidden sea pays a
- * bonus treasure drawn at random from the four kinds (it doesn't use up the placed ones).
+ * Veiled Isles treasures. A road or ship reaching a treasure corner collects it (built, moved or
+ * placed for free); revealing hidden sea pays a bonus treasure drawn at random from the four kinds
+ * (it doesn't use up the placed ones).
  */
 export function collectTreasures(ctx: Ctx, edge: number): void {
   const treasures = ctx.s.board.treasures;

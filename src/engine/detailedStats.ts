@@ -100,7 +100,7 @@ export function recordDetailedEvent(s: GameState, ev: GameEvent): void {
 /** End-of-turn samples contain hidden VP/hand totals; details are redacted during play. */
 export function sampleStats(s: GameState, turn = s.turn.n): void {
   const d = detailsFor(s);
-  const sample = { turn, vp: s.players.map((_, i) => victoryPoints(s, i)), production: s.stats.produced.map(handTotal),
+  const sample = { turn, vp: s.players.map((_, i) => victoryPoints(s, i)), publicVp: s.players.map((_, i) => victoryPoints(s, i, false)), production: s.stats.produced.map(handTotal),
     spent: s.players.map((_, i) => handTotal(d.hands.spent?.[i] ?? {})), hand: s.players.map((p) => handTotal(p.hand)),
     improvements: s.players.map((p) => Object.values(p.improvements).reduce((a, b) => a + b, 0)) };
   if (d.timeline.at(-1)?.turn === turn) d.timeline[d.timeline.length - 1] = sample;
@@ -140,7 +140,8 @@ export function recordActionStats(before: GameState, s: GameState, seat: number,
 /** Exact next-roll distribution, including balanced bag weighting and Alchemist. Server-only. */
 export function rollProbabilities(s: GameState): number[] {
   const probabilities = Array<number>(13).fill(0);
-  if (s.turn.alchemist) { probabilities[s.turn.alchemist.red + s.turn.alchemist.yellow] = 1; return probabilities; }
+  const fixed = s.turn.alchemist ?? s.nextRoll;
+  if (fixed) { probabilities[fixed.red + fixed.yellow] = 1; return probabilities; }
   const cards = s.settings.dice === 'balanced' && s.diceBag && s.diceBag.cards.length > BAG_REFILL_AT ? s.diceBag.cards : Array.from({ length: 36 }, (_, i) => i);
   let sum = 0;
   for (const card of cards) {

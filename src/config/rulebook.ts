@@ -258,7 +258,7 @@ export const RULEBOOK: RuleChapter[] = [
             'Players answer by accepting or declining. When a player accepts your offer, you confirm which accepting player you trade with.',
             'If the player on turn accepts a counter-offer, the trade happens right away.',
             'You can have up to 6 open offers at a time. Open offers disappear when your turn ends.',
-            'A player who does not have the cards you ask for declines automatically.',
+            'A player who does not have the cards you ask for can only decline (or counter). With **Auto-decline trades** on (Settings → Gameplay), such an offer declines itself after 5 seconds.',
           ],
         ],
       },
@@ -506,7 +506,7 @@ export const RULEBOOK: RuleChapter[] = [
           [
             '**Bishop (2):** move the robber (only after the first attack) and take 1 random card from every player with a building next to it.',
             '**Constitution (1):** 1 point, revealed at once.',
-            '**Deserter (2):** choose an opponent with knights. They remove one of their knights, and you may place a knight of the same level from your supply (or the strongest weaker one you have left) on an empty corner next to your roads.',
+            '**Deserter (2):** choose an opponent with knights. They remove one of their knights, and you may place a knight of the same level from your supply (or the strongest weaker one you have left) on an empty corner next to your roads. It keeps the deserter\'s status: if the removed knight was active, yours is placed active (it can act from your next turn).',
             '**Diplomat (2):** remove an open road (a road with one end not connected to anything of its owner), or move one of your own open roads.',
             '**Intrigue (2):** displace an opponent\'s knight standing on a corner that touches your roads. You need no knight of your own. Its owner moves it, and cannot put it back on the same corner.',
             '**Saboteur (2):** every opponent with at least as many points as you discards half their hand, rounded down.',
@@ -521,7 +521,7 @@ export const RULEBOOK: RuleChapter[] = [
         body: [
           [
             '**Commercial Harbor (2):** give each opponent you choose 1 resource. Each who holds a commodity gives you 1 commodity back, their choice.',
-            '**Master Merchant (2):** look at the hand of a player with more points than you and take 2 cards.',
+            '**Master Merchant (2):** look at the hand of a player with more points than you (a tie is not enough) and take 2 cards.',
             '**Merchant (6):** place the merchant on a land tile next to one of your settlements or cities. You trade that tile\'s resource 2:1 and get **1 point** while you hold the merchant. If another player plays a Merchant, they take it over.',
             '**Merchant Fleet (2):** for the rest of this turn, trade one card type of your choice 2:1.',
             '**Resource Monopoly (4):** name a resource. Every opponent gives you up to 2 of it.',
@@ -644,7 +644,7 @@ export const RULEBOOK: RuleChapter[] = [
       {
         title: 'Treasures',
         body: [
-          'Some Special maps have treasure chests on corners of the board. A ship that ends on a treasure\'s corner collects it. It can be a newly built ship, a ship you move there, or a starting ship. Every treasure is one of four kinds:',
+          'Some Special maps have treasure chests on corners of the board. A road or ship that reaches a treasure\'s corner collects it: a newly built road or ship, a free one (Road Building), a ship you move there, or a starting road or ship. Every treasure is one of four kinds:',
           [
             '**A resource of your choice** from the bank.',
             '**Road Building:** place 2 free roads or ships.',
@@ -659,7 +659,7 @@ export const RULEBOOK: RuleChapter[] = [
           'Knights & Barbarians rules only, up to 4 players, **16** points to win.',
           [
             'You start on the standard-sized island. It is surrounded by sea with 15 fogged tiles scattered around it.',
-            'The fog hides 0 to 2 sea tiles, 0 or 1 gold fields, and otherwise resource tiles (never desert) with random numbers.',
+            'The fog always hides exactly 2 sea tiles, 0 or 1 gold fields, and otherwise resource tiles (never desert) with random numbers.',
             '15 treasures lie at fixed spots around the island: 5 resource, 4 Road Building, 3 three-resource and 3 card treasures, shuffled each game.',
             'Uncovering a hidden sea tile pays a bonus treasure of a random kind.',
             'Your first settlement on each island that is not a home island is worth **1 point**.',

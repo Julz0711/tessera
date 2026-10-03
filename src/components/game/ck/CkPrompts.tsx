@@ -24,7 +24,7 @@ export function CkPromptDialog({ view, prompt }: { view: PlayerView; prompt: Pro
       return (
         <Modal open dismissable={false} title={prompt.reason === 'treasure' ? 'Treasure!' : "Defender's reward"}>
           <p className="mb-3 text-sm text-ink-soft">
-            {prompt.reason === 'treasure' ? 'Your ship found a treasure' : 'You tied for the strongest defense'}. Draw a progress card from a deck of your choice:
+            {prompt.reason === 'treasure' ? 'You found a treasure' : 'You tied for the strongest defense'}. Draw a progress card from a deck of your choice:
           </p>
           <div className="grid gap-2 sm:grid-cols-3">
             {TRACKS.map((t) => (
@@ -165,7 +165,7 @@ export function PickBanner({ view }: { view: PlayerView }) {
     }
     if (prompt.kind === 'deserterPlace') {
       // It may be weaker than the knight that deserted, when the thief has none of that strength left.
-      text = `Place your ${KNIGHT_NAMES[prompt.level]} knight (the deserter) next to your roads`;
+      text = `Place your ${prompt.active ? 'active ' : ''}${KNIGHT_NAMES[prompt.level]} knight (the deserter) next to your roads`;
       extra = (
         <button type="button" className="btn btn-ghost px-2 py-1 text-xs" onClick={() => api.act({ type: 'placeKnight', vertex: null })}>
           Skip

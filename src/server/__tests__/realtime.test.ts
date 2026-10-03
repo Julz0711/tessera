@@ -6,6 +6,7 @@ import { botAction } from '@/bots';
 import { actorsFor, tradesAwaiting, type PlayerView } from '@/engine';
 import { DEFAULT_KNIGHT } from '@/shared/knight';
 import type { AckResult, ChatMessage, ClientToServerEvents, RoomDTO, ServerToClientEvents } from '@/shared/protocol';
+import type { GameReport } from '@/engine/report';
 
 process.env.AUTH_SECRET = 'test-secret-for-realtime';
 
@@ -152,6 +153,13 @@ describe('realtime server', () => {
     expect(spectatorView.viewer).toBeNull();
     expect(spectatorView.players.every((p) => p.devCards.length === 0)).toBe(true);
     expect((await call((ack) => watcher.emit('game:action', { type: 'endTurn' }, ack))).ok).toBe(false);
+
+    // Live stats reach anyone at the table (public information only); the admin tools reach nobody here.
+    const stats = await call<{ report: GameReport }>((ack) => watcher.emit('game:stats', ack));
+    expect(stats.ok && stats.report.live).toBe(true);
+    expect(hostRoom!.you.isAdmin).toBeUndefined();
+    const denied = await call((ack) => host.emit('admin:game', { type: 'undo' }, ack));
+    expect(denied).toEqual({ ok: false, error: 'Only admins can do that' });
 
     // Chat reaches everyone; a burst gets rate-limited.
     const heard = new Promise<ChatMessage>((resolve) => watcher.on('chat:message', (m) => !m.system && resolve(m)));

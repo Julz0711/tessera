@@ -4,8 +4,9 @@ import { ArrowDown, ArrowLeftRight, ArrowUp, Check, ChevronDown, ChevronUp, Hour
 import { useEffect, useState } from 'react';
 import { CARDS, RESOURCES, exchangeValue, handTotal, hasCards, type Card, type PartialHand, type TradeOffer } from '@/engine';
 import type { PlayerView } from '@/engine/view';
+import { usePrefs } from '@/client/prefs';
 import { api, useGame } from '@/client/store';
-import { openTrade, useTradeDraft, type TradeSide } from '@/client/trade';
+import { AUTO_DECLINE_MS, autoDeclineLeft, openTrade, unaffordableOffer, useTradeDraft, type TradeSide } from '@/client/trade';
 import { useUi } from '@/client/ui';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
@@ -126,12 +127,26 @@ function DealButton({
   );
 }
 
+/** A bar along the bottom of an offer that runs down until it declines itself (auto-decline). */
+function CountdownBar({ left }: { left: number }) {
+  // Frozen when the bar appears; the CSS animation then runs on its own, in step with the timer.
+  const [elapsed] = useState(() => AUTO_DECLINE_MS - left);
+  return (
+    <span
+      aria-hidden
+      className="absolute inset-x-0 bottom-0 z-10 h-1 origin-left animate-cooldown bg-danger/80"
+      style={{ animationDuration: `${AUTO_DECLINE_MS}ms`, animationDelay: `-${elapsed}ms` }}
+    />
+  );
+}
+
 /** The card frame shared by offers and the trade panel: a header strip of players over the two rows of the deal. */
 function DealCard({
   header,
   footer,
   collapsed,
   onToggle,
+  countdown,
   children,
   className = '',
 }: {
@@ -140,11 +155,14 @@ function DealCard({
   footer?: React.ReactNode;
   collapsed?: boolean;
   onToggle?: () => void;
+  /** Milliseconds until the offer declines itself: a bar along the bottom runs down. */
+  countdown?: number;
   children: React.ReactNode;
   className?: string;
 }) {
   return (
-    <div className={`paper overflow-hidden p-0 ${className}`}>
+    <div className={`paper relative overflow-hidden p-0 ${className}`}>
+      {countdown !== undefined && <CountdownBar left={countdown} />}
       <div className="relative flex min-h-10 items-center justify-center gap-1 bg-paper-2 px-9 py-1">
         {header}
         {onToggle && (
@@ -176,9 +194,13 @@ function OfferCard({ view, offer }: { view: PlayerView; offer: TradeOffer }) {
   const mine = offer.from === me;
   const [collapsed, setCollapsed] = useState(false);
   const myAnswer = answerOf(offer, me);
-  // An offer you turned down (or couldn't take) goes away after a moment. Your own closes for
-  // everyone once all have declined; the server does that.
+  const canAfford = hasCards(view.players[me].hand, offer.want);
+  // An offer you turned down goes away after a moment. Your own closes for everyone once all have
+  // declined; the server does that.
   const gone = useAfter(!mine && myAnswer === 'no', DISMISS_MS);
+  // Auto-decline (a setting, run by `useAutoDecline`): the bar shows the time left.
+  const autoDecline = usePrefs((p) => p.autoDeclineTrades);
+  const countdown = autoDecline && unaffordableOffer(view, offer) ? autoDeclineLeft(offer.id) : undefined;
   if (gone) return null;
 
   if (mine) {
@@ -217,23 +239,34 @@ function OfferCard({ view, offer }: { view: PlayerView; offer: TradeOffer }) {
     );
   }
 
-  const canAfford = hasCards(view.players[me].hand, offer.want);
   const others = offer.to.filter((s) => s !== me);
   return (
     <DealCard
       header={<Avatar view={view} seat={offer.from} />}
       collapsed={collapsed}
       onToggle={() => setCollapsed(!collapsed)}
+      countdown={countdown}
       footer={
         <>
-          {/* how the other players answered */}
+          {/* how the other players answered; while auto-decline counts down, that it will */}
           <span className="mr-auto flex items-center gap-1">
             {others.map((s) => (
               <Avatar key={s} view={view} seat={s} size={24} answer={answerOf(offer, s)} />
             ))}
+            {countdown !== undefined && (
+              <span className="flex items-center gap-1 pl-0.5 text-[11px] font-bold text-danger" title="You don't have the cards: it declines itself (Settings → Gameplay)">
+                <Hourglass size={12} /> Declining…
+              </span>
+            )}
           </span>
           <DealButton label="Counter-offer" icon={<Pencil size={14} />} onClick={() => openTrade(offer.want, offer.give)} />
-          <DealButton label="Decline" danger icon={<X size={17} strokeWidth={3} />} disabled={myAnswer === 'no'} onClick={() => api.act({ type: 'respondTrade', id: offer.id, accept: false })} />
+          <DealButton
+            label={countdown !== undefined ? "Decline (it declines itself in a moment: you don't have the cards)" : 'Decline'}
+            danger
+            icon={<X size={17} strokeWidth={3} />}
+            disabled={myAnswer === 'no'}
+            onClick={() => api.act({ type: 'respondTrade', id: offer.id, accept: false })}
+          />
           <DealButton
             label={canAfford ? (myAnswer === 'yes' ? 'Accepted' : 'Accept') : "You don't have those cards"}
             icon={<Check size={17} strokeWidth={3} />}

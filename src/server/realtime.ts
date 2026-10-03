@@ -12,6 +12,7 @@ import { isReactionId } from '@/shared/reactions';
 import { setPresenceSource } from './presence';
 import { cosmeticStateFor, seatCosmetics } from './cosmetics';
 import { NO_UNLOCKS } from '@/shared/cosmetics';
+import { isAdminIdentity } from './admin';
 
 export interface SocketData {
   identity: ServerIdentity;
@@ -21,6 +22,8 @@ export interface SocketData {
   logDeltas: boolean;
   /** Cosmetics state, refreshed whenever the socket creates or joins a room. */
   cosmetics: Awaited<ReturnType<typeof cosmeticStateFor>>;
+  /** A server admin (see `isAdminIdentity`): gets the in-game admin tools. Checked once per connection. */
+  isAdmin: boolean;
 }
 
 export type IO = Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
@@ -92,6 +95,7 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
       if (s) s.data.roomCode = null;
     },
     logDeltas: (sid) => io.sockets.sockets.get(sid)?.data.logDeltas === true,
+    isAdmin: (sid) => io.sockets.sockets.get(sid)?.data.isAdmin === true,
   };
   const manager = new RoomManager({
     io: roomIO,
@@ -109,6 +113,7 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
       socket.data.roomCode = null;
       socket.data.logDeltas = (socket.handshake.auth as { logDeltas?: unknown } | undefined)?.logDeltas === true;
       socket.data.cosmetics = { unlocks: NO_UNLOCKS, chosen: null };
+      socket.data.isAdmin = await isAdminIdentity(identity);
       next();
     } catch (err) {
       console.error('[io] identity error', err);
@@ -286,6 +291,21 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
         if (!isReactionId(reaction)) throw new UserError('Unknown reaction');
         if (!limits.reaction.take(socket.data.identity.key)) throw new UserError('Easy there. Wait a moment.');
         currentRoom().react(socket.id, reaction);
+      }),
+    );
+
+    socket.on('game:stats', (ack) =>
+      reply(ack, () => {
+        if (!limits.stats.take(socket.id)) throw new UserError('Slow down a little');
+        return { report: currentRoom().liveReport(socket.id) };
+      }),
+    );
+
+    socket.on('admin:game', (cmd, ack) =>
+      reply(ack, () => {
+        if (!socket.data.isAdmin) throw new UserError('Only admins can do that');
+        if (!limits.admin.take(socket.id)) throw new UserError('Slow down a little');
+        return { message: currentRoom().admin(socket.id, cmd) };
       }),
     );
 
