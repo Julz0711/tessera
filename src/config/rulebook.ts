@@ -758,7 +758,8 @@ export const RULEBOOK: RuleChapter[] = [
           'The host can set a turn timer of 60, 90, 120 or 180 seconds, or turn it off. When time runs out, autopilot plays the move for you.',
           [
             'The clock only runs when **two or more people** sit at the table. Bots do not count as people.',
-            'Decisions like a discard, the robber or a setup placement get a shorter window: at most 45 seconds.',
+            'Each setup placement (settlement and road) gets the full timer.',
+            'Decisions like a discard or the robber get a shorter window: at most 45 seconds.',
             'In the last 10 seconds (the red zone), if you make a move, you earn 5 extra seconds on that decision.',
           ],
         ],

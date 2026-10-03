@@ -24,4 +24,15 @@ describe('turn timer', () => {
     expect(duo.dto('s1').deadline).toEqual(expect.any(Number));
     duo.close('done');
   });
+
+  it('gives each setup placement the full timer', () => {
+    const now = 1_000_000;
+    const room = new Room('ABCDEFGK', guest('a'), { turnTimer: 120 }, { io, persistence: noopPersistence, botDelayScale: 0, now: () => now });
+    room.join('s1', guest('a'), { profile: profile('red') });
+    room.join('s2', guest('b'), { profile: profile('blue') });
+    room.start('s1');
+    expect(room.game!.phase).toBe('setup');
+    expect(room.dto('s1').deadline).toBe(now + 120_000);
+    room.close('done');
+  });
 });
