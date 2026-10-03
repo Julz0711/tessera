@@ -661,8 +661,8 @@ export class Room {
     const t = this.settings.turnTimer;
     // Bots don't mind waiting: the clock only runs while two or more people share the table.
     if (!t || this.seats.filter((s) => !s.isBot).length < 2) return Infinity;
-    // Prompts (discards, robber…) and setup placements get a shorter window than a full turn.
-    return (g.pending.length || g.phase === 'setup' ? Math.min(t, 45) : t) * 1000;
+    // Prompts (discards, robber…) get a shorter window than a full turn; setup placements get a full one.
+    return (g.pending.length ? Math.min(t, 45) : t) * 1000;
   }
 
   private deadline(): number | null {

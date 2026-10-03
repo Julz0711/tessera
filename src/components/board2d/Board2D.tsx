@@ -478,10 +478,14 @@ function ShipPiece({
   k?: number;
 }) {
   const e = topo.edges[edge];
-  // Always upright and level, centred on the edge: a boat standing on its end (on the steep edges)
-  // reads badly, and every theme's craft is drawn side-on.
+  // Angled along the edge, never upside down. On the vertical edges it stays level: a boat standing
+  // on its end reads badly, and every theme's craft is drawn side-on.
+  let deg = (e.angle * 180) / Math.PI;
+  if (deg > 90) deg -= 180;
+  if (deg <= -90) deg += 180;
+  if (Math.abs(deg) > 60) deg = 0;
   return (
-    <g pointerEvents="none" opacity={ghost ? 0.7 : 1} transform={`translate(${e.x * S} ${e.y * S}) scale(${k * 0.85})`}>
+    <g pointerEvents="none" opacity={ghost ? 0.7 : 1} transform={`translate(${e.x * S} ${e.y * S}) rotate(${deg.toFixed(1)}) scale(${k * 0.85})`}>
       {selected && <ellipse rx="40" ry="20" fill="none" stroke="#f2b33d" strokeWidth="5" strokeDasharray="8 5" />}
       {VOYAGE_GLYPHS[theme].ship({ color })}
     </g>
