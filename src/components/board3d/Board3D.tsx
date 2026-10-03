@@ -147,8 +147,10 @@ function Island({
     <group>
       {scene.board.hexes.map((hex) => {
         const t = topo.hexes[hex.id];
-        const rolled = scene.highlightToken !== null && hex.token === scene.highlightToken && !hex.fog;
-        const producing = rolled && hex.id !== scene.robber;
+        // After a roll the paying tiles light up; the Inventor's two swapped tiles take over while shown.
+        const swapped = !!scene.highlightHexes?.includes(hex.id);
+        const rolled = !scene.highlightHexes && scene.highlightToken !== null && hex.token === scene.highlightToken && !hex.fog;
+        const producing = swapped || (rolled && hex.id !== scene.robber);
         return (
           <HexTile
             key={hex.id}
@@ -170,7 +172,7 @@ function Island({
               n={hex.token}
               x={topo.hexes[hex.id].x}
               z={topo.hexes[hex.id].y}
-              lit={scene.highlightToken === hex.token && hex.id !== scene.robber}
+              lit={scene.highlightHexes ? scene.highlightHexes.includes(hex.id) : scene.highlightToken === hex.token && hex.id !== scene.robber}
             />
           ) : null,
         )}

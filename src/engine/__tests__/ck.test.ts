@@ -296,6 +296,15 @@ describe('improvements and progress cards', () => {
     expect(after.log.some((e) => e.type === 'diceRolled')).toBe(true);
   });
 
+  it('logs which tokens the Inventor swapped', () => {
+    let s = ck();
+    const [a, b] = s.board.hexes.filter((h) => h.token !== null && !h.fog && ![2, 12, 6, 8].includes(h.token)).slice(0, 2);
+    const [ta, tb] = [a.token!, b.token!];
+    s = act(s, 0, { type: 'playProgress', card: giveCard(s, 0, 'inventor', 1), params: { hexes: [a.id, b.id] } });
+    expect(s.board.hexes[a.id].token).toBe(tb);
+    expect(s.log.find((e) => e.type === 'tokensSwapped')).toMatchObject({ a: a.id, b: b.id, tokens: [ta, tb] });
+  });
+
   it('plays a selection of progress cards', () => {
     let s = ck();
     const t = topo(s);

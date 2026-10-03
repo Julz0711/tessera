@@ -3,8 +3,8 @@ import { legalSetupShips } from '@/engine/queries';
 import type { PlayerView } from '@/engine/view';
 import { TERRAIN_COLORS } from './palette';
 
-/** A log line: text pieces with inline player names and card chips. */
-export type Part = string | { player: number } | { card: Card; n: number } | { dice: Dice };
+/** A log line: text pieces with inline player names, card chips, dice and a button lighting up hexes. */
+export type Part = string | { player: number } | { card: Card; n: number } | { dice: Dice } | { hexes: number[] };
 
 export const DEV_NAMES: Record<DevCardType, string> = {
   knight: 'Knight',
@@ -172,8 +172,11 @@ export function describe(ev: GameEvent, view: PlayerView): Part[][] {
     case 'roadRemoved':
       // Your own road only leaves to be placed again (Diplomat): the next entry says where.
       return ev.owner === ev.seat ? [[P(ev.seat), ' moved one of their roads']] : [[P(ev.seat), ' removed a road of ', P(ev.owner)]];
-    case 'tokensSwapped':
-      return [[P(ev.seat), ' swapped two number tokens']];
+    case 'tokensSwapped': {
+      const where = (hex: number, token: number) => `the ${token} (${TERRAIN_COLORS[view.board.hexes[hex].terrain].label})`;
+      const what = ev.tokens ? ` swapped ${where(ev.a, ev.tokens[0])} ↔ ${where(ev.b, ev.tokens[1])}` : ' swapped two number tokens';
+      return [[P(ev.seat), what, { hexes: [ev.a, ev.b] }]];
+    }
   }
 }
 

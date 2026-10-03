@@ -12,6 +12,7 @@ export function Modal({
   expansive = false,
   dismissable = true,
   dim = true,
+  top = false,
 }: {
   open: boolean;
   onClose?: () => void;
@@ -22,6 +23,11 @@ export function Modal({
   dismissable?: boolean;
   /** Darken and blur the screen behind the dialog. */
   dim?: boolean;
+  /**
+   * Pin the dialog near the top instead of centring it, so content that changes height (tabs,
+   * charts) grows downwards and the controls at the top stay put. Phones keep their bottom sheet.
+   */
+  top?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -78,7 +84,7 @@ export function Modal({
       <div
         ref={contentRef}
         tabIndex={-1}
-        className={`dialog-sheet paper animate-pop max-h-[92dvh] w-full overflow-y-auto p-5 outline-none scroll-thin ${expansive ? 'max-w-6xl' : wide ? 'max-w-2xl' : 'max-w-md'}`}
+        className={`dialog-sheet paper animate-pop w-full overflow-y-auto p-5 outline-none scroll-thin max-h-[92dvh] ${top ? 'md:mt-[3dvh] md:max-h-[calc(97dvh-1.5rem)] md:self-start' : ''} ${expansive ? 'max-w-6xl' : wide ? 'max-w-2xl' : 'max-w-md'}`}
       >
         {(title || (dismissable && onClose)) && (
           <div className="dialog-heading mb-3 flex items-start justify-between gap-3">

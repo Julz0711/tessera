@@ -84,11 +84,14 @@ export function playProgress(ctx: Ctx, cardId: number, params: ProgressParams): 
       const [a, b] = params.hexes ?? [];
       const allowed = inventorHexes(s);
       assertRule(isHex(s, a) && isHex(s, b) && a !== b && allowed.includes(a) && allowed.includes(b), 'Pick two number tokens (not 2, 12, 6 or 8)');
+      // "Played Inventor" goes in the log before the swap it makes.
+      discardPlayed(ctx, card);
       const ta = s.board.hexes[a].token;
-      s.board.hexes[a].token = s.board.hexes[b].token;
+      const tb = s.board.hexes[b].token;
+      s.board.hexes[a].token = tb;
       s.board.hexes[b].token = ta;
-      emit(ctx, { type: 'tokensSwapped', seat: ctx.seat, a, b });
-      break;
+      emit(ctx, { type: 'tokensSwapped', seat: ctx.seat, a, b, tokens: [ta!, tb!] });
+      return;
     }
     case 'irrigation':
       discardPlayed(ctx, card);

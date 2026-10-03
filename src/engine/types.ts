@@ -387,7 +387,8 @@ export type GameEventBody =
   | { type: 'metropolis'; seat: number; track: Track; at: number; from: number | null }
   | { type: 'merchantPlaced'; seat: number; hex: number }
   | { type: 'roadRemoved'; seat: number; owner: number; at: number }
-  | { type: 'tokensSwapped'; seat: number; a: number; b: number }
+  /** `tokens`: the numbers on `a` and `b` before the swap (missing on older saves). */
+  | { type: 'tokensSwapped'; seat: number; a: number; b: number; tokens?: [number, number] }
   | { type: 'defenderAwarded'; seat: number }
   /** Everyone an offer went to declined it (or couldn't take it), so it closed. `seat` made the offer. */
   | { type: 'tradeClosed'; seat: number; id: number };
