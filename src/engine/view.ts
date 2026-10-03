@@ -16,7 +16,7 @@ export interface PublicPlayer extends PlayerState {
   roadLength: number;
 }
 
-export interface PlayerView extends Omit<GameState, 'players' | 'devDeck' | 'progressDecks' | 'rng' | 'diceBag'> {
+export interface PlayerView extends Omit<GameState, 'players' | 'devDeck' | 'progressDecks' | 'rng' | 'diceBag' | 'nextRoll'> {
   /** Seat of the viewer, or null for spectators. */
   viewer: number | null;
   players: PublicPlayer[];
@@ -63,15 +63,14 @@ export function viewFor(state: GameState, viewer: number | null): PlayerView {
       roadLength: state.roadLengths[seat] ?? 0,
     };
   });
-  const { devDeck, progressDecks, rng: _rng, diceBag: _diceBag, players: _players, log, pending, stats, ...rest } = state;
+  const { devDeck, progressDecks, rng: _rng, diceBag: _diceBag, nextRoll: _nextRoll, players: _players, log, pending, stats, ...rest } = state;
   const { details, ...publicStats } = stats ?? {};
   const visible = { ...structuredClone(rest), stats: structuredClone(reveal ? stats : publicStats) as GameState['stats'] };
-  // Someone who couldn't afford an offer is declined for them; nobody else learns that from the
-  // offer, they just see no answer.
+  // Old saves marked declines for lack of cards (`auto`); they count as no answer yet.
   for (const offer of visible.trades) {
-    if (!offer.auto?.length) continue;
-    offer.declined = offer.declined.filter((seat) => !offer.auto!.includes(seat) || seat === viewer);
-    offer.auto = offer.auto.filter((seat) => seat === viewer);
+    if (!offer.auto) continue;
+    offer.declined = offer.declined.filter((seat) => !offer.auto!.includes(seat));
+    delete offer.auto;
   }
   // Black Forest: what lies under the fog stays secret (a blank tile) until someone discovers it;
   // once the game is over the whole map is shown.

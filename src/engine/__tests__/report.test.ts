@@ -18,6 +18,34 @@ describe('detailed reports', () => {
     s.phase = 'ended';
     expect(viewFor(s, null).stats.details?.counters['devBought:victoryPoint']).toEqual([1, 0]);
   });
+  it('builds a live report with only public information in it', () => {
+    const s = newGame(2);
+    s.players[0].devCards.push({ type: 'victoryPoint', boughtOn: 0 });
+    s.stats.details!.counters['devBought:victoryPoint'] = [1, 0];
+    s.stats.details!.counters.rolls = [3, 2];
+    sampleStats(s);
+    const full = buildReport(s);
+    expect(full.players[0].vp).toBe(1);
+    expect(full.players[0].points['VP cards']).toBe(1);
+    const live = buildReport(s, { live: true });
+    expect(live.live).toBe(true);
+    expect(live.winner).toBeNull();
+    // The hidden VP card counts nowhere: not in the points, the breakdown or the timeline.
+    expect(live.players[0].vp).toBe(0);
+    expect(live.players[0].points['VP cards']).toBeUndefined();
+    expect(live.stats!.details!.timeline.at(-1)!.vp).toEqual([0, 0]);
+    expect(live.stats!.details!.counters['devBought:victoryPoint']).toBeUndefined();
+    expect(live.stats!.details!.counters.rolls).toEqual([3, 2]);
+    // Building it leaves the game's own stats alone.
+    expect(s.stats.details!.counters['devBought:victoryPoint']).toEqual([1, 0]);
+    expect(JSON.stringify(live)).not.toContain('publicVp');
+  });
+  it('leaves Classic timeline samples without public points out of a live report', () => {
+    const s = newGame(2);
+    s.stats.details!.timeline.push({ turn: 1, vp: [3, 2], production: [0, 0], spent: [0, 0], hand: [0, 0], improvements: [0, 0] });
+    sampleStats(s, 2);
+    expect(buildReport(s, { live: true }).stats!.details!.timeline.map((t) => t.turn)).toEqual([2]);
+  });
   it('uses actual balanced bag weights and Alchemist when computing expectations', () => {
     const s = newGame(2);
     s.settings.dice = 'balanced'; s.diceBag = { cards: Array.from({ length: 20 }, (_, i) => i), last: 7 };

@@ -32,9 +32,9 @@ an online game needs a precise answer, these are the interpretations used:
 - Wedding: each player with more VP gives you 2 cards of their choice (fewer if they hold fewer).
 - Saboteur: each opponent with at least your VP discards half their hand (rounded down).
 - Commercial Harbor: you pick, per opponent, a resource to give; each opponent holding a commodity gives you one commodity of their choice.
-- Master Merchant: look at the hand of a player with more VP and take 2 cards.
+- Master Merchant: look at the hand of a player with strictly more VP (public points; a tie is not enough) and take 2 cards.
 - Spy: look at an opponent's progress cards and take one.
-- Deserter: the victim removes one of their knights; you may place a knight of the same strength from your supply.
+- Deserter: the victim removes one of their knights; you may place a knight of the same strength from your supply (or, with none left, the strongest weaker one), with the same status: active if the deserter was active. An active deserter counts as activated this turn, so it can't act until your next turn.
 - Diplomat: remove an open road (one end connects to nothing of its owner's); if it was yours you may place it again immediately.
 - Intrigue: displace an opponent's knight standing on an intersection touching your roads (no knight of yours needed). The intersection is left empty: its owner relocates the knight as for any displacement and can't put it back.
 - Inventor: swap two number tokens other than 2, 12, 6 and 8.

@@ -37,7 +37,14 @@ function slotAt(x: number, y: number): HudSlot | null {
  * of the dock, holding the panels wherever the player put them. In edit mode every panel gets a
  * handle to drag it onto another slot.
  */
-export function DesktopHud({ render }: { render: (panel: HudPanel, side: HudSide) => React.ReactNode }) {
+export function DesktopHud({
+  render,
+  skip,
+}: {
+  render: (panel: HudPanel, side: HudSide) => React.ReactNode;
+  /** Panels this game has no use for (the barbarians in Classic): left out, editing included. */
+  skip?: (panel: HudPanel) => boolean;
+}) {
   const layout = usePrefs((s) => s.hudLayout);
   const zoom = HUD_SCALE[usePrefs((s) => s.hudScale)];
   const editing = useHud((s) => s.editing);
@@ -92,7 +99,9 @@ export function DesktopHud({ render }: { render: (panel: HudPanel, side: HudSide
       >
         {/* mb-auto keeps the label on top in a bottom group too (those stack their panels at the bottom). */}
         {editing && <span className={`pointer-events-none px-1 ${slot.endsWith('Bottom') ? 'mb-auto' : ''} text-[10px] font-black uppercase tracking-wider text-foam/60`}>{SLOT_LABEL[slot]}</span>}
-        {slotPanels(layout, slot).map((p) => item(p, side))}
+        {slotPanels(layout, slot)
+          .filter((p) => !skip?.(p))
+          .map((p) => item(p, side))}
       </div>
     );
   };

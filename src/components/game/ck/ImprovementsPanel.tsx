@@ -17,6 +17,8 @@ function TrackColumn({ view, track }: { view: PlayerView; track: Track }) {
   const cost = improvementCost(view, me, track);
   const holder = view.metropolis[track];
   const myTurn = view.turn.seat === me && view.turn.rolled && view.pending.length === 0;
+  // The Crane's discount, struck through on the button so the full price stays visible.
+  const discounted = cost < level + 1;
   return (
     <div className="grid content-start gap-2 rounded-xl border-2 border-ink p-3" style={{ background: `${style.color}33` }}>
       <div className="flex items-center justify-between">
@@ -33,7 +35,11 @@ function TrackColumn({ view, track }: { view: PlayerView; track: Track }) {
             style={n <= level ? { background: style.color, color: style.ink } : undefined}
           >
             <span>Level {n}</span>
-            <span>{n === 3 ? '★ ability' : n >= 4 ? 'metropolis' : `${n} ${style.commodity}`}</span>
+            {/* every level shows its full price: level n costs n (a Crane takes 1 off, shown on the button) */}
+            <span>
+              {n} {style.commodity}
+              {n === 3 ? ' · ★ ability' : n >= 4 ? ' · metropolis' : ''}
+            </span>
           </li>
         ))}
       </ol>
@@ -51,7 +57,14 @@ function TrackColumn({ view, track }: { view: PlayerView; track: Track }) {
           title={blocker ?? undefined}
           onClick={() => api.act({ type: 'improveCity', track })}
         >
-          <Hammer size={14} /> Level {level + 1} · {cost} {style.commodity}
+          <Hammer size={14} /> Level {level + 1} ·{' '}
+          {discounted && (
+            <s className="opacity-60" aria-label={`${level + 1} without the Crane`}>
+              {level + 1}
+            </s>
+          )}{' '}
+          {cost} {style.commodity}
+          {discounted && <span className="text-[11px] font-bold opacity-80">(Crane)</span>}
         </button>
       )}
       {blocker && level < 5 && <p className="text-[11px] font-semibold text-ink-faint">{blocker}</p>}

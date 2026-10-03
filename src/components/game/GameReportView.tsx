@@ -189,7 +189,7 @@ export function GameReportView({ report, initialSeat }: { report: GameReport; in
 
   return <div className="grid min-w-0 gap-4">
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><p className="label">{MODE_LABEL[ratingPoolFor(report.mode, report.map)]} · {reportMapName(report)}</p><h2 className="display mt-1 text-3xl font-black">Match report</h2>
+      <div><p className="label">{MODE_LABEL[ratingPoolFor(report.mode, report.map)]} · {reportMapName(report)}</p><h2 className="display mt-1 text-3xl font-black">{report.live ? 'So far' : 'Match report'}</h2>
         <p className="mt-1 text-xs text-ink-faint">{report.turns} player turns · Target {report.target} VP · {report.diceMode} dice{elapsed !== null ? ` · ${elapsed} min` : ''}</p></div>
       <div className="flex gap-2"><button className="btn px-3 py-2 text-xs" onClick={() => download(report, 'csv')}>Export CSV</button><button className="btn px-3 py-2 text-xs" onClick={() => download(report, 'json')}>Export JSON</button></div>
     </div>

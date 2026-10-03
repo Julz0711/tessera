@@ -4,9 +4,11 @@ import { io, type Socket } from 'socket.io-client';
 import { create } from 'zustand';
 import { LOG_LIMIT } from '@/engine/constants';
 import type { Action, GameEvent } from '@/engine/types';
+import type { GameReport } from '@/engine/report';
 import type { PlayerView } from '@/engine/view';
 import type {
   AckResult,
+  AdminGameCommand,
   ChatMessage,
   ClientToServerEvents,
   JoinProfile,
@@ -237,6 +239,10 @@ export const api = {
   rematch: () => request((s, ack) => s.emit('room:rematch', ack)).then(report),
   backToLobby: () => request((s, ack) => s.emit('room:toLobby', ack)).then(report),
   act: (action: Action) => request((s, ack) => s.emit('game:action', action, ack)).then(report),
+  /** The match report so far (public information only while the game runs). Errors aren't toasted: the stats panel shows them. */
+  stats: () => request<{ report: GameReport }>((s, ack) => s.emit('game:stats', ack)),
+  /** In-game admin tools (server admins only). */
+  admin: (cmd: AdminGameCommand) => request<{ message: string }>((s, ack) => s.emit('admin:game', cmd, ack)).then(report),
   chat: (text: string) => request((s, ack) => s.emit('chat:send', text, ack)).then(report),
   react(reaction: ReactionId) {
     useGame.setState({ lastReactionAt: Date.now() });

@@ -14,6 +14,7 @@ import {
   activatableKnights,
   intrigueTargets,
   inventorHexes,
+  masterMerchantVictims,
   merchantHexes,
   openRoads,
   promotableKnights,
@@ -200,7 +201,7 @@ export function playProgress(ctx: Ctx, cardId: number, params: ProgressParams): 
     case 'masterMerchant': {
       const victim = params.victim;
       assertRule(isInt(victim, 0, s.players.length - 1) && victim !== ctx.seat, 'Pick an opponent');
-      assertRule(victoryPoints(s, victim!, false) > victoryPoints(s, ctx.seat, false), 'Pick a player with more points than you');
+      assertRule(masterMerchantVictims(s, ctx.seat).includes(victim!), 'Pick a player with more points than you');
       const hand = s.players[victim!].hand;
       const count = Math.min(2, handTotal(hand));
       assertRule(count > 0, 'They have no cards');

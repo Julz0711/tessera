@@ -12,3 +12,11 @@ export const APP_DESCRIPTION =
 
 /** Upper-case wordmark used on the landing page. */
 export const APP_WORDMARK = APP_NAME.toUpperCase();
+
+/**
+ * Release stage shown next to the name (home screen, in-game top bar). Set to null once the game
+ * leaves beta.
+ */
+export const APP_STAGE: string | null = "Beta";
+
+export const APP_STAGE_NOTE = "Still in beta: expect changes and the odd bug.";

@@ -68,9 +68,10 @@ export async function finalizeGame(db: Db, game: PersistGame): Promise<void> {
       if (forfeits.length) report.players[p.seat].rank = places[p.seat];
       report.players[p.seat].isBot = p.isBot;
     }
+    const edited = !!game.state.adminEdited;
     for (const p of players) {
       const won = p.seat === game.state.winner && !abandoned(p);
-      const unrated = p.isBot && !abandoned(p) ? 'Bot' : !p.userId ? 'Guest player' : 'Needs two signed-in players';
+      const unrated = p.isBot && !abandoned(p) ? 'Bot' : !p.userId ? 'Guest player' : edited ? 'Edited by an admin' : 'Needs two signed-in players';
       report.players[p.seat].rating = { pool, before: null, after: null, delta: null, reason: unrated };
       if (p.userId) await tx.profile.upsert({ where: { userId: p.userId },
         create: { userId: p.userId, displayName: p.displayName, gamesPlayed: 1, gamesWon: won ? 1 : 0 },
@@ -79,8 +80,11 @@ export async function finalizeGame(db: Db, game: PersistGame): Promise<void> {
       await tx.player.update({ where: { id: p.id }, data: { finalVp: report.players[p.seat].vp, rank: places[p.seat], won,
         ratingPool: pool, ratingVersion: 1, unratedReason: unrated } });
     }
-    for (const [seat, r] of await applyRatings(tx, pool, players, places, game.state.winner)) {
-      report.players[seat].rating = { pool, ...r, reason: null };
+    // A game an admin changed by hand (testing) is recorded, but nobody's rating moves.
+    if (!edited) {
+      for (const [seat, r] of await applyRatings(tx, pool, players, places, game.state.winner)) {
+        report.players[seat].rating = { pool, ...r, reason: null };
+      }
     }
     const endedAt = new Date();
     await tx.game.update({ where: { id: game.gameId }, data: { winnerPlayerId: game.state.winner === null ? null : players.find((p) => p.seat === game.state.winner)?.id,

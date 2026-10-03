@@ -4,7 +4,7 @@ import { read } from '../prefs';
 
 describe('hud layout', () => {
   it('starts as the classic screen', () => {
-    expect(slotPanels(DEFAULT_HUD_LAYOUT, 'rightTop')).toEqual(['side', 'bank', 'players']);
+    expect(slotPanels(DEFAULT_HUD_LAYOUT, 'rightTop')).toEqual(['side', 'barbarian', 'bank', 'players']);
     expect(slotPanels(DEFAULT_HUD_LAYOUT, 'leftTop')).toEqual(['offers']);
     expect(slotPanels(DEFAULT_HUD_LAYOUT, 'cornerRight')).toEqual(['dice']);
     expect(slotPanels(DEFAULT_HUD_LAYOUT, 'cornerLeft')).toEqual(['zoom']);
@@ -18,13 +18,14 @@ describe('hud layout', () => {
   it('moves a panel to the end of a slot and renumbers both slots', () => {
     const l = movePanel(DEFAULT_HUD_LAYOUT, 'side', 'leftTop');
     expect(slotPanels(l, 'leftTop')).toEqual(['offers', 'side']);
-    expect(slotPanels(l, 'rightTop')).toEqual(['bank', 'players']);
-    expect(l.bank.order).toBe(0);
+    expect(slotPanels(l, 'rightTop')).toEqual(['barbarian', 'bank', 'players']);
+    expect(l.barbarian.order).toBe(0);
+    expect(l.bank.order).toBe(1);
     expect(l.side.order).toBe(1);
   });
 
   it('moving within the same slot sends the panel to the bottom', () => {
-    expect(slotPanels(movePanel(DEFAULT_HUD_LAYOUT, 'side', 'rightTop'), 'rightTop')).toEqual(['bank', 'players', 'side']);
+    expect(slotPanels(movePanel(DEFAULT_HUD_LAYOUT, 'side', 'rightTop'), 'rightTop')).toEqual(['barbarian', 'bank', 'players', 'side']);
   });
 
   it('keeps the dock corners for the dice', () => {
@@ -42,6 +43,12 @@ describe('hud layout', () => {
     expect(l.bank).toEqual(DEFAULT_HUD_LAYOUT.bank);
     expect(l.side).toEqual(DEFAULT_HUD_LAYOUT.side);
     expect(l.dice).toEqual(DEFAULT_HUD_LAYOUT.dice);
+  });
+
+  it('puts the barbarians right under the log in layouts saved before that panel existed', () => {
+    const saved = { side: { slot: 'rightTop', order: 0 }, bank: { slot: 'rightTop', order: 1 }, players: { slot: 'rightTop', order: 2 } };
+    expect(slotPanels(sanitizeHudLayout(saved), 'rightTop')).toEqual(['side', 'barbarian', 'bank', 'players']);
+    expect(fits('barbarian', 'cornerRight')).toBe(false);
   });
 });
 

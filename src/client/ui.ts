@@ -103,3 +103,14 @@ export const useUi = create<UiStore>((set) => ({
 export function buildMode(mode: UiMode): BuildWhat | null {
   return mode?.t === 'build' ? mode.what : null;
 }
+
+/**
+ * In-game dialogs that stay open while the game moves on (live stats, admin tools): unlike panels,
+ * new turns and prompts leave them be.
+ */
+export type GameDialog = 'stats' | 'admin';
+export const useGameDialog = create<{ open: GameDialog | null; show(dialog: GameDialog): void; hide(): void }>((set) => ({
+  open: null,
+  show: (open) => set({ open }),
+  hide: () => set({ open: null }),
+}));

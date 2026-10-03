@@ -28,6 +28,7 @@ export function buildRoad(ctx: Ctx, edge: number): void {
   ctx.s.roads[edge] = ctx.seat;
   emit(ctx, { type: 'built', seat: ctx.seat, piece: 'road', at: edge });
   revealRoad(ctx, edge);
+  collectTreasures(ctx, edge);
 }
 
 export function buildShip(ctx: Ctx, edge: number): void {
@@ -67,6 +68,7 @@ export function placeFreeRoad(ctx: Ctx, prompt: Extract<Prompt, { kind: 'freeRoa
   emit(ctx, { type: 'built', seat: ctx.seat, piece: 'road', at: edge, free: true });
   revealRoad(ctx, edge);
   endFreeRoute(ctx, prompt);
+  collectTreasures(ctx, edge);
 }
 
 /** Voyagers: each free Road Building piece may be a ship instead. */

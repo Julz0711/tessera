@@ -18,6 +18,7 @@ import { DEFAULT_KNIGHT } from "@/shared/knight";
 import { SignInChoices } from "@/components/auth/SignInChoices";
 import { KnightBadge } from "@/components/knight/KnightBadge";
 import { Logomark } from "@/components/ui/Logomark";
+import { BetaBadge } from "@/components/ui/BetaBadge";
 import { Modal } from "@/components/ui/Modal";
 
 const ShowcaseIsland = dynamic(() => import("./ShowcaseIsland"), {
@@ -179,6 +180,7 @@ export function Landing() {
           <span className="display text-lg font-black tracking-wide text-paper">
             {APP_WORDMARK}
           </span>
+          <BetaBadge />
         </div>
         <div className="hidden items-center gap-2 md:flex">
           <Link
