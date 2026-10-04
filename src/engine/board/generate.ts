@@ -53,6 +53,7 @@ interface MapSpec {
 
 const MAPS: Record<Exclude<MapId, 'blackForest' | 'goldRush' | 'vulcan' | 'crossroads' | 'farShores' | 'fourRealms' | 'veiledIsles' | 'citadel' | 'zealand'>, MapSpec> = {
   standard: { coords: STANDARD_HEX_COORDS, terrains: TERRAIN_COUNTS, tokens: NUMBER_TOKENS, harbors: HARBOR_KINDS, slots: HARBOR_COAST_SLOTS },
+  duel: { coords: STANDARD_HEX_COORDS, terrains: TERRAIN_COUNTS, tokens: NUMBER_TOKENS, harbors: HARBOR_KINDS, slots: HARBOR_COAST_SLOTS },
   large: { coords: LARGE_HEX_COORDS, terrains: LARGE_TERRAIN_COUNTS, tokens: LARGE_NUMBER_TOKENS, harbors: LARGE_HARBOR_KINDS },
   fourLakes: {
     coords: FOUR_LAKES_HEX_COORDS,

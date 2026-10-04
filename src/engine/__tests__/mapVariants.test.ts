@@ -37,7 +37,7 @@ describe('map variants', () => {
       expect(MAPS[map].requires.length).toBeGreaterThan(0);
       for (const mode of ['classic', 'ck'] as const) expect(mapSupports(map, mode)).toBe(MAPS[map].modes.includes(mode));
       // Only the base game's maps may be played without the Voyagers rules.
-      expect(mapSupports(map, MAPS[map].modes[0], new Set(['base']))).toBe(MAPS[map].category === 'base');
+      expect(mapSupports(map, MAPS[map].modes[0], new Set(['base']))).toBe(MAPS[map].category === 'base' || MAPS[map].category === 'duel');
       expect(MAX_PLAYERS[map]).toBe(MAPS[map].maxPlayers);
     }
     expect([...BIG_MAPS].sort()).toEqual(['blackForest', 'citadel', 'crossroads', 'fourLakes', 'goldRush', 'large', 'vulcan', 'zealand']);
@@ -49,6 +49,7 @@ describe('map variants', () => {
   it('offers every map under a game type, and switching type lands on a playable map', () => {
     expect(mapsForType('voyagers').map((m) => m.id)).toEqual(['farShores', 'fourRealms']);
     expect(mapsForType('special').map((m) => m.id)).toEqual(['veiledIsles', 'citadel', 'zealand']);
+    expect(mapsForType('duel').map((m) => m.id)).toEqual(['duel']);
     for (const map of MAP_IDS) {
       for (const mode of MAPS[map].modes) expect(mapsForType(gameTypeOf(map, mode)).map((m) => m.id)).toContain(map);
     }

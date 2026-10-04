@@ -1,15 +1,28 @@
-import type { MapId, Mode } from './types';
+import type { DiceMode, MapId, Mode } from './types';
 
 export type MapRuleset = 'base' | 'seafarers';
 
 /** Lobby grouping. Presentation only: rules come from `requires` and `modes`, never from the category. */
-export type MapCategory = 'base' | 'voyagers' | 'special';
+export type MapCategory = 'base' | 'voyagers' | 'special' | 'duel';
 
 export const MAP_CATEGORIES: readonly { id: MapCategory; label: string }[] = [
   { id: 'base', label: 'Base game' },
   { id: 'voyagers', label: 'Voyagers' },
   { id: 'special', label: 'Special' },
+  { id: 'duel', label: '1v1' },
 ];
+
+/**
+ * Ranked 1v1, as colonist.io plays it. Always: two players and up to 9 cards safe from a 7. The rest
+ * are the defaults a room starts from when 1v1 is picked; the host can change them like in any other mode.
+ */
+export const DUEL_RULES = {
+  vpToWin: 15,
+  discardLimit: 9,
+  friendlyRobber: true,
+  dice: 'balanced' as DiceMode,
+  turnTimer: 60,
+};
 
 export interface MapDefinition {
   id: MapId;
@@ -27,6 +40,8 @@ export interface MapDefinition {
   vpToWin?: Partial<Record<Mode, number>>;
   /** Special points for a player's first settlement on each island that wasn't one of their home islands. */
   islandVP?: number;
+  /** Ranked 1v1 (`DUEL_RULES`): 9-card hand limit. */
+  duel?: boolean;
 }
 
 const BASE_MODES: readonly Mode[] = ['classic', 'ck'];
@@ -48,6 +63,18 @@ export const MAPS: Record<MapId, MapDefinition> = {
   heartlake: { id: 'heartlake', category: 'base', name: 'Heartlake', blurb: 'A ring island around a lake. Three 3:1 harbors line the lake shore, reachable from the middle.', maxPlayers: 4, bigBank: false, requires: ['base'], modes: BASE_MODES },
   longIsle: { id: 'longIsle', category: 'base', name: 'Long Isle', blurb: 'A long, thin island: more coast, more harbors within reach, and tighter races for the long road.', maxPlayers: 4, bigBank: false, requires: ['base'], modes: BASE_MODES },
   fourLakes: { id: 'fourLakes', category: 'base', name: 'Four Lakes', blurb: 'A big pinwheel island with four lakes cut into it, and harbors on their shores. For up to 6.', maxPlayers: 6, bigBank: true, requires: ['base'], modes: BASE_MODES },
+  duel: {
+    id: 'duel',
+    category: 'duel',
+    name: 'Standard (1v1)',
+    blurb: 'The standard island for two. Up to 9 cards are safe from a 7.',
+    maxPlayers: 2,
+    bigBank: false,
+    requires: ['base'],
+    modes: ['classic'],
+    vpToWin: { classic: DUEL_RULES.vpToWin },
+    duel: true,
+  },
   crossroads: { id: 'crossroads', category: 'base', name: 'Crossroads', blurb: 'Four starting regions meet at a barren center. Claim the narrow roads between them before your rivals do.', maxPlayers: 4, bigBank: true, requires: ['base'], modes: BASE_MODES },
   farShores: {
     id: 'farShores',
@@ -132,14 +159,18 @@ export function mapsByCategory(): { id: MapCategory; label: string; maps: MapDef
  * What the lobby's Mode picker offers: the two base-game rule sets plus the map categories that bring
  * their own rules. Derived from `mode` and the map's category, never stored.
  */
-export type GameType = 'classic' | 'ck' | 'voyagers' | 'special';
+export type GameType = 'classic' | 'ck' | 'voyagers' | 'special' | 'duel';
 
 export const GAME_TYPES: readonly { id: GameType; label: string }[] = [
   { id: 'classic', label: 'Classic' },
   { id: 'ck', label: 'Knights & Barbarians' },
   { id: 'voyagers', label: 'Voyagers' },
   { id: 'special', label: 'Special' },
+  { id: 'duel', label: '1v1' },
 ];
+
+/** Whether a map plays under the ranked 1v1 rules (`DUEL_RULES`). Unknown ids (old saves) are not. */
+export const isDuelMap = (id: string | undefined): boolean => !!id && Object.hasOwn(MAPS, id) && !!MAPS[id as MapId].duel;
 
 export function gameTypeOf(map: MapId, mode: Mode): GameType {
   const { category } = MAPS[map];

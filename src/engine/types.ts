@@ -90,6 +90,7 @@ export type MapId =
   | 'longIsle'
   | 'fourLakes'
   | 'crossroads'
+  | 'duel'
   | 'farShores'
   | 'fourRealms'
   | 'veiledIsles'
@@ -104,6 +105,7 @@ export const MAP_IDS: readonly MapId[] = [
   'heartlake',
   'longIsle',
   'fourLakes',
+  'duel',
   'crossroads',
   'farShores',
   'fourRealms',

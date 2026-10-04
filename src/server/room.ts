@@ -27,7 +27,7 @@ import {
 import { checkProgressLimit } from '@/engine/ck/events';
 import { makeCtx } from '@/engine/state';
 import { buildReport, type GameReport } from '@/engine/report';
-import { MAPS, defaultVP, mapSupports } from '@/engine/maps';
+import { DUEL_RULES, MAPS, defaultVP, isDuelMap, mapSupports } from '@/engine/maps';
 import { COLOR_ORDER, isPlayerColor } from '@/shared/colors';
 import { DEFAULT_COSMETICS, sanitizeCosmetics, type Cosmetics } from '@/shared/cosmetics';
 import { DEFAULT_KNIGHT, sanitizeKnight, type KnightCustomization } from '@/shared/knight';
@@ -390,6 +390,18 @@ export class Room {
       // The big island is for bigger tables: open its extra seats by default.
       if (patch.map !== next.map) next.maxPlayers = patch.map === 'large' ? seats : Math.min(next.maxPlayers, seats);
       next.map = patch.map;
+    }
+    if (isDuelMap(next.map) && !isDuelMap(this.settings.map)) {
+      // Picking 1v1 starts from colonist.io's ranked rules; the host may still change them below.
+      next.turnTimer = DUEL_RULES.turnTimer;
+      next.friendlyRobber = DUEL_RULES.friendlyRobber;
+      next.dice = DUEL_RULES.dice;
+    } else if (!isDuelMap(next.map) && isDuelMap(this.settings.map)) {
+      // Leaving 1v1: back to the usual table, not its two seats and ranked defaults.
+      next.maxPlayers = next.map === 'large' ? MAX_PLAYERS.large : Math.min(DEFAULT_ROOM_SETTINGS.maxPlayers, MAX_PLAYERS[next.map]);
+      next.turnTimer = DEFAULT_ROOM_SETTINGS.turnTimer;
+      next.friendlyRobber = DEFAULT_ROOM_SETTINGS.friendlyRobber;
+      next.dice = DEFAULT_ROOM_SETTINGS.dice;
     }
     if (Number.isInteger(patch.maxPlayers)) {
       next.maxPlayers = Math.min(MAX_PLAYERS[next.map], Math.max(2, Math.max(patch.maxPlayers!, this.seats.length)));

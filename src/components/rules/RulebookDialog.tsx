@@ -6,7 +6,7 @@ import { RULEBOOK, type RuleChapter, type RuleMode } from '@/config/rulebook';
 import { Modal } from '@/components/ui/Modal';
 import { RuleFigure } from './figures';
 
-const MODE_NAMES: Record<RuleMode, string> = { classic: 'Classic', ck: 'Knights & Barbarians', voyagers: 'Voyagers', special: 'Special' };
+const MODE_NAMES: Record<RuleMode, string> = { classic: 'Classic', ck: 'Knights & Barbarians', voyagers: 'Voyagers', special: 'Special', duel: '1v1' };
 
 /** Inline **bold** in rule text. */
 function Rich({ text }: { text: string }) {

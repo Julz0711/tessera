@@ -14,7 +14,7 @@ import {
   PROGRESS_DECKS,
 } from './constants';
 import { emptyHand } from './hand';
-import { defaultVP, mapSupports } from './maps';
+import { DUEL_RULES, defaultVP, isDuelMap, mapSupports } from './maps';
 import { normalizeSeed, shuffle } from './rng';
 import { newStats, recordStats } from './stats';
 import {
@@ -125,10 +125,10 @@ export function createGame(opts: CreateGameOptions): GameState {
     mode,
     map,
     vpToWin: opts.settings?.vpToWin ?? defaultVP(map, mode, DEFAULT_VP[mode]),
-    discardLimit: opts.settings?.discardLimit ?? 7,
-    friendlyRobber: opts.settings?.friendlyRobber ?? false,
+    discardLimit: opts.settings?.discardLimit ?? (isDuelMap(map) ? DUEL_RULES.discardLimit : 7),
+    friendlyRobber: opts.settings?.friendlyRobber ?? isDuelMap(map),
     gold,
-    dice: opts.settings?.dice ?? 'random',
+    dice: opts.settings?.dice ?? (isDuelMap(map) ? DUEL_RULES.dice : 'random'),
   };
 
   const n = players.length;

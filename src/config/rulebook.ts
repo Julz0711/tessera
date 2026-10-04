@@ -1,5 +1,5 @@
 /** The in-game rulebook (menu → Rules): how this game's engine plays, mode by mode. Keep in step with src/engine. */
-export type RuleMode = 'classic' | 'ck' | 'voyagers' | 'special';
+export type RuleMode = 'classic' | 'ck' | 'voyagers' | 'special' | 'duel';
 
 export interface RuleChapter {
   id: string;
@@ -724,6 +724,42 @@ export const RULEBOOK: RuleChapter[] = [
             'The host can turn the **two gold fields** in the fog on or off. Each gold field is a 6 or an 8.',
             'The robber starts on a lone desert island far out at sea. Sailing there pays three treasures. Every isle has three treasures too, 21 in all, each of a random kind.',
             'Your first settlement on each island that is not a home island is worth **1 point**.',
+          ],
+        ],
+      },
+    ],
+  },
+
+  // ── 10b. Ranked 1v1 ─────────────────────────────────────────────────────────
+  {
+    id: 'duel',
+    title: 'Ranked 1v1',
+    applies: ['duel'],
+    sections: [
+      {
+        title: 'The 1v1 rules',
+        body: [
+          'Classic rules on the standard island, for exactly 2 players. 1v1 has its own Elo ladder.',
+          [
+            'You can always hold up to **9** cards safely: a 7 only costs half your hand when you hold 10 or more.',
+          ],
+          'A new 1v1 table starts with the ranked settings below. The host can change them in the lobby.',
+          [
+            '**15** points to win.',
+            '**Friendly robber:** the robber cannot block or rob you while you have 2 or fewer points that others can see.',
+            '**Balanced dice:** rolls come from a bag, so luck evens out over the game.',
+            'A fast **60-second** turn timer.',
+          ],
+        ],
+      },
+      {
+        title: 'Tips',
+        body: [
+          [
+            'Settlements and cities only make **13** points. To reach 15 you need Longest Road, Largest Army or victory point cards.',
+            'Your only trading partner is your rival, so pick starting spots that cover all five resources, or a strong harbor for the one you lack.',
+            'Grain and Ore build cities and buy development cards. Once your rival has 3 visible points, block their only Grain or Ore tile.',
+            'Up to your 3rd visible point you cannot be robbed: save up for a big turn, like a settlement and a city at once.',
           ],
         ],
       },
