@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 
 // Deliberately NOT using Element.setPointerCapture(): once a pointer is captured, Chromium
@@ -20,6 +20,8 @@ const BUTTON_STEP = 1.4;
 /** How far past each edge of the board the view may be dragged, as a share of the board's size, so it
  * can also be panned when fully zoomed out (e.g. out from under the side panels). */
 const PAN_SLACK = 0.35;
+/** After the last wheel step, how long before the zoom is drawn afresh at its new scale. */
+const WHEEL_SETTLE_MS = 120;
 
 type Point = { x: number; y: number };
 type ViewState = { zoom: number; center: Point };
@@ -73,11 +75,58 @@ export function useZoomPan(bounds: ZoomBounds, enabled: boolean) {
   const initial = (): ViewState => ({ zoom: MIN_ZOOM, center: { x: bounds.minX + bounds.w / 2, y: bounds.minY + bounds.h / 2 } });
   const [viewState, setViewStateRaw] = useState<ViewState>(initial);
   const viewRef = useRef(viewState);
+  /** The view the board is drawn at (its viewBox), and its screen px per board unit (read once per gesture). */
+  const drawn = useRef<{ view: ViewState; unit: number | null }>({ view: viewState, unit: null });
+  const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function commit(next: ViewState) {
     viewRef.current = next;
     setViewStateRaw(next);
   }
+
+  /**
+   * Mid-gesture (drag, pinch, wheel): moves the picture already drawn with a CSS transform instead of
+   * redrawing the board at a new viewBox for every pointer event. The browser only shifts and scales
+   * a finished image, so panning stays smooth however much of the screen the board covers; `commit`
+   * redraws it properly once the gesture ends.
+   */
+  function preview(next: ViewState) {
+    viewRef.current = next;
+    const svg = svgRef.current;
+    if (!svg) return commit(next);
+    const d = drawn.current;
+    if (d.unit === null) {
+      const ctm = svg.getScreenCTM();
+      if (!ctm) return commit(next);
+      d.unit = ctm.a;
+      svg.style.willChange = 'transform';
+      svg.style.transformOrigin = '50% 50%';
+    }
+    const k = next.zoom / d.view.zoom;
+    const tx = (d.view.center.x - next.center.x) * d.unit * k;
+    const ty = (d.view.center.y - next.center.y) * d.unit * k;
+    svg.style.transform = `translate(${tx}px, ${ty}px) scale(${k})`;
+  }
+
+  /** Ends a gesture: draws the board at the view it was previewing. */
+  function settleView() {
+    if (settle.current) clearTimeout(settle.current);
+    settle.current = null;
+    if (drawn.current.unit !== null) commit({ ...viewRef.current });
+  }
+
+  // Once the board is drawn at the new viewBox, drop the preview transform in the same frame.
+  useLayoutEffect(() => {
+    drawn.current = { view: viewState, unit: null };
+    const svg = svgRef.current;
+    if (svg) {
+      svg.style.transform = '';
+      svg.style.willChange = '';
+    }
+  }, [viewState]);
+  useEffect(() => () => {
+    if (settle.current) clearTimeout(settle.current);
+  }, []);
 
   const pointers = useRef(new Map<number, Point>());
   const gesture = useRef<PanGesture | PinchGesture | null>(null);
@@ -98,7 +147,9 @@ export function useZoomPan(bounds: ZoomBounds, enabled: boolean) {
       const factor = Math.exp(-e.deltaY * WHEEL_SENSITIVITY);
       const newZoom = clamp(prev.zoom * factor, MIN_ZOOM, MAX_ZOOM);
       const ratio = prev.zoom / newZoom;
-      commit(clampView(newZoom, anchor.x + (prev.center.x - anchor.x) * ratio, anchor.y + (prev.center.y - anchor.y) * ratio, bounds));
+      preview(clampView(newZoom, anchor.x + (prev.center.x - anchor.x) * ratio, anchor.y + (prev.center.y - anchor.y) * ratio, bounds));
+      if (settle.current) clearTimeout(settle.current);
+      settle.current = setTimeout(settleView, WHEEL_SETTLE_MS);
     };
     svg.addEventListener('wheel', onWheel, { passive: false });
     return () => svg.removeEventListener('wheel', onWheel);
@@ -140,7 +191,7 @@ export function useZoomPan(bounds: ZoomBounds, enabled: boolean) {
       g.moved = Math.max(g.moved, moved);
       if (g.moved > DRAG_THRESHOLD) suppressClick.current = true;
       const p = toSvgPoint(g.ctm, e.clientX, e.clientY);
-      commit(clampView(g.zoom, g.startCenter.x - (p.x - g.startSvg.x), g.startCenter.y - (p.y - g.startSvg.y), bounds));
+      preview(clampView(g.zoom, g.startCenter.x - (p.x - g.startSvg.x), g.startCenter.y - (p.y - g.startSvg.y), bounds));
     } else if (g.kind === 'pinch' && pointers.current.size >= 2) {
       const svg = svgRef.current;
       const ctm = svg?.getScreenCTM();
@@ -155,7 +206,7 @@ export function useZoomPan(bounds: ZoomBounds, enabled: boolean) {
       const prev = viewRef.current;
       const newZoom = clamp(prev.zoom * (dist / g.lastDist), MIN_ZOOM, MAX_ZOOM);
       const ratio = prev.zoom / newZoom;
-      commit(clampView(newZoom, anchor.x + (prev.center.x - anchor.x) * ratio, anchor.y + (prev.center.y - anchor.y) * ratio, bounds));
+      preview(clampView(newZoom, anchor.x + (prev.center.x - anchor.x) * ratio, anchor.y + (prev.center.y - anchor.y) * ratio, bounds));
       g.lastDist = dist;
     }
   }
@@ -165,6 +216,7 @@ export function useZoomPan(bounds: ZoomBounds, enabled: boolean) {
     pointers.current.delete(e.pointerId);
     if (pointers.current.size === 0) {
       gesture.current = null;
+      settleView();
       return;
     }
     // Dropped from two pointers to one (pinch → pan): resume panning from the remaining finger.

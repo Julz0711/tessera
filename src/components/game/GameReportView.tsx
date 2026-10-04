@@ -11,6 +11,8 @@ import { formatStat, leaders, reportCategories, visibleRows, type StatCategory, 
 import { PLAYER_COLORS } from '@/shared/colors';
 import { MODE_LABEL, ratingPoolFor } from '@/shared/ratings';
 import { DiceHistogram } from './DiceStats';
+import { RowIcon, TAB_ICONS } from './reportIcons';
+import { AwardBadges } from './endgame/AwardBadges';
 
 function download(report: GameReport, format: 'csv' | 'json') {
   const blob = new Blob([format === 'csv' ? reportCsv(report) : JSON.stringify(report, null, 2)], { type: format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json' });
@@ -72,7 +74,7 @@ function CompareTable({ report, seats, category, viewer }: { report: GameReport;
           return <tr key={key} className="border-t border-ink/10">
             <th scope="row" className="sticky left-0 z-10 bg-paper px-3 py-1.5 text-left font-semibold">
               <span className="flex items-center gap-1.5">
-                {row.card && <span aria-hidden className="h-3 w-3 shrink-0 rounded-sm" style={{ background: CARD_COLORS[row.card].bg, boxShadow: `inset 0 0 0 1px ${CARD_COLORS[row.card].deep}` }} />}
+                <RowIcon row={row} />
                 {row.label}
                 {row.hint && <button type="button" className="text-ink-faint hover:text-ink" aria-expanded={hint === key} aria-label={`About ${row.label}`} title={row.hint} onClick={() => setHint(hint === key ? null : key)}><Info size={13} /></button>}
               </span>
@@ -120,7 +122,7 @@ function ProductionMix({ report, seats }: { report: GameReport; seats: number[] 
       </div>
       <span className="text-right font-extrabold tabular">{handTotal(produced[seat])}</span>
     </div>)}
-    <ul className="flex flex-wrap gap-x-3 gap-y-1 pt-1 text-xs text-ink-soft">{cards.map((c) => <li key={c} className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: CARD_COLORS[c].bg }} />{CARD_COLORS[c].label}</li>)}</ul>
+    <ul className="flex flex-wrap gap-x-3 gap-y-1 pt-1 text-xs text-ink-soft">{cards.map((c) => <li key={c} className="flex items-center gap-1"><RowIcon row={{ label: c, values: [], card: c }} />{CARD_COLORS[c].label}</li>)}</ul>
   </div>;
 }
 
@@ -180,12 +182,6 @@ export function GameReportView({ report, initialSeat }: { report: GameReport; in
     if (next.has(seat)) next.delete(seat); else if (report.players.length - next.size > 1) next.add(seat);
     return next;
   });
-  const awards = useMemo(() => categories.flatMap((c) => c.groups.flatMap((g) => g.rows)).filter((r) => r.award).flatMap((row) => {
-    const known = row.values.map((v, seat) => ({ v, seat })).filter((e): e is { v: number; seat: number } => e.v !== null);
-    const best = Math.max(...known.map((e) => e.v));
-    if (!known.length || best <= 0) return [];
-    return [{ title: row.award!, stat: row.label, value: formatStat(best, row.format), seats: known.filter((e) => e.v === best).map((e) => e.seat) }];
-  }), [categories]);
 
   return <div className="grid min-w-0 gap-4">
     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -209,18 +205,12 @@ export function GameReportView({ report, initialSeat }: { report: GameReport; in
 
     <div role="tablist" aria-label="Stat categories" className="scroll-thin -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
       {tabs.map((t) => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
-        className={`shrink-0 rounded-full border-2 px-3.5 py-1.5 text-sm font-bold whitespace-nowrap transition ${tab === t.id ? 'border-ink bg-ink text-paper' : 'border-ink/20 hover:border-ink/60'}`}>{t.label}</button>)}
+        className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border-2 px-3.5 py-1.5 text-sm font-bold whitespace-nowrap transition ${tab === t.id ? 'border-ink bg-ink text-paper' : 'border-ink/20 hover:border-ink/60'}`}>{TAB_ICONS[t.id]}{t.label}</button>)}
     </div>
 
     <div role="tabpanel" className="grid min-w-0 gap-4">
       {tab === 'overview' && <>
-        {awards.length > 0 && <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">{awards.map((a) => {
-          return <li key={a.title} className="rounded-xl border-2 border-ink/15 bg-paper-2 py-3 pr-3 pl-4" style={{ boxShadow: `inset 5px 0 0 ${fill(report, a.seats[0])}` }}>
-            <p className="label">{a.title}</p>
-            <p className="mt-1 flex min-w-0 flex-wrap gap-x-2 font-extrabold">{a.seats.map((s) => <PlayerName key={s} report={report} seat={s} />)}</p>
-            <p className="text-xs text-ink-soft">{a.stat}: <b className="tabular text-ink">{a.value}</b></p>
-          </li>;
-        })}</ul>}
+        <AwardBadges report={report} detailed className="" />
         {!!d?.timeline.length && <><p className="label -mb-2">Victory point race</p><TimelineChart report={report} seats={seats} metric="vp" /></>}
       </>}
       {tab === 'dice' && stats && <>

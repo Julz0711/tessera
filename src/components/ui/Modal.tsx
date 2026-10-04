@@ -1,7 +1,8 @@
 'use client';
 
 import { X } from 'lucide-react';
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export function Modal({
   open,
@@ -32,6 +33,11 @@ export function Modal({
   const ref = useRef<HTMLDialogElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  // Dialogs go straight into <body>: one opened from a scaled part of the game screen (the HUD size
+  // setting is a CSS zoom) would inherit the zoom, its full-screen box would outgrow the screen, and
+  // the sheet would sit off-centre and run off the edges.
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  useEffect(() => setHost(document.body), []);
   useEffect(() => {
     const dialog = ref.current;
     if (!open || !dialog) return;
@@ -43,9 +49,9 @@ export function Modal({
       dialog.close();
       if (opener?.isConnected) opener.focus({ preventScroll: true });
     };
-  }, [open]);
-  if (!open) return null;
-  return (
+  }, [open, host]);
+  if (!open || !host) return null;
+  return createPortal(
     <dialog
       ref={ref}
       aria-labelledby={title ? titleId : undefined}
@@ -84,7 +90,7 @@ export function Modal({
       <div
         ref={contentRef}
         tabIndex={-1}
-        className={`dialog-sheet paper animate-pop w-full overflow-y-auto p-5 outline-none scroll-thin max-h-[92dvh] ${top ? 'md:mt-[3dvh] md:max-h-[calc(97dvh-1.5rem)] md:self-start' : ''} ${expansive ? 'max-w-6xl' : wide ? 'max-w-2xl' : 'max-w-md'}`}
+        className={`dialog-sheet paper animate-pop w-full overflow-y-auto p-5 outline-none scroll-thin max-h-[92dvh] ${top ? 'dialog-top' : ''} ${expansive ? 'max-w-6xl' : wide ? 'max-w-2xl' : 'max-w-md'}`}
       >
         {(title || (dismissable && onClose)) && (
           <div className="dialog-heading mb-3 flex items-start justify-between gap-3">
@@ -98,6 +104,7 @@ export function Modal({
         )}
         {children}
       </div>
-    </dialog>
+    </dialog>,
+    host,
   );
 }

@@ -93,6 +93,8 @@ export interface BoardProps extends BoardHandlers {
   quality?: 'high' | 'low';
   /** Size multiplier for the pieces, number tokens and harbors (the "Board size" setting). */
   pieceScale?: number;
+  /** 2D: the margin around the island, in board units (room for the harbors); rulebook snippets fit tighter. */
+  fitPad?: number;
   /** How the island looks (the "Board theme" setting); classic when unset. */
   theme?: BoardThemeId;
   /** Themed weather over the 3D board (the "Weather" setting). */

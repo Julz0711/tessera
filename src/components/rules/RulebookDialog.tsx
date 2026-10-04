@@ -4,6 +4,7 @@ import { BookOpen } from 'lucide-react';
 import { Fragment, useMemo, useRef, useState } from 'react';
 import { RULEBOOK, type RuleChapter, type RuleMode } from '@/config/rulebook';
 import { Modal } from '@/components/ui/Modal';
+import { RuleFigure } from './figures';
 
 const MODE_NAMES: Record<RuleMode, string> = { classic: 'Classic', ck: 'Knights & Barbarians', voyagers: 'Voyagers', special: 'Special' };
 
@@ -67,8 +68,10 @@ export function RulebookDialog({ open, onClose, modes }: { open: boolean; onClos
           </div>
         </div>
       )}
-      <div className="grid gap-4 md:grid-cols-[13rem_1fr]">
-        <nav aria-label="Chapters" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 scroll-thin md:mx-0 md:flex-col md:overflow-visible md:px-0">
+      {/* A fixed height on wider screens, the chapter list and the chapter each scrolling inside it: the
+          dialog keeps its size and place whichever chapter is open (as the settings panel does). */}
+      <div className="grid gap-4 md:h-[min(70dvh,720px)] md:grid-cols-[13rem_1fr]">
+        <nav aria-label="Chapters" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 scroll-thin md:mx-0 md:min-h-0 md:flex-col md:overflow-x-visible md:overflow-y-auto md:px-0 md:pr-1">
           {shown.map((c) => (
             <button
               key={c.id}
@@ -81,7 +84,7 @@ export function RulebookDialog({ open, onClose, modes }: { open: boolean; onClos
             </button>
           ))}
         </nav>
-        <article ref={page} className="min-w-0 md:max-h-[70dvh] md:overflow-y-auto md:pr-2 md:scroll-thin">
+        <article ref={page} className="min-w-0 md:min-h-0 md:overflow-y-auto md:pr-2 md:scroll-thin">
           <h3 className="display mb-1 text-xl font-black">{chapter.title}</h3>
           {chapter.applies !== 'all' && chapter.applies.map((m) => MODE_NAMES[m]).join(' · ') !== chapter.title && (
             <p className="mb-3 text-xs font-bold uppercase tracking-[0.12em] text-ink-faint">{chapter.applies.map((m) => MODE_NAMES[m]).join(' · ')}</p>
@@ -95,6 +98,8 @@ export function RulebookDialog({ open, onClose, modes }: { open: boolean; onClos
                     <p key={i}>
                       <Rich text={b} />
                     </p>
+                  ) : 'figure' in b ? (
+                    <RuleFigure key={i} id={b.figure} />
                   ) : (
                     <ul key={i} className="grid list-disc gap-1 pl-5">
                       {b.map((item, j) => (

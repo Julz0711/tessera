@@ -5,7 +5,7 @@
  * Illustrations live in a 100×100 box; card faces in a 100×140 box. Everything is generated once
  * per card and cached, so rendering a hand of cards is just a list of polygons.
  */
-import { memo, useLayoutEffect } from 'react';
+import { memo, useLayoutEffect, useState } from 'react';
 import type { Card, DevCardType } from '@/engine/types';
 
 type Pt = readonly [number, number];
@@ -986,12 +986,61 @@ export const MiniArt = memo(function MiniArt({ card, size = 16 }: { card: ArtKey
   );
 });
 
+/** Square bitmap size of a board icon: sharp at the board's closest zoom on a high-density screen. */
+const BITMAP_PX = 256;
+/** The art's own box (as MiniArt's viewBox), and a square around its centre with room for the outline. */
+const ART_BOX = 92;
+const BITMAP_VIEW = '0 2 100 100';
+const bitmaps = new Map<ArtKey, Promise<string>>();
+
+/**
+ * The icon art drawn once to a PNG (in the browser). The board pans and zooms by redrawing every
+ * frame, and as live SVG the art is a few hundred outlined polygons per tile: the whole island's
+ * icons doubled the frame time. As a bitmap each icon costs one image.
+ */
+function artBitmap(card: ArtKey): Promise<string> {
+  let hit = bitmaps.get(card);
+  if (!hit) {
+    hit = (async () => {
+      const parts = renderedArt(card).parts.map((part) => {
+        const ink = part.bare
+          ? ''
+          : `<g fill="${INK}" stroke="${INK}" stroke-width="${MINI_OUTLINE * 2}" stroke-linejoin="round">${part.facets.map((f) => `<polygon points="${f.points}"/>`).join('')}</g>`;
+        return ink + part.facets.map((f) => `<polygon points="${f.points}" fill="${f.fill}" stroke="${f.fill}" stroke-width="0.5" stroke-linejoin="round"/>`).join('');
+      });
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${BITMAP_PX}" height="${BITMAP_PX}" viewBox="${BITMAP_VIEW}">${parts.join('')}</svg>`;
+      const img = new Image();
+      img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      await img.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = BITMAP_PX;
+      canvas.getContext('2d')!.drawImage(img, 0, 0, BITMAP_PX, BITMAP_PX);
+      return canvas.toDataURL('image/png');
+    })();
+    bitmaps.set(card, hit);
+  }
+  return hit;
+}
+
 /**
  * The same icon art placed inside another SVG (the 2D board's tiles), `size` units square and
- * centred at (cx, cy), so each tile shows the card it pays out.
+ * centred at (cx, cy), so each tile shows the card it pays out. Drawn from a cached bitmap (see
+ * artBitmap); the live art stands in for the moment it takes to make one.
  */
 export const BoardArt = memo(function BoardArt({ card, cx, cy, size }: { card: ArtKey; cx: number; cy: number; size: number }) {
-  useLayoutEffect(() => ensureSpriteArt(card), [card]);
+  const [url, setUrl] = useState<string | null>(null);
+  useLayoutEffect(() => {
+    let live = true;
+    ensureSpriteArt(card);
+    artBitmap(card).then((u) => live && setUrl(u), () => {});
+    return () => {
+      live = false;
+    };
+  }, [card]);
+  if (url) {
+    const s = (size * 100) / ART_BOX;
+    return <image href={url} x={cx - s / 2} y={cy - s / 2} width={s} height={s} aria-hidden />;
+  }
   return (
     <svg x={cx - size / 2} y={cy - size / 2} width={size} height={size} viewBox="4 8 92 88" overflow="visible" aria-hidden>
       <use href={`#${miniArtId(card)}`} />

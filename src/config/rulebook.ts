@@ -9,10 +9,31 @@ export interface RuleChapter {
   sections: RuleSection[];
 }
 
+/** A picture in the rulebook (src/components/rules/figures), shown where it sits in a section's body. */
+export type FigureId =
+  | 'resources'
+  | 'odds'
+  | 'setup'
+  | 'turn'
+  | 'costs'
+  | 'longestRoad'
+  | 'harbors'
+  | 'robber'
+  | 'devCards'
+  | 'largestArmy'
+  | 'improvements'
+  | 'knights'
+  | 'eventDie'
+  | 'barbarians'
+  | 'ships';
+
 export interface RuleSection {
   title: string;
-  /** Paragraphs (string) and bullet lists (string[]). Inline **bold** is allowed for key terms and numbers. */
-  body: (string | string[])[];
+  /**
+   * Paragraphs (string), bullet lists (string[]) and pictures ({ figure }). Inline **bold** is allowed
+   * for key terms and numbers.
+   */
+  body: (string | string[] | { figure: FigureId })[];
 }
 
 export const RULEBOOK: RuleChapter[] = [
@@ -46,6 +67,7 @@ export const RULEBOOK: RuleChapter[] = [
       {
         title: 'Resources',
         body: [
+          { figure: 'resources' },
           'There are five resources. Each terrain produces one of them:',
           [
             '**Forest** gives Lumber.',
@@ -62,6 +84,7 @@ export const RULEBOOK: RuleChapter[] = [
       {
         title: 'Number tokens and production',
         body: [
+          { figure: 'odds' },
           'Every tile except the desert carries a number from 2 to 12 (never 7). At the start of your turn you roll two dice. Every tile whose number matches the total produces for everyone with a building on one of its corners.',
           [
             'A **settlement** on a producing tile gives you 1 card of that resource.',
@@ -110,6 +133,7 @@ export const RULEBOOK: RuleChapter[] = [
       {
         title: 'Placing your starting pieces',
         body: [
+          { figure: 'setup' },
           'Everyone places two settlements, each with one road next to it. Turn order runs forward and then backward (a snake): with 4 players the order is 1, 2, 3, 4, 4, 3, 2, 1.',
           [
             'On your turn, place a settlement on any legal corner, then a road on an edge touching that settlement.',
@@ -144,6 +168,7 @@ export const RULEBOOK: RuleChapter[] = [
       {
         title: 'Step by step',
         body: [
+          { figure: 'turn' },
           [
             '**Roll the dice.** In Knights & Barbarians a third die (the event die) rolls with them.',
             '**Production.** Every tile matching the total produces. On a 7, nothing is produced and the robber comes into play (see The robber).',
@@ -192,6 +217,7 @@ export const RULEBOOK: RuleChapter[] = [
       {
         title: 'Costs and piece limits',
         body: [
+          { figure: 'costs' },
           [
             '**Road:** 1 Brick + 1 Lumber. You have 15 roads.',
             '**Settlement:** 1 Brick + 1 Lumber + 1 Wool + 1 Grain. You have 5 settlements.',
@@ -231,6 +257,7 @@ export const RULEBOOK: RuleChapter[] = [
       {
         title: 'Longest Road',
         body: [
+          { figure: 'longestRoad' },
           'The player with the longest continuous road of at least **5 segments** holds the Longest Road and gets **2 points**.',
           [
             'If another player builds a longer road, they take it. A tie does not take it from the holder.',
@@ -271,6 +298,7 @@ export const RULEBOOK: RuleChapter[] = [
       {
         title: 'Trading with the bank',
         body: [
+          { figure: 'harbors' },
           'After rolling, you can trade with the bank:',
           [
             '**4:1** by default. Give 4 of one resource, get 1 of any other.',
@@ -292,6 +320,7 @@ export const RULEBOOK: RuleChapter[] = [
       {
         title: 'Rolling a 7',
         body: [
+          { figure: 'robber' },
           'When the dice total 7, nobody receives resources. Instead:',
           [
             '**Discard:** every player holding **more than 7 cards** discards **half** of them, rounded down. The player chooses which. (In Knights & Barbarians each city wall raises your limit by 2.)',
@@ -341,6 +370,7 @@ export const RULEBOOK: RuleChapter[] = [
       {
         title: 'The cards',
         body: [
+          { figure: 'devCards' },
           [
             '**Knight:** move the robber and steal a card, as with a 7 (with no discards). In Voyagers you can move the pirate instead. Each Knight you play counts toward the Largest Army.',
             '**Road Building:** place up to 2 roads for free (or ships, in Voyagers). Fewer if you have none left to place or nowhere to put them.',
@@ -353,6 +383,7 @@ export const RULEBOOK: RuleChapter[] = [
       {
         title: 'Largest Army',
         body: [
+          { figure: 'largestArmy' },
           'The first player to play **3 Knights** takes the Largest Army, worth **2 points**. Another player takes it by playing strictly more Knights than the holder.',
         ],
       },
@@ -390,6 +421,7 @@ export const RULEBOOK: RuleChapter[] = [
       {
         title: 'City improvements',
         body: [
+          { figure: 'improvements' },
           'You need at least one city to build improvements. There are three tracks, each paid with its own commodity:',
           [
             '**Trade** (Cloth)',
@@ -420,6 +452,7 @@ export const RULEBOOK: RuleChapter[] = [
       {
         title: 'Knights',
         body: [
+          { figure: 'knights' },
           'Each player owns **2 basic, 2 strong and 2 mighty** knights. Knights stand on corners, not tiles.',
           [
             '**Recruit:** 1 Wool + 1 Ore. A new knight is a basic knight and is inactive. It must go on an empty corner touching one of your roads (or ships). Knights ignore the distance rule.',
@@ -444,6 +477,7 @@ export const RULEBOOK: RuleChapter[] = [
       {
         title: 'The event die',
         body: [
+          { figure: 'eventDie' },
           'In Knights & Barbarians a third die rolls with the usual two. Its six faces show:',
           [
             '**Barbarian ship** (3 faces out of 6): the ship moves one step closer.',
@@ -455,6 +489,7 @@ export const RULEBOOK: RuleChapter[] = [
       {
         title: 'The barbarians',
         body: [
+          { figure: 'barbarians' },
           'Each ship face on the event die moves the barbarian ship one step along a track of **7** steps. On the 7th step the barbarians attack, before production on that roll.',
           [
             '**Barbarian strength** = the number of cities on the board, of all players (metropolises count).',
@@ -554,6 +589,7 @@ export const RULEBOOK: RuleChapter[] = [
       {
         title: 'Ships',
         body: [
+          { figure: 'ships' },
           'Voyagers maps have open sea. You sail **ships** across it, and ships are built and used like roads.',
           [
             '**Cost:** 1 Wool + 1 Lumber. You have 15 ships.',

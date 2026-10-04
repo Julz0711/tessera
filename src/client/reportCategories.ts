@@ -15,6 +15,10 @@ export interface StatRow {
   format?: StatFormat;
   /** Resource/commodity swatch shown next to the label. */
   card?: Card;
+  /** Development card whose art is shown next to the label. */
+  dev?: DevCardType;
+  /** Improvement/progress track whose commodity is shown next to the label. */
+  track?: Track;
   /** False hides the in-cell bar where length means nothing (places, turn numbers). */
   bar?: boolean;
   /** Shown even when every player has 0. */
@@ -186,8 +190,8 @@ export function reportCategories(report: GameReport): StatCategory[] {
         { label: 'Cards played', values: sumKeys('devPlayed:'), always: true },
         { label: 'Unused at the end', values: players.map((p) => p.unusedDev), always: true },
       ] },
-      { title: 'Bought', rows: devTypes.map((t) => ({ label: DEV_NAMES[t], values: counter(`devBought:${t}`) })) },
-      { title: 'Played', rows: devTypes.filter((t) => t !== 'victoryPoint').map((t) => ({ label: DEV_NAMES[t], values: counter(`devPlayed:${t}`) })) },
+      { title: 'Bought', rows: devTypes.map((t) => ({ label: DEV_NAMES[t], dev: t, values: counter(`devBought:${t}`) })) },
+      { title: 'Played', rows: devTypes.filter((t) => t !== 'victoryPoint').map((t) => ({ label: DEV_NAMES[t], dev: t, values: counter(`devPlayed:${t}`) })) },
       { title: 'Army', rows: [
         { label: 'Knights played', values: stats.knightsPlayed, better: 'high', always: true, award: 'Warlord' },
         { label: 'Turns holding largest army', values: counter('largestArmyTurns'), better: 'high' },
@@ -199,17 +203,17 @@ export function reportCategories(report: GameReport): StatCategory[] {
     out.push({ id: 'progress', label: 'Progress cards', matrices: [], groups: [
       { title: 'Deck', rows: [
         { label: 'Cards drawn', values: sumKeys('progressDrawn:'), better: 'high', always: true },
-        ...TRACKS.map((t) => ({ label: `${TRACK_NAMES[t]} drawn`, values: counter(`progressDrawn:${t}`) })),
+        ...TRACKS.map((t) => ({ label: `${TRACK_NAMES[t]} drawn`, track: t, values: counter(`progressDrawn:${t}`) })),
         { label: 'Cards played', values: stats.progressPlayed, better: 'high', always: true, award: 'Card shark' },
         { label: 'Discarded over the limit', values: counter('progressDiscarded'), better: 'low' },
         { label: 'Unused at the end', values: players.map((p) => p.unusedProgress) },
       ] },
       ...TRACKS.map((t) => ({ title: `${TRACK_NAMES[t]} cards played`, rows: PROGRESS_DECKS[t].map(([c]) => c).filter((c) => played.has(c))
-        .sort((a, b) => PROGRESS_NAMES[a].localeCompare(PROGRESS_NAMES[b])).map((c) => ({ label: PROGRESS_NAMES[c], values: counter(`progressPlayed:${c}`) })) })),
+        .sort((a, b) => PROGRESS_NAMES[a].localeCompare(PROGRESS_NAMES[b])).map((c) => ({ label: PROGRESS_NAMES[c], track: t, values: counter(`progressPlayed:${c}`) })) })),
     ] });
     out.push({ id: 'knights', label: 'Knights & barbarians', matrices: [], groups: [
       { title: 'City improvements', rows: [
-        ...TRACKS.map((t) => ({ label: `${TRACK_NAMES[t]} level`, values: players.map((p) => p.improvements[t] ?? 0), better: 'high' as const, always: true })),
+        ...TRACKS.map((t) => ({ label: `${TRACK_NAMES[t]} level`, track: t, values: players.map((p) => p.improvements[t] ?? 0), better: 'high' as const, always: true })),
         { label: 'Metropolises gained', values: counter('metropolisesGained'), better: 'high' },
         { label: 'Metropolises lost', values: counter('metropolisesLost'), better: 'low' },
       ] },

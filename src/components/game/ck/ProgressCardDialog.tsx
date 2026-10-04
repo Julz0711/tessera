@@ -2,7 +2,24 @@
 
 import { ArrowLeft, Play } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { CARDS, COMMODITIES, RESOURCES, masterMerchantVictims, robberActive, type Card, type ProgressCard, type ProgressParams, type Resource } from '@/engine';
+import {
+  CARDS,
+  COMMODITIES,
+  COSTS,
+  RESOURCES,
+  TRACKS,
+  activatableKnights,
+  freeRouteLeft,
+  hasCards,
+  improvementBlocker,
+  masterMerchantVictims,
+  robberActive,
+  topo,
+  type Card,
+  type ProgressCard,
+  type ProgressParams,
+  type Resource,
+} from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { PROGRESS_NAMES } from '@/client/describe';
 import { ProgressCounts } from '../PlayersPanel';
@@ -68,6 +85,59 @@ const NO_TARGET: Partial<Record<ProgressCard['type'], string>> = {
   spy: 'No opponent has progress cards.',
 };
 
+/** Tiles of a terrain next to one of the seat's buildings (each counted once): what Irrigation and Mining pay for. */
+function terrainNextTo(view: PlayerView, seat: number, terrain: 'fields' | 'mountains'): number {
+  const t = topo(view);
+  return view.board.hexes.filter((h) => h.terrain === terrain && t.hexes[h.id].vertices.some((v) => view.buildings[v]?.owner === seat)).length;
+}
+
+/**
+ * Why playing the card now would do nothing (null when it would do something): a card isn't offered
+ * when it would only be wasted, e.g. a Wedding with nobody ahead of you, or a Crane with no
+ * improvement you could then afford.
+ */
+function wasted(view: PlayerView, card: ProgressCard): string | null {
+  const me = view.viewer!;
+  const p = view.players[me];
+  const mine = p.publicVP;
+  const opponents = view.players.map((_, i) => i).filter((i) => i !== me);
+  switch (card.type) {
+    case 'crane': {
+      if (view.turn.crane) return 'A Crane is already in effect this turn.';
+      const craned = { ...view, turn: { ...view.turn, crane: true } };
+      return TRACKS.some((t) => !improvementBlocker(craned, me, t)) ? null : 'Even 1 cheaper, you can’t afford a city improvement yet.';
+    }
+    case 'wedding':
+      return opponents.some((i) => view.players[i].publicVP > mine && view.players[i].handCount > 0) ? null : 'Nobody with more points than you has cards to give.';
+    case 'saboteur':
+      return opponents.some((i) => view.players[i].publicVP >= mine && view.players[i].handCount >= 2) ? null : 'Nobody with at least your points has 2+ cards to lose.';
+    case 'irrigation':
+      return terrainNextTo(view, me, 'fields') ? null : 'None of your buildings touch a fields tile.';
+    case 'mining':
+      return terrainNextTo(view, me, 'mountains') ? null : 'None of your buildings touch a mountains tile.';
+    case 'warlord':
+      return activatableKnights(view, me).length ? null : 'All your knights are already active.';
+    case 'roadBuilding':
+      return freeRouteLeft(view, me) ? null : 'You have nowhere to build a road.';
+    case 'medicine':
+      if (!hasCards(p.hand, COSTS.medicineCity)) return 'You need 2 ore and 1 grain.';
+      break;
+    case 'merchantFleet':
+      return CARDS.some((c) => p.hand[c] >= 2) ? null : 'You have no 2 cards of a kind to trade.';
+    case 'commercialHarbor':
+      return RESOURCES.some((r) => p.hand[r] > 0) ? null : 'You have no resource to offer.';
+    case 'resourceMonopoly':
+    case 'tradeMonopoly':
+      return opponents.some((i) => view.players[i].handCount > 0) ? null : 'Nobody has any cards.';
+    default:
+      break;
+  }
+  // Cards played by picking on the board: something has to be there to pick.
+  const spec = progressPickSpec(view, card.type);
+  if (spec && spec.allowed.length < (spec.upTo ? 1 : spec.need)) return 'There’s nothing on the board to use it on.';
+  return null;
+}
+
 /** Whether the viewer can play this progress card right now. */
 export function canPlayProgress(view: PlayerView, card: ProgressCard): boolean {
   if (view.viewer === null || view.phase !== 'play' || view.turn.seat !== view.viewer || view.pending.length > 0) return false;
@@ -75,11 +145,11 @@ export function canPlayProgress(view: PlayerView, card: ProgressCard): boolean {
   if (!view.turn.rolled) return false;
   if (card.type === 'bishop') return robberActive(view);
   if (chooserFor(card) === 'player') return validTargets(view, card).length > 0;
-  return true;
+  return !wasted(view, card);
 }
 
 /** Why the card can't be played right now (null when it can). */
-function blocker(view: PlayerView, card: ProgressCard): string | null {
+export function progressBlocker(view: PlayerView, card: ProgressCard): string | null {
   if (canPlayProgress(view, card)) return null;
   if (view.phase !== 'play' || view.turn.seat !== view.viewer) return 'Progress cards are played on your turn.';
   if (view.pending.length) return 'Finish the current step first.';
@@ -87,7 +157,7 @@ function blocker(view: PlayerView, card: ProgressCard): string | null {
   if (!view.turn.rolled) return 'Roll the dice first.';
   if (card.type === 'bishop') return 'The robber joins the game after the first barbarian attack.';
   if (chooserFor(card) === 'player' && !validTargets(view, card).length) return NO_TARGET[card.type] ?? 'Nobody to play it on.';
-  return null;
+  return wasted(view, card);
 }
 
 /** One progress card from the hand: what it does, and playing it (with any choices it needs). */
@@ -106,7 +176,7 @@ export function ProgressCardDialog({ view, id }: { view: PlayerView; id: number 
 
   const close = () => ui.openCard(null);
   const chooser = chooserFor(card);
-  const why = blocker(view, card);
+  const why = progressBlocker(view, card);
   const style = TRACK_STYLE[card.track];
   const opponents = view.players.map((_, i) => i).filter((i) => i !== me);
 

@@ -91,6 +91,32 @@ describe('admin tools', () => {
     t.room.close('done');
   });
 
+  it('hands out progress cards from their deck, keeping the card out of the chat', () => {
+    const t = table('ck');
+    const g = t.room.game!;
+    const deck = g.progressDecks.science.length;
+    expect(t.room.admin('s1', { type: 'progress', seat: 1, card: 'crane' })).toMatch(/got crane/);
+    expect(t.room.game!.players[1].progress.map((c) => c.type)).toEqual(['crane']);
+    expect(t.room.game!.progressDecks.science).toHaveLength(deck - 1);
+    expect(t.chat.at(-1)?.text).toMatch(/a science progress card/);
+    expect(t.chat.at(-1)?.text).not.toMatch(/crane/i);
+    // A victory point card scores instead of going to the hand.
+    t.room.admin('s1', { type: 'progress', seat: 1, card: 'printer' });
+    expect(t.room.game!.players[1].progressVP).toBe(1);
+    expect(() => t.room.admin('s1', { type: 'progress', seat: 1, card: 'printer' })).toThrow(/None of those left/);
+    expect(() => t.room.admin('s1', { type: 'progress', seat: 1, card: 'nope' as never })).toThrow(/Unknown progress card/);
+    t.room.admin('s1', { type: 'undo' });
+    t.room.admin('s1', { type: 'undo' });
+    expect(t.room.game!.players[1].progress).toHaveLength(0);
+    t.room.close('done');
+  });
+
+  it('refuses progress cards outside Knights & Barbarians', () => {
+    const t = table();
+    expect(() => t.room.admin('s1', { type: 'progress', seat: 0, card: 'crane' })).toThrow(/only in Knights/);
+    t.room.close('done');
+  });
+
   it('sets the next roll without showing it to anyone', () => {
     const t = table('ck');
     while (t.room.game!.phase === 'setup') setupMove(t);

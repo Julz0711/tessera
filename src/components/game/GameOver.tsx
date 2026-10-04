@@ -1,6 +1,6 @@
 'use client';
 
-import { Crown, Home, RotateCcw, Users } from 'lucide-react';
+import { Home, RotateCcw, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { buildReport, type GameReport } from '@/engine/report';
@@ -9,8 +9,9 @@ import type { PlayerView } from '@/engine/view';
 import { api } from '@/client/store';
 import type { RoomDTO } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
-import { KnightBadge } from '@/components/knight/KnightBadge';
-import { Framed, TitleTag } from '@/components/profile/Cosmetics';
+import { AwardBadges } from './endgame/AwardBadges';
+import { PlayerBadge, Podium } from './endgame/Podium';
+import { PointIcons } from './endgame/PointIcons';
 import { Modal } from '@/components/ui/Modal';
 
 
@@ -84,36 +85,28 @@ export function GameOver({ view, room, onClose }: { view: PlayerView; room: Room
           ))}
         </div>
         {tab === 'standings' ? (
-          <ol className="grid gap-2">
-            {order.map((seat, rank) => {
-              const p = view.players[seat];
-              const c = PLAYER_COLORS[p.color];
-              return (
-                <li key={seat} className={`paper-flat flex items-center gap-3 p-2.5 ${seat === winner ? 'ring-4 ring-amber' : ''}`} style={{ boxShadow: `inset 6px 0 0 ${c.hex}` }}>
-                  <span className="display w-6 text-center text-2xl font-black text-ink-faint">{report.players[seat].rank}</span>
-                  {room.seats[seat] && (
-                    <Framed frame={room.seats[seat].cosmetics.frame} size={50}>
-                      {(s) => <KnightBadge knight={room.seats[seat].knight} color={p.color} size={s} />}
-                    </Framed>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 font-extrabold">
-                      {p.name} {seat === winner && <Crown size={16} className="text-amber-deep" />}
-                      <TitleTag title={room.seats[seat]?.cosmetics.title} />
-                    </div>
-                    <div className="flex flex-wrap gap-x-3 text-xs font-semibold text-ink-soft">
-                      {Object.entries(report.players[seat].points).filter(([, n]) => n > 0).map(([label, n]) => (
-                        <span key={label}>
-                          {label} <b>{n}</b>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="text-right"><span className="display text-3xl font-black tabular">{p.vp}</span>{report.players[seat].rating?.delta != null && <p className="text-xs font-bold">{report.players[seat].rating!.delta! > 0 ? '+' : ''}{report.players[seat].rating!.delta} Elo</p>}</div>
-                </li>
-              );
-            })}
-          </ol>
+          <>
+            <Podium order={order} view={view} room={room} report={report} />
+            <AwardBadges report={report} />
+            {order.length > 3 && (
+              <ol className="mt-4 grid gap-1.5">
+                {order.slice(3).map((seat) => {
+                  const p = view.players[seat];
+                  return (
+                    <li key={seat} className="paper-flat flex items-center gap-2 p-1.5" style={{ boxShadow: `inset 5px 0 0 ${PLAYER_COLORS[p.color].hex}` }}>
+                      <span className="display w-5 text-center text-lg font-black text-ink-faint">{report.players[seat].rank}</span>
+                      <PlayerBadge seat={seat} view={view} room={room} size={34} />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-extrabold">{p.name}{seat === view.viewer && <span className="ml-1 text-xs font-bold text-ink-soft">(you)</span>}</div>
+                        <PointIcons points={report.players[seat].points} color={p.color} />
+                      </div>
+                      <div className="text-right"><span className="display text-2xl font-black tabular">{p.vp}</span>{report.players[seat].rating?.delta != null && <p className="text-[11px] font-bold">{report.players[seat].rating!.delta! > 0 ? '+' : ''}{report.players[seat].rating!.delta} Elo</p>}</div>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </>
         ) : (
           <GameReportView report={report} initialSeat={view.viewer} />
         )}

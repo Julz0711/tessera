@@ -2,9 +2,11 @@
 
 import { Dices, Minus, Plus, ShieldCheck, Undo2 } from 'lucide-react';
 import { useState } from 'react';
-import { CARDS, RESOURCES, type Card, type EventFace } from '@/engine';
+import { CARDS, PROGRESS_DECKS, RESOURCES, TRACKS, type Card, type EventFace } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { CARD_COLORS } from '@/client/palette';
+import { PROGRESS_NAMES } from '@/client/describe';
+import { TRACK_STYLE } from '@/client/progressText';
 import { api, toast } from '@/client/store';
 import { useGameDialog } from '@/client/ui';
 import { PLAYER_COLORS } from '@/shared/colors';
@@ -133,6 +135,29 @@ export function AdminToolsDialog({ view, room }: { view: PlayerView; room: RoomD
             </button>
           </div>
         </Section>
+
+        {ck && (
+          <Section title="Progress cards" hint={`Hands ${view.players[seat]?.name ?? 'the player'} (picked above) that card from its deck. A victory point card scores at once; a 5th card asks for a discard.`}>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {TRACKS.map((t) => (
+                <div key={t} className="grid content-start gap-1 rounded-lg border-2 border-ink/15 p-1.5" style={{ background: `${TRACK_STYLE[t].color}22` }}>
+                  <span className="label">{TRACK_STYLE[t].label}</span>
+                  {PROGRESS_DECKS[t].map(([type]) => (
+                    <button
+                      key={type}
+                      type="button"
+                      className="btn justify-start px-2 py-1 text-xs"
+                      disabled={busy || !running}
+                      onClick={() => void run({ type: 'progress', seat, card: type })}
+                    >
+                      <Plus size={12} /> {PROGRESS_NAMES[type]}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </Section>
+        )}
 
         <Section title="Next roll" hint="Whoever rolls next gets these dice (the chat only says that they were set).">
           <div className="grid gap-2">

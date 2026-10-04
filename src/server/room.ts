@@ -6,7 +6,9 @@ import {
   DEFAULT_VP,
   EVENT_DIE,
   MAX_PLAYERS,
+  PROGRESS_DECKS,
   RESOURCES,
+  VP_PROGRESS,
   actorsFor,
   applyAction,
   createGame,
@@ -20,7 +22,10 @@ import {
   type GameState,
   type PlayerColor,
   type PlayerView,
+  type Track,
 } from '@/engine';
+import { checkProgressLimit } from '@/engine/ck/events';
+import { makeCtx } from '@/engine/state';
 import { buildReport, type GameReport } from '@/engine/report';
 import { MAPS, defaultVP, mapSupports } from '@/engine/maps';
 import { COLOR_ORDER, isPlayerColor } from '@/shared/colors';
@@ -757,6 +762,31 @@ export class Room {
         this.remember(g, `cards for ${this.seats[seat]?.name ?? 'a player'}`);
         this.replaceGame(next, message);
         return message;
+      }
+      case 'progress': {
+        const seat = cmd.seat;
+        if (!Number.isInteger(seat) || seat < 0 || seat >= g.players.length) throw new UserError('Unknown player');
+        if (g.mode !== 'ck') throw new UserError('Progress cards are only in Knights & Barbarians');
+        const track = (Object.keys(PROGRESS_DECKS) as Track[]).find((t) => PROGRESS_DECKS[t].some(([type]) => type === cmd.card));
+        if (!track) throw new UserError('Unknown progress card');
+        const next = structuredClone(g);
+        const deck = next.progressDecks[track];
+        const i = deck.findIndex((c) => c.type === cmd.card);
+        if (i < 0) throw new UserError('None of those left in the deck');
+        const [card] = deck.splice(i, 1);
+        const p = next.players[seat];
+        // Like a draw: a victory point card is revealed and scores at once; any other goes to the
+        // hand, where a 5th asks for a discard (straight away unless it's their own turn).
+        if (VP_PROGRESS.includes(card.type)) p.progressVP++;
+        else {
+          p.progress.push(card);
+          checkProgressLimit(makeCtx(next, seat), seat);
+        }
+        const name = this.seats[seat]?.name ?? 'a player';
+        this.remember(g, `progress card for ${name}`);
+        // The chat names only the deck (the card stays hidden from the table, as when drawn).
+        this.replaceGame(next, `An admin gave ${name} a ${track} progress card`);
+        return `${name} got ${card.type.replace(/[A-Z]/g, (c) => ` ${c.toLowerCase()}`)}`;
       }
       case 'nextRoll': {
         const die = (n: unknown) => Number.isInteger(n) && (n as number) >= 1 && (n as number) <= 6;
