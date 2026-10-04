@@ -27,6 +27,7 @@ const PROMPT_ACTIONS: Partial<Record<ActionType, PromptKind[]>> = {
   aqueduct: ['aqueduct'],
   pickGold: ['goldPick'],
   discardProgress: ['discardProgress'],
+  cancelEndTurn: ['discardProgress'],
   giveCards: ['giveCards', 'commercialHarbor'],
   removeKnight: ['deserterRemove'],
   placeKnight: ['deserterPlace'],

@@ -61,8 +61,9 @@ function VertexTarget({
   const pulse = usePulse(id);
   const subtle = kind === 'knightAction';
   const ghost = kind === 'settlement' || kind === 'city';
-  const lift = kind === 'city' ? 0.5 : kind === 'knightAction' || kind === 'wall' ? 0.06 : 0.36;
-  const quiet = hint && !subtle;
+  const lift = kind === 'city' ? 0.5 : kind === 'knightAction' || kind === 'wall' || kind === 'cityImprove' ? 0.06 : 0.36;
+  // A city's improvements target (C&K) stays hidden until hovered, like a build hint.
+  const quiet = (hint && !subtle) || kind === 'cityImprove';
   return (
     <group>
       {hover && color && kind === 'settlement' && <Settlement x={x} z={z} color={color} ghost />}
@@ -76,7 +77,7 @@ function VertexTarget({
           }
           position={[x, TILE_TOP + lift, z]}
           rotation={[Math.PI / 2, 0, 0]}
-          scale={subtle || kind === 'wall' ? 1.5 : 1}
+          scale={subtle || kind === 'wall' || kind === 'cityImprove' ? 1.5 : 1}
         />
       )}
       <mesh

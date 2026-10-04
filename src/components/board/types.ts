@@ -14,6 +14,8 @@ export type TargetKind =
   | 'knightDestination'
   /** One of your ships that can sail: clicking it starts the move. */
   | 'shipAction'
+  /** Cities & Knights: one of your cities; clicking it opens the city improvements. */
+  | 'cityImprove'
   | 'wall'
   | 'merchant'
   | 'hexPick'

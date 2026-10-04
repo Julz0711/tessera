@@ -8,6 +8,7 @@ import { api } from '@/client/store';
 import { useUi } from '@/client/ui';
 import { Modal } from '@/components/ui/Modal';
 import { CardChip } from '../cards';
+import { MiniArt } from '../cardArt';
 
 function TrackColumn({ view, track }: { view: PlayerView; track: Track }) {
   const me = view.viewer!;
@@ -52,19 +53,28 @@ function TrackColumn({ view, track }: { view: PlayerView; track: Track }) {
       {level < 5 && (
         <button
           type="button"
-          className="btn btn-primary py-1.5 text-sm"
+          className="btn btn-primary relative py-1.5 text-sm"
           disabled={!myTurn || !!blocker}
           title={blocker ?? undefined}
           onClick={() => api.act({ type: 'improveCity', track })}
         >
-          <Hammer size={14} /> Level {level + 1} ·{' '}
+          <Hammer size={14} />
+          <span>Level {level + 1}</span>
+          {/* the price: the full one struck through while a Crane takes 1 off */}
+          <span className="inline-flex items-center gap-1 rounded-md bg-ink/10 px-1.5 py-0.5 text-xs font-black">
+            {discounted && (
+              <s className="opacity-50" aria-label={`${level + 1} without the Crane`}>
+                {level + 1}
+              </s>
+            )}
+            {cost === 0 ? 'Free' : cost}
+            {cost > 0 && <MiniArt card={style.commodity} size={14} />}
+          </span>
           {discounted && (
-            <s className="opacity-60" aria-label={`${level + 1} without the Crane`}>
-              {level + 1}
-            </s>
-          )}{' '}
-          {cost} {style.commodity}
-          {discounted && <span className="text-[11px] font-bold opacity-80">(Crane)</span>}
+            <span className="absolute -right-2 -top-2.5 rounded-full border-2 border-ink bg-moss px-1.5 text-[10px] font-black uppercase leading-4 text-paper">
+              Crane −1
+            </span>
+          )}
         </button>
       )}
       {blocker && level < 5 && <p className="text-[11px] font-semibold text-ink-faint">{blocker}</p>}

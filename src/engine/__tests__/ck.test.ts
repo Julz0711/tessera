@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction } from '../apply';
 import { checkProgressLimit } from '../ck/events';
-import { canKnightAct, knightStrength, masterMerchantVictims, relocationSpots, roadMoveTargets } from '../ck/queries';
+import { canKnightAct, knightStrength, masterMerchantVictims, relocationSpots, roadMoveTargets, smithOptions, smithValid } from '../ck/queries';
 import { handLimit, topo } from '../queries';
 import type { GameState, ProgressCardType } from '../types';
 import { makeCtx } from '../state';
@@ -148,6 +148,43 @@ describe('knights', () => {
     s.players[0].improvements.politics = 3;
     s = act(s, 0, { type: 'promoteKnight', vertex: vs[0] });
     expect(s.knights[vs[0]]!.level).toBe(3);
+  });
+
+  describe('Smith', () => {
+    /** One basic and both strong knights on the board, so no strong piece is left in the supply. */
+    function smithBoard() {
+      const s = ck();
+      const vs = withRoads(s);
+      s.knights[vs[0]] = { id: 1, owner: 0, level: 1, active: false, activatedOn: -1, promotedOn: -1 };
+      s.knights[vs[1]] = { id: 2, owner: 0, level: 2, active: false, activatedOn: -1, promotedOn: -1 };
+      s.knights[vs[2]] = { id: 3, owner: 0, level: 2, active: false, activatedOn: -1, promotedOn: -1 };
+      s.players[0].improvements.politics = 3;
+      return { s, vs };
+    }
+
+    it('promotes a basic knight into the strong piece a strong knight frees, in either pick order', () => {
+      for (const order of [[0, 1], [1, 0]]) {
+        const { s, vs } = smithBoard();
+        const after = act(s, 0, { type: 'playProgress', card: giveCard(s, 0, 'smith', 1), params: { vertices: order.map((i) => vs[i]) } });
+        expect(after.knights[vs[0]]!.level).toBe(2);
+        expect(after.knights[vs[1]]!.level).toBe(3);
+      }
+    });
+
+    it('offers the basic knight as a first pick, but not on its own', () => {
+      const { s, vs } = smithBoard();
+      expect(smithOptions(s, 0)).toEqual(expect.arrayContaining([vs[0], vs[1], vs[2]]));
+      expect(smithValid(s, 0, [vs[0]])).toBe(false);
+      expect(smithOptions(s, 0, [vs[0]]).sort()).toEqual([vs[1], vs[2]].sort());
+      expect(reject(s, 0, { type: 'playProgress', card: giveCard(s, 0, 'smith', 1), params: { vertices: [vs[0]] } })).toMatch(/cannot be promoted/);
+    });
+
+    it('still needs a Fortress for the strong knight that makes room', () => {
+      const { s, vs } = smithBoard();
+      s.players[0].improvements.politics = 2;
+      expect(smithOptions(s, 0)).toEqual([]);
+      expect(reject(s, 0, { type: 'playProgress', card: giveCard(s, 0, 'smith', 1), params: { vertices: [vs[0], vs[1]] } })).toMatch(/cannot be promoted/);
+    });
   });
 });
 
@@ -373,11 +410,26 @@ describe('improvements and progress cards', () => {
     expect(s.turn.seat).toBe(1);
   });
 
+  it('lets you back out of ending the turn over the limit, to play a card instead', () => {
+    let s = ck();
+    (['warlord', 'wedding', 'saboteur', 'crane', 'bishop'] as const).forEach((type, i) => giveCard(s, 0, type, 10 + i));
+    s = act(s, 0, { type: 'endTurn' });
+    s = act(s, 0, { type: 'cancelEndTurn' });
+    expect(s.pending).toHaveLength(0);
+    expect(s.turn.seat).toBe(0);
+    expect(s.players[0].progress).toHaveLength(5);
+    s = act(s, 0, { type: 'playProgress', card: 13 });
+    s = act(s, 0, { type: 'endTurn' });
+    expect(s.turn.seat).toBe(1);
+  });
+
   it('asks for a discard at once when a 5th progress card arrives on someone else’s turn', () => {
     const s = ck();
     (['warlord', 'wedding', 'saboteur', 'crane', 'bishop'] as const).forEach((type, i) => giveCard(s, 1, type, 10 + i));
     checkProgressLimit(makeCtx(s, 0), 1);
     expect(s.pending).toEqual([{ kind: 'discardProgress', seat: 1 }]);
+    // Not from ending a turn of your own, so there's no going back: the card has to go.
+    expect(reject(s, 1, { type: 'cancelEndTurn' })).toMatch(/discard down to 4/);
   });
 
   it('Diplomat can keep your own road where it is', () => {

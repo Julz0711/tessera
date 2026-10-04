@@ -1,5 +1,5 @@
 import { alongRoad, OUTLINE, pc, RoadBase } from './shared';
-import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
+import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
 
 /** Nile's settlement: a mud-brick house, tapered walls under a flat parapet roof. */
 const nileSettlement: PieceGlyph = ({ x, y, color }) => {
@@ -68,124 +68,6 @@ function Palm({ x, y, leaf }: { x: number; y: number; leaf: string }) {
   );
 }
 
-/** Nile on the 2D board: date palms, mudbrick, a shaduf, wheat, a quarry and the pyramids. */
-export const nileGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
-  const spots = [
-    [-40, -34],
-    [40, -34],
-    [-50, 22],
-    [50, 22],
-    [0, 52],
-  ];
-  const at = (i: number) => ({ x: cx + spots[i][0], y: cy + spots[i][1] });
-  switch (terrain) {
-    case 'forest':
-      return (
-        <g>
-          {[0, 1, 2, 3, 4].map((i) => {
-            const { x, y } = at(i);
-            return <Palm key={i} x={x} y={y} leaf={c.accent} />;
-          })}
-        </g>
-      );
-    case 'hills': {
-      // Mudbrick drying in rows, and clay jars.
-      const jars = at(4);
-      return (
-        <g>
-          {[0, 1].map((i) => {
-            const { x, y } = at(i);
-            return (
-              <g key={i} fill={c.accent} stroke={c.side} strokeWidth="1">
-                {[0, 1].map((row) =>
-                  [0, 1, 2].map((col) => <rect key={`${row}${col}`} x={x - 17 + col * 11.5 + (row ? 5 : 0)} y={y - 6 + row * 8} width={row ? 10 : 10.5} height="6.5" />),
-                )}
-              </g>
-            );
-          })}
-          <ellipse cx={jars.x - 7} cy={jars.y + 4} rx="6" ry="8" fill="#a85a34" />
-          <rect x={jars.x - 9} y={jars.y - 7} width="4" height="4" fill="#a85a34" />
-          <ellipse cx={jars.x + 7} cy={jars.y + 6} rx="5" ry="6.5" fill="#94502e" />
-          <rect x={jars.x + 5} y={jars.y - 3} width="4" height="4" fill="#94502e" />
-        </g>
-      );
-    }
-    case 'pasture': {
-      // Sheep and a goat by a shaduf lifting water from a channel.
-      const s = at(1);
-      return (
-        <g>
-          {[0, 3].map((i) => {
-            const { x, y } = at(i);
-            const goat = i === 3;
-            return (
-              <g key={i}>
-                <ellipse cx={x} cy={y} rx="12" ry="8" fill={goat ? '#d9c7a0' : c.accent} />
-                <circle cx={x + 11} cy={y - 3} r="4.5" fill={goat ? '#4a3a2a' : '#3a3530'} />
-              </g>
-            );
-          })}
-          <path d={`M${s.x + 6} ${s.y + 14}v-22`} stroke="#6b4a2a" strokeWidth="3" />
-          <path d={`M${s.x - 14} ${s.y - 2}L${s.x + 18} ${s.y - 14}`} stroke="#8a6a44" strokeWidth="2.5" />
-          <rect x={s.x - 17} y={s.y} width="6" height="6" fill="#6b4a2a" />
-          <circle cx={s.x + 18} cy={s.y - 14} r="3.5" fill="#9a948a" />
-          {[2, 4].map((i) => {
-            const { x, y } = at(i);
-            return <path key={i} d={`M${x - 6} ${y + 6}l3-10 3 10 3-12 3 12`} stroke={c.side} strokeWidth="2.5" fill="none" />;
-          })}
-        </g>
-      );
-    }
-    case 'fields':
-      // Rows of wheat.
-      return (
-        <g>
-          <g stroke={c.side} strokeWidth="3" strokeLinecap="round" opacity="0.85">
-            {[0, 1, 2, 3].map((i) => {
-              const { x, y } = at(i);
-              return <path key={i} d={`M${x - 8} ${y + 10}v-20M${x} ${y + 10}v-24M${x + 8} ${y + 10}v-20`} />;
-            })}
-          </g>
-        </g>
-      );
-    case 'mountains': {
-      // Granite cliffs and cut blocks from the quarry.
-      const q = at(4);
-      return (
-        <g>
-          {[0, 1].map((i) => {
-            const { x, y } = at(i);
-            return (
-              <g key={i}>
-                <path d={`M${x - 20} ${y + 12}l6-24h28l6 24Z`} fill="#7c766d" />
-                <path d={`M${x - 14} ${y - 12}h28`} stroke={c.accent} strokeWidth="2" />
-              </g>
-            );
-          })}
-          <g fill="#d8cfbf" stroke="#9a948a" strokeWidth="1.2">
-            <rect x={q.x - 12} y={q.y + 2} width="10" height="8" />
-            <rect x={q.x - 1} y={q.y + 2} width="10" height="8" />
-            <rect x={q.x - 6} y={q.y - 6} width="10" height="8" />
-          </g>
-        </g>
-      );
-    }
-    case 'desert':
-      // The great pyramid at the back, a smaller one and a palm (the robber stands in the middle).
-      return (
-        <g>
-          <path d={`M${cx - 38} ${cy - 14}L${cx} ${cy - 64}L${cx + 38} ${cy - 14}Z`} fill={c.accent} />
-          <path d={`M${cx} ${cy - 64}L${cx + 38} ${cy - 14}H${cx}Z`} fill="#b8903a" />
-          <path d={`M${cx + 36} ${cy + 16}L${cx + 50} ${cy - 2}L${cx + 64} ${cy + 16}Z`} fill={c.accent} />
-          <path d={`M${cx + 50} ${cy - 2}L${cx + 64} ${cy + 16}H${cx + 50}Z`} fill="#b8903a" />
-          <Palm x={cx - 52} y={cy + 10} leaf="#6a9a44" />
-        </g>
-      );
-    default:
-      return null;
-  }
-};
-
 /** Nile on the 2D board: a reed boat, its papyrus hull curling up at both ends, under a lateen sail. */
 export const nileShip: BarbarianShipGlyph = ({ danger }) => {
   const hull = danger ? '#c23a2a' : '#d4a84a';
@@ -200,4 +82,61 @@ export const nileShip: BarbarianShipGlyph = ({ danger }) => {
       <path d="M-1-28l16 4 2 26h-18Z" fill={sail} stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
     </g>
   );
+};
+
+export const nileAccents: TileAccents = {
+  side: ({ terrain, x, y, c }) => {
+    switch (terrain) {
+      case 'forest':
+        return <Palm x={x} y={y} leaf={c.accent} />;
+      case 'hills':
+        // Clay jars.
+        return (
+          <g>
+            <ellipse cx={x - 6} cy={y + 2} rx="6" ry="8" fill="#a85a34" />
+            <rect x={x - 8} y={y - 9} width="4" height="4" fill="#a85a34" />
+            <ellipse cx={x + 7} cy={y + 4} rx="5" ry="6.5" fill="#94502e" />
+            <rect x={x + 5} y={y - 5} width="4" height="4" fill="#94502e" />
+          </g>
+        );
+      case 'pasture':
+        // Papyrus reeds.
+        return (
+          <g fill="none" strokeLinecap="round">
+            <path d={`M${x - 6} ${y + 10}v-16M${x} ${y + 10}v-20M${x + 6} ${y + 10}v-14`} stroke={c.side} strokeWidth="2.4" />
+            <path d={`M${x - 6} ${y - 6}l-5-3M${x - 6} ${y - 6}l5-3M${x} ${y - 10}l-5-3M${x} ${y - 10}l5-3M${x + 6} ${y - 4}l-4-3M${x + 6} ${y - 4}l4-3`} stroke="#6a9a44" strokeWidth="2" />
+          </g>
+        );
+      case 'fields':
+        // Wheat rows.
+        return <path d={`M${x - 8} ${y + 10}v-18M${x} ${y + 10}v-22M${x + 8} ${y + 10}v-18`} stroke={c.side} strokeWidth="3" strokeLinecap="round" />;
+      case 'mountains':
+        // Cut quarry blocks.
+        return (
+          <g fill="#d8cfbf" stroke="#9a948a" strokeWidth="1.4">
+            <rect x={x - 12} y={y + 1} width="12" height="9" />
+            <rect x={x + 1} y={y + 1} width="12" height="9" />
+            <rect x={x - 6} y={y - 8} width="12" height="9" />
+          </g>
+        );
+      case 'desert':
+        // A small pyramid.
+        return (
+          <g>
+            <path d={`M${x - 13} ${y + 9}L${x} ${y - 11}L${x + 13} ${y + 9}Z`} fill={c.accent} />
+            <path d={`M${x} ${y - 11}L${x + 13} ${y + 9}H${x}Z`} fill="#b8903a" />
+          </g>
+        );
+      default:
+        return null;
+    }
+  },
+  desert: ({ x, y, c }) => (
+    <g>
+      <path d={`M${x - 28} ${y + 24}L${x - 4} ${y - 24}L${x + 20} ${y + 24}Z`} fill={c.accent} />
+      <path d={`M${x - 4} ${y - 24}L${x + 20} ${y + 24}H${x - 4}Z`} fill="#b8903a" />
+      <path d={`M${x + 12} ${y + 24}L${x + 24} ${y + 4}L${x + 36} ${y + 24}Z`} fill={c.accent} />
+      <path d={`M${x + 24} ${y + 4}L${x + 36} ${y + 24}H${x + 24}Z`} fill="#b8903a" />
+    </g>
+  ),
 };

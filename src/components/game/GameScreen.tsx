@@ -266,14 +266,21 @@ export function GameScreen() {
   useAutoDecline(view);
   useBackgroundMusic();
 
-  // Light up the rolled number for a few seconds.
+  // Light up the rolled number for a few seconds. The timer hangs off the roll itself (rollKey), not
+  // the event batch: the next update (a bot's build, the robber's move) would otherwise cancel it and
+  // leave the number lit, and the rest of the board dimmed, until the following roll.
+  const [rollKey, setRollKey] = useState(0);
   useEffect(() => {
     const roll = events.find((e) => e.type === 'diceRolled');
     if (!roll || roll.type !== 'diceRolled') return;
     setHighlight(roll.dice.red + roll.dice.yellow);
+    setRollKey((k) => k + 1);
+  }, [updateId, events]);
+  useEffect(() => {
+    if (!rollKey) return;
     const t = setTimeout(() => setHighlight(null), 3500);
     return () => clearTimeout(t);
-  }, [updateId, events]);
+  }, [rollKey]);
 
   // The Inventor's two tiles light up as they're swapped, and again from the log's "Show".
   useEffect(() => {

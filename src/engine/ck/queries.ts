@@ -110,6 +110,46 @@ export function promotableKnights(s: Q, seat: number, ignorePromotedThisTurn = f
   return out;
 }
 
+/**
+ * Smith: whether these knights (each going up one level) can all be promoted together. They're
+ * judged as a set, highest level first: a strong knight turning mighty hands its strong piece back,
+ * which a basic knight in the same pick can then take, whatever order they were picked in.
+ */
+export function smithValid(s: Q, seat: number, picks: number[]): boolean {
+  if (!picks.length || picks.length > 2 || new Set(picks).size !== picks.length) return false;
+  const left = { ...piecesLeft(s, seat).knights };
+  const fortress = s.players[seat].improvements.politics >= ABILITY_LEVEL;
+  const order = [...picks].sort((a, b) => (s.knights[b]?.level ?? 0) - (s.knights[a]?.level ?? 0));
+  for (const v of order) {
+    const k = s.knights[v];
+    if (!k || k.owner !== seat || k.level >= 3 || k.promotedOn === s.turn.n) return false;
+    const next = (k.level + 1) as KnightLevel;
+    if ((next === 3 && !fortress) || left[next] <= 0) return false;
+    left[next]--;
+    left[k.level]++;
+  }
+  return true;
+}
+
+/** Smith: the order to promote a valid pick in (highest level first; see smithValid). */
+export function smithOrder(s: Q, picks: number[]): number[] {
+  return [...picks].sort((a, b) => (s.knights[b]?.level ?? 0) - (s.knights[a]?.level ?? 0));
+}
+
+/**
+ * Smith: the knights that can join `picked` — on their own, or (for the first pick) together with
+ * some second knight, so a basic knight is offered when a strong one going mighty would make room.
+ */
+export function smithOptions(s: Q, seat: number, picked: number[] = []): number[] {
+  const own: number[] = [];
+  s.knights.forEach((k, v) => {
+    if (k && k.owner === seat && !picked.includes(v)) own.push(v);
+  });
+  return own.filter(
+    (v) => smithValid(s, seat, [...picked, v]) || (picked.length === 0 && own.some((w) => w !== v && smithValid(s, seat, [v, w]))),
+  );
+}
+
 export function knightStrength(s: Q, seat: number): number {
   let n = 0;
   for (const k of s.knights) if (k && k.owner === seat && k.active) n += k.level;

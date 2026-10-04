@@ -17,7 +17,8 @@ import {
   masterMerchantVictims,
   merchantHexes,
   openRoads,
-  promotableKnights,
+  smithOrder,
+  smithValid,
   roadMoveTargets,
   robberActive,
   wallSpots,
@@ -113,10 +114,9 @@ export function playProgress(ctx: Ctx, cardId: number, params: ProgressParams): 
     case 'smith': {
       const picks = [...new Set(params.vertices ?? [])];
       assertRule(picks.length >= 1 && picks.length <= 2, 'Pick one or two knights to promote');
-      const allowed = promotableKnights(s, ctx.seat);
-      assertRule(picks.every((v) => allowed.includes(v)), 'Those knights cannot be promoted');
+      assertRule(smithValid(s, ctx.seat, picks), 'Those knights cannot be promoted');
       discardPlayed(ctx, card);
-      for (const v of picks) promoteKnightAt(ctx, v, true);
+      for (const v of smithOrder(s, picks)) promoteKnightAt(ctx, v, true);
       return;
     }
     case 'bishop':

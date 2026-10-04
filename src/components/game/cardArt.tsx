@@ -986,6 +986,19 @@ export const MiniArt = memo(function MiniArt({ card, size = 16 }: { card: ArtKey
   );
 });
 
+/**
+ * The same icon art placed inside another SVG (the 2D board's tiles), `size` units square and
+ * centred at (cx, cy), so each tile shows the card it pays out.
+ */
+export const BoardArt = memo(function BoardArt({ card, cx, cy, size }: { card: ArtKey; cx: number; cy: number; size: number }) {
+  useLayoutEffect(() => ensureSpriteArt(card), [card]);
+  return (
+    <svg x={cx - size / 2} y={cy - size / 2} width={size} height={size} viewBox="4 8 92 88" overflow="visible" aria-hidden>
+      <use href={`#${miniArtId(card)}`} />
+    </svg>
+  );
+});
+
 /** A cream, faceted hexagon token (for progress cards' icons), centred at (cx, cy) in a card face. */
 export function Medallion({ cx, cy, r, outline = 2.4 }: { cx: number; cy: number; r: number; outline?: number }) {
   const facets = [

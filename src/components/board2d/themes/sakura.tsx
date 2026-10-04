@@ -1,5 +1,6 @@
 import { alongRoad, OUTLINE, pc, RoadBase } from './shared';
-import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
+import { grassTuft } from './classic';
+import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
 
 /** A wide overhanging pagoda roof: a flat-topped triangle with small upturned eave flares. */
 function PagodaRoof({ x, apexY, eaveY, half, color }: { x: number; apexY: number; eaveY: number; half: number; color: string }) {
@@ -79,78 +80,6 @@ const sakuraKnight: KnightGlyph = ({ x, y, color }) => {
 
 export const sakuraPieces: ThemePieces = { settlement: sakuraSettlement, city: sakuraCity, road: sakuraRoad, knight: sakuraKnight };
 
-/** Sakura Isle on the 2D board: blossom groves, paddies, a single peak and a rock garden. */
-export const sakuraGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
-  const spots = [
-    [-40, -34],
-    [40, -34],
-    [-50, 22],
-    [50, 22],
-    [0, 52],
-  ];
-  const at = (i: number) => ({ x: cx + spots[i][0], y: cy + spots[i][1] });
-
-  switch (terrain) {
-    case 'forest':
-      // Round blossom canopies (three overlapping puffs) over a short dark trunk.
-      return (
-        <g>
-          {[0, 1, 2, 3, 4].map((i) => {
-            const { x, y } = at(i);
-            return (
-              <g key={i}>
-                <line x1={x} y1={y + 6} x2={x} y2={y + 17} stroke="#5a4536" strokeWidth="3" />
-                <circle cx={x} cy={y - 6} r="12" fill={c.accent} opacity="0.9" />
-                <circle cx={x - 8} cy={y - 1} r="8" fill={c.accent} opacity="0.75" />
-                <circle cx={x + 8} cy={y - 1} r="8" fill={c.accent} opacity="0.75" />
-              </g>
-            );
-          })}
-        </g>
-      );
-    case 'fields':
-      // A paddy bund square with small rice tufts in a row inside it.
-      return (
-        <g>
-          {[0, 1, 2, 3, 4].map((i) => {
-            const { x, y } = at(i);
-            return (
-              <g key={i}>
-                <rect x={x - 16} y={y - 12} width="32" height="24" fill="none" stroke={c.side} strokeWidth="2" opacity="0.55" />
-                <path d={`M${x - 9} ${y + 7}l2-9 2 9M${x} ${y + 8}l2-10 2 10M${x + 9} ${y + 7}l2-9 2 9`} stroke={c.accent} strokeWidth="2.5" fill="none" />
-              </g>
-            );
-          })}
-        </g>
-      );
-    case 'mountains': {
-      // One large snow-capped peak.
-      const { x, y } = at(1);
-      return (
-        <g>
-          <path d={`M${x - 30} ${y + 18}l30-44 30 44Z`} fill="#6f737c" />
-          <path d={`M${x - 11} ${y - 12}l11-16 11 16-6 4-5-4-5 4Z`} fill={c.accent} />
-        </g>
-      );
-    }
-    case 'desert':
-      // Raked sand lines below, three dark stones scattered above.
-      return (
-        <g>
-          <g stroke={c.accent} strokeWidth="2" fill="none" opacity="0.65">
-            <path d={`M${cx - 46} ${cy + 36}q46-14 92 0`} />
-            <path d={`M${cx - 42} ${cy + 48}q42-12 84 0`} />
-            <path d={`M${cx - 36} ${cy + 60}q36-10 72 0`} />
-          </g>
-          {[at(0), at(1), at(2)].map((p, i) => (
-            <ellipse key={i} cx={p.x} cy={p.y} rx="10" ry="7" fill="#454138" />
-          ))}
-        </g>
-      );
-  }
-  return null;
-};
-
 /** Sakura Isle on the 2D board: a Japanese junk, a wide hull under a red battened sail. */
 export const sakuraShip: BarbarianShipGlyph = ({ danger }) => {
   const hull = danger ? '#c23a2a' : '#5a3a26';
@@ -167,4 +96,80 @@ export const sakuraShip: BarbarianShipGlyph = ({ danger }) => {
       ))}
     </g>
   );
+};
+
+export const sakuraAccents: TileAccents = {
+  side: ({ terrain, x, y, c }) => {
+    switch (terrain) {
+      case 'forest':
+        // A little blossom tree: three pink puffs on a dark trunk.
+        return (
+          <g>
+            <line x1={x} y1={y + 2} x2={x} y2={y + 11} stroke="#5a4536" strokeWidth="3" strokeLinecap="round" />
+            <circle cx={x - 6} cy={y - 1} r="6.5" fill={c.accent} opacity="0.8" />
+            <circle cx={x + 6} cy={y - 1} r="6.5" fill={c.accent} opacity="0.8" />
+            <circle cx={x} cy={y - 7} r="8" fill={c.accent} />
+          </g>
+        );
+      case 'hills':
+        // A small stone lantern.
+        return (
+          <g fill="#9a968c" stroke="#5f5c54" strokeWidth="1.6" strokeLinejoin="round">
+            <rect x={x - 5} y={y + 4} width="10" height="5" />
+            <rect x={x - 2} y={y - 3} width="4" height="8" />
+            <rect x={x - 5} y={y - 8} width="10" height="5" fill="#f3ecd8" />
+            <path d={`M${x - 9} ${y - 8}L${x} ${y - 14}L${x + 9} ${y - 8}Z`} />
+          </g>
+        );
+      case 'pasture':
+        return (
+          <g>
+            {grassTuft(x, y, c.side)}
+            <circle cx={x + 11} cy={y - 8} r="3" fill="#f4b6c6" />
+            <circle cx={x - 12} cy={y - 6} r="2.4" fill="#f4b6c6" />
+          </g>
+        );
+      case 'fields':
+        // A little paddy bund with rice tufts.
+        return (
+          <g>
+            <rect x={x - 13} y={y - 9} width="26" height="19" fill="none" stroke={c.side} strokeWidth="2" opacity="0.7" />
+            <path d={`M${x - 7} ${y + 6}l2-9 2 9M${x + 1} ${y + 7}l2-10 2 10M${x + 8} ${y + 6}l2-8 2 8`} stroke={c.side} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+          </g>
+        );
+      case 'mountains':
+        // A small snow-capped peak.
+        return (
+          <g strokeLinejoin="round">
+            <path d={`M${x - 14} ${y + 9}l14-22 14 22Z`} fill="#6f737c" />
+            <path d={`M${x - 6} ${y - 3}l6-10 6 10-3 2-3-2-3 2Z`} fill="#fff" />
+          </g>
+        );
+      case 'desert':
+        // Raked sand lines around a dark stone.
+        return (
+          <g>
+            <g stroke={c.accent} strokeWidth="2" fill="none" strokeLinecap="round">
+              <path d={`M${x - 13} ${y + 8}q13-6 26 0`} />
+              <path d={`M${x - 10} ${y + 2}q10-5 20 0`} />
+            </g>
+            <ellipse cx={x} cy={y - 5} rx="7" ry="5" fill="#454138" />
+          </g>
+        );
+      default:
+        return null;
+    }
+  },
+  desert: ({ x, y, c }) => (
+    <g>
+      <g stroke={c.accent} strokeWidth="2.4" fill="none" strokeLinecap="round">
+        <path d={`M${x - 28} ${y + 22}q28-9 56 0`} />
+        <path d={`M${x - 24} ${y + 13}q24-8 48 0`} />
+        <path d={`M${x - 18} ${y + 4}q18-7 36 0`} />
+      </g>
+      <ellipse cx={x - 14} cy={y - 14} rx="10" ry="7" fill="#454138" />
+      <ellipse cx={x + 8} cy={y - 20} rx="8" ry="6" fill="#58534a" />
+      <ellipse cx={x + 18} cy={y - 8} rx="6" ry="4.5" fill="#454138" />
+    </g>
+  ),
 };

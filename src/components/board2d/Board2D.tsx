@@ -3,12 +3,13 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Maximize2, Minus, Plus } from "lucide-react";
-import { PIPS } from "@/engine/constants";
+import { PIPS, TERRAIN_RESOURCE } from "@/engine/constants";
 import { getTopology, type Topology } from "@/engine/board/topology";
 import type { Hex, PlayerColor, Terrain } from "@/engine/types";
 import { CARD_COLORS } from "@/client/palette";
 import { PALETTES, type BoardPalette, type BoardThemeId, type TileColors } from "@/client/themes";
-import { THEME_BARBARIAN_SHIPS, THEME_GLYPHS, THEME_PIECES, type BarbarianShipGlyph } from "./themes";
+import { THEME_ACCENTS, THEME_BARBARIAN_SHIPS, THEME_PIECES, type BarbarianShipGlyph } from "./themes";
+import { classicAccents, GoldNuggets } from "./themes/classic";
 import { OUTLINE, ROAD_WEIGHT, RoadBase } from "./themes/shared";
 import { VOYAGE_GLYPHS } from "./themes/voyage";
 import { PLAYER_COLORS } from "@/shared/colors";
@@ -17,6 +18,7 @@ import { BARBARIAN_HEADER_H, barbarianTrackLayout, type BarbarianLayout } from "
 import type { BoardProps, BoardScene } from "@/components/board/types";
 import { useZoomPan } from "./useZoomPan";
 import { useZoomHost } from "@/client/hud";
+import { BoardArt } from "@/components/game/cardArt";
 
 /** Whether the screen is wide enough for the desktop HUD (Tailwind's `lg`). */
 function useWide(): boolean {
@@ -34,10 +36,31 @@ function useWide(): boolean {
 const S = 100; // world units → SVG units
 /** How much of its hex a tile fills; the rest is a strip of beach between neighbours. */
 const TILE_SIZE = 0.93;
+/*
+ * A tile's layout, as on colonist.io (measured off its board, in tile radii R ≈ 93 here): the
+ * resource card's icon at the top, the number on a rounded square below the centre, and one small
+ * accessory either side of the icon.
+ */
+const ICON_SIZE = 56;
+const ICON_RISE = 37;
+const TOKEN_DROP = 32;
+const TOKEN_HALF = 30;
+const ACCENT_DX = 49;
+const ACCENT_RISE = 20;
+/** Where the robber stands from the tile's centre: beside the number, opposite the merchant (C&K). */
+const ROBBER_DX = 54;
+const ROBBER_DY = 24;
+const MERCHANT_DX = -54;
+const MERCHANT_DY = 20;
 
-/** Whether tiles are lit up right now: after a roll, or the Inventor's swap. */
+/**
+ * Whether tiles are lit up right now: after a roll, or the Inventor's swap. A roll nothing pays out
+ * on (a 7) lights nothing, so it leaves the board as it is instead of dimming all of it.
+ */
 function lighting(scene: BoardScene): boolean {
-  return !!scene.highlightHexes || scene.highlightToken !== null;
+  if (scene.highlightHexes) return true;
+  const n = scene.highlightToken;
+  return n !== null && scene.board.hexes.some((h) => h.token === n && !h.fog);
 }
 
 /** Whether this tile is one of those lit up (the rolled number's, or one the Inventor swapped). */
@@ -58,161 +81,33 @@ function hexPoints(topo: Topology, hexId: number, scale = 1): string {
     .join(" ");
 }
 
-function TerrainGlyphs({
-  terrain,
-  cx,
-  cy,
-  c,
-}: {
-  terrain: Terrain;
-  cx: number;
-  cy: number;
-  c: TileColors;
-}) {
-  const spots = [
-    [-40, -34],
-    [40, -34],
-    [-50, 22],
-    [50, 22],
-    [0, 52],
-  ];
-  const at = (i: number) => ({ x: cx + spots[i][0], y: cy + spots[i][1] });
-  switch (terrain) {
-    case "forest":
-      return (
-        <g fill={c.accent} opacity="0.9">
-          {[0, 1, 2, 3, 4].map((i) => {
-            const { x, y } = at(i);
-            return (
-              <path
-                key={i}
-                d={`M${x} ${y - 16}l11 20h-22Z M${x} ${y - 6}l13 20h-26Z`}
-              />
-            );
-          })}
-        </g>
-      );
-    case "hills":
-      return (
-        <g fill={c.accent} opacity="0.75">
-          {[0, 1, 4].map((i) => {
-            const { x, y } = at(i);
-            return <path key={i} d={`M${x - 22} ${y + 8}q22-30 44 0Z`} />;
-          })}
-        </g>
-      );
-    case "pasture":
-      return (
-        <g>
-          {[0, 3].map((i) => {
-            const { x, y } = at(i);
-            return (
-              <g key={i}>
-                <ellipse cx={x} cy={y} rx="12" ry="8" fill={c.accent} />
-                <circle cx={x + 11} cy={y - 3} r="4.5" fill="#3a3530" />
-              </g>
-            );
-          })}
-          {[1, 2, 4].map((i) => {
-            const { x, y } = at(i);
-            return (
-              <path
-                key={i}
-                d={`M${x - 6} ${y + 6}l3-10 3 10 3-12 3 12`}
-                stroke="#6a9446"
-                strokeWidth="2.5"
-                fill="none"
-              />
-            );
-          })}
-        </g>
-      );
-    case "fields":
-      return (
-        <g stroke="#a8862f" strokeWidth="3" strokeLinecap="round" opacity="0.8">
-          {[0, 1, 2, 3, 4].map((i) => {
-            const { x, y } = at(i);
-            return (
-              <path
-                key={i}
-                d={`M${x - 8} ${y + 10}v-20M${x} ${y + 10}v-24M${x + 8} ${y + 10}v-20`}
-              />
-            );
-          })}
-        </g>
-      );
-    case "mountains":
-      return (
-        <g>
-          {[0, 1, 4].map((i) => {
-            const { x, y } = at(i);
-            return (
-              <g key={i}>
-                <path d={`M${x - 20} ${y + 12}l20-30 20 30Z`} fill="#6f737c" />
-                <path
-                  d={`M${x - 7} ${y - 8}l7-10 7 10-4 3-3-3-3 3Z`}
-                  fill={c.accent}
-                />
-              </g>
-            );
-          })}
-        </g>
-      );
-    case "gold":
-      return (
-        <g>
-          {[0, 1, 4].map((i) => {
-            const { x, y } = at(i);
-            return (
-              <g
-                key={i}
-                fill="#ffd84a"
-                stroke="#6b4306"
-                strokeWidth="2.5"
-                strokeLinejoin="round"
-              >
-                <path d={`M${x - 17} ${y + 8}l3-10 9-4 7 6-2 8Z`} />
-                <path d={`M${x - 1} ${y + 9}l2-11 10-3 6 8-4 6Z`} />
-              </g>
-            );
-          })}
-          {[2, 3].map((i) => {
-            const { x, y } = at(i);
-            return (
-              <path
-                key={i}
-                d={sparkle(x, y, 14)}
-                fill="#fffbe6"
-                stroke="#6b4306"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-              />
-            );
-          })}
-        </g>
-      );
-    case "desert":
-      return (
-        <g fill={c.accent} opacity="0.8">
-          {[0, 1, 2, 3].map((i) => {
-            const { x, y } = at(i);
-            return <path key={i} d={`M${x - 20} ${y + 6}q20-16 40 0Z`} />;
-          })}
-          <path
-            d={`M${cx - 4} ${cy + 22}v-30a4 4 0 0 1 8 0v30Z M${cx + 4} ${cy}h8v-10`}
-            fill="#5f8f4a"
-            stroke="#5f8f4a"
-            strokeWidth="3"
-          />
-        </g>
-      );
-  }
-}
-
-/** A four-pointed glint. */
-function sparkle(x: number, y: number, s: number): string {
-  const k = s * 0.28;
-  return `M${x} ${y - s}L${x + k} ${y - k}L${x + s} ${y}L${x + k} ${y + k}L${x} ${y + s}L${x - k} ${y + k}L${x - s} ${y}L${x - k} ${y - k}Z`;
+/**
+ * A tile's drawings (colonist.io style): the resource card's icon at the top (gold's nuggets, or the
+ * desert's centrepiece instead), with the theme's accessory either side, the right one mirrored.
+ */
+function TileArt({ terrain, cx, cy, c, theme }: { terrain: Terrain; cx: number; cy: number; c: TileColors; theme: BoardThemeId }) {
+  const accents = THEME_ACCENTS[theme];
+  const ay = cy - ACCENT_RISE;
+  const side = (right: boolean) => {
+    const x = right ? cx + ACCENT_DX : cx - ACCENT_DX;
+    const p = { terrain, x, y: ay, c, right };
+    const art = accents?.side(p) ?? classicAccents.side(p);
+    return right ? <g transform={`translate(${2 * x} 0) scale(-1 1)`}>{art}</g> : art;
+  };
+  const resource = TERRAIN_RESOURCE[terrain];
+  return (
+    <g pointerEvents="none">
+      {side(false)}
+      {side(true)}
+      {resource ? (
+        <BoardArt card={resource} cx={cx} cy={cy - ICON_RISE} size={ICON_SIZE} />
+      ) : terrain === "gold" ? (
+        <GoldNuggets x={cx} y={cy - ICON_RISE} />
+      ) : terrain === "desert" ? (
+        (accents?.desert ?? classicAccents.desert!)({ x: cx, y: cy + 4, c })
+      ) : null}
+    </g>
+  );
 }
 
 function Cloud({
@@ -537,15 +432,15 @@ function RobberFigure({
   k?: number;
 }) {
   return (
-    <g pointerEvents="none" transform={grow(x, y, k)} opacity={ghost ? 0.6 : 1}>
+    // A slate figure with the pieces' dark outline, so it stands out on dark forest as well as on pale desert.
+    <g pointerEvents="none" transform={grow(x, y, k * 1.25)} opacity={ghost ? 0.6 : 1}>
       {!ghost && (
-        <ellipse cx={x} cy={y + 16} rx="15" ry="5" fill="#000" opacity="0.25" />
+        <ellipse cx={x} cy={y + 16} rx="15" ry="5" fill="#000" opacity="0.3" />
       )}
-      <path
-        d={`M${x - 12} ${y + 16}c0-14 5-24 12-24s12 10 12 24Z`}
-        fill="#2d2c33"
-      />
-      <circle cx={x} cy={y - 12} r="8" fill="#3a3942" />
+      <g stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round">
+        <path d={`M${x - 12} ${y + 16}c0-14 5-24 12-24s12 10 12 24Z`} fill="#5d5c68" />
+        <circle cx={x} cy={y - 12} r="8" fill="#76757f" />
+      </g>
     </g>
   );
 }
@@ -563,13 +458,14 @@ function Gloom({
   topo: Topology;
   gloom: NonNullable<BoardPalette["gloom2d"]>;
 }) {
-  // The lamp stands towards one of the three far corners (up the screen), as in 3D.
+  // The lamp stands out by the upper-left or upper-right corner, beyond the tile's accessory: the
+  // top corner is the resource icon's.
   const spot = (id: number) => {
-    const a = Math.PI / 6 + ((3 + ((id * 7 + 3) % 3)) * Math.PI) / 3;
+    const a = (((id * 7 + 3) % 2 ? 11 : 7) * Math.PI) / 6;
     const t = topo.hexes[id];
     return {
-      x: (t.x + Math.cos(a) * 0.64) * S,
-      y: (t.y + Math.sin(a) * 0.64) * S,
+      x: (t.x + Math.cos(a) * 0.78) * S,
+      y: (t.y + Math.sin(a) * 0.78) * S,
     };
   };
   const lights = gloom.lights;
@@ -1044,19 +940,7 @@ export default function Board2D({
               {sea ? null : h.fog ? (
                 <FogGlyphs cx={t.x * S} cy={t.y * S} fog={palette.fog} />
               ) : (
-                (THEME_GLYPHS[theme]?.({
-                  terrain: h.terrain,
-                  cx: t.x * S,
-                  cy: t.y * S,
-                  c: palette.terrain[h.terrain],
-                }) ?? (
-                  <TerrainGlyphs
-                    terrain={h.terrain}
-                    cx={t.x * S}
-                    cy={t.y * S}
-                    c={palette.terrain[h.terrain]}
-                  />
-                ))
+                <TileArt terrain={h.terrain} cx={t.x * S} cy={t.y * S} c={palette.terrain[h.terrain]} theme={theme} />
               )}
               {/* after a roll (or the Inventor's swap): the tiles that pay out glow, the rest of the board steps back */}
               {lighting(scene) && !sea &&
@@ -1087,19 +971,26 @@ export default function Board2D({
                     pointerEvents="none"
                   />
                 ))}
+              {/* A tile you can pick (robber, Inventor…): a solid cream ring with dark edges, the
+                  build hints' look, so it reads on yellow fields as well as dark forest. */}
               {target && (
-                <polygon
-                  points={hexPoints(topo, h.id, 0.8)}
-                  fill={
-                    hover === `h${h.id}`
-                      ? "rgba(242,179,61,0.35)"
-                      : "rgba(242,179,61,0.12)"
-                  }
-                  stroke="#f2b33d"
-                  strokeWidth="6"
-                  strokeDasharray="14 8"
-                  strokeLinejoin="round"
-                />
+                <g pointerEvents="none">
+                  <polygon
+                    points={hexPoints(topo, h.id, 0.84)}
+                    fill={hover === `h${h.id}` ? "rgba(255,243,207,0.35)" : "none"}
+                    stroke="#1f1a14"
+                    strokeOpacity="0.55"
+                    strokeWidth="10"
+                    strokeLinejoin="round"
+                  />
+                  <polygon
+                    points={hexPoints(topo, h.id, 0.84)}
+                    fill="none"
+                    stroke={hover === `h${h.id}` ? "#fff3cf" : "#f6eddb"}
+                    strokeWidth="5"
+                    strokeLinejoin="round"
+                  />
+                </g>
               )}
             </g>
           );
@@ -1194,35 +1085,49 @@ export default function Board2D({
           const red = h.token === 6 || h.token === 8;
           const lit = scene.highlightHexes ? scene.highlightHexes.includes(h.id) : scene.highlightToken === h.token && h.id !== scene.robber;
           const pips = PIPS[h.token];
+          const ty = t.y * S + TOKEN_DROP;
           return (
             <g
               key={`t${h.id}`}
               pointerEvents="none"
-              transform={grow(t.x * S, t.y * S, ps)}
+              transform={grow(t.x * S, ty, ps)}
             >
-              <circle
-                cx={t.x * S}
-                cy={t.y * S}
-                r="29"
+              <rect
+                x={t.x * S - TOKEN_HALF}
+                y={ty - TOKEN_HALF + 4}
+                width={TOKEN_HALF * 2}
+                height={TOKEN_HALF * 2}
+                rx="10"
+                fill="#000"
+                opacity="0.25"
+              />
+              <rect
+                x={t.x * S - TOKEN_HALF}
+                y={ty - TOKEN_HALF}
+                width={TOKEN_HALF * 2}
+                height={TOKEN_HALF * 2}
+                rx="10"
                 fill={lit ? "#f2b33d" : TOKEN.face}
                 stroke={TOKEN.rim}
-                strokeWidth="5"
+                strokeWidth="2.5"
               />
               <text
                 x={t.x * S}
-                y={t.y * S + 7}
+                y={ty + 10}
                 textAnchor="middle"
                 className="display"
-                fontSize="27"
-                fontWeight="800"
+                fontSize={h.token >= 10 ? 36 : 40}
+                fontWeight="900"
                 fill={red ? TOKEN.hot : TOKEN.ink}
               >
                 {h.token}
               </text>
               {Array.from({ length: pips }, (_, i) => (
-                <path
+                <circle
                   key={i}
-                  d={`M${t.x * S + (i - (pips - 1) / 2) * 6} ${t.y * S + 15.5}l2.5 2.5-2.5 2.5-2.5-2.5Z`}
+                  cx={t.x * S + (i - (pips - 1) / 2) * 7}
+                  cy={ty + 20}
+                  r="2.6"
                   fill={red ? TOKEN.hot : TOKEN.ink}
                 />
               ))}
@@ -1345,8 +1250,8 @@ export default function Board2D({
           (() => {
             const t = topo.hexes[scene.merchant.hex];
             const c = PLAYER_COLORS[scene.colors[scene.merchant.owner]];
-            const x = t.x * S - 44;
-            const y = t.y * S - 8;
+            const x = t.x * S + MERCHANT_DX;
+            const y = t.y * S + MERCHANT_DY;
             return (
               <g pointerEvents="none" transform={grow(x, y, ps)}>
                 <title>Merchant</title>
@@ -1376,8 +1281,8 @@ export default function Board2D({
 
         {/* robber */}
         <RobberFigure
-          x={topo.hexes[scene.robber].x * S}
-          y={topo.hexes[scene.robber].y * S + 46}
+          x={topo.hexes[scene.robber].x * S + ROBBER_DX}
+          y={topo.hexes[scene.robber].y * S + ROBBER_DY}
           k={ps}
         />
         {/* pirate (Voyagers) */}
@@ -1535,7 +1440,10 @@ export default function Board2D({
                     theme={theme}
                   />
                 )}
-                {kind === "knightAction" ? (
+                {kind === "cityImprove" ? (
+                  // Your city (C&K): no marker until hovered, then a ring round it, like a wall hint.
+                  isHover && <HintRing x={p.x * S} y={p.y * S} r={30} filled={false} hover />
+                ) : kind === "knightAction" ? (
                   <circle
                     cx={p.x * S}
                     cy={p.y * S}
@@ -1603,8 +1511,8 @@ export default function Board2D({
             <PirateShip x={topo.hexes[armed.at].x * S} y={topo.hexes[armed.at].y * S} theme={theme} k={ps} ghost />
           ) : (
             <RobberFigure
-              x={topo.hexes[armed.at].x * S}
-              y={topo.hexes[armed.at].y * S + 46}
+              x={topo.hexes[armed.at].x * S + ROBBER_DX}
+              y={topo.hexes[armed.at].y * S + ROBBER_DY}
               k={ps}
               ghost
             />

@@ -3,11 +3,21 @@ import type { PlayerColor, Terrain } from '@/engine/types';
 import type { TileColors } from '@/client/themes';
 
 /**
- * A board theme's own drawings on a 2D tile (SVG, in board units: the tile's centre is `cx`/`cy`
- * and its corners are about 100 away; keep clear of the number token, radius ~32 around the centre).
- * Return null to keep the classic drawing for that terrain.
+ * A board theme's own drawings on a 2D tile, in the colonist.io layout: Board2D draws the resource
+ * card's icon at the top and the number token below the centre, and the theme adds one small
+ * accessory either side of the icon (SVG, board units: the tile's corners are about 93 from its centre).
  */
-export type TileGlyphs = (p: { terrain: Terrain; cx: number; cy: number; c: TileColors }) => ReactNode | null;
+export type TileAccents = {
+  /**
+   * One small accessory for `terrain` (forest, hills, pasture, fields, mountains, desert, gold),
+   * about 26 wide and 20 tall, centred on (x, y). Board2D draws it on both sides and mirrors the
+   * right-hand one; `right` says which side this is, for a theme that wants them to differ.
+   * Return null to keep the classic accessory for that terrain.
+   */
+  side: (p: { terrain: Terrain; x: number; y: number; c: TileColors; right: boolean }) => ReactNode | null;
+  /** The desert's centrepiece (it has no icon or number), about 56 across, centred on (x, y). */
+  desert?: (p: { x: number; y: number; c: TileColors }) => ReactNode;
+};
 
 /** Harbor piers on both boards: the deck, the planks to the shore and the posts. */
 export type PierColors = { deck: string; plank: string; post: string };

@@ -210,6 +210,11 @@ export function resolveCkPrompt(ctx: Ctx, prompt: Prompt, action: Action): void 
       return removePrompt(ctx, prompt);
     }
     case 'discardProgress': {
+      // Over the limit on the way out of your turn: you may go back and play a card instead.
+      if (action.type === 'cancelEndTurn') {
+        assertRule(!!prompt.endTurn, 'You have to discard down to 4 progress cards');
+        return removePrompt(ctx, prompt);
+      }
       if (action.type !== 'discardProgress') break;
       const i = me.progress.findIndex((c) => c.id === action.card);
       assertRule(i >= 0, 'Pick one of your progress cards');

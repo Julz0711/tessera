@@ -32,6 +32,8 @@ import {
   wouldGainMetropolis,
   piecesLeft,
   promotableKnights,
+  smithOptions,
+  smithValid,
   relocationSpots,
   robberActive,
   robberVictims,
@@ -314,16 +316,10 @@ function progressAction(view: PlayerView, seat: number, card: ProgressCard): Act
     case 'warlord':
       return activatableKnights(view, seat).length >= 1 && view.barbarian.position >= 3 ? play() : null;
     case 'smith': {
-      // Up to two promotions, respecting how many knights of each level are left in the supply.
-      const supply = { ...piecesLeft(view, seat).knights };
-      const picks: number[] = [];
-      for (const v of promotableKnights(view, seat).sort((a, b) => view.knights[b]!.level - view.knights[a]!.level)) {
-        const next = (view.knights[v]!.level + 1) as 2 | 3;
-        if (picks.length < 2 && supply[next] > 0) {
-          supply[next]--;
-          picks.push(v);
-        }
-      }
+      // Two promotions if any pair works (strongest first), else one.
+      const options = smithOptions(view, seat).sort((a, b) => view.knights[b]!.level - view.knights[a]!.level);
+      const pair = options.flatMap((a) => options.filter((b) => b !== a && smithValid(view, seat, [a, b])).map((b) => [a, b]))[0];
+      const picks = pair ?? options.filter((v) => smithValid(view, seat, [v])).slice(0, 1);
       return picks.length ? play({ vertices: picks }) : null;
     }
     case 'engineer': {

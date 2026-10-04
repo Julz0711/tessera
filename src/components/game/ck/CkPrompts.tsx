@@ -1,8 +1,8 @@
 'use client';
 
-import { X } from 'lucide-react';
+import { Undo2, X } from 'lucide-react';
 import { useState } from 'react';
-import { CARDS, COMMODITIES, RESOURCES, TRACKS, handTotal, type Card, type PartialHand, type Prompt } from '@/engine';
+import { CARDS, COMMODITIES, RESOURCES, TRACKS, handTotal, smithValid, type Card, type PartialHand, type Prompt } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { PROGRESS_NAMES } from '@/client/describe';
 import { progressPickSpec } from '@/client/interaction';
@@ -56,7 +56,9 @@ export function CkPromptDialog({ view, prompt }: { view: PlayerView; prompt: Pro
     case 'discardProgress':
       return (
         <Modal open dismissable={false} title="Too many progress cards">
-          <p className="mb-3 text-sm text-ink-soft">You may hold 4. Pick one to return to its deck:</p>
+          <p className="mb-3 text-sm text-ink-soft">
+            You may hold 4. Pick one to return to its deck{prompt.endTurn ? ', or go back and play one first' : ''}:
+          </p>
           <div className="grid gap-2">
             {view.players[me].progress.map((c) => (
               <button key={c.id} type="button" className="btn justify-start px-3 py-2 text-left" onClick={() => api.act({ type: 'discardProgress', card: c.id })}>
@@ -67,6 +69,13 @@ export function CkPromptDialog({ view, prompt }: { view: PlayerView; prompt: Pro
               </button>
             ))}
           </div>
+          {prompt.endTurn && (
+            <div className="mt-3 flex justify-end">
+              <button type="button" className="btn btn-ghost px-3 py-2 text-sm" onClick={() => api.act({ type: 'cancelEndTurn' })}>
+                <Undo2 size={16} /> Back to my turn
+              </button>
+            </div>
+          )}
         </Modal>
       );
     case 'giveCards':
@@ -179,9 +188,10 @@ export function PickBanner({ view }: { view: PlayerView }) {
     if (m.t === 'knightChase') text = 'Pick where to send the robber';
     if (m.t === 'shipMove') text = m.from === null ? 'Pick a ship at the open end of a route' : 'Pick where the ship sails to';
     if (m.t === 'progress') {
-      const spec = progressPickSpec(view, m.cardType);
+      const spec = progressPickSpec(view, m.cardType, m.picked);
       text = `${PROGRESS_NAMES[m.cardType]}: ${spec?.hint ?? ''}${spec && spec.need > 1 ? ` (${m.picked.length}/${spec.need})` : ''}`;
-      if (spec?.upTo && m.picked.length > 0) {
+      // Done once what's picked works on its own (a basic knight alone may need a strong one beside it).
+      if (spec?.upTo && m.picked.length > 0 && (m.cardType !== 'smith' || smithValid(view, view.viewer!, m.picked))) {
         extra = (
           <button
             type="button"

@@ -1,27 +1,29 @@
 import type { BoardThemeId } from '@/client/themes';
-import { cyberpunkGlyphs, cyberpunkPieces, cyberpunkShip } from './cyberpunk';
-import { frontierGlyphs, frontierPieces, frontierShip } from './frontier';
+import { cyberpunkAccents, cyberpunkPieces, cyberpunkShip } from './cyberpunk';
+import { frontierAccents, frontierPieces, frontierShip } from './frontier';
 import { nightPieces, nightShip } from './night';
-import { nileGlyphs, nilePieces, nileShip } from './nile';
-import { nordicGlyphs, nordicPieces, nordicShip } from './nordic';
-import { orbitalGlyphs, orbitalPieces, orbitalShip } from './orbital';
-import { origamiGlyphs, origamiPieces, origamiShip } from './origami';
-import { sakuraGlyphs, sakuraPieces, sakuraShip } from './sakura';
-import { skyportGlyphs, skyportPieces, skyportShip } from './skyport';
-import type { BarbarianShipGlyph, ThemePieces, TileGlyphs } from './types';
+import { nileAccents, nilePieces, nileShip } from './nile';
+import { nordicAccents, nordicPieces, nordicShip } from './nordic';
+import { orbitalAccents, orbitalPieces, orbitalShip } from './orbital';
+import { origamiAccents, origamiPieces, origamiShip } from './origami';
+import { sakuraAccents, sakuraPieces, sakuraShip } from './sakura';
+import { skyportAccents, skyportPieces, skyportShip } from './skyport';
+import { classicAccents } from './classic';
+import type { BarbarianShipGlyph, ThemePieces, TileAccents } from './types';
 
-export type { BarbarianShipGlyph, ThemePieces, TileGlyphs } from './types';
+export type { BarbarianShipGlyph, ThemePieces, TileAccents } from './types';
 
-/** Themes that draw their own 2D tiles; the others only recolour the classic drawings. */
-export const THEME_GLYPHS: Partial<Record<BoardThemeId, TileGlyphs>> = {
-  sakura: sakuraGlyphs,
-  nordic: nordicGlyphs,
-  frontier: frontierGlyphs,
-  nile: nileGlyphs,
-  skyport: skyportGlyphs,
-  cyberpunk: cyberpunkGlyphs,
-  orbital: orbitalGlyphs,
-  origami: origamiGlyphs,
+/** Each theme's accessories on its 2D tiles; a theme left out (Night) recolours the classic ones. */
+export const THEME_ACCENTS: Partial<Record<BoardThemeId, TileAccents>> = {
+  classic: classicAccents,
+  sakura: sakuraAccents,
+  nordic: nordicAccents,
+  frontier: frontierAccents,
+  nile: nileAccents,
+  skyport: skyportAccents,
+  cyberpunk: cyberpunkAccents,
+  orbital: orbitalAccents,
+  origami: origamiAccents,
 };
 
 /** Themes that draw their own barbarian ship (C&K); the rest keep the classic longship. */

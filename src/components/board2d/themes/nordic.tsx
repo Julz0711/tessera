@@ -1,5 +1,6 @@
 import { alongRoad, OUTLINE, pc, RoadBase } from './shared';
-import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, TileGlyphs, ThemePieces } from './types';
+import { grassTuft, pebbles } from './classic';
+import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
 
 /**
  * A Norse gable end: walls under a steep roof whose two bargeboards run on past the ridge and cross
@@ -70,104 +71,6 @@ const nordicKnight: KnightGlyph = ({ x, y, color }) => {
 
 export const nordicPieces: ThemePieces = { settlement: nordicSettlement, city: nordicCity, road: nordicRoad, knight: nordicKnight };
 
-/** Nordic Fjords on the 2D board: dense spruce and birch, heather, snow drifts and rune stones. */
-export const nordicGlyphs: TileGlyphs = ({ terrain, cx, cy, c }) => {
-  const spots = [
-    [-40, -34],
-    [40, -34],
-    [-50, 22],
-    [50, 22],
-    [0, 52],
-  ];
-  const at = (i: number) => ({ x: cx + spots[i][0], y: cy + spots[i][1] });
-  switch (terrain) {
-    case 'forest':
-      // Narrow, three-tiered spruce at three spots; a thin white birch trunk with a light canopy at the other two.
-      return (
-        <g>
-          <g fill={c.accent} opacity="0.9">
-            {[0, 2, 4].map((i) => {
-              const { x, y } = at(i);
-              return <path key={i} d={`M${x} ${y - 22}l7 13h-14Z M${x} ${y - 11}l9 15h-18Z M${x} ${y}l11 17h-22Z`} />;
-            })}
-          </g>
-          <g opacity="0.9">
-            {[1, 3].map((i) => {
-              const { x, y } = at(i);
-              return (
-                <g key={i}>
-                  <rect x={x - 1.6} y={y - 6} width="3.2" height="20" fill="#e8e4da" />
-                  <ellipse cx={x} cy={y - 12} rx="9" ry="7" fill="#a8cf7a" />
-                </g>
-              );
-            })}
-          </g>
-        </g>
-      );
-    case 'pasture':
-      // Classic sheep kept as-is; the grass-blade tufts become small purple heather dot clusters.
-      return (
-        <g>
-          {[0, 3].map((i) => {
-            const { x, y } = at(i);
-            return (
-              <g key={i}>
-                <ellipse cx={x} cy={y} rx="12" ry="8" fill={c.accent} />
-                <circle cx={x + 11} cy={y - 3} r="4.5" fill="#3a3530" />
-              </g>
-            );
-          })}
-          <g fill="#96729f" opacity="0.85">
-            {[1, 2, 4].map((i) => {
-              const { x, y } = at(i);
-              return (
-                <g key={i}>
-                  <circle cx={x - 5} cy={y} r="3.2" />
-                  <circle cx={x + 2} cy={y - 3} r="3.6" />
-                  <circle cx={x + 6} cy={y + 3} r="2.8" />
-                </g>
-              );
-            })}
-          </g>
-        </g>
-      );
-    case 'mountains':
-      // Same silhouette as classic, but the snow cap is enlarged to cover much more of the peak.
-      return (
-        <g>
-          {[0, 1, 4].map((i) => {
-            const { x, y } = at(i);
-            return (
-              <g key={i}>
-                <path d={`M${x - 20} ${y + 12}l20-30 20 30Z`} fill="#6f737c" />
-                <path d={`M${x - 13} ${y - 2}l13-22 13 22-6 5-7-5-7 5Z`} fill={c.accent} />
-              </g>
-            );
-          })}
-        </g>
-      );
-    case 'desert':
-      // Frozen tundra: pale snow-drift curves (as classic's dune shape, recoloured icy white) plus a small ring of standing rune stones.
-      return (
-        <g>
-          <g fill="#f4f9fc" stroke={c.accent} strokeWidth="1" opacity="0.95">
-            {[0, 1, 2, 3].map((i) => {
-              const { x, y } = at(i);
-              return <path key={i} d={`M${x - 20} ${y + 6}q20-16 40 0Z`} />;
-            })}
-          </g>
-          <g fill="#7c8791" stroke="#5f6a73" strokeWidth="1.4">
-            <rect x={cx - 6} y={cy + 4} width="4" height="19" rx="1" transform={`rotate(-8 ${cx - 4} ${cy + 14})`} />
-            <rect x={cx + 1} y={cy + 1} width="4" height="23" rx="1" transform={`rotate(4 ${cx + 3} ${cy + 13})`} />
-            <rect x={cx + 8} y={cy + 6} width="3.5" height="15" rx="1" transform={`rotate(11 ${cx + 10} ${cy + 14})`} />
-          </g>
-        </g>
-      );
-    default:
-      return null;
-  }
-};
-
 /** Nordic Fjords on the 2D board: a dragon-headed drakkar under a black-and-white sail. */
 export const nordicShip: BarbarianShipGlyph = ({ danger }) => {
   const hull = danger ? '#c23a2a' : '#2f2418';
@@ -188,4 +91,61 @@ export const nordicShip: BarbarianShipGlyph = ({ danger }) => {
       <circle cx="14" cy="15" r="4" fill={black} stroke="#0d0a07" strokeWidth="1.2" />
     </g>
   );
+};
+
+export const nordicAccents: TileAccents = {
+  side: ({ terrain, x, y, c }) => {
+    switch (terrain) {
+      case 'forest':
+        // A snowy spruce.
+        return (
+          <g>
+            <path d={`M${x} ${y - 13}l8 11h-16Z M${x} ${y - 5}l10 12h-20Z`} fill={c.accent} />
+            <path d={`M${x} ${y - 13}l4.5 6.3h-9Z M${x} ${y - 5}l5.6 6.7q-5.6 2-11.2 0Z`} fill="#f4f9fc" />
+            <rect x={x - 1.5} y={y + 7} width="3" height="4" fill="#5a3d22" />
+          </g>
+        );
+      case 'hills':
+        return pebbles(x, y, c.accent, c.side);
+      case 'pasture':
+        // Heather.
+        return (
+          <g fill="#96729f">
+            <path d={`M${x - 8} ${y + 9}l3-9M${x} ${y + 9}v-12M${x + 8} ${y + 9}l-3-8`} stroke="#5f7a4a" strokeWidth="2" fill="none" />
+            <circle cx={x - 8} cy={y - 1} r="3.4" />
+            <circle cx={x} cy={y - 5} r="3.8" />
+            <circle cx={x + 6} cy={y - 1} r="3.2" />
+            <circle cx={x - 3} cy={y + 2} r="2.8" />
+          </g>
+        );
+      case 'fields':
+        return grassTuft(x, y, c.side);
+      case 'mountains':
+        // A snow-capped peak.
+        return (
+          <g strokeLinejoin="round">
+            <path d={`M${x - 14} ${y + 9}l14-23 14 23Z`} fill="#6f737c" />
+            <path d={`M${x - 8} ${y - 2}l8-12 8 12-4 3-4-3-4 3Z`} fill="#f4f9fc" />
+          </g>
+        );
+      case 'desert':
+        // A snow drift.
+        return <path d={`M${x - 15} ${y + 7}q15-16 30 0Z`} fill="#f4f9fc" stroke={c.accent} strokeWidth="1.4" />;
+      default:
+        return null;
+    }
+  },
+  desert: ({ x, y, c }) => (
+    <g>
+      <g fill="#f4f9fc" stroke={c.accent} strokeWidth="1.4">
+        <path d={`M${x - 30} ${y + 24}q18-20 38 0Z`} />
+        <path d={`M${x - 6} ${y + 24}q18-15 36 0Z`} />
+      </g>
+      <g fill="#7c8791" stroke="#5f6a73" strokeWidth="1.4">
+        <rect x={x - 16} y={y - 14} width="7" height="32" rx="1.5" transform={`rotate(-8 ${x - 12} ${y + 2})`} />
+        <rect x={x - 3} y={y - 22} width="7" height="40" rx="1.5" transform={`rotate(3 ${x} ${y - 2})`} />
+        <rect x={x + 11} y={y - 10} width="6" height="28" rx="1.5" transform={`rotate(10 ${x + 14} ${y + 4})`} />
+      </g>
+    </g>
+  ),
 };

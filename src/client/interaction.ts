@@ -23,7 +23,7 @@ import {
   merchantHexes,
   metropolisSpots,
   openRoads,
-  promotableKnights,
+  smithOptions,
   relocationSpots,
   roadMoveTargets,
   robberTargets,
@@ -49,7 +49,7 @@ export interface PickSpec {
 }
 
 /** Board picks a progress card needs, or null when it is played from a dialog / straight away. */
-export function progressPickSpec(view: PlayerView, type: ProgressCardType): PickSpec | null {
+export function progressPickSpec(view: PlayerView, type: ProgressCardType, picked: number[] = []): PickSpec | null {
   const me = view.viewer!;
   switch (type) {
     case 'engineer':
@@ -59,7 +59,7 @@ export function progressPickSpec(view: PlayerView, type: ProgressCardType): Pick
     case 'intrigue':
       return { target: 'vertex', allowed: intrigueTargets(view, me), need: 1, hint: 'Pick an opponent knight on your roads' };
     case 'smith':
-      return { target: 'vertex', allowed: promotableKnights(view, me), need: 2, upTo: true, hint: 'Pick up to two knights to promote' };
+      return { target: 'vertex', allowed: smithOptions(view, me, picked), need: 2, upTo: true, hint: 'Pick up to two knights to promote' };
     case 'merchant':
       return { target: 'hex', allowed: merchantHexes(view, me), need: 1, hint: 'Pick a hex next to your settlement or city' };
     case 'inventor':
@@ -163,7 +163,12 @@ function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): Boa
         return NO_TARGETS;
     }
   }
-  if (view.pending.length || view.turn.seat !== me || view.phase !== 'play' || !view.turn.rolled) return NO_TARGETS;
+  // Cities & Knights: your cities open the city improvements when clicked, on any turn (read-only
+  // when it isn't your move).
+  const cities = view.mode === 'ck' && view.phase === 'play' ? ownCities(view, me) : [];
+  if (view.pending.length || view.turn.seat !== me || view.phase !== 'play' || !view.turn.rolled) {
+    return cities.length ? { ...NO_TARGETS, kind: 'cityImprove', vertices: cities } : NO_TARGETS;
+  }
 
   if (mode?.t === 'build') {
     switch (mode.what) {
@@ -193,7 +198,7 @@ function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): Boa
     return { ...NO_TARGETS, kind: 'ship', edges: shipDestinations(view, me, mode.from), selectedEdge: mode.from };
   }
   if (mode?.t === 'progress') {
-    const spec = progressPickSpec(view, mode.cardType);
+    const spec = progressPickSpec(view, mode.cardType, mode.picked);
     if (!spec) return NO_TARGETS;
     const allowed = spec.allowed.filter((id) => !mode.picked.includes(id));
     const kind = spec.target === 'hex' ? 'hexPick' : spec.target === 'edge' ? 'edgePick' : 'vertexPick';
@@ -211,8 +216,10 @@ function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): Boa
   const sailKinds: Partial<Record<number, TargetKind>> = {};
   for (const e of sail) sailKinds[e] = 'shipAction';
   if (!hints) {
-    if (!knights.length && !sail.length) return NO_TARGETS;
-    return { ...NO_TARGETS, kind: 'knightAction', vertices: knights, edges: sail, edgeKinds: sailKinds };
+    if (!knights.length && !sail.length && !cities.length) return NO_TARGETS;
+    const vertexKinds: Partial<Record<number, TargetKind>> = {};
+    for (const v of cities) vertexKinds[v] = 'cityImprove';
+    return { ...NO_TARGETS, kind: 'knightAction', vertices: [...knights, ...cities], vertexKinds, edges: sail, edgeKinds: sailKinds };
   }
   const spots = affordableSpots(view, me);
   const vertexKinds: Partial<Record<number, TargetKind>> = {};
@@ -222,6 +229,8 @@ function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): Boa
   for (const v of spots.cities) vertexKinds[v] = 'city';
   for (const v of spots.walls) vertexKinds[v] = 'wall';
   for (const v of knights) vertexKinds[v] = 'knightAction';
+  // A city that can take a wall offers the wall; any other city opens the improvements.
+  for (const v of cities) vertexKinds[v] ??= 'cityImprove';
   const vertices = Object.keys(vertexKinds).map(Number);
   const routes = routeTargets(spots.roads, spots.ships);
   if (!vertices.length && !routes.edges.length && !sail.length) return NO_TARGETS;
@@ -235,6 +244,11 @@ function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): Boa
     vertexKinds,
     hint: true,
   };
+}
+
+/** The viewer's cities (C&K: each one opens the city improvements). */
+function ownCities(view: PlayerView, me: number): number[] {
+  return view.buildings.flatMap((b, v) => (b && b.owner === me && b.city ? [v] : []));
 }
 
 /** Road and ship spots together; an edge that only takes a ship is marked as one. */
@@ -309,13 +323,17 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
     return send({ type: 'moveShip', from: mode.from, to: id }, done);
   }
   if (mode?.t === 'progress') {
-    const spec = progressPickSpec(view, mode.cardType);
+    const spec = progressPickSpec(view, mode.cardType, mode.picked);
     if (!spec) return;
     const picked = [...mode.picked, id];
     if (picked.length >= spec.need) return send({ type: 'playProgress', card: mode.card, params: progressParams(mode.cardType, picked) }, done);
     return ui.setMode({ ...mode, picked });
   }
   if (target === 'vertex' && view.knights[id]?.owner === me) return ui.setKnightMenu(id);
+  if (target === 'vertex' && view.mode === 'ck' && ownCities(view, me).includes(id)) {
+    const myMove = view.phase === 'play' && view.turn.seat === me && view.turn.rolled && !view.pending.length;
+    if (!myMove || !affordableSpots(view, me).walls.includes(id)) return ui.setPanel('improve');
+  }
   if (target === 'edge' && sailableShips(view, me).includes(id)) return ui.setMode({ t: 'shipMove', from: id });
   // Build hints: offer whatever the spot can take.
   const spots = affordableSpots(view, me);

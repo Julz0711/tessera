@@ -556,6 +556,8 @@ export type Action =
   | { type: 'aqueduct'; resource: Resource }
   | { type: 'pickGold'; cards: PartialHand }
   | { type: 'discardProgress'; card: number }
+  /** C&K: back out of ending the turn while over the progress card limit (to play one instead). */
+  | { type: 'cancelEndTurn' }
   | { type: 'giveCards'; cards: PartialHand }
   | { type: 'removeKnight'; vertex: number }
   | { type: 'placeKnight'; vertex: number | null }

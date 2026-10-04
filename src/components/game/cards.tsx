@@ -44,7 +44,9 @@ export function CardChip({ card, n }: { card: Card; n?: number }) {
   const c = CARD_COLORS[card];
   return (
     <span
-      className="mx-0.5 inline-flex translate-y-[3px] items-center gap-px rounded-md border border-black/30 px-0.5 text-[11px] font-black leading-4.5"
+      // Centred on the line, not on a baseline: an inline-flex box takes its baseline from its
+      // content, so a chip with a count ("2") sat higher than one with just the art.
+      className="mx-0.5 inline-flex items-center gap-px rounded-md align-middle border border-black/30 px-0.5 text-[11px] font-black leading-4.5"
       style={{ background: c.bg, color: c.ink }}
       title={c.label}
     >
