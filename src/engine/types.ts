@@ -293,7 +293,7 @@ export type Prompt =
   | { kind: 'deserterRemove'; seat: number; to: number }
   /** `active`: the deserting knight was active, so the one placed is too (missing on older saves: inactive). */
   | { kind: 'deserterPlace'; seat: number; level: KnightLevel; active?: boolean }
-  /** Diplomat on your own open road: pick where it moves (it stays put until then). */
+  /** Diplomat on your own open road or ship (the piece on `from`): pick where it moves (it stays put until then). */
   | { kind: 'moveRoad'; seat: number; from: number }
   | { kind: 'spy'; seat: number; victim: number; cards: ProgressCard[] }
   | { kind: 'masterMerchant'; seat: number; victim: number; hand: Hand; count: number }
@@ -342,7 +342,8 @@ export type GameEventBody =
   | { type: 'turnStarted'; seat: number; n: number }
   | { type: 'diceRolled'; seat: number; dice: Dice }
   | { type: 'produced'; gains: PartialHand[] }
-  | { type: 'shortage'; card: Card }
+  /** The bank can't pay everyone owed `card`; `only`: the one player owed it, who gets what is left. */
+  | { type: 'shortage'; card: Card; only?: number }
   /** Fog lifted from these hexes (Black Forest), by `seat`'s road or settlement. */
   | { type: 'revealed'; seat: number; hexes: { id: number; terrain: Terrain; token: number | null }[] }
   | { type: 'built'; seat: number; piece: 'road' | 'ship' | 'settlement' | 'city' | 'wall'; at: number; free?: boolean }
@@ -354,10 +355,12 @@ export type GameEventBody =
   | { type: 'robberMoved'; seat: number; hex: number; pirate?: boolean }
   | { type: 'stole'; seat: number; victim: number }
   | { type: 'discarded'; seat: number; cards: PartialHand }
-  | { type: 'devBought'; seat: number }
+  /** `free`: drawn from a treasure, not bought. */
+  | { type: 'devBought'; seat: number; free?: boolean }
   | { type: 'devPlayed'; seat: number; card: DevCardType }
   | { type: 'monopoly'; seat: number; card: Card; total: number }
-  | { type: 'received'; seat: number; cards: PartialHand; reason: string }
+  /** `from`: the player the cards were taken from (Master Merchant); otherwise they came from the bank. */
+  | { type: 'received'; seat: number; cards: PartialHand; reason: string; from?: number }
   | { type: 'bankTrade'; seat: number; give: PartialHand; get: PartialHand }
   | { type: 'trade'; seat: number; partner: number; give: PartialHand; get: PartialHand }
   | { type: 'tradeOffered'; seat: number; id: number }
@@ -376,7 +379,8 @@ export type GameEventBody =
       defenders: number[];
     }
   | { type: 'cityLost'; seat: number; at: number }
-  | { type: 'progressDrawn'; seat: number; track: Track }
+  /** `from`: taken from that player's hand (Spy) rather than drawn from the deck. */
+  | { type: 'progressDrawn'; seat: number; track: Track; from?: number }
   | { type: 'progressPlayed'; seat: number; card: ProgressCardType }
   | { type: 'progressDiscarded'; seat: number; track: Track }
   | { type: 'knightBuilt'; seat: number; at: number }
@@ -388,7 +392,7 @@ export type GameEventBody =
   | { type: 'improved'; seat: number; track: Track; level: number }
   | { type: 'metropolis'; seat: number; track: Track; at: number; from: number | null }
   | { type: 'merchantPlaced'; seat: number; hex: number }
-  | { type: 'roadRemoved'; seat: number; owner: number; at: number }
+  | { type: 'roadRemoved'; seat: number; owner: number; at: number; ship?: boolean }
   /** `tokens`: the numbers on `a` and `b` before the swap (missing on older saves). */
   | { type: 'tokensSwapped'; seat: number; a: number; b: number; tokens?: [number, number] }
   | { type: 'defenderAwarded'; seat: number }

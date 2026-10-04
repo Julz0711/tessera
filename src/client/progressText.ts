@@ -14,7 +14,7 @@ export const PROGRESS_TEXT: Record<ProgressCardType, string> = {
   bishop: 'Move the robber and steal a card from everyone next to it.',
   constitution: 'Worth 1 victory point.',
   deserter: "An opponent removes a knight; you may place one of equal strength, active if theirs was.",
-  diplomat: "Remove an opponent's open road, or move one of your own.",
+  diplomat: "Remove an opponent's open road or ship, or move one of your own.",
   intrigue: 'Displace an opponent knight standing on your roads.',
   saboteur: 'Everyone with at least as many points as you discards half their hand.',
   spy: "Look at an opponent's progress cards and take one.",

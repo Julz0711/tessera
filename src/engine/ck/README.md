@@ -35,7 +35,7 @@ an online game needs a precise answer, these are the interpretations used:
 - Master Merchant: look at the hand of a player with strictly more VP (public points; a tie is not enough) and take 2 cards.
 - Spy: look at an opponent's progress cards and take one.
 - Deserter: the victim removes one of their knights; you may place a knight of the same strength from your supply (or, with none left, the strongest weaker one), with the same status: active if the deserter was active. An active deserter counts as activated this turn, so it can't act until your next turn.
-- Diplomat: remove an open road (one end connects to nothing of its owner's); if it was yours you may place it again immediately.
+- Diplomat: remove an open road or ship (one end connects to nothing of its owner's); if it was yours you may place it again immediately (a ship only as a ship).
 - Intrigue: displace an opponent's knight standing on an intersection touching your roads (no knight of yours needed). The intersection is left empty: its owner relocates the knight as for any displacement and can't put it back.
 - Inventor: swap two number tokens other than 2, 12, 6 and 8.
 - Merchant: place the merchant on a land hex next to your settlement or city — 2:1 trades for that hex's resource and +1 VP while you hold it.

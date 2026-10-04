@@ -53,7 +53,7 @@ function grantTreasure(ctx: Ctx, kind: TreasureKind, at: number | null): void {
       else if (s.devDeck.length) {
         const type = s.devDeck.pop()!;
         s.players[seat].devCards.push({ type, boughtOn: s.turn.n });
-        emit(ctx, { type: 'devBought', seat }, { data: { card: type }, to: [seat] });
+        emit(ctx, { type: 'devBought', seat, free: true }, { data: { card: type }, to: [seat] });
       }
       return;
   }

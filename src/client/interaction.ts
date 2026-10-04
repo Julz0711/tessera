@@ -22,10 +22,10 @@ import {
   shipDestinations,
   merchantHexes,
   metropolisSpots,
-  openRoads,
+  openRoutes,
   smithOptions,
   relocationSpots,
-  roadMoveTargets,
+  routeMoveTargets,
   robberTargets,
   robberVictims,
   wallSpots,
@@ -65,7 +65,7 @@ export function progressPickSpec(view: PlayerView, type: ProgressCardType, picke
     case 'inventor':
       return { target: 'hex', allowed: inventorHexes(view), need: 2, hint: 'Pick two number tokens to swap' };
     case 'diplomat':
-      return { target: 'edge', allowed: openRoads(view), need: 1, hint: "Pick an open road: an opponent's is removed, yours moves" };
+      return { target: 'edge', allowed: openRoutes(view), need: 1, hint: "Pick an open road or ship: an opponent's is removed, yours moves" };
     default:
       return null;
   }
@@ -154,7 +154,7 @@ function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): Boa
       case 'deserterPlace':
         return { ...NO_TARGETS, kind: 'knight', vertices: legalKnightSpots(view, me) };
       case 'moveRoad':
-        return { ...NO_TARGETS, kind: 'road', edges: roadMoveTargets(view, me, prompt.from), selectedEdge: prompt.from };
+        return { ...NO_TARGETS, kind: view.ships[prompt.from] === me ? 'ship' : 'road', edges: routeMoveTargets(view, me, prompt.from), selectedEdge: prompt.from };
       case 'deserterRemove':
         return { ...NO_TARGETS, kind: 'vertexPick', vertices: ownKnights(view) };
       case 'placeMetropolis':
@@ -303,7 +303,7 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
       case 'deserterPlace':
         return send({ type: 'placeKnight', vertex: id });
       case 'moveRoad':
-        return send({ type: 'buildRoad', edge: id });
+        return send({ type: view.ships[prompt.from] === me ? 'buildShip' : 'buildRoad', edge: id });
       case 'deserterRemove':
         return send({ type: 'removeKnight', vertex: id });
       case 'placeMetropolis':

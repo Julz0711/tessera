@@ -16,10 +16,10 @@ import {
   inventorHexes,
   masterMerchantVictims,
   merchantHexes,
-  openRoads,
+  openRoutes,
   smithOrder,
   smithValid,
-  roadMoveTargets,
+  routeMoveTargets,
   robberActive,
   wallSpots,
 } from './queries';
@@ -132,16 +132,18 @@ export function playProgress(ctx: Ctx, cardId: number, params: ProgressParams): 
     }
     case 'diplomat': {
       const e = params.edge;
-      assertRule(isEdge(s, e) && openRoads(s).includes(e), 'Pick an open road (one end connected to nothing)');
-      const owner = s.roads[e]!;
+      assertRule(isEdge(s, e) && openRoutes(s).includes(e), 'Pick an open road or ship (one end connected to nothing)');
+      const ship = s.ships[e] != null;
+      const owner = ship ? s.ships[e]! : s.roads[e]!;
       if (owner === ctx.seat) {
-        // One of your own roads moves instead of going: it stays put until you pick its new spot.
-        assertRule(roadMoveTargets(s, ctx.seat, e).length > 0, 'That road has nowhere else to go');
+        // One of your own roads or ships moves instead of going: it stays put until you pick its new spot.
+        assertRule(routeMoveTargets(s, ctx.seat, e).length > 0, `That ${ship ? 'ship' : 'road'} has nowhere else to go`);
         s.pending.push({ kind: 'moveRoad', seat: ctx.seat, from: e });
         break;
       }
-      s.roads[e] = null;
-      emit(ctx, { type: 'roadRemoved', seat: ctx.seat, owner, at: e });
+      if (ship) s.ships[e] = null;
+      else s.roads[e] = null;
+      emit(ctx, { type: 'roadRemoved', seat: ctx.seat, owner, at: e, ...(ship ? { ship } : {}) });
       break;
     }
     case 'intrigue': {

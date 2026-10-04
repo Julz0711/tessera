@@ -1,4 +1,4 @@
-import { HARBOR_KINDS, NUMBER_TOKENS, TERRAIN_COUNTS, TREASURE_DECK, VEILED_FOG_SEAS, VEILED_NUMBERS } from '../constants';
+import { HARBOR_KINDS, NUMBER_TOKENS, TERRAIN_COUNTS, TREASURE_DECK, VEILED_FOG_GOLDS, VEILED_FOG_SEAS, VEILED_FOG_TOKENS, VEILED_NUMBERS } from '../constants';
 import { randomInt, shuffle, type RngHolder } from '../rng';
 import { RESOURCES, TREASURE_KINDS, type Board, type Harbor, type HarborKind, type Hex, type LandTerrain, type Terrain, type Treasure } from '../types';
 import { bag, balancedTokens, dealTokens, spreadHarborEdges, spreadRedTokens } from './generate';
@@ -510,9 +510,10 @@ export function fourRealmsBoard(rng: RngHolder): Board {
 }
 
 /**
- * Veiled Isles: the home island is dealt like the base game's. Under the fog: always exactly 2 sea,
- * 0–1 gold, the rest random resource terrain, numbered at random from 3, 4, 5, 6, 8, 9, 10, 11
- * (repeats allowed: the rules call it completely random). Which fog hexes hold the sea is shuffled.
+ * Veiled Isles: the home island is dealt like the base game's. Under the fog: always exactly 2 sea and
+ * 2 gold, the rest random resource terrain. The hidden land is numbered from VEILED_FOG_TOKENS (one
+ * each of 3, 11, 4 and 10, two each of 5, 9, 6 and 8) plus one random number, with no 6s or 8s side
+ * by side. Which fog hexes hold the sea and the gold is shuffled.
  * The contents are drawn now with the game's seeded RNG and kept server-side until revealed, the
  * same as Black Forest. Fifteen treasures lie on the reference board's chest corners, one reward
  * each from a shuffled 5/4/3/3 deck.
@@ -526,7 +527,7 @@ export function veiledIslesBoard(rng: RngHolder): Board {
   dealMain(rng, main, terrains);
 
   const seas = VEILED_FOG_SEAS;
-  const golds = randomInt(rng, 2);
+  const golds = VEILED_FOG_GOLDS;
   const hidden: Terrain[] = [
     ...Array<Terrain>(seas).fill('sea'),
     ...Array<Terrain>(golds).fill('gold'),
@@ -535,8 +536,10 @@ export function veiledIslesBoard(rng: RngHolder): Board {
   shuffle(rng, hidden).forEach((t, i) => (terrains[fog[i]] = t));
 
   const mainLand = main.filter((id) => terrains[id] !== 'desert');
-  const dealt = dealTokens(rng, topo, [[mainLand, [...NUMBER_TOKENS]]], topo.hexes.map(() => null), false);
-  for (const id of fog) if (terrains[id] !== 'sea') dealt[id] = VEILED_NUMBERS[randomInt(rng, VEILED_NUMBERS.length)];
+  const mainDealt = dealTokens(rng, topo, [[mainLand, [...NUMBER_TOKENS]]], topo.hexes.map(() => null), false);
+  const hiddenLand = fog.filter((id) => terrains[id] !== 'sea');
+  const hiddenPool = [...VEILED_FOG_TOKENS, VEILED_NUMBERS[randomInt(rng, VEILED_NUMBERS.length)]];
+  const dealt = dealTokens(rng, topo, [[hiddenLand, hiddenPool]], mainDealt);
 
   const hexes = hexesOf(topo, terrains, dealt);
   for (const id of main) hexes[id].start = true;

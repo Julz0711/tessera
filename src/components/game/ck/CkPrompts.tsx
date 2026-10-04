@@ -141,7 +141,7 @@ const PROMPT_HINT: Partial<Record<Prompt['kind'], string>> = {
   relocateKnight: 'Your knight was displaced: pick where it goes',
   deserterRemove: 'A deserter! Pick one of your knights to leave',
   deserterPlace: 'Place the deserting knight next to your roads',
-  moveRoad: 'Diplomat: pick a new spot for your road',
+  moveRoad: 'Diplomat: pick a new spot for your road or ship',
   placeMetropolis: 'Pick a city for your metropolis',
 };
 

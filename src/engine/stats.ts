@@ -80,7 +80,7 @@ export function recordStats(s: GameState, ev: GameEvent): void {
       stats.playerTrades[ev.partner]++;
       break;
     case 'devBought':
-      stats.devBought[ev.seat]++;
+      if (!ev.free) stats.devBought[ev.seat]++;
       break;
     case 'devPlayed':
       if (ev.card === 'knight') stats.knightsPlayed[ev.seat]++;

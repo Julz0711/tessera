@@ -52,6 +52,6 @@ export function pickGold(ctx: Ctx, prompt: Extract<Prompt, { kind: 'goldPick' }>
   const need = Math.min(prompt.count, available);
   assertRule(handTotal(cards) === need, `Pick ${need} resource${need === 1 ? '' : 's'}`);
   transfer(s.bank, s.players[ctx.seat].hand, cards, 'The bank has run out of that');
-  if (need > 0) emit(ctx, { type: 'received', seat: ctx.seat, cards, reason: 'gold' });
+  if (need > 0) emit(ctx, { type: 'received', seat: ctx.seat, cards, reason: prompt.reason === 'treasure' ? 'treasure' : 'gold' });
   removePrompt(ctx, prompt);
 }

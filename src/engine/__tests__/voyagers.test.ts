@@ -4,13 +4,13 @@ import { canHoldRoad, canHoldSettlement, canHoldShip, islandsOf } from '../board
 import { getTopology } from '../board/topology';
 import { HARBOR_KINDS, TREASURE_DECK } from '../constants';
 import { MAPS } from '../maps';
-import { legalSettlementSpots, legalShipSpots, movableShips } from '../queries';
-import { knightReach, legalKnightSpots } from '../ck/queries';
+import { legalSettlementSpots, legalShipSpots, movableShips, pirateBorders, shipDestinations } from '../queries';
+import { knightReach, legalKnightSpots, openRoutes, routeMoveTargets } from '../ck/queries';
 import { createGame } from '../state';
 import type { GameState, MapId, Mode, PlayerColor, TreasureKind } from '../types';
 import { viewFor } from '../view';
 import { foreignIslands, victoryPoints } from '../vp';
-import { act, autoSetup } from './kit';
+import { act, autoSetup, reject } from './kit';
 
 const seeds = Array.from({ length: 25 }, (_, i) => i * 7919 + 3);
 const COLORS: PlayerColor[] = ['red', 'blue', 'orange', 'white'];
@@ -293,7 +293,7 @@ describe('Zealand', () => {
 });
 
 describe('Veiled Isles', () => {
-  it('hides exactly 2 sea and 0–1 gold under fog, numbered 3–11 without 7', () => {
+  it('hides exactly 2 sea and 2 gold under fog, with an even spread of 3–11 numbers', () => {
     const seaSpots = new Set<string>();
     for (const seed of seeds) {
       const board = generateBoard({ rng: seed }, 'veiledIsles');
@@ -302,11 +302,25 @@ describe('Veiled Isles', () => {
       const seas = fog.filter((h) => h.terrain === 'sea');
       expect(seas, `seed ${seed}`).toHaveLength(2);
       seaSpots.add(seas.map((h) => h.id).join());
-      expect(fog.filter((h) => h.terrain === 'gold').length).toBeLessThanOrEqual(1);
+      expect(fog.filter((h) => h.terrain === 'gold'), `seed ${seed}`).toHaveLength(2);
       expect(fog.filter((h) => h.terrain === 'desert')).toHaveLength(0);
       for (const h of fog) {
         if (h.terrain === 'sea') expect(h.token).toBeNull();
         else expect([3, 4, 5, 6, 8, 9, 10, 11]).toContain(h.token);
+      }
+      // One each of 3, 11, 4 and 10, two each of 5, 9, 6 and 8, and one more at random.
+      const tokens = fog.filter((h) => h.terrain !== 'sea').map((h) => h.token!);
+      const base = [3, 11, 4, 10, 5, 5, 9, 9, 6, 6, 8, 8];
+      const rest = [...tokens];
+      for (const n of base) {
+        expect(rest, `seed ${seed}`).toContain(n);
+        rest.splice(rest.indexOf(n), 1);
+      }
+      expect(rest, `seed ${seed}`).toHaveLength(1);
+      // No 6s or 8s side by side.
+      const t = getTopology(board.hexes);
+      for (const h of fog) if (h.token === 6 || h.token === 8) {
+        expect(t.hexes[h.id].neighbors.some((n) => board.hexes[n].token === 6 || board.hexes[n].token === 8), `seed ${seed}`).toBe(false);
       }
     }
     // Where the two seas hide still changes from game to game.
@@ -404,6 +418,45 @@ describe('Knights and ships', () => {
       return;
     }
     throw new Error('no free spot for a two-ship route');
+  });
+
+  it('Diplomat removes an open ship of an opponent and moves one of your own, as a ship', () => {
+    let s = autoSetup(game('fourRealms', 'ck', 3));
+    const t = getTopology(s.board.hexes);
+    s.buildings = s.buildings.map(() => null);
+    s.roads = s.roads.map(() => null);
+    s.ships = s.ships.map(() => null);
+    s.knights = s.knights.map(() => null);
+    s.turn.rolled = true;
+    // Two lone ships, each from its owner's settlement, open at the far end.
+    const sea = t.edges.filter((e) => canHoldShip(s.board, t, e.id) && !pirateBorders(s, e.id)).map((e) => e.id);
+    const ends = (e: number) => [t.edges[e].a, t.edges[e].b];
+    const mine = sea[0];
+    // The opponent's ship keeps clear of mine: none of its corners on or next to my ship's.
+    const near = new Set(ends(mine).flatMap((v) => t.vertices[v].edges.flatMap(ends)));
+    const theirs = sea.find((e) => ends(e).every((v) => !near.has(v)))!;
+    s.buildings[t.edges[mine].a] = { owner: 0, city: false, wall: false, metropolis: null };
+    s.ships[mine] = 0;
+    s.buildings[t.edges[theirs].a] = { owner: 1, city: false, wall: false, metropolis: null };
+    s.ships[theirs] = 1;
+    expect(openRoutes(s)).toEqual(expect.arrayContaining([mine, theirs]));
+
+    s.players[0].progress.push({ id: 1, type: 'diplomat', track: 'politics' });
+    s = act(s, 0, { type: 'playProgress', card: 1, params: { edge: theirs } });
+    expect(s.ships[theirs]).toBeNull();
+
+    s.players[0].progress.push({ id: 2, type: 'diplomat', track: 'politics' });
+    s = act(s, 0, { type: 'playProgress', card: 2, params: { edge: mine } });
+    expect(s.pending[0]).toEqual({ kind: 'moveRoad', seat: 0, from: mine });
+    const to = shipDestinations(s, 0, mine)[0];
+    expect(to).toBeDefined();
+    expect(routeMoveTargets(s, 0, mine)).toEqual(shipDestinations(s, 0, mine));
+    expect(reject(s, 0, { type: 'buildRoad', edge: to })).toBeTruthy();
+    s = act(s, 0, { type: 'buildShip', edge: to });
+    expect(s.ships[mine]).toBeNull();
+    expect(s.ships[to]).toBe(0);
+    expect(s.roads[to]).toBeNull();
+    expect(s.pending).toHaveLength(0);
   });
 });
 

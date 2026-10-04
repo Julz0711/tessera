@@ -19,7 +19,7 @@ const PROMPT_ACTIONS: Partial<Record<ActionType, PromptKind[]>> = {
   discard: ['discard'],
   moveRobber: ['robber'],
   buildRoad: ['freeRoads', 'moveRoad'],
-  buildShip: ['freeRoads'],
+  buildShip: ['freeRoads', 'moveRoad'],
   skipFreeRoads: ['freeRoads', 'moveRoad'],
   loseCity: ['loseCity'],
   relocateKnight: ['relocateKnight'],

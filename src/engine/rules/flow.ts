@@ -109,7 +109,7 @@ export function produce(ctx: Ctx): void {
     } else {
       const claimants = demand.flatMap((h, seat) => (h[card] > 0 ? [seat] : []));
       if (claimants.length === 1) gains[claimants[0]][card] = s.bank[card];
-      emit(ctx, { type: 'shortage', card });
+      emit(ctx, { type: 'shortage', card, ...(claimants.length === 1 ? { only: claimants[0] } : {}) });
     }
   }
   gains.forEach((g, seat) => {

@@ -542,7 +542,7 @@ export const RULEBOOK: RuleChapter[] = [
             '**Bishop (2):** move the robber (only after the first attack) and take 1 random card from every player with a building next to it.',
             '**Constitution (1):** 1 point, revealed at once.',
             '**Deserter (2):** choose an opponent with knights. They remove one of their knights, and you may place a knight of the same level from your supply (or the strongest weaker one you have left) on an empty corner next to your roads. It keeps the deserter\'s status: if the removed knight was active, yours is placed active (it can act from your next turn).',
-            '**Diplomat (2):** remove an open road (a road with one end not connected to anything of its owner), or move one of your own open roads.',
+            '**Diplomat (2):** remove an open road or ship (one with an end not connected to anything of its owner), or move one of your own open roads or ships.',
             '**Intrigue (2):** displace an opponent\'s knight standing on a corner that touches your roads. You need no knight of your own. Its owner moves it, and cannot put it back on the same corner.',
             '**Saboteur (2):** every opponent with at least as many points as you discards half their hand, rounded down.',
             '**Spy (3):** look at an opponent\'s progress cards and take one.',

@@ -24,7 +24,7 @@ import {
   ownKnightAt,
   promotableKnights,
   relocationSpots,
-  roadMoveTargets,
+  routeMoveTargets,
   robberActive,
   wallSpots,
   wouldGainMetropolis,
@@ -261,12 +261,20 @@ export function resolveCkPrompt(ctx: Ctx, prompt: Prompt, action: Action): void 
     }
     case 'moveRoad': {
       if (action.type === 'skipFreeRoads') return removePrompt(ctx, prompt);
-      if (action.type !== 'buildRoad') break;
-      assertRule(roadMoveTargets(s, ctx.seat, prompt.from).includes(action.edge), 'Your road cannot go there');
-      s.roads[prompt.from] = null;
-      s.roads[action.edge] = ctx.seat;
-      emit(ctx, { type: 'roadRemoved', seat: ctx.seat, owner: ctx.seat, at: prompt.from });
-      emit(ctx, { type: 'built', seat: ctx.seat, piece: 'road', at: action.edge, free: true });
+      // A ship moves on as a ship, a road as a road.
+      const ship = s.ships[prompt.from] === ctx.seat;
+      if (action.type !== (ship ? 'buildShip' : 'buildRoad')) break;
+      assertRule(routeMoveTargets(s, ctx.seat, prompt.from).includes(action.edge), `Your ${ship ? 'ship' : 'road'} cannot go there`);
+      if (ship) {
+        s.ships[prompt.from] = null;
+        s.ships[action.edge] = ctx.seat;
+        emit(ctx, { type: 'shipMoved', seat: ctx.seat, from: prompt.from, to: action.edge });
+      } else {
+        s.roads[prompt.from] = null;
+        s.roads[action.edge] = ctx.seat;
+        emit(ctx, { type: 'roadRemoved', seat: ctx.seat, owner: ctx.seat, at: prompt.from });
+        emit(ctx, { type: 'built', seat: ctx.seat, piece: 'road', at: action.edge, free: true });
+      }
       revealAround(ctx, [topo(s).edges[action.edge].a, topo(s).edges[action.edge].b]);
       removePrompt(ctx, prompt);
       return collectTreasures(ctx, action.edge);
@@ -290,7 +298,7 @@ export function resolveCkPrompt(ctx: Ctx, prompt: Prompt, action: Action): void 
       assertRule(i >= 0, 'Pick one of their cards');
       const [card] = victim.progress.splice(i, 1);
       me.progress.push(card);
-      emit(ctx, { type: 'progressDrawn', seat: ctx.seat, track: card.track }, { data: { card: card.type }, to: [ctx.seat, prompt.victim] });
+      emit(ctx, { type: 'progressDrawn', seat: ctx.seat, track: card.track, from: prompt.victim }, { data: { card: card.type }, to: [ctx.seat, prompt.victim] });
       removePrompt(ctx, prompt);
       return checkProgressLimit(ctx, ctx.seat);
     }
@@ -302,7 +310,7 @@ export function resolveCkPrompt(ctx: Ctx, prompt: Prompt, action: Action): void 
       assertRule(hasCards(victim, cards), 'They do not have those cards');
       removeCards(victim, cards);
       for (const c of cardList(cards)) me.hand[c]++;
-      emit(ctx, { type: 'received', seat: ctx.seat, cards, reason: 'masterMerchant' });
+      emit(ctx, { type: 'received', seat: ctx.seat, cards, reason: 'masterMerchant', from: prompt.victim });
       return removePrompt(ctx, prompt);
     }
     case 'placeMetropolis': {

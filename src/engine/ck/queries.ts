@@ -1,6 +1,6 @@
 /** Read-only Cities & Knights rule queries (usable on full states and redacted views). */
 import { ABILITY_LEVEL, MAX_IMPROVEMENT, METROPOLIS_LEVEL, TERRAIN_RESOURCE, TRACK_COMMODITY } from '../constants';
-import { blockedFor, legalRoadSpots, piecesLeft, topo, touchesOwnRoute, type Q } from '../queries';
+import { blockedFor, legalRoadSpots, piecesLeft, shipDestinations, topo, touchesOwnRoute, type Q } from '../queries';
 import type { KnightLevel, Track } from '../types';
 import { victoryPoints } from '../vp';
 
@@ -224,18 +224,19 @@ export function inventorHexes(s: Q): number[] {
 }
 
 /**
- * Open roads (Diplomat): at least one end of the road connects to nothing else of its owner —
- * no other road, building or knight.
+ * Open roads and ships (Diplomat): at least one end connects to nothing else of its owner — no
+ * building, knight or other road (for a ship: no other ship or road, as for sailing).
  */
-export function openRoads(s: Q): number[] {
+export function openRoutes(s: Q): number[] {
   const t = topo(s);
   const out: number[] = [];
-  s.roads.forEach((owner, e) => {
-    if (owner === null) return;
-    const edge = t.edges[e];
+  t.edges.forEach((edge, e) => {
+    const ship = s.ships[e] != null;
+    const owner = ship ? s.ships[e] : s.roads[e];
+    if (owner == null) return;
     const loose = [edge.a, edge.b].some((v) => {
       if (s.buildings[v]?.owner === owner || s.knights[v]?.owner === owner) return false;
-      return !t.vertices[v].edges.some((o) => o !== e && s.roads[o] === owner);
+      return !t.vertices[v].edges.some((o) => o !== e && (s.roads[o] === owner || (ship && s.ships[o] === owner)));
     });
     if (loose) out.push(e);
   });
@@ -247,6 +248,11 @@ export function roadMoveTargets(s: Q, seat: number, from: number): number[] {
   const roads = s.roads.slice();
   roads[from] = null;
   return legalRoadSpots({ ...s, roads }, seat).filter((e) => e !== from);
+}
+
+/** Diplomat on your own open road or ship: where it can move to (a ship only to where a new ship could go). */
+export function routeMoveTargets(s: Q, seat: number, from: number): number[] {
+  return s.ships[from] === seat ? shipDestinations(s, seat, from) : roadMoveTargets(s, seat, from);
 }
 
 /** Opponent knights standing on intersections that touch the seat's roads or ships (Intrigue). */
