@@ -324,6 +324,12 @@ body {
 :is(.paper, .paper-flat, .bg-paper) {
   --faded: rgb(31 26 20);
 }
+/* The size of a key's shaded bottom-right corner, registered so hover can animate it. */
+@property --facet {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0.85rem;
+}
 .btn {
   --btn-bg: #ffffff;
   --btn-shade: #e3ebec;
@@ -336,20 +342,38 @@ body {
   gap: 0.5rem;
   border: 2px solid var(--btn-line);
   border-radius: 4px;
-  background: linear-gradient(135deg, var(--btn-bg) calc(100% - 0.85rem), var(--btn-shade) 0);
+  --btn-corner: var(--btn-shade);
+  background: linear-gradient(135deg, var(--btn-bg) calc(100% - var(--facet)), var(--btn-corner) 0);
   color: var(--btn-fg);
   font-weight: 700;
   letter-spacing: 0.01em;
   transition:
-    transform 0.06s ease,
-    filter 0.12s ease;
+    scale 0.16s cubic-bezier(0.3, 1.6, 0.5, 1),
+    --facet 0.18s ease;
   user-select: none;
 }
-.btn:hover:not(:disabled) {
-  filter: brightness(1.05);
+/* Hover: the key and its content grow with a little spring and the corner lights up amber ("do
+   this"); amber and red keys light theirs in ink instead. Pressing squeezes it back in. */
+@media (hover: hover) {
+  .btn:hover:not(:disabled) {
+    --btn-corner: var(--color-amber);
+    --facet: 1.15rem;
+    scale: 1.06;
+  }
+  .btn.btn-primary:hover:not(:disabled),
+  .btn.btn-danger:hover:not(:disabled),
+  .game-actions .btn.btn-on:hover:not(:disabled) {
+    --btn-corner: var(--color-ink);
+  }
 }
 .btn:active:not(:disabled) {
-  transform: translateY(1px);
+  scale: 0.96;
+  transition-duration: 0.05s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
 }
 /* Out of reach: greyed out like an inactive player's card. A pale key inside the same ink outline,
    its contents faded; icons fade as one layer, so crossing strokes don't darken. */
@@ -409,7 +433,6 @@ body {
   --btn-line: transparent;
 }
 .btn.btn-ghost:hover:not(:disabled) {
-  filter: none;
   background: rgb(127 127 127 / 0.14);
 }
 .btn.btn-ghost:disabled {
