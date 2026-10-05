@@ -105,7 +105,7 @@ function FaceControls({ look, onChange, onDone }: { look: KnightLook; onChange: 
   const zoomButton = (label: string, onClick: () => void, icon: React.ReactNode) => (
     <button
       type="button"
-      className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border-2 border-ink bg-paper shadow-token hover:bg-paper-2 active:bg-paper-3"
+      className="grid h-8 w-8 shrink-0 place-items-center rounded-[5px] border-[1.5px] border-ink bg-paper hover:bg-paper-2 active:bg-paper-3"
       onClick={onClick}
       aria-label={label}
       title={label}

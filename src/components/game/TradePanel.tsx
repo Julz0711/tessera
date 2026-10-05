@@ -109,7 +109,7 @@ function DealButton({
   return (
     <button
       type="button"
-      className={`btn relative h-9 w-9 rounded-[10px] p-0 ${primary ? 'btn-primary' : danger ? 'btn-danger' : ''} ${status ? 'pointer-events-none' : ''}`}
+      className={`btn relative h-9 w-9 p-0 ${primary ? 'btn-primary' : danger ? 'btn-danger' : ''} ${status ? 'pointer-events-none' : ''}`}
       style={tint ? ({ '--btn-bg': `color-mix(in srgb, ${tint} 45%, var(--color-paper))` } as React.CSSProperties) : undefined}
       disabled={disabled}
       tabIndex={status ? -1 : undefined}

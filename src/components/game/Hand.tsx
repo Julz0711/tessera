@@ -10,12 +10,26 @@ import { canPlayDev } from './DevCardDialog';
 
 const DEV_ORDER: DevCardType[] = ['knight', 'roadBuilding', 'yearOfPlenty', 'monopoly', 'victoryPoint'];
 
+/** How many stacks each size still fits in the hand's share of the screen. */
+const FITS: [CardSize, number][] = [
+  ['xl', 5],
+  ['md', 8],
+  ['sm', 11],
+  ['xs', Infinity],
+];
+
+/** The biggest size no larger than `max` that fits `stacks` cards. */
+export function fit(max: CardSize, stacks: number): CardSize {
+  const from = FITS.findIndex(([s]) => s === max);
+  return FITS.slice(from).find(([, n]) => stacks <= n)?.[0] ?? 'xs';
+}
+
 /**
  * The viewer's hand, laid out like cards on the table: a fanned stack for each resource or
  * commodity held, then development or progress cards face up. Cards playable right now are ringed;
  * clicking one opens it.
  */
-export function Hand({ view, size = 'md' }: { view: PlayerView; size?: CardSize }) {
+export function Hand({ view, max = 'md' }: { view: PlayerView; /** The biggest the cards may get; a full hand shrinks below it. */ max?: CardSize }) {
   const ui = useUi();
   const draft = useTradeDraft();
   const p = view.players[view.viewer!];
@@ -34,14 +48,17 @@ export function Hand({ view, size = 'md' }: { view: PlayerView; size?: CardSize 
   const total = handTotal(p.hand);
   const limit = handLimit(view, view.viewer!);
   const over = view.phase === 'play' && total > limit;
+  // Everything in hand has to fit beside the dock without scrolling: with all eight kinds in
+  // Knights & Barbarians, plus progress cards, the cards step down a size instead.
+  const size = fit(max, held.length + special);
 
   return (
     // The inner row is only as wide as its cards, so it centres when it fits and scrolls from the
     // first card when it doesn't.
     <div className="max-w-full overflow-x-auto scroll-thin" data-hand-anchor>
-      <div className={`${size === 'xl' ? '' : 'mx-auto'} flex w-max items-end gap-2.5 px-3 pb-2 pt-3 sm:gap-3`}>
+      <div className={`${max === 'xl' ? '' : 'mx-auto'} flex w-max items-end gap-2.5 px-3 pb-2 pt-3 sm:gap-3`}>
         {held.length === 0 && special === 0 && !trading && (
-          <div className={`grid place-items-center rounded-lg border-2 border-dashed border-white/20 px-5 text-xs font-bold text-foam/60 ${size === 'xl' ? 'h-27.5' : 'h-18 sm:h-20'}`}>
+          <div className={`grid place-items-center rounded-lg border-2 border-dashed border-white/20 px-5 text-xs font-bold text-foam/60 ${max === 'xl' ? 'h-27.5' : 'h-18 sm:h-20'}`}>
             No cards in hand
           </div>
         )}

@@ -38,7 +38,15 @@
   --color-cloth: #8ed8b8;
   --color-coin: #c9ced6;
 
-  --radius-card: 14px;
+  /* One tight radius family, so every edge in the app echoes the logo's cut corners rather than
+     reading as a rounded app chrome. Circles (rounded-full) stay circles: avatars, dots, knobs. */
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 5px;
+  --radius-xl: 6px;
+  --radius-2xl: 7px;
+  --radius-3xl: 8px;
+  --radius-card: 6px;
   --shadow-token: 0 3px 0 0 #1f1a14;
   --shadow-float: 0 18px 40px -12px rgb(0 0 0 / 0.55);
 
@@ -166,10 +174,10 @@ body {
 @media (min-width: 768px) { .dialog-sheet.dialog-top { align-self: start; margin-top: 3dvh; max-height: calc(100% - 3dvh); } }
 .settings-body { height: min(70dvh, 720px); min-height: 0; }
 .mobile-side-content { height: min(55dvh, 440px); min-height: 0; }
-.app-notice { position: fixed; z-index: 80; bottom: calc(1rem + var(--safe-bottom)); left: max(1rem, var(--safe-left)); right: max(1rem, var(--safe-right)); margin: auto; max-width: 560px; display: flex; align-items: center; justify-content: center; gap: .75rem; padding: .75rem 1rem; border: 1px solid #ffffff30; border-radius: 16px; background: var(--color-sea-900); box-shadow: var(--shadow-float); font-size: .875rem; }
+.app-notice { position: fixed; z-index: 80; bottom: calc(1rem + var(--safe-bottom)); left: max(1rem, var(--safe-left)); right: max(1rem, var(--safe-right)); margin: auto; max-width: 560px; display: flex; align-items: center; justify-content: center; gap: .75rem; padding: .75rem 1rem; border: 1.5px solid #ffffff30; border-radius: 6px; background: var(--color-sea-900); box-shadow: var(--shadow-float); font-size: .875rem; }
 .app-notice svg { flex-shrink: 0; }
 .install-steps { display: grid; gap: .75rem; }
-.install-steps li { display: flex; align-items: center; gap: 1rem; padding: 1rem; border-radius: 12px; background: var(--color-paper-2); font-size: .875rem; }
+.install-steps li { display: flex; align-items: center; gap: 1rem; padding: 1rem; border-radius: 6px; background: var(--color-paper-2); font-size: .875rem; }
 .install-steps svg { flex-shrink: 0; color: var(--color-sea-600); }
 
 @media (pointer: coarse) {
@@ -186,7 +194,7 @@ body {
   .landing-footer a { display: inline-flex; align-items: center; min-height: 44px; }
   .app-dialog { padding: max(.75rem, var(--safe-top)) max(.5rem, var(--safe-right)) 0 max(.5rem, var(--safe-left)); }
   .app-dialog[open] { align-items: end; }
-  .dialog-sheet { border-radius: 22px 22px 0 0; padding: 1rem 1rem calc(1rem + var(--safe-bottom)); }
+  .dialog-sheet { border-radius: 10px 10px 0 0; padding: 1rem 1rem calc(1rem + var(--safe-bottom)); }
   .dialog-heading { position: sticky; top: -1rem; z-index: 5; margin: -1rem -1rem .75rem; padding: 1rem 1rem .75rem; background: var(--color-paper); border-bottom: 1px solid #1f1a1415; }
   .settings-body { height: min(72dvh, calc(var(--visible-height, 100dvh) - 110px - var(--safe-top) - var(--safe-bottom))); }
   .settings-panel { grid-template-rows: auto minmax(0, 1fr); }
@@ -217,7 +225,7 @@ body {
   .game-connection { height: 44px; }
   .game-players { grid-area: players; padding: 4px 0; }
   /* The one place that pans and zooms: framed, and the only thing a pinch moves. */
-  .game-board { grid-area: board; min-height: 0; width: 100%; height: 100%; overflow: hidden; border-radius: 18px; box-shadow: inset 0 0 0 2px #ffffff2e, 0 0 0 2px #00000040; touch-action: none; }
+  .game-board { grid-area: board; min-height: 0; width: 100%; height: 100%; overflow: hidden; border-radius: 8px; box-shadow: inset 0 0 0 2px #ffffff2e, 0 0 0 2px #00000040; touch-action: none; }
   .game-screen { touch-action: pan-x pan-y; }
   .game-offers { left: max(8px, var(--safe-left)); top: calc(180px + var(--safe-top)); max-height: 40dvh; overflow-y: auto; zoom: 1 !important; }
   .game-bottom { grid-area: bottom; padding: 0; gap: 3px; }
@@ -260,18 +268,18 @@ body {
 }
 
 @layer components {
-  /* A printed game component: cream card, ink rule, soft drop. */
+  /* A printed game component: cream card, thin ink rule, soft drop. */
   .paper {
-    @apply grain rounded-[var(--radius-card)] border-2 border-ink bg-paper text-ink;
-    box-shadow:
-      0 3px 0 0 var(--color-ink),
-      var(--shadow-float);
+    @apply grain rounded-[var(--radius-card)] border-[1.5px] border-ink bg-paper text-ink;
+    box-shadow: var(--shadow-float);
   }
   .paper-flat {
-    @apply grain rounded-[var(--radius-card)] border-2 border-ink bg-paper text-ink;
+    @apply grain rounded-[var(--radius-card)] border-[1.5px] border-ink/70 bg-paper text-ink;
   }
+  /* A HUD panel over the board: solid enough to read against any board theme, with a cream rim
+     like the logo's. */
   .glass {
-    @apply rounded-[var(--radius-card)] border border-white/10 bg-sea-900/80 backdrop-blur-md;
+    @apply rounded-[var(--radius-card)] border-[1.5px] border-foam/20 bg-sea-900/92 backdrop-blur-md;
   }
   .label {
     @apply text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft;
@@ -293,21 +301,22 @@ body {
 /* Component classes live in the components layer so Tailwind utilities (utilities layer)
    can still override them, e.g. `btn sm:hidden` or `btn gap-0.5`. */
 @layer components {
-/* Quiet button: flat, a hairline border, no drop shadow, so the HUD stays out of the board's way.
-   On the dark HUD it is a faint glass chip; on paper (dialogs, settings) a light card. Variants set
-   --btn-bg / --btn-fg / --btn-line. */
+/* The app's one button, on every page and in the HUD. A solid fill with a thin outline and no drop
+   shadow: the logo's language, quiet enough to sit over the board. Over the board (the default) it
+   is sea with a cream rim; inside a paper card it flips to cream with an ink rule. Variants set
+   --btn-bg / --btn-fg / --btn-line / --btn-hover. */
 .btn {
-  --btn-bg: rgb(255 255 255 / 0.08);
+  --btn-bg: var(--color-sea-800);
   --btn-fg: var(--color-paper);
-  --btn-line: rgb(255 255 255 / 0.16);
-  --btn-hover: rgb(255 255 255 / 0.14);
+  --btn-line: rgb(212 236 230 / 0.22);
+  --btn-hover: var(--color-sea-600);
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border: 1px solid var(--btn-line);
-  border-radius: 10px;
+  border: 1.5px solid var(--btn-line);
+  border-radius: 5px;
   background: var(--btn-bg);
   color: var(--btn-fg);
   font-weight: 700;
@@ -318,62 +327,70 @@ body {
     border-color 0.12s ease;
   user-select: none;
 }
+/* Inside a paper card (dialogs, settings, the lobby) the same button is printed on cream. */
 :is(.paper, .paper-flat, .bg-paper) .btn {
-  --btn-bg: #fffaf0;
+  --btn-bg: var(--color-paper-2);
   --btn-fg: var(--color-ink);
-  --btn-line: rgb(31 26 20 / 0.2);
-  --btn-hover: #ffffff;
+  --btn-line: rgb(31 26 20 / 0.55);
+  --btn-hover: #fffaf0;
 }
 .btn:hover:not(:disabled) {
   background: var(--btn-hover);
-  border-color: color-mix(in srgb, var(--btn-line), currentColor 25%);
 }
 .btn:active:not(:disabled) {
   transform: translateY(1px);
 }
+/* Clearly out of reach: unavailable actions drop their fill, so the ones you can take stand out. */
 .btn:disabled {
-  opacity: 0.45;
+  background: transparent;
+  border-color: color-mix(in srgb, var(--btn-line), transparent 55%);
+  opacity: 0.5;
   cursor: not-allowed;
 }
 .btn:focus-visible {
   outline: 2px solid var(--color-amber);
   outline-offset: 2px;
 }
+/* The one action to take next. Amber keeps the logo's ink outline wherever it sits. */
 .btn.btn-primary {
   --btn-bg: var(--color-amber);
   --btn-fg: var(--color-ink);
-  --btn-line: var(--color-amber);
+  --btn-line: var(--color-ink);
   --btn-hover: #f6c45f;
 }
-/* Selected (a build being placed, an open panel): an amber outline, quieter than the primary fill. */
+/* Switched on: a build being placed, an open panel, the chosen option in a group. */
 .btn.btn-on {
-  --btn-bg: rgb(242 179 61 / 0.16);
+  --btn-bg: var(--color-sea-600);
+  --btn-fg: var(--color-paper);
   --btn-line: var(--color-amber);
-  --btn-hover: rgb(242 179 61 / 0.24);
+  --btn-hover: var(--color-sea-500);
+}
+:is(.paper, .paper-flat, .bg-paper) .btn.btn-on {
+  --btn-bg: var(--color-amber);
+  --btn-fg: var(--color-ink);
+  --btn-line: var(--color-ink);
+  --btn-hover: #f6c45f;
 }
 .btn.btn-dark {
-  --btn-bg: rgb(10 32 41 / 0.85);
+  --btn-bg: var(--color-sea-900);
   --btn-fg: var(--color-paper);
-  --btn-line: rgb(255 255 255 / 0.12);
+  --btn-line: rgb(212 236 230 / 0.22);
   --btn-hover: var(--color-sea-800);
 }
 .btn.btn-danger {
-  --btn-bg: rgb(207 100 64 / 0.16);
-  --btn-fg: #f6a487;
-  --btn-line: rgb(207 100 64 / 0.55);
-  --btn-hover: rgb(207 100 64 / 0.26);
-}
-:is(.paper, .paper-flat, .bg-paper) .btn.btn-danger {
-  --btn-bg: rgb(194 65 45 / 0.08);
-  --btn-fg: var(--color-danger);
-  --btn-line: rgb(194 65 45 / 0.45);
-  --btn-hover: rgb(194 65 45 / 0.14);
+  --btn-bg: var(--color-terracotta);
+  --btn-fg: #fff8ef;
+  --btn-line: var(--color-ink);
+  --btn-hover: #d97a57;
 }
 .btn.btn-ghost {
   --btn-bg: transparent;
   --btn-fg: inherit;
   --btn-line: transparent;
-  --btn-hover: rgb(127 127 127 / 0.12);
+  --btn-hover: rgb(127 127 127 / 0.14);
+}
+.btn.btn-ghost:disabled {
+  border-color: transparent;
 }
 
 /* Keyboard hint on a button (hidden on touch screens, where there is no keyboard to press). */
@@ -384,42 +401,40 @@ body {
   height: 1.15em;
   padding: 0 0.25em;
   border: 1px solid currentColor;
-  border-radius: 4px;
+  border-radius: 3px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.72em;
   font-weight: 600;
   line-height: 1;
-  opacity: 0.6;
+  opacity: 0.55;
 }
 @media (pointer: coarse) {
   .kbd { display: none; }
 }
 
-/* Slider: a thin track and a plain round thumb. */
+/* Slider: a thin track with an outlined thumb, to match the buttons. */
 .range {
   appearance: none;
-  height: 4px;
+  height: 6px;
+  border: 1.5px solid rgb(31 26 20 / 0.5);
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.22);
+  background: var(--color-paper-3);
   cursor: pointer;
 }
-:is(.paper, .paper-flat, .bg-paper) .range { background: rgb(31 26 20 / 0.18); }
 .range::-webkit-slider-thumb {
   appearance: none;
   width: 18px;
   height: 18px;
-  border: 1px solid rgb(31 26 20 / 0.25);
+  border: 1.5px solid var(--color-ink);
   border-radius: 999px;
-  background: #fff;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+  background: var(--color-amber);
 }
 .range::-moz-range-thumb {
   width: 16px;
   height: 16px;
-  border: 1px solid rgb(31 26 20 / 0.25);
+  border: 1.5px solid var(--color-ink);
   border-radius: 999px;
-  background: #fff;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+  background: var(--color-amber);
 }
 .range:focus-visible {
   outline: 2px solid var(--color-amber);
@@ -428,8 +443,8 @@ body {
 
 .input {
   width: 100%;
-  border: 1px solid rgb(31 26 20 / 0.25);
-  border-radius: 10px;
+  border: 1.5px solid rgb(31 26 20 / 0.55);
+  border-radius: 5px;
   background: #fffaf0;
   color: var(--color-ink);
   padding: 0.6rem 0.8rem;

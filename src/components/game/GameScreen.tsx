@@ -445,8 +445,8 @@ export function GameScreen() {
           className={`flex justify-center xl:grid xl:items-end xl:gap-3 ${rightCorner ? 'xl:grid-cols-[minmax(auto,1fr)_auto_minmax(10rem,1fr)]' : 'xl:grid-cols-[minmax(auto,1fr)_auto_minmax(0,1fr)]'}`}
         >
           {wide && (
-            <div className="pointer-events-auto w-max max-w-[36vw]">
-              {me !== null && <Hand view={view} size="xl" />}
+            <div className="pointer-events-auto w-max max-w-[38vw]">
+              {me !== null && <Hand view={view} max="xl" />}
             </div>
           )}
           <div className="game-dock-wrap pointer-events-auto min-w-0 max-w-full xl:col-start-2">

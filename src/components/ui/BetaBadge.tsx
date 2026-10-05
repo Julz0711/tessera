@@ -5,7 +5,7 @@ export function BetaBadge({ className = '' }: { className?: string }) {
   if (!APP_STAGE) return null;
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-md border-2 border-ink bg-amber px-1.5 text-[10px] font-black uppercase leading-4 tracking-[0.14em] text-ink ${className}`}
+      className={`inline-flex shrink-0 items-center rounded-[3px] border-[1.5px] border-ink bg-amber px-1.5 text-[10px] font-black uppercase leading-4 tracking-[0.14em] text-ink ${className}`}
       title={APP_STAGE_NOTE}
     >
       {APP_STAGE}
