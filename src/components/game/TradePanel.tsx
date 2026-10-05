@@ -60,12 +60,10 @@ function DealRow({
   const held = CARDS.filter((c) => (cards[c] ?? 0) > 0);
   return (
     <div className="flex min-h-13 items-center gap-1.5 py-1">
-      <div className="flex w-16 shrink-0 flex-col items-start gap-0.5">
-        <div className="flex items-center">
-          {who}
-          {side === 'want' ? <ArrowDown size={15} strokeWidth={3} className="text-moss" /> : <ArrowUp size={15} strokeWidth={3} className="text-danger" />}
-        </div>
-        <span className="text-[10px] font-bold uppercase leading-none tracking-[0.1em] text-ink-soft">{side === 'want' ? 'You get' : 'You give'}</span>
+      {/* Who and which way, without words: the arrow points into your hand or out of it. */}
+      <div className="flex w-11 shrink-0 items-center" title={side === 'want' ? 'You get' : 'You give'} aria-label={side === 'want' ? 'You get' : 'You give'}>
+        {who}
+        {side === 'want' ? <ArrowDown size={15} strokeWidth={3} className="text-moss" /> : <ArrowUp size={15} strokeWidth={3} className="text-danger" />}
       </div>
       {/* the box widens for a deal with many kinds of card; only at the screen edge does a row wrap */}
       <div className="flex min-w-0 flex-wrap items-center gap-1.5 pt-1">
