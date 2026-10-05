@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 
-export type SettingsTab = 'board' | 'gameplay' | 'interface' | 'audio' | 'language';
+export type SettingsTab = 'board' | 'gameplay' | 'interface' | 'accessibility' | 'audio' | 'language';
 
 /** Whether the global settings overlay is open, and which tab it's showing. */
 export const useSettingsUI = create<{

@@ -41,6 +41,8 @@ export interface Prefs {
   autoDeclineTrades: boolean;
   /** Background music in games, 0..1 on top of the master volume (0: off, the default). */
   musicVolume: number;
+  /** Zoom in / out / reset buttons for the 2D board (the wheel, pinch and drag work without them). */
+  zoomButtons: boolean;
 }
 
 const KEY = 'prefs.v1';
@@ -70,6 +72,7 @@ const defaults = (): Prefs => ({
   weather: true,
   autoDeclineTrades: true,
   musicVolume: 0,
+  zoomButtons: false,
 });
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -110,6 +113,7 @@ export function sanitizePrefs(raw: unknown): Prefs {
     weather: typeof p.weather === 'boolean' ? p.weather : base.weather,
     autoDeclineTrades: typeof p.autoDeclineTrades === 'boolean' ? p.autoDeclineTrades : base.autoDeclineTrades,
     musicVolume: typeof p.musicVolume === 'number' && Number.isFinite(p.musicVolume) ? clamp01(p.musicVolume) : base.musicVolume,
+    zoomButtons: typeof p.zoomButtons === 'boolean' ? p.zoomButtons : base.zoomButtons,
   };
 }
 
@@ -125,7 +129,7 @@ export function read(): Prefs {
 /** The settings that follow a signed-in player to their profile. Name, colour, knight and cosmetics already live there. */
 export const SYNCED_FIELDS = [
   'view', 'graphics', 'volume', 'buildHints', 'confirmBuilds', 'boardScale', 'motion', 'boardTheme', 'hudScale', 'hudLayout', 'sfxVolume', 'weather',
-  'autoDeclineTrades', 'musicVolume',
+  'autoDeclineTrades', 'musicVolume', 'zoomButtons',
 ] as const satisfies readonly (keyof Prefs)[];
 
 interface PrefsStore extends Prefs {

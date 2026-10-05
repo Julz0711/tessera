@@ -82,7 +82,7 @@ export function EventDie({ face, size = 44 }: { face: EventFace; size?: number }
   return (
     <div
       className="animate-pop grid place-items-center rounded-[12%] border-[1.5px] border-ink text-white [&>svg]:h-[45%] [&>svg]:w-[45%]"
-      style={{ width: size, height: size, background: s.bg, boxShadow: '0 3px 0 0 #1f1a14' }}
+      style={{ width: size, height: size, background: s.bg }}
       title={s.label}
     >
       {s.icon}

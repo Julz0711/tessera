@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Gamepad2, Grid2x2, LayoutGrid, Languages, Music, Palette, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { Accessibility, Box, Gamepad2, Grid2x2, LayoutGrid, Languages, Music, Palette, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { usePrefs } from '@/client/prefs';
@@ -17,6 +17,7 @@ const TABS: { id: SettingsTab; label: string; icon: typeof Palette }[] = [
   { id: 'board', label: 'Board', icon: Palette },
   { id: 'gameplay', label: 'Gameplay', icon: Gamepad2 },
   { id: 'interface', label: 'Interface', icon: LayoutGrid },
+  { id: 'accessibility', label: 'Accessibility', icon: Accessibility },
   { id: 'audio', label: 'Audio', icon: Volume2 },
   { id: 'language', label: 'Language', icon: Languages },
 ];
@@ -174,6 +175,11 @@ export function SettingsPanel() {
                 ]}
               />
             </Section>
+          </>
+        )}
+
+        {tab === 'accessibility' && (
+          <>
             <Section title="Animations" hint="Cards flying to whoever gets them. System follows your device's reduce-motion setting; Reduced shows cards where they land instead.">
               <Segmented
                 value={prefs.motion}
@@ -182,6 +188,16 @@ export function SettingsPanel() {
                   { value: 'system', label: 'System' },
                   { value: 'full', label: 'Full' },
                   { value: 'reduced', label: 'Reduced' },
+                ]}
+              />
+            </Section>
+            <Section title="Zoom buttons" hint="Zoom in, out and back on the 2D board with buttons. Without them, scroll, pinch or drag the board.">
+              <Segmented
+                value={prefs.zoomButtons}
+                onChange={(zoomButtons) => prefs.set({ zoomButtons })}
+                options={[
+                  { value: true, label: 'On' },
+                  { value: false, label: 'Off' },
                 ]}
               />
             </Section>

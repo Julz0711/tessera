@@ -366,7 +366,9 @@ export function GameScreen() {
   // On wide screens the dice sit just above the dock and the other players on top of your own
   // card, both out of the HUD (so they can't be moved).
   const barred = wide && me !== null;
-  const unused = (panel: HudPanel) => (panel === 'barbarian' && view.mode !== 'ck') || ((panel === 'dice' || panel === 'players') && barred);
+  // The 2D board's zoom buttons only show when turned on (Settings → Accessibility).
+  const unused = (panel: HudPanel) =>
+    (panel === 'barbarian' && view.mode !== 'ck') || ((panel === 'dice' || panel === 'players') && barred) || (panel === 'zoom' && !prefs.zoomButtons);
   // A side column takes room from the flat board when it holds more than the (usually empty) offers
   // and the small zoom buttons.
   const columnUsed = (side: HudSide) =>
@@ -481,13 +483,14 @@ export function GameScreen() {
             </div>
             <div className="game-dock-wrap pointer-events-auto relative flex shrink-0">
               <div className="absolute inset-x-0 bottom-full mb-2 flex justify-center">
-                <DiceBox view={view} size={48} className="w-full justify-center" />
+                <DiceBox view={view} size={48} bare />
               </div>
               <Dock view={view} room={room} hand={false} />
             </div>
             <div className="relative w-72 shrink-0">
               <div ref={others} className="pointer-events-auto absolute inset-x-0 bottom-full mb-2">
-                <PlayersPanel view={view} room={room} seats={view.players.map((_, i) => i).filter((i) => i !== me)} inline />
+                {/* In turn order down to yours: the card right above yours plays just before you. */}
+                <PlayersPanel view={view} room={room} seats={view.players.map((_, i) => (me + 1 + i) % view.players.length).filter((i) => i !== me)} inline />
               </div>
               <div className="pointer-events-auto h-full [&_li]:h-full [&_ol]:h-full">
                 <PlayersPanel view={view} room={room} seats={[me]} inline />

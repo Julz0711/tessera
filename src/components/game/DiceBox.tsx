@@ -17,7 +17,20 @@ function lastRoll(view: PlayerView) {
 }
 
 /** Last roll + the Roll button, floated as its own HUD panel. Empty when there's nothing to show. */
-export function DiceBox({ view, size = 60, compact = false, className = '' }: { view: PlayerView; size?: number; compact?: boolean; className?: string }) {
+export function DiceBox({
+  view,
+  size = 60,
+  compact = false,
+  bare = false,
+  className = '',
+}: {
+  view: PlayerView;
+  size?: number;
+  compact?: boolean;
+  /** Just the dice, no panel around them (above the dock). */
+  bare?: boolean;
+  className?: string;
+}) {
   const roll = useMemo(() => lastRoll(view), [view]);
   const me = view.viewer;
   const canRoll = me !== null && view.phase === 'play' && view.turn.seat === me && !view.turn.rolled && view.pending.length === 0;
@@ -32,7 +45,7 @@ export function DiceBox({ view, size = 60, compact = false, className = '' }: { 
 
   return (
     // Your turn and the dice still to roll: the box pulses like the "Your turn" pill up top.
-    <div className={`glass flex items-center ${className} ${compact ? 'h-11 w-28 justify-center gap-1.5 p-1' : 'gap-3 p-2'} ${canRoll ? 'attention' : ''}`}>
+    <div className={`flex items-center ${bare ? '' : 'glass'} ${className} ${compact ? 'h-11 w-28 justify-center gap-1.5 p-1' : bare ? 'gap-2 rounded-[8px] p-1' : 'gap-3 p-2.5'} ${canRoll ? 'attention' : ''}`}>
       {/* Compact and about to roll: the Roll button alone, the old roll is stale. */}
       {!(compact && canRoll) && (
         // Wide screens have no Roll button: the dice themselves roll (and R, as the turn pill says).

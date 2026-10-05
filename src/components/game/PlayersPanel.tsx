@@ -141,7 +141,7 @@ export function PlayersPanel({
   align?: 'left' | 'right';
   /** Mark whose move it is (off where something else on screen already does). */
   highlight?: boolean;
-  /** Only these seats (wide screens show the viewer's own card in the bottom bar). */
+  /** Only these seats, in this order (wide screens show the viewer's own card in the bottom bar). */
   seats?: number[];
   /** In the bottom bar: the card stays in line instead of sticking out on its turn. */
   inline?: boolean;
@@ -160,8 +160,8 @@ export function PlayersPanel({
   return (
     <ol className={compact ? 'scroll-thin flex gap-2 overflow-x-auto pb-1' : 'grid gap-2'}>
       {leading && <li className="flex shrink-0">{leading}</li>}
-      {view.players.map((p, seat) => {
-        if (seats && !seats.includes(seat)) return null;
+      {(seats ?? view.players.map((_, i) => i)).map((seat) => {
+        const p = view.players[seat];
         const c = PLAYER_COLORS[p.color];
         const seatInfo = room?.seats[seat];
         const acting = highlight && actors.has(seat) && view.phase !== 'ended';
