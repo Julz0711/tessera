@@ -361,6 +361,13 @@ body {
   color: color-mix(in srgb, var(--faded) 50%, transparent);
   cursor: not-allowed;
 }
+/* Icons dim as a whole (like an inactive player's card): drawn in a see-through colour, their
+   strokes darken wherever two lines cross. */
+.btn:disabled svg,
+.btn:disabled .dim-group {
+  color: var(--faded);
+  opacity: 0.5;
+}
 /* The dock's keys stand straight on the board: an unavailable one keeps a deep-sea body so it still
    reads as a key over the island, just dimmed. */
 .game-actions .btn:disabled {
