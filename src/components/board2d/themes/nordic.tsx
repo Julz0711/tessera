@@ -1,6 +1,6 @@
-import { alongRoad, OUTLINE, pc, RoadBase } from './shared';
+import { alongRoad, OUTLINE, pc, Pennant, RoadBase } from './shared';
 import { grassTuft, pebbles } from './classic';
-import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
+import type { BarbarianShipGlyph, MetropolisGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
 
 /**
  * A Norse gable end: walls under a steep roof whose two bargeboards run on past the ridge and cross
@@ -58,18 +58,20 @@ const nordicRoad: RoadGlyph = ({ x1, y1, x2, y2, color, ghost, k = 1 }) => {
   );
 };
 
-/** Nordic Fjords' knight: a viking's horned helmet. */
-const nordicKnight: KnightGlyph = ({ x, y, color }) => {
+/** Nordic's metropolis: a great longhall between two smaller halls, a banner on its ridge. */
+const nordicMetropolis: MetropolisGlyph = ({ x, y, color, accent }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="2" strokeLinejoin="round">
-      <path d={`M${x - 9} ${y + 8}a9 9 0 0 1 18 0Z`} fill={c.hex} />
-      <path d={`M${x - 9} ${y + 2}q-8-2-10-10M${x + 9} ${y + 2}q8-2 10-10`} stroke={c.dark} strokeWidth="2.6" fill="none" strokeLinecap="round" />
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
+      <Gable x={x - 18} top={y + 4} foot={y + 17} w={12} h={10} c={c} />
+      <Gable x={x + 18} top={y + 4} foot={y + 17} w={12} h={10} c={c} />
+      <Gable x={x} top={y - 4} foot={y + 17} w={20} h={22} c={c} door />
+      <Pennant x={x} y={y - 26} h={14} accent={accent} dark={c.dark} />
     </g>
   );
 };
 
-export const nordicPieces: ThemePieces = { settlement: nordicSettlement, city: nordicCity, road: nordicRoad, knight: nordicKnight };
+export const nordicPieces: ThemePieces = { settlement: nordicSettlement, city: nordicCity, road: nordicRoad, metropolis: nordicMetropolis };
 
 /** Nordic Fjords on the 2D board: a dragon-headed drakkar under a black-and-white sail. */
 export const nordicShip: BarbarianShipGlyph = ({ danger }) => {

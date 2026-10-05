@@ -1,5 +1,5 @@
-import { alongRoad, OUTLINE, pc, RoadBase } from './shared';
-import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
+import { alongRoad, OUTLINE, pc, Pennant, RoadBase } from './shared';
+import type { BarbarianShipGlyph, MetropolisGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
 
 /** A folded peak: its left face in `light`, its right face in `dark`, standing on (x, y). */
 function Fold({ x, y, w, h, light, dark }: { x: number; y: number; w: number; h: number; light: string; dark: string }) {
@@ -52,18 +52,21 @@ const origamiRoad: RoadGlyph = ({ x1, y1, x2, y2, color, ghost, k = 1 }) => {
   );
 };
 
-/** Origami's knight: a folded paper cap, its two triangular faces creased down the middle. */
-const origamiKnight: KnightGlyph = ({ x, y, color }) => {
+/** Origami's metropolis: three folded peaks on a wide base, a paper flag of the track's colour on the tallest. */
+const origamiMetropolis: MetropolisGlyph = ({ x, y, color, accent }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="2" strokeLinejoin="round">
-      <path d={`M${x - 9} ${y + 8}L${x} ${y - 8}L${x + 9} ${y + 8}Z`} fill={c.hex} />
-      <path d={`M${x} ${y - 8}L${x + 9} ${y + 8}H${x}Z`} fill={c.dark} />
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
+      <Pennant x={x} y={y - 31} h={12} accent={accent} dark={c.dark} />
+      <rect x={x - 25} y={y - 2} width="50" height="19" fill={c.hex} />
+      <Fold x={x - 15} y={y - 2} w={10} h={15} light={c.hex} dark={c.dark} />
+      <Fold x={x + 15} y={y - 2} w={10} h={20} light={c.hex} dark={c.dark} />
+      <Fold x={x} y={y - 2} w={12} h={29} light={c.hex} dark={c.dark} />
     </g>
   );
 };
 
-export const origamiPieces: ThemePieces = { settlement: origamiSettlement, city: origamiCity, road: origamiRoad, knight: origamiKnight };
+export const origamiPieces: ThemePieces = { settlement: origamiSettlement, city: origamiCity, road: origamiRoad, metropolis: origamiMetropolis };
 
 /** Origami on the 2D board: a folded black paper boat, its two faces shaded like every other fold, flying a red paper flag. */
 export const origamiShip: BarbarianShipGlyph = ({ danger }) => {

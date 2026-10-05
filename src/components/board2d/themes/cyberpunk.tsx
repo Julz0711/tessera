@@ -1,6 +1,6 @@
 import { Glow, Neon } from './glow';
 import { OUTLINE, pc, RoadBase } from './shared';
-import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
+import type { BarbarianShipGlyph, MetropolisGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
 
 const PINK = '#ff3d9a';
 const CYAN = '#3de8ff';
@@ -49,18 +49,28 @@ const cyberpunkRoad: RoadGlyph = ({ x1, y1, x2, y2, color, ghost, k = 1 }) => {
   );
 };
 
-/** Cyberpunk's knight: a street samurai's helmet, a glowing cyan visor slit. */
-const cyberpunkKnight: KnightGlyph = ({ x, y, color }) => {
+/** Cyberpunk's metropolis: twin towers, the taller one banded in neon of the track's colour. */
+const cyberpunkMetropolis: MetropolisGlyph = ({ x, y, color, accent }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="2" strokeLinejoin="round">
-      <path d={`M${x - 9} ${y + 9}q-2-15 9-15t9 15q-9 3-18 0Z`} fill={c.hex} />
-      <rect x={x - 7} y={y - 2} width="14" height="3" fill={CYAN} opacity="0.9" />
+    <g>
+      <line x1={x + 12} y1={y - 38} x2={x + 12} y2={y - 46} stroke={c.dark} strokeWidth="2.4" />
+      <Glow x={x + 12} y={y - 47} r={2.4} color={accent} />
+      <rect x={x - 24} y={y - 20} width="20" height="37" fill={c.hex} stroke={c.dark} strokeWidth={OUTLINE} />
+      <rect x={x} y={y - 38} width="24" height="55" fill={c.hex} stroke={c.dark} strokeWidth={OUTLINE} />
+      <Neon d={`M${x} ${y - 38}h24v55h-24Z`} color={c.hex} width={1.6} />
+      {[-12, -2, 8].flatMap((dy) =>
+        [-20, -12].map((dx) => <rect key={`l${dx}${dy}`} x={x + dx} y={y + dy} width="5" height="6" fill={(dx + dy) % 3 === 0 ? MINT : CYAN} opacity="0.9" />),
+      )}
+      {[-22, -12, -2, 8].flatMap((dy) =>
+        [5, 14].map((dx) => <rect key={`r${dx}${dy}`} x={x + dx} y={y + dy} width="5" height="6" fill={(dx + dy) % 3 === 0 ? MINT : CYAN} opacity="0.9" />),
+      )}
+      <Neon d={`M${x + 1} ${y - 31}h22`} color={accent} width={3} />
     </g>
   );
 };
 
-export const cyberpunkPieces: ThemePieces = { settlement: cyberpunkSettlement, city: cyberpunkCity, road: cyberpunkRoad, knight: cyberpunkKnight };
+export const cyberpunkPieces: ThemePieces = { settlement: cyberpunkSettlement, city: cyberpunkCity, road: cyberpunkRoad, metropolis: cyberpunkMetropolis };
 
 /** Cyberpunk on the 2D board: a low, dark hover-speedboat with cyan and magenta glow strips. */
 export const cyberpunkShip: BarbarianShipGlyph = ({ danger }) => {

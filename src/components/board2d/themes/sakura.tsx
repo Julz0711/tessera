@@ -1,6 +1,6 @@
 import { alongRoad, OUTLINE, pc, RoadBase } from './shared';
 import { grassTuft } from './classic';
-import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
+import type { BarbarianShipGlyph, MetropolisGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
 
 /** A wide overhanging pagoda roof: a flat-topped triangle with small upturned eave flares. */
 function PagodaRoof({ x, apexY, eaveY, half, color }: { x: number; apexY: number; eaveY: number; half: number; color: string }) {
@@ -66,19 +66,24 @@ const sakuraRoad: RoadGlyph = ({ x1, y1, x2, y2, color, ghost, k = 1 }) => {
   );
 };
 
-/** Sakura Isle's knight: a samurai's kabuto helmet, a crescent crest over a flared neck-guard. */
-const sakuraKnight: KnightGlyph = ({ x, y, color }) => {
+/** Sakura's metropolis: a three-tier pagoda crowned with a jewel in the track's colour. */
+const sakuraMetropolis: MetropolisGlyph = ({ x, y, color, accent }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="2" strokeLinejoin="round">
-      <path d={`M${x - 10} ${y + 8}q-2-13 10-13t10 13q-10 4-20 0Z`} fill={c.hex} />
-      <path d={`M${x - 4} ${y - 11}q4-4 8 0M${x - 4} ${y - 11}q4 5 8 0`} fill="none" stroke={c.dark} strokeWidth="2" />
-      <circle cx={x} cy={y - 2} r="2" fill={c.dark} />
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
+      <line x1={x} y1={y - 34} x2={x} y2={y - 40} strokeWidth="2.4" />
+      <rect x={x - 19} y={y + 3} width="38" height="14" fill={c.hex} />
+      <PagodaRoof x={x} apexY={y - 8} eaveY={y + 3} half={27} color={c.dark} />
+      <rect x={x - 13} y={y - 12} width="26" height="11" fill={c.hex} />
+      <PagodaRoof x={x} apexY={y - 22} eaveY={y - 12} half={20} color={c.dark} />
+      <rect x={x - 8} y={y - 25} width="16" height="10" fill={c.hex} />
+      <PagodaRoof x={x} apexY={y - 34} eaveY={y - 25} half={13} color={c.dark} />
+      <circle cx={x} cy={y - 42} r="3.6" fill={accent} strokeWidth="2" />
     </g>
   );
 };
 
-export const sakuraPieces: ThemePieces = { settlement: sakuraSettlement, city: sakuraCity, road: sakuraRoad, knight: sakuraKnight };
+export const sakuraPieces: ThemePieces = { settlement: sakuraSettlement, city: sakuraCity, road: sakuraRoad, metropolis: sakuraMetropolis };
 
 /** Sakura Isle on the 2D board: a Japanese junk, a wide hull under a red battened sail. */
 export const sakuraShip: BarbarianShipGlyph = ({ danger }) => {

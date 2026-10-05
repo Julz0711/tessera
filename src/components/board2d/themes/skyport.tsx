@@ -1,5 +1,5 @@
 import { alongRoad, OUTLINE, pc, RoadBase } from './shared';
-import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
+import type { BarbarianShipGlyph, MetropolisGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
 
 const BRASS = '#b08d57';
 const SMOKE = '#f3ece4';
@@ -46,20 +46,23 @@ const skyportRoad: RoadGlyph = ({ x1, y1, x2, y2, color, ghost, k = 1 }) => {
   );
 };
 
-/** Skyport's knight: a sky-marine's flight cap and round brass-rimmed goggles. */
-const skyportKnight: KnightGlyph = ({ x, y, color }) => {
+/** Skyport's metropolis: a mooring tower with an airship tied up at its top, striped in the track's colour. */
+const skyportMetropolis: MetropolisGlyph = ({ x, y, color, accent }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="2" strokeLinejoin="round">
-      <path d={`M${x - 9} ${y + 8}q-1-14 9-14t9 14q-9 3-18 0Z`} fill={c.hex} />
-      <circle cx={x - 5} cy={y - 1} r="3.4" fill="#dce7ea" stroke="#3a3a3a" strokeWidth="1.4" />
-      <circle cx={x + 5} cy={y - 1} r="3.4" fill="#dce7ea" stroke="#3a3a3a" strokeWidth="1.4" />
-      <line x1={x - 1.6} y1={y - 1} x2={x + 1.6} y2={y - 1} stroke="#3a3a3a" strokeWidth="1.4" />
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
+      <rect x={x - 19} y={y - 12} width="38" height="30" rx="2" fill={c.hex} />
+      <path d={`M${x - 19} ${y - 12}a19 8 0 0 1 38 0Z`} fill={c.dark} />
+      <circle cx={x} cy={y + 3} r="7.5" fill="none" stroke={BRASS} strokeWidth="2.8" />
+      <line x1={x} y1={y - 19} x2={x} y2={y - 27} stroke={BRASS} strokeWidth="3.4" />
+      <path d={`M${x + 18} ${y - 35}l8-6v14Z`} fill={c.dark} strokeWidth="2.2" />
+      <ellipse cx={x} cy={y - 35} rx="20" ry="8" fill={c.hex} />
+      <path d={`M${x - 4} ${y - 42.6}h8v15.2h-8Z`} fill={accent} strokeWidth="2" />
     </g>
   );
 };
 
-export const skyportPieces: ThemePieces = { settlement: skyportSettlement, city: skyportCity, road: skyportRoad, knight: skyportKnight };
+export const skyportPieces: ThemePieces = { settlement: skyportSettlement, city: skyportCity, road: skyportRoad, metropolis: skyportMetropolis };
 
 /** Skyport on the 2D board: a dark pirate airship, drawn a little higher above its step. */
 export const skyportShip: BarbarianShipGlyph = ({ danger }) => {

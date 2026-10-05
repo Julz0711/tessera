@@ -1,6 +1,6 @@
 import { Glow, Neon } from './glow';
 import { alongRoad, OUTLINE, pc, RoadBase } from './shared';
-import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
+import type { BarbarianShipGlyph, MetropolisGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
 
 const CYAN = '#7fe3ff';
 
@@ -47,18 +47,23 @@ const orbitalRoad: RoadGlyph = ({ x1, y1, x2, y2, color, ghost, k = 1 }) => {
   );
 };
 
-/** Orbital's knight: an astronaut's rounded helmet, a reflective visor arc. */
-const orbitalKnight: KnightGlyph = ({ x, y, color }) => {
+/** Orbital's metropolis: a great dome circled by a ring in the track's colour, a beacon on top. */
+const orbitalMetropolis: MetropolisGlyph = ({ x, y, color, accent }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="2" strokeLinejoin="round">
-      <circle cx={x} cy={y + 1} r="10" fill={c.hex} />
-      <path d={`M${x - 7} ${y - 1}a7 6 0 0 1 12-2`} fill="none" stroke={CYAN} strokeWidth="2.6" strokeLinecap="round" opacity="0.9" />
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
+      <line x1={x} y1={y - 18} x2={x} y2={y - 34} stroke={c.dark} strokeWidth="2.4" />
+      <circle cx={x} cy={y - 36} r="3" fill={accent} strokeWidth="2" />
+      <path d={`M${x - 24} ${y + 9}a24 27 0 0 1 48 0Z`} fill={c.hex} />
+      <ellipse cx={x} cy={y - 2} rx="30" ry="6" fill="none" stroke={accent} strokeWidth="3.4" />
+      <rect x={x - 28} y={y + 8} width="56" height="10" rx="2" fill={c.dark} />
+      <circle cx={x - 10} cy={y - 8} r="2" fill={CYAN} />
+      <circle cx={x + 9} cy={y - 10} r="2" fill={CYAN} />
     </g>
   );
 };
 
-export const orbitalPieces: ThemePieces = { settlement: orbitalSettlement, city: orbitalCity, road: orbitalRoad, knight: orbitalKnight };
+export const orbitalPieces: ThemePieces = { settlement: orbitalSettlement, city: orbitalCity, road: orbitalRoad, metropolis: orbitalMetropolis };
 
 /** Orbital on the 2D board: a menacing alien raider warship, an angular arrowhead hull with swept fins and twin glowing engines. */
 export const orbitalShip: BarbarianShipGlyph = ({ danger }) => {

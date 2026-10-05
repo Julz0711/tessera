@@ -57,3 +57,21 @@ export function RoadBase({ x1, y1, x2, y2, color, ghost, k = 1 }: Seg & { color:
     </>
   );
 }
+
+/** A flagpole rising `h` from (x, y) with a swallow-tailed pennant in `accent`, for the metropolises. */
+export function Pennant({ x, y, h, accent, dark, left = false }: { x: number; y: number; h: number; accent: string; dark: string; left?: boolean }) {
+  const top = y - h;
+  const d = left ? -1 : 1;
+  return (
+    <g>
+      <line x1={x} y1={y} x2={x} y2={top} stroke={dark} strokeWidth="2.4" strokeLinecap="round" />
+      <path d={`M${x} ${top}h${13 * d}l${-4 * d} 4.5 ${4 * d} 4.5h${-13 * d}Z`} fill={accent} stroke={dark} strokeWidth="2" strokeLinejoin="round" />
+    </g>
+  );
+}
+
+/** The classic metropolis outline: a battlemented keep between two lower towers, standing on y + 17. */
+export function castlePath(x: number, y: number) {
+  const tower = (l: number) => `M${l} ${y + 17}V${y - 12}h4v3h4v-3h4V${y + 17}Z`;
+  return `${tower(x - 27)}${tower(x + 15)}M${x - 14} ${y + 17}V${y - 30}h6v4h5v-4h6v4h5v-4h6V${y + 17}Z`;
+}

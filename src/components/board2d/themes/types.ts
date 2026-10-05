@@ -48,17 +48,15 @@ export type PieceGlyph = (p: { x: number; y: number; color: PlayerColor }) => Re
 export type RoadGlyph = (p: { x1: number; y1: number; x2: number; y2: number; color: PlayerColor; ghost?: boolean; k?: number }) => ReactNode;
 
 /**
- * A theme's own knight emblem (C&K), replacing the crossed swords inside the classic knight's
- * disc. Board2D keeps the disc itself (active/inactive colour, the owner-colour ring) and the
- * level pips below unthemed, so those states keep working automatically — the glyph only draws
- * the ~26×29 emblem centred on (x, y), filled with the owner's colour.
+ * A theme's own metropolis (C&K): a grander take on its city, standing on the same footprint, with
+ * `accent` (the improvement track's colour) on a flag or detail so you can tell which track it is.
  */
-export type KnightGlyph = (p: { x: number; y: number; color: PlayerColor }) => ReactNode;
+export type MetropolisGlyph = (p: { x: number; y: number; color: PlayerColor; accent: string }) => ReactNode;
 
 /** What a theme changes about the pieces standing on the 2D board; anything left out keeps the classic drawing. */
 export type ThemePieces = {
   settlement?: PieceGlyph;
   city?: PieceGlyph;
   road?: RoadGlyph;
-  knight?: KnightGlyph;
+  metropolis?: MetropolisGlyph;
 };

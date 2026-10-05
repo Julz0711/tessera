@@ -5,12 +5,13 @@ import { createPortal } from "react-dom";
 import { Maximize2, Minus, Plus } from "lucide-react";
 import { PIPS, TERRAIN_RESOURCE } from "@/engine/constants";
 import { getTopology, type Topology } from "@/engine/board/topology";
-import type { Hex, PlayerColor, Terrain } from "@/engine/types";
+import type { Hex, PlayerColor, Terrain, Track } from "@/engine/types";
 import { CARD_COLORS } from "@/client/palette";
 import { PALETTES, type BoardPalette, type BoardThemeId, type TileColors } from "@/client/themes";
 import { THEME_ACCENTS, THEME_BARBARIAN_SHIPS, THEME_PIECES, type BarbarianShipGlyph } from "./themes";
 import { classicAccents, GoldNuggets } from "./themes/classic";
-import { OUTLINE, ROAD_WEIGHT, RoadBase } from "./themes/shared";
+import { castlePath, OUTLINE, Pennant, ROAD_WEIGHT, RoadBase } from "./themes/shared";
+import { TRACK_STYLE } from "@/client/progressText";
 import { VOYAGE_GLYPHS } from "./themes/voyage";
 import { PLAYER_COLORS } from "@/shared/colors";
 import { harborAnchor, pirateSpot } from "@/components/board/harbor";
@@ -296,6 +297,24 @@ function CityPath({
   );
 }
 
+/** The classic metropolis: a castle keep between two towers, its banner in the track's colour. */
+function classicMetropolis({ x, y, color, accent }: { x: number; y: number; color: PlayerColor; accent: string }) {
+  const c = PLAYER_COLORS[color];
+  return (
+    <g>
+      <Pennant x={x} y={y - 30} h={13} accent={accent} dark={c.dark} />
+      <path d={castlePath(x, y)} fill={c.hex} stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round" />
+      <path d={`M${x - 5} ${y + 17}v-8a5 5 0 0 1 10 0v8Z`} fill={c.dark} />
+    </g>
+  );
+}
+
+/** A metropolis (C&K): the theme's own drawing (THEME_PIECES) where it has one, else the classic castle. */
+function MetropolisPath({ x, y, color, track, theme }: { x: number; y: number; color: PlayerColor; track: Track; theme?: BoardThemeId }) {
+  const glyph = (theme && THEME_PIECES[theme]?.metropolis) || classicMetropolis;
+  return <>{glyph({ x, y, color, accent: TRACK_STYLE[track].color })}</>;
+}
+
 /** A road: the theme's own drawing (THEME_PIECES) where it has one, else the classic two-tone line. */
 function RoadPath({
   x1,
@@ -324,8 +343,8 @@ function RoadPath({
   );
 }
 
-/** The classic knight's emblem: a small crest, filled in the owner's colour (the crossed-swords look). */
-function classicKnightEmblem({ x, y, color }: { x: number; y: number; color: PlayerColor }) {
+/** A knight's emblem: one plain crest in the owner's colour, the same in every theme (themed knights read as clutter). */
+function KnightEmblem({ x, y, color }: { x: number; y: number; color: PlayerColor }) {
   const c = PLAYER_COLORS[color];
   return (
     <path
@@ -335,22 +354,6 @@ function classicKnightEmblem({ x, y, color }: { x: number; y: number; color: Pla
       strokeWidth="2.5"
     />
   );
-}
-
-/** A knight's emblem: the theme's own drawing (THEME_PIECES) where it has one, else the classic crest. */
-function KnightEmblem({
-  x,
-  y,
-  color,
-  theme,
-}: {
-  x: number;
-  y: number;
-  color: PlayerColor;
-  theme?: BoardThemeId;
-}) {
-  const glyph = (theme && THEME_PIECES[theme]?.knight) || classicKnightEmblem;
-  return <>{glyph({ x, y, color })}</>;
 }
 
 /** A ship on an edge (Voyagers), in the theme's style and the owner's colour. */
@@ -727,7 +730,8 @@ export default function Board2D({
 }: BoardProps) {
   const palette = PALETTES[theme];
   const TOKEN = palette.token;
-  const ps = pieceScale;
+  // Pieces stand a touch larger than the tokens and harbours they sit beside.
+  const ps = pieceScale * 1.12;
   const topo = getTopology(scene.board.hexes);
   const harborEdges = scene.board.harbors.map((h) => h.edge);
   const pirate = scene.pirate != null ? pirateSpot(topo, scene.board.hexes, scene.pirate, harborEdges) : null;
@@ -1024,7 +1028,7 @@ export default function Board2D({
                   />
                 ))}
                 {/* a little ship: hull, mast and a sail showing the rate */}
-                <g transform={`translate(${px} ${py}) scale(${1.35 * ps})`}>
+                <g transform={`translate(${px} ${py}) scale(${1.35 * pieceScale})`}>
                   <path
                     d="M-24 8h48l-9 13h-30Z"
                     fill="#8a6139"
@@ -1086,7 +1090,7 @@ export default function Board2D({
               <g
                 key={`t${h.id}`}
                 pointerEvents="none"
-                transform={grow(t.x * S, ty, ps)}
+                transform={grow(t.x * S, ty, pieceScale)}
               >
                 <rect
                   x={t.x * S - TOKEN_HALF}
@@ -1182,16 +1186,10 @@ export default function Board2D({
                 transform={grow(p.x * S, p.y * S, ps)}
               >
                 {b.wall && <CityWallBlock x={p.x * S} y={p.y * S} color={color} />}
-                <CityPath x={p.x * S} y={p.y * S} color={color} theme={theme} />
-                {b.metropolis && (
-                  <circle
-                    cx={p.x * S + 21}
-                    cy={p.y * S - 26}
-                    r="9"
-                    fill="#f2c14e"
-                    stroke="#1f1a14"
-                    strokeWidth="2.5"
-                  />
+                {b.metropolis ? (
+                  <MetropolisPath x={p.x * S} y={p.y * S} color={color} track={b.metropolis} theme={theme} />
+                ) : (
+                  <CityPath x={p.x * S} y={p.y * S} color={color} theme={theme} />
                 )}
               </g>
             ) : (
@@ -1225,7 +1223,7 @@ export default function Board2D({
                   stroke="#1f1a14"
                   strokeWidth={k.active ? 4.5 : 3}
                 />
-                <KnightEmblem x={p.x * S} y={p.y * S} color={scene.colors[k.owner]} theme={theme} />
+                <KnightEmblem x={p.x * S} y={p.y * S} color={scene.colors[k.owner]} />
                 {Array.from({ length: k.level }, (_, i) => (
                   <circle
                     key={i}

@@ -1,5 +1,5 @@
 import { alongRoad, OUTLINE, pc, RoadBase } from './shared';
-import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
+import type { BarbarianShipGlyph, MetropolisGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
 
 /** Nile's settlement: a mud-brick house, tapered walls under a flat parapet roof. */
 const nileSettlement: PieceGlyph = ({ x, y, color }) => {
@@ -43,18 +43,20 @@ const nileRoad: RoadGlyph = ({ x1, y1, x2, y2, color, ghost, k = 1 }) => {
   );
 };
 
-/** Nile's knight: a guard's nemes headdress, its lappets falling past the shoulders. */
-const nileKnight: KnightGlyph = ({ x, y, color }) => {
+/** Nile's metropolis: a pyramid, its capstone in the track's colour. */
+const nileMetropolis: MetropolisGlyph = ({ x, y, color, accent }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="2" strokeLinejoin="round">
-      <path d={`M${x - 9} ${y + 9}q-2-14 9-14t9 14q-9 3-18 0Z`} fill={c.hex} />
-      <path d={`M${x - 9} ${y + 3}l-4 8M${x + 9} ${y + 3}l4 8`} stroke={c.dark} strokeWidth="2.4" fill="none" />
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
+      <path d={`M${x - 29} ${y + 17}L${x} ${y - 26}L${x + 29} ${y + 17}Z`} fill={c.hex} />
+      <path d={`M${x - 16} ${y - 2}H${x + 16}M${x - 22} ${y + 8}H${x + 22}`} strokeWidth="1.6" opacity="0.6" />
+      <path d={`M${x - 7} ${y - 15.5}L${x} ${y - 26}L${x + 7} ${y - 15.5}Z`} fill={accent} strokeWidth="2.4" />
+      <rect x={x - 4} y={y + 8} width="8" height="9" fill={c.dark} />
     </g>
   );
 };
 
-export const nilePieces: ThemePieces = { settlement: nileSettlement, city: nileCity, road: nileRoad, knight: nileKnight };
+export const nilePieces: ThemePieces = { settlement: nileSettlement, city: nileCity, road: nileRoad, metropolis: nileMetropolis };
 
 /** A date palm with its trunk's foot at (x, y + 14). */
 function Palm({ x, y, leaf }: { x: number; y: number; leaf: string }) {

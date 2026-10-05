@@ -1,5 +1,5 @@
 import { alongRoad, OUTLINE, pc, RoadBase } from './shared';
-import type { BarbarianShipGlyph, KnightGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
+import type { BarbarianShipGlyph, MetropolisGlyph, PieceGlyph, RoadGlyph, ThemePieces, TileAccents } from './types';
 
 /** Frontier's settlement: a ranch house, a gable roof over a porch awning. */
 const frontierSettlement: PieceGlyph = ({ x, y, color }) => {
@@ -51,19 +51,22 @@ const frontierRoad: RoadGlyph = ({ x1, y1, x2, y2, color, ghost, k = 1 }) => {
   );
 };
 
-/** Frontier's knight: a cowboy's wide-brim hat. */
-const frontierKnight: KnightGlyph = ({ x, y, color }) => {
+/** Frontier's metropolis: a grand hotel's stepped false front with a bell tower, its sign in the track's colour. */
+const frontierMetropolis: MetropolisGlyph = ({ x, y, color, accent }) => {
   const c = pc(color);
   return (
-    <g stroke={c.dark} strokeWidth="2" strokeLinejoin="round">
-      <ellipse cx={x} cy={y + 3} rx="12" ry="3.4" fill={c.hex} />
-      <path d={`M${x - 6} ${y + 3}a6 8 0 0 1 12 0Z`} fill={c.hex} />
-      <line x1={x - 4} y1={y - 3} x2={x + 4} y2={y - 3} stroke={c.dark} strokeWidth="2" />
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
+      <path d={`M${x - 26} ${y + 17}V${y - 12}H${x - 18}V${y - 24}H${x - 7}V${y - 36}H${x + 7}V${y - 24}H${x + 18}V${y - 12}H${x + 26}V${y + 17}Z`} fill={c.hex} />
+      <rect x={x - 4} y={y - 32} width="8" height="7" fill={c.dark} />
+      <rect x={x - 15} y={y - 20} width="30" height="10" fill={accent} strokeWidth="2.4" />
+      <rect x={x - 29} y={y + 3} width="58" height="4" fill={c.dark} />
+      <path d={`M${x - 22} ${y + 7}v10M${x + 22} ${y + 7}v10`} stroke={c.dark} strokeWidth="2.6" strokeLinecap="round" />
+      <path d={`M${x - 7} ${y + 7}v10M${x + 7} ${y + 7}v10`} stroke={c.dark} strokeWidth="4" strokeLinecap="round" />
     </g>
   );
 };
 
-export const frontierPieces: ThemePieces = { settlement: frontierSettlement, city: frontierCity, road: frontierRoad, knight: frontierKnight };
+export const frontierPieces: ThemePieces = { settlement: frontierSettlement, city: frontierCity, road: frontierRoad, metropolis: frontierMetropolis };
 
 /** Frontier on the 2D board: an outlaws' paddle steamer, twin smokestacks and a big stern wheel. */
 export const frontierShip: BarbarianShipGlyph = ({ danger }) => {
