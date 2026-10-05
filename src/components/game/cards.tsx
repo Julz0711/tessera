@@ -84,10 +84,11 @@ const CARD_BOX: Record<CardSize, string> = {
   lg: 'h-36 w-26',
 };
 
+/** The count, tucked inside the card's top-right corner (it used to hang over the edge). */
 function CountBadge({ n, small, warn }: { n: number; small?: boolean; warn?: boolean }) {
   return (
     <span
-      className={`hex-badge z-10 tabular ${warn ? 'hex-badge-warn' : ''} ${small ? '-right-1.5 -top-2 w-4.5 text-[10px]' : '-right-2 -top-2.5 w-6 text-xs'}`}
+      className={`hex-badge z-10 tabular ${warn ? 'hex-badge-warn' : ''} ${small ? 'right-px top-px w-4 text-[9px]' : 'right-0.5 top-0.5 w-5 text-[10px]'}`}
     >
       {n}
     </span>
