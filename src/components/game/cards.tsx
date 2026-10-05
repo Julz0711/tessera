@@ -208,11 +208,14 @@ export function ResourceCard({
   );
 }
 
+/** The most extra cards a stack shows behind its top card. */
+export const MAX_SLIVERS = 3;
+
 /** How far each extra card of a stack peeks out, in px. */
 export const stackStep = (size: CardSize) => (size === 'xl' ? 9 : size === 'md' || size === 'lg' ? 7 : 4);
 
 /**
- * Cards of one kind, fanned like a real stack: a sliver per extra card (up to 4), plus a count.
+ * Cards of one kind, fanned like a real stack: a sliver per extra card (up to MAX_SLIVERS), plus a count.
  * `held` is only passed for the hand: it marks the stack as where flying cards land.
  */
 export function CardStack({
@@ -223,6 +226,7 @@ export function CardStack({
   warn,
   fan = true,
   step: stepOverride,
+  tuck = 0,
   onClick,
 }: {
   card: Card;
@@ -234,10 +238,12 @@ export function CardStack({
   fan?: boolean;
   /** How far each extra card peeks out, in px, when the hand is short of room (default: `stackStep`). */
   step?: number;
+  /** How far the extra cards may reach into the gap before the stack, in px. */
+  tuck?: number;
   onClick?: () => void;
 }) {
   const c = CARD_COLORS[card];
-  const extra = fan ? Math.min(count - 1, 4) : 0;
+  const extra = fan ? Math.min(count - 1, MAX_SLIVERS) : 0;
   const step = stepOverride ?? stackStep(size);
   const ref = useRef<HTMLDivElement>(null);
   const before = useRef(held);
@@ -254,7 +260,7 @@ export function CardStack({
     );
   }, [held]);
   return (
-    <div ref={ref} className="relative flex shrink-0" style={{ paddingLeft: extra * step }} data-hand-card={held !== undefined ? card : undefined}>
+    <div ref={ref} className="relative flex shrink-0" style={{ paddingLeft: extra * step, marginLeft: -Math.min(tuck, extra * step) }} data-hand-card={held !== undefined ? card : undefined}>
       {Array.from({ length: extra }, (_, i) => (
         <span
           key={i}

@@ -244,6 +244,6 @@ export function statusLine(view: PlayerView): { text: string; mine: boolean } {
     return seat === me ? { text: `Place ${what}`, mine: true } : { text: `${name(seat)} is placing ${what}…`, mine: false };
   }
   const seat = view.turn.seat;
-  if (seat === me) return { text: view.turn.rolled ? 'Your turn: build, trade or end turn' : 'Your turn: roll the dice', mine: true };
+  if (seat === me) return { text: view.turn.rolled ? 'Your turn: build, trade or end turn' : 'Your turn: roll the dice (press R)', mine: true };
   return { text: `${name(seat)}'s turn`, mine: false };
 }

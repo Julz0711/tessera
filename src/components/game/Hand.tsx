@@ -5,7 +5,7 @@ import { COMMODITIES, RESOURCES, handLimit, handTotal, type Card, type DevCardTy
 import type { PlayerView } from '@/engine/view';
 import { openTrade, useTradeDraft } from '@/client/trade';
 import { useUi } from '@/client/ui';
-import { CardStack, DevCardFace, ProgressCardFace, stackStep, type CardSize } from './cards';
+import { CardStack, DevCardFace, MAX_SLIVERS, ProgressCardFace, stackStep, type CardSize } from './cards';
 import { canPlayProgress } from './ck/ProgressCardDialog';
 import { canPlayDev } from './DevCardDialog';
 
@@ -25,19 +25,22 @@ const GAP = 12;
 
 /** The least a stacked card may peek out by and still read as a stack, in px. */
 const MIN_STEP = 3;
+/** How far a stack's extra cards may reach into the gap before it (they sit tighter, like Colonist's), in px. */
+export const TUCK = 8;
 
 /**
  * The hand's layout for `room` px: the biggest card size whose cards fit side by side, with each
- * kind's extra cards peeking out to the left of it by as much as the room left over allows (the
- * full `stackStep` at most). Short of even a sliver of room, the cards lie flat with their counts.
+ * kind's extra cards peeking out to the left of it by as much as the room left over (and part of
+ * the gap before it) allows, the full `stackStep` at most. Short of even a sliver of room, the cards lie flat with their counts.
  */
 export function fitTray(room: number, counts: number[], special: number, rules: number, max: CardSize = 'md'): { size: CardSize; fan: boolean; step: number } {
   const flat = (size: CardSize) => 20 + (counts.length + special) * (CARD_W[size]! + GAP) + rules * (1 + GAP);
-  const slivers = counts.reduce((n, c) => n + Math.min(c - 1, 4), 0);
+  const slivers = counts.reduce((n, c) => n + Math.min(c - 1, MAX_SLIVERS), 0);
+  const tucked = counts.filter((c) => c > 1).length * TUCK;
   const sizes = (['md', 'sm', 'xs'] as const).filter((s) => s !== 'md' || max !== 'sm');
   for (const size of sizes) {
-    const spare = room - flat(size);
-    if (spare < 0) continue;
+    if (room < flat(size)) continue;
+    const spare = room - flat(size) + tucked;
     const step = slivers ? Math.min(stackStep(size), Math.floor(spare / slivers)) : stackStep(size);
     return step >= MIN_STEP ? { size, fan: true, step } : { size, fan: false, step: 0 };
   }
@@ -132,6 +135,7 @@ export function Hand({
                 warn={over}
                 fan={fan}
                 step={step}
+                tuck={tray ? TUCK : 0}
                 onClick={canTrade ? () => (trading ? draft.add('give', c) : openTrade({ [c]: 1 })) : undefined}
               />,
             ])}

@@ -32,26 +32,32 @@ export function DiceBox({ view, size = 60, compact = false, className = '' }: { 
 
   return (
     // Your turn and the dice still to roll: the box pulses like the "Your turn" pill up top.
-    <div className={`glass flex items-center ${className} ${compact ? 'h-11 w-28 justify-center gap-1.5 p-1' : 'gap-3 p-2.5'} ${canRoll ? 'attention' : ''}`}>
+    <div className={`glass flex items-center ${className} ${compact ? 'h-11 w-28 justify-center gap-1.5 p-1' : 'gap-3 p-2'} ${canRoll ? 'attention' : ''}`}>
       {/* Compact and about to roll: the Roll button alone, the old roll is stale. */}
-      {roll && !(compact && canRoll) && (
+      {!(compact && canRoll) && (
+        // Wide screens have no Roll button: the dice themselves roll (and R, as the turn pill says).
         <div
+          role={canRoll ? 'button' : undefined}
+          tabIndex={canRoll ? 0 : undefined}
           className={`flex items-center gap-1.5 ${canRoll ? 'cursor-pointer' : ''}`}
           onClick={canRoll ? rollNow : undefined}
-          aria-label={`Last roll: ${roll.dice.red + roll.dice.yellow}`}
-          title={`Last roll: ${roll.dice.red + roll.dice.yellow}`}
+          onKeyDown={canRoll ? (e) => (e.key === 'Enter' || e.key === ' ') && rollNow() : undefined}
+          aria-keyshortcuts={canRoll ? 'R' : undefined}
+          aria-label={canRoll ? 'Roll the dice (R)' : roll ? `Last roll: ${roll.dice.red + roll.dice.yellow}` : undefined}
+          title={canRoll ? 'Roll the dice (R)' : roll ? `Last roll: ${roll.dice.red + roll.dice.yellow}` : undefined}
         >
           {/* The event die is the odd one out: half size, ahead of the number dice. */}
-          {roll.dice.event && (
-            <EventDie face={roll.dice.event} size={Math.round(size / 2)} />
-          )}
-          <Die size={size} value={roll.dice.red} rollKey={roll.key} bg={ck ? '#d9483b' : '#f6eddb'} pip={ck ? '#fff7f0' : '#1f1a14'} />
-          <Die size={size} value={roll.dice.yellow} rollKey={roll.key + 1} bg={ck ? '#f2c14e' : '#f6eddb'} />
+          {roll?.dice.event && <EventDie face={roll.dice.event} size={Math.round(size / 2)} />}
+          {/* No roll yet this game: the dice wait face up, dimmed. */}
+          <span className={`flex items-center gap-1.5 ${roll ? '' : 'opacity-60'}`}>
+            <Die size={size} value={roll?.dice.red ?? 1} rollKey={roll?.key ?? 0} bg={ck ? '#d9483b' : '#f6eddb'} pip={ck ? '#fff7f0' : '#1f1a14'} />
+            <Die size={size} value={roll?.dice.yellow ?? 1} rollKey={(roll?.key ?? 0) + 1} bg={ck ? '#f2c14e' : '#f6eddb'} />
+          </span>
         </div>
       )}
-      {canRoll && (
-        <button type="button" onClick={rollNow} className={`btn btn-primary ${compact ? 'h-full min-h-0! flex-1 gap-1.5 px-2 text-sm' : 'flex-col gap-0.5 px-4 py-2 text-xs'}`} title="Roll the dice (R)" aria-keyshortcuts="R">
-          <Dices size={compact ? 20 : 24} />
+      {compact && canRoll && (
+        <button type="button" onClick={rollNow} className="btn btn-primary h-full min-h-0! flex-1 gap-1.5 px-2 text-sm" title="Roll the dice (R)" aria-keyshortcuts="R">
+          <Dices size={20} />
           <span className="leading-none">
             Roll <Kbd k="R" />
           </span>
