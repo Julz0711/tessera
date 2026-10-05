@@ -376,10 +376,15 @@ body {
   --btn-bg: #f6be4c;
   --btn-shade: #eaa733;
 }
-/* Switched on (a build being placed, an open panel, the chosen option): amber, like the next action. */
+/* Switched on (a build being placed, an open panel, the chosen option): pale sea blue. */
 .btn.btn-on {
   --btn-bg: var(--color-pick);
   --btn-shade: var(--color-pick-shade);
+}
+/* The dock's keys and their menus are the exception: an open menu or a build in hand is amber. */
+.game-actions .btn.btn-on {
+  --btn-bg: #f6be4c;
+  --btn-shade: #eaa733;
 }
 /* A control standing straight on the board: deep sea with the ink line, like the HUD panels. */
 .btn.btn-dark {
