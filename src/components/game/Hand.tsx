@@ -97,7 +97,7 @@ export function Hand({
   // Knights & Barbarians, plus progress cards, the cards step down a size instead.
   const rules = (commodities.length && resources.length ? 1 : 0) + (held.length && special ? 1 : 0);
   const { size, fan } =
-    fitRoom !== undefined ? fitTray(fitRoom, held.map((c) => count(c)), special, rules, max) : { size: fit(max, held.length + special), fan: true };
+    tray && fitRoom !== undefined ? { ...fitTray(fitRoom, held.map((c) => count(c)), special, rules, max), fan: false } : fitRoom !== undefined ? fitTray(fitRoom, held.map((c) => count(c)), special, rules, max) : { size: fit(max, held.length + special), fan: true };
 
   return (
     // The inner row is only as wide as its cards, so it centres when it fits and scrolls from the
@@ -125,6 +125,7 @@ export function Hand({
                 held={p.hand[c]}
                 warn={over}
                 fan={fan}
+                up={tray}
                 onClick={canTrade ? () => (trading ? draft.add('give', c) : openTrade({ [c]: 1 })) : undefined}
               />,
             ])}

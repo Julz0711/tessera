@@ -41,9 +41,14 @@ export function DiceBox({ view, size = 60, compact = false }: { view: PlayerView
           aria-label={`Last roll: ${roll.dice.red + roll.dice.yellow}`}
           title={`Last roll: ${roll.dice.red + roll.dice.yellow}`}
         >
+          {/* The event die is the odd one out: half size, ahead of the number dice. */}
+          {roll.dice.event && (
+            <span className="self-end">
+              <EventDie face={roll.dice.event} size={Math.round(size / 2)} />
+            </span>
+          )}
           <Die size={size} value={roll.dice.red} rollKey={roll.key} bg={ck ? '#d9483b' : '#f6eddb'} pip={ck ? '#fff7f0' : '#1f1a14'} />
           <Die size={size} value={roll.dice.yellow} rollKey={roll.key + 1} bg={ck ? '#f2c14e' : '#f6eddb'} />
-          {roll.dice.event && <EventDie face={roll.dice.event} size={size} />}
         </div>
       )}
       {canRoll && (

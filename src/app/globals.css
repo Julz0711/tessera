@@ -50,6 +50,7 @@
   --radius-3xl: 8px;
   --radius-card: 6px;
   --shadow-token: 0 3px 0 0 #1f1a14;
+  --shadow-card: 0 2px 0 0 #1f1a14;
   --shadow-float: 0 18px 40px -12px rgb(0 0 0 / 0.55);
 
   --animate-rise: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;

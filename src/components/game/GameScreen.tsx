@@ -361,7 +361,8 @@ export function GameScreen() {
   const zoom = HUD_SCALE[prefs.hudScale];
   const layout = prefs.hudLayout;
   // Panels with nothing to show in this game: the barbarians outside Knights & Barbarians.
-  const unused = (panel: HudPanel) => panel === 'barbarian' && view.mode !== 'ck';
+  // On wide screens the dice sit just above the dock, out of the HUD.
+  const unused = (panel: HudPanel) => (panel === 'barbarian' && view.mode !== 'ck') || (panel === 'dice' && wide && me !== null);
   // A side column takes room from the flat board when it holds more than the (usually empty) offers
   // and the small zoom buttons.
   const columnUsed = (side: HudSide) =>
@@ -475,7 +476,10 @@ export function GameScreen() {
                 <Hand view={view} tray room={trayRoom} />
               </div>
             </div>
-            <div className="game-dock-wrap pointer-events-auto flex shrink-0">
+            <div className="game-dock-wrap pointer-events-auto relative flex shrink-0">
+              <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2">
+                <DiceBox view={view} size={48} />
+              </div>
               <Dock view={view} room={room} hand={false} />
             </div>
             <div className="pointer-events-auto w-72 shrink-0 [&_li]:h-full [&_ol]:h-full">

@@ -20,8 +20,8 @@ function describe(s: ReturnType<typeof barbarianStatus>): string {
 
 /**
  * Barbarian progress at a glance (Knights & Barbarians), so it stays in view however the board is
- * zoomed or turned: the voyage as a row of steps with the ship on its current one and an arrow to the
- * island, and the barbarians' strength against the knights' defense. On wide screens it's a HUD panel
+ * zoomed or turned: the voyage as a row of steps with the ship on its current one and the attack as the
+ * last, orange step (as on the board), and the barbarians' strength against the knights' defense. On wide screens it's a HUD panel
  * (under the log unless moved); `compact` is the tile leading the players strip on phones.
  */
 export function BarbarianMeter({ view, compact = false }: { view: PlayerView; compact?: boolean }) {
@@ -70,7 +70,8 @@ export function BarbarianMeter({ view, compact = false }: { view: PlayerView; co
         <span className={`text-xs font-extrabold ${s.danger ? 'text-[#ff8a73]' : 'text-foam/80'}`}>{toGo}</span>
       </div>
       <div className="flex items-center gap-3">
-        {/* the voyage: passed steps, the ship's step, steps still ahead, then the island it attacks */}
+        {/* the voyage: passed steps, the ship's step, steps still ahead, and last the attack step, in
+            the board track's orange so it reads as one more step, not as the step before it */}
         <span className="flex min-w-0 flex-1 items-center gap-[3px]" aria-hidden>
           {Array.from({ length: BARBARIAN_DISTANCE }, (_, i) =>
             i === s.position ? (
@@ -81,10 +82,9 @@ export function BarbarianMeter({ view, compact = false }: { view: PlayerView; co
               <span key={i} className={`h-2.5 min-w-1.5 flex-1 rounded-[3px] ${i < s.position ? 'bg-paper/35' : 'border-2 border-paper/40'}`} />
             ),
           )}
-          <svg width="16" height="10" viewBox="0 0 16 10" className={`shrink-0 ${s.danger ? 'text-[#ff8a73]' : 'text-paper/70'}`}>
-            <path d="M1 5h11M9 1.5 13.5 5 9 8.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <Castle size={15} strokeWidth={2.4} className={`shrink-0 ${s.danger ? 'text-[#ff8a73]' : 'text-[#f2994a]'}`} />
+          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-[#f2994a] text-ink" title="The attack">
+            <Castle size={12} strokeWidth={2.6} />
+          </span>
         </span>
         <span className="h-5 w-px shrink-0 bg-white/15" />
         {versus}

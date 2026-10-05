@@ -887,8 +887,8 @@ const bgCache = new Map<string, { points: string; fill: string }[]>();
  * A card-sized (100×140) low-poly backdrop: a jittered grid of triangles in shades of `color`,
  * brightest near the top-middle where the art sits and deeper toward the edges.
  */
-export function facetBackground(color: string, seed: string): { points: string; fill: string }[] {
-  const key = `${color}|${seed}`;
+export function facetBackground(color: string, seed: string, depth = 1): { points: string; fill: string }[] {
+  const key = `${color}|${seed}|${depth}`;
   const hit = bgCache.get(key);
   if (hit) return hit;
   const rnd = seeded(seed);
@@ -915,7 +915,7 @@ export function facetBackground(color: string, seed: string): { points: string; 
       for (const t of tris) {
         const cx = (t[0][0] + t[1][0] + t[2][0]) / 3;
         const cy = (t[0][1] + t[1][1] + t[2][1]) / 3;
-        const k = 0.14 - (Math.hypot(cx - 42, (cy - 38) * 0.8) / 110) * 0.3 + (rnd() - 0.5) * 0.07;
+        const k = (0.14 - (Math.hypot(cx - 42, (cy - 38) * 0.8) / 110) * 0.3 + (rnd() - 0.5) * 0.07) * depth;
         out.push({ points: pointsOf(t), fill: k > 0 ? mix(color, '#ffffff', k) : mix(color, '#000000', -k) });
       }
     }
@@ -924,10 +924,11 @@ export function facetBackground(color: string, seed: string): { points: string; 
   return out;
 }
 
-export const FacetBackground = memo(function FacetBackground({ color, seed }: { color: string; seed: string }) {
+/** `depth` scales the shading: 1 is the full low-poly relief, lower is gentler. */
+export const FacetBackground = memo(function FacetBackground({ color, seed, depth = 1 }: { color: string; seed: string; depth?: number }) {
   return (
     <>
-      {facetBackground(color, seed).map((f, i) => (
+      {facetBackground(color, seed, depth).map((f, i) => (
         <polygon key={i} points={f.points} fill={f.fill} stroke={f.fill} strokeWidth={0.5} strokeLinejoin="round" />
       ))}
     </>
