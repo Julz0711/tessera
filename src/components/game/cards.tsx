@@ -70,12 +70,14 @@ export function CardList({ cards }: { cards: PartialHand }) {
 
 // ── Printed cards ────────────────────────────────────────────────────────────
 
-export type CardSize = 'xs' | 'sm' | 'md' | 'lg';
+export type CardSize = 'xs' | 'sm' | 'md' | 'xl' | 'lg';
 
 const CARD_BOX: Record<CardSize, string> = {
   xs: 'h-11 w-8',
   sm: 'h-14 w-10',
   md: 'h-18 w-13 sm:h-20 sm:w-14',
+  /** The hand in its own corner on wide screens. */
+  xl: 'h-27.5 w-19.5',
   lg: 'h-36 w-26',
 };
 
@@ -175,7 +177,7 @@ export function ResourceCard({
   onClick,
   selected,
   dim,
-  label = size === 'md' || size === 'lg',
+  label = size !== 'xs' && size !== 'sm',
   warn,
 }: {
   card: Card;
@@ -227,7 +229,7 @@ export function CardStack({
 }) {
   const c = CARD_COLORS[card];
   const extra = Math.min(count - 1, 4);
-  const step = size === 'md' || size === 'lg' ? 7 : 4;
+  const step = size === 'xl' ? 9 : size === 'md' || size === 'lg' ? 7 : 4;
   const ref = useRef<HTMLDivElement>(null);
   const before = useRef(held);
   // More cards of this kind came in (not just back from the trade panel): the stack hops as the
@@ -266,7 +268,7 @@ function Ribbon({ color, size, children }: { color: string; size: CardSize; chil
   return (
     <span
       className={`pointer-events-none absolute inset-x-[5%] bottom-[5%] grid place-items-center text-center font-black leading-[1.08] ${
-        size === 'lg' ? 'min-h-8 px-[11%] py-1 text-[11px]' : 'min-h-[17%] px-[9%] py-[3px] text-[7px] sm:text-[7.5px]'
+        size === 'lg' ? 'min-h-8 px-[11%] py-1 text-[11px]' : size === 'xl' ? 'min-h-[17%] px-[9%] py-[3px] text-[9.5px]' : 'min-h-[17%] px-[9%] py-[3px] text-[7px] sm:text-[7.5px]'
       }`}
       style={{
         background: `linear-gradient(${mix(color, '#000000', 0.4)} 50%, ${mix(color, '#000000', 0.5)} 50%)`,
@@ -372,7 +374,7 @@ export function ProgressCardFace({ card, size = 'md', glow, onClick }: { card: P
         </svg>
       </span>
       <span className="pointer-events-none absolute left-1/2 top-[35.7%] -translate-x-1/2 -translate-y-1/2" style={{ color: mix(style.color, '#1f1a14', 0.55) }}>
-        <Icon size={size === 'lg' ? 40 : 20} strokeWidth={2.4} />
+        <Icon size={size === 'lg' ? 40 : size === 'xl' ? 28 : 20} strokeWidth={2.4} />
       </span>
       <Ribbon color={style.color} size={size}>
         {PROGRESS_NAMES[card.type]}

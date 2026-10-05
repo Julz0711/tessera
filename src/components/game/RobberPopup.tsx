@@ -5,6 +5,7 @@ import { confirmRobber, robberPickVictims } from '@/client/interaction';
 import type { RobberPick } from '@/client/ui';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { RobberGlyph } from '@/components/ui/Glyphs';
+import { Kbd } from '@/components/ui/Kbd';
 
 /** Confirms the robber's new hex, anchored on the board above it: pick who to rob, or just move it there. */
 export function RobberPopup({ view, pick }: { view: PlayerView; pick: RobberPick }) {
@@ -12,7 +13,7 @@ export function RobberPopup({ view, pick }: { view: PlayerView; pick: RobberPick
   if (!victims.length) {
     return (
       <button type="button" className="btn btn-primary whitespace-nowrap px-4 py-2" onClick={() => void confirmRobber(view)}>
-        <RobberGlyph size={18} /> Move robber here
+        <RobberGlyph size={18} /> Move robber here <Kbd k="↵" />
       </button>
     );
   }

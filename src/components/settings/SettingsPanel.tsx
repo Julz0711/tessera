@@ -252,7 +252,7 @@ function AudioTab() {
             step={0.05}
             value={prefs.volume}
             onChange={(e) => prefs.set({ volume: Number(e.target.value) })}
-            className="flex-1 accent-ink"
+            className="range flex-1"
             aria-label="Master volume"
           />
           <span className="w-10 text-right text-sm font-bold tabular">{Math.round(prefs.volume * 100)}%</span>
@@ -279,7 +279,7 @@ function AudioTab() {
             step={0.05}
             value={prefs.musicVolume}
             onChange={(e) => prefs.set({ musicVolume: Number(e.target.value) })}
-            className="flex-1 accent-ink"
+            className="range flex-1"
             aria-label="Music volume"
           />
           <span className="w-10 text-right text-sm font-bold tabular">{prefs.musicVolume > 0 ? `${Math.round(prefs.musicVolume * 100)}%` : 'Off'}</span>
@@ -314,7 +314,7 @@ function AudioTab() {
                     step={0.05}
                     value={v}
                     onChange={(e) => prefs.set({ sfxVolume: { ...prefs.sfxVolume, [sfx]: Number(e.target.value) } })}
-                    className="flex-1 accent-ink"
+                    className="range flex-1"
                     aria-label={label}
                   />
                   <span className="w-10 text-right text-xs font-bold tabular">{Math.round(v * 100)}%</span>

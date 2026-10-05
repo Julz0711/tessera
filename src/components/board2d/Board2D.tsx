@@ -17,21 +17,8 @@ import { harborAnchor, pirateSpot } from "@/components/board/harbor";
 import { BARBARIAN_HEADER_H, barbarianTrackLayout, type BarbarianLayout } from "@/components/board/barbarian";
 import type { BoardProps, BoardScene } from "@/components/board/types";
 import { useZoomPan } from "./useZoomPan";
-import { useZoomHost } from "@/client/hud";
+import { useWide, useZoomHost } from "@/client/hud";
 import { BoardArt } from "@/components/game/cardArt";
-
-/** Whether the screen is wide enough for the desktop HUD (Tailwind's `lg`). */
-function useWide(): boolean {
-  const [wide, setWide] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const update = () => setWide(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
-  return wide;
-}
 
 const S = 100; // world units → SVG units
 /** How much of its hex a tile fills; the rest is a strip of beach between neighbours. */

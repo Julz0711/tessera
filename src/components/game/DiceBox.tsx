@@ -6,6 +6,7 @@ import type { PlayerView } from '@/engine/view';
 import { play } from '@/client/sound';
 import { api } from '@/client/store';
 import { Die, EventDie } from './Dice';
+import { Kbd } from '@/components/ui/Kbd';
 
 function lastRoll(view: PlayerView) {
   for (let i = view.log.length - 1; i >= 0; i--) {
@@ -46,10 +47,10 @@ export function DiceBox({ view, size = 60, compact = false }: { view: PlayerView
         </div>
       )}
       {canRoll && (
-        <button type="button" onClick={rollNow} className={`btn btn-primary ${compact ? 'h-full min-h-0! flex-1 gap-1.5 px-2 text-sm' : 'flex-col gap-0.5 px-4 py-2 text-xs'}`} title="Roll the dice (R)">
+        <button type="button" onClick={rollNow} className={`btn btn-primary ${compact ? 'h-full min-h-0! flex-1 gap-1.5 px-2 text-sm' : 'flex-col gap-0.5 px-4 py-2 text-xs'}`} title="Roll the dice (R)" aria-keyshortcuts="R">
           <Dices size={compact ? 20 : 24} />
           <span className="leading-none">
-            Roll<span className="pointer-coarse:hidden"> (R)</span>
+            Roll <Kbd k="R" />
           </span>
         </button>
       )}

@@ -7,7 +7,8 @@ describe('hud layout', () => {
     expect(slotPanels(DEFAULT_HUD_LAYOUT, 'rightTop')).toEqual(['side', 'barbarian', 'bank', 'players']);
     expect(slotPanels(DEFAULT_HUD_LAYOUT, 'leftTop')).toEqual(['offers']);
     expect(slotPanels(DEFAULT_HUD_LAYOUT, 'cornerRight')).toEqual(['dice']);
-    expect(slotPanels(DEFAULT_HUD_LAYOUT, 'cornerLeft')).toEqual(['zoom']);
+    expect(slotPanels(DEFAULT_HUD_LAYOUT, 'cornerLeft')).toEqual([]);
+    expect(slotPanels(DEFAULT_HUD_LAYOUT, 'leftBottom')).toEqual(['zoom']);
   });
 
   it('places every panel exactly once', () => {
@@ -32,8 +33,8 @@ describe('hud layout', () => {
     expect(fits('dice', 'cornerLeft')).toBe(true);
     expect(fits('players', 'cornerLeft')).toBe(false);
     expect(movePanel(DEFAULT_HUD_LAYOUT, 'players', 'cornerLeft')).toBe(DEFAULT_HUD_LAYOUT);
-    expect(slotPanels(movePanel(DEFAULT_HUD_LAYOUT, 'dice', 'leftBottom'), 'leftBottom')).toEqual(['dice']);
-    expect(slotPanels(movePanel(DEFAULT_HUD_LAYOUT, 'dice', 'cornerLeft'), 'cornerLeft')).toEqual(['zoom', 'dice']);
+    expect(slotPanels(movePanel(DEFAULT_HUD_LAYOUT, 'dice', 'leftBottom'), 'leftBottom')).toEqual(['zoom', 'dice']);
+    expect(slotPanels(movePanel(DEFAULT_HUD_LAYOUT, 'dice', 'cornerLeft'), 'cornerLeft')).toEqual(['dice']);
   });
 
   it('sanitizes stored layouts', () => {

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 
 /** The HUD panels a player can move around (desktop). The top bar and the dock stay put. */
@@ -11,6 +12,19 @@ export type HudPanel = 'side' | 'barbarian' | 'players' | 'bank' | 'dice' | 'off
 export type HudSlot = 'leftTop' | 'leftBottom' | 'rightTop' | 'rightBottom' | 'cornerLeft' | 'cornerRight';
 export type HudLayout = Record<HudPanel, { slot: HudSlot; order: number }>;
 export type HudScale = 'small' | 'medium' | 'large';
+
+/** Whether the screen is at least `minWidth` wide: by default, enough for the desktop HUD (Tailwind's `lg`). */
+export function useWide(minWidth = 1024): boolean {
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(`(min-width: ${minWidth}px)`);
+    const update = () => setWide(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, [minWidth]);
+  return wide;
+}
 
 export const HUD_PANELS: readonly HudPanel[] = ['side', 'barbarian', 'players', 'bank', 'dice', 'offers', 'zoom'];
 export const HUD_SLOTS: readonly HudSlot[] = ['leftTop', 'leftBottom', 'rightTop', 'rightBottom', 'cornerLeft', 'cornerRight'];
@@ -31,7 +45,8 @@ export const PANEL_LABEL: Record<HudPanel, string> = {
 
 /**
  * Offers top-left, log/bank/players down the right (the barbarians' progress, in Knights &
- * Barbarians games, right under the log), dice bottom-right and the zoom buttons bottom-left. The
+ * Barbarians games, right under the log), dice bottom-right and the zoom buttons at the bottom of the left column (the bottom-left corner
+ * is the hand's on wide screens). The
  * barbarians' 0.5 slots them in between in layouts saved before the panel existed, too.
  */
 export const DEFAULT_HUD_LAYOUT: HudLayout = {
@@ -41,7 +56,7 @@ export const DEFAULT_HUD_LAYOUT: HudLayout = {
   bank: { slot: 'rightTop', order: 1 },
   players: { slot: 'rightTop', order: 2 },
   dice: { slot: 'cornerRight', order: 0 },
-  zoom: { slot: 'cornerLeft', order: 0 },
+  zoom: { slot: 'leftBottom', order: 0 },
 };
 
 /** Whether `panel` may sit in `slot`: the corners beside the dock only have room for small panels. */

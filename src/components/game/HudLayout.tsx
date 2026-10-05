@@ -108,9 +108,10 @@ export function DesktopHud({
 
   const column = (side: HudSide) => (
     // The pl-4 / pr-4 strip on the board side is room for the current player's card to stick out into.
+    // The left column stops higher up: the hand has the bottom-left corner.
     <div
-      className={`pointer-events-none absolute bottom-25 top-16 hidden w-76 flex-col gap-2 overflow-y-auto overflow-x-hidden scroll-thin lg:flex ${
-        side === 'right' ? 'right-2 pl-4' : 'left-2 pr-4'
+      className={`pointer-events-none absolute top-16 hidden w-76 flex-col gap-2 overflow-y-auto overflow-x-hidden scroll-thin lg:flex ${
+        side === 'right' ? 'bottom-25 right-2 pl-4' : 'bottom-25 left-2 pr-4 xl:bottom-40'
       } ${editing ? 'z-40' : 'z-10'}`}
       style={{ zoom }}
     >

@@ -293,113 +293,155 @@ body {
 /* Component classes live in the components layer so Tailwind utilities (utilities layer)
    can still override them, e.g. `btn sm:hidden` or `btn gap-0.5`. */
 @layer components {
-/* Chunky punch-out button (token). Variants set --btn-bg / --btn-fg. */
+/* Quiet button: flat, a hairline border, no drop shadow, so the HUD stays out of the board's way.
+   On the dark HUD it is a faint glass chip; on paper (dialogs, settings) a light card. Variants set
+   --btn-bg / --btn-fg / --btn-line. */
 .btn {
-  --btn-bg: var(--color-paper);
-  --btn-fg: var(--color-ink);
+  --btn-bg: rgb(255 255 255 / 0.08);
+  --btn-fg: var(--color-paper);
+  --btn-line: rgb(255 255 255 / 0.16);
+  --btn-hover: rgb(255 255 255 / 0.14);
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border: 2px solid var(--color-ink);
-  border-radius: 12px;
+  border: 1px solid var(--btn-line);
+  border-radius: 10px;
   background: var(--btn-bg);
   color: var(--btn-fg);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.01em;
-  box-shadow: 0 3px 0 0 var(--color-ink);
   transition:
-    transform 0.08s ease,
-    box-shadow 0.08s ease,
-    filter 0.15s ease;
+    transform 0.06s ease,
+    background-color 0.12s ease,
+    border-color 0.12s ease;
   user-select: none;
 }
+:is(.paper, .paper-flat, .bg-paper) .btn {
+  --btn-bg: #fffaf0;
+  --btn-fg: var(--color-ink);
+  --btn-line: rgb(31 26 20 / 0.2);
+  --btn-hover: #ffffff;
+}
 .btn:hover:not(:disabled) {
-  filter: brightness(1.05);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 0 0 var(--color-ink);
+  background: var(--btn-hover);
+  border-color: color-mix(in srgb, var(--btn-line), currentColor 25%);
 }
 .btn:active:not(:disabled) {
-  transform: translateY(3px);
-  box-shadow: 0 0 0 0 var(--color-ink);
+  transform: translateY(1px);
 }
 .btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 .btn:focus-visible {
-  outline: 3px solid var(--color-amber);
+  outline: 2px solid var(--color-amber);
   outline-offset: 2px;
 }
-.btn-primary {
+.btn.btn-primary {
   --btn-bg: var(--color-amber);
+  --btn-fg: var(--color-ink);
+  --btn-line: var(--color-amber);
+  --btn-hover: #f6c45f;
 }
-.btn-dark {
-  --btn-bg: var(--color-sea-800);
+/* Selected (a build being placed, an open panel): an amber outline, quieter than the primary fill. */
+.btn.btn-on {
+  --btn-bg: rgb(242 179 61 / 0.16);
+  --btn-line: var(--color-amber);
+  --btn-hover: rgb(242 179 61 / 0.24);
+}
+.btn.btn-dark {
+  --btn-bg: rgb(10 32 41 / 0.85);
   --btn-fg: var(--color-paper);
-  border-color: #000;
-  box-shadow: 0 3px 0 0 #000;
+  --btn-line: rgb(255 255 255 / 0.12);
+  --btn-hover: var(--color-sea-800);
 }
-.btn-danger {
-  --btn-bg: var(--color-terracotta);
-  --btn-fg: #fff8ef;
+.btn.btn-danger {
+  --btn-bg: rgb(207 100 64 / 0.16);
+  --btn-fg: #f6a487;
+  --btn-line: rgb(207 100 64 / 0.55);
+  --btn-hover: rgb(207 100 64 / 0.26);
 }
-.btn-ghost {
+:is(.paper, .paper-flat, .bg-paper) .btn.btn-danger {
+  --btn-bg: rgb(194 65 45 / 0.08);
+  --btn-fg: var(--color-danger);
+  --btn-line: rgb(194 65 45 / 0.45);
+  --btn-hover: rgb(194 65 45 / 0.14);
+}
+.btn.btn-ghost {
   --btn-bg: transparent;
   --btn-fg: inherit;
-  border-color: transparent;
-  box-shadow: none;
-}
-.btn-ghost:hover:not(:disabled) {
-  box-shadow: none;
-  background: rgb(0 0 0 / 0.06);
+  --btn-line: transparent;
+  --btn-hover: rgb(127 127 127 / 0.12);
 }
 
-/* Chunky slider to match the buttons: an inset paper track and an amber token thumb. */
+/* Keyboard hint on a button (hidden on touch screens, where there is no keyboard to press). */
+.kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.15em;
+  height: 1.15em;
+  padding: 0 0.25em;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72em;
+  font-weight: 600;
+  line-height: 1;
+  opacity: 0.6;
+}
+@media (pointer: coarse) {
+  .kbd { display: none; }
+}
+
+/* Slider: a thin track and a plain round thumb. */
 .range {
   appearance: none;
-  height: 10px;
-  border: 2px solid var(--color-ink);
+  height: 4px;
   border-radius: 999px;
-  background: var(--color-paper-3);
+  background: rgb(255 255 255 / 0.22);
   cursor: pointer;
 }
+:is(.paper, .paper-flat, .bg-paper) .range { background: rgb(31 26 20 / 0.18); }
 .range::-webkit-slider-thumb {
   appearance: none;
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--color-ink);
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgb(31 26 20 / 0.25);
   border-radius: 999px;
-  background: var(--color-amber);
-  box-shadow: 0 2px 0 0 var(--color-ink);
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
 }
 .range::-moz-range-thumb {
   width: 16px;
   height: 16px;
-  border: 2px solid var(--color-ink);
+  border: 1px solid rgb(31 26 20 / 0.25);
   border-radius: 999px;
-  background: var(--color-amber);
-  box-shadow: 0 2px 0 0 var(--color-ink);
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
 }
 .range:focus-visible {
-  outline: 3px solid var(--color-amber);
-  outline-offset: 3px;
+  outline: 2px solid var(--color-amber);
+  outline-offset: 4px;
 }
 
 .input {
   width: 100%;
-  border: 2px solid var(--color-ink);
+  border: 1px solid rgb(31 26 20 / 0.25);
   border-radius: 10px;
   background: #fffaf0;
   color: var(--color-ink);
   padding: 0.6rem 0.8rem;
   font-weight: 600;
   outline: none;
-  transition: box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 .input:focus {
-  box-shadow: 0 0 0 3px rgb(242 179 61 / 0.6);
+  border-color: var(--color-ink);
+  box-shadow: 0 0 0 3px rgb(242 179 61 / 0.45);
 }
 
 /* Flat sea behind the 2D board (radial depth + faint wave lines). */

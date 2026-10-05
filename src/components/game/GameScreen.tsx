@@ -8,7 +8,7 @@ import { DEV_NAMES, PROGRESS_NAMES, TRACK_NAMES } from '@/client/describe';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { CARD_COLORS } from '@/client/palette';
 import { BOARD_SCALE, usePrefs } from '@/client/prefs';
-import { HUD_PANELS, HUD_SCALE, slotPanels, useZoomHost, type HudPanel } from '@/client/hud';
+import { HUD_PANELS, HUD_SCALE, slotPanels, useWide, useZoomHost, type HudPanel } from '@/client/hud';
 import { PALETTES, type BoardPalette } from '@/client/themes';
 import { play } from '@/client/sound';
 import { api, toast, useGame } from '@/client/store';
@@ -44,6 +44,7 @@ import { cardList, fly, type Place } from '@/client/fx';
 import { TERRAIN_COMMODITY, TERRAIN_RESOURCE } from '@/engine/constants';
 import { FlyLayer } from './FlyLayer';
 import { DesktopHud, type HudSide } from './HudLayout';
+import { Hand } from './Hand';
 import { EventBanner, pushBanner } from './EventBanner';
 import { Modal } from '@/components/ui/Modal';
 
@@ -322,6 +323,8 @@ export function GameScreen() {
   const onVertex = useCallback((id: number) => view && void handlePick(view, 'vertex', id), [view]);
   const onEdge = useCallback((id: number) => view && void handlePick(view, 'edge', id), [view]);
   const onHex = useCallback((id: number) => view && void handlePick(view, 'hex', id), [view]);
+  // From Tailwind's `xl` up the hand gets its own corner; below that there's no room beside the dock.
+  const wide = useWide(1280);
 
   if (!view || !room || !scene) {
     return <div className="grid min-h-dvh place-items-center text-foam/60">Setting up the board…</div>;
@@ -333,9 +336,10 @@ export function GameScreen() {
   const layout = prefs.hudLayout;
   // Panels with nothing to show in this game: the barbarians outside Knights & Barbarians.
   const unused = (panel: HudPanel) => panel === 'barbarian' && view.mode !== 'ck';
-  // A side column takes room from the flat board when it holds more than the (usually empty) offers.
+  // A side column takes room from the flat board when it holds more than the (usually empty) offers
+  // and the small zoom buttons.
   const columnUsed = (side: HudSide) =>
-    HUD_PANELS.some((p) => p !== 'offers' && !unused(p) && (layout[p].slot === `${side}Top` || layout[p].slot === `${side}Bottom`));
+    HUD_PANELS.some((p) => p !== 'offers' && p !== 'zoom' && !unused(p) && (layout[p].slot === `${side}Top` || layout[p].slot === `${side}Bottom`));
   const board2d = {
     '--hud-t': `${64 * zoom}px`,
     '--hud-b': `${168 * zoom}px`,
@@ -343,7 +347,9 @@ export function GameScreen() {
     '--hud-r': `${(columnUsed('right') ? 300 : 8) * zoom}px`,
   } as React.CSSProperties;
   // The dock keeps clear of the corners that hold something.
-  const dockClear = `${slotPanels(layout, 'cornerRight').length ? 'lg:right-56 xl:right-0' : ''} ${slotPanels(layout, 'cornerLeft').length ? 'lg:left-56 xl:left-0' : ''}`;
+  const rightCorner = slotPanels(layout, 'cornerRight').length > 0;
+  // The hand has the bottom-left corner on wide screens, so a panel kept there pushes the whole row over.
+  const dockClear = `${rightCorner ? 'lg:right-56 xl:right-0' : ''} ${slotPanels(layout, 'cornerLeft').length ? 'lg:left-56' : ''}`;
 
   const renderPanel = (panel: HudPanel, side: HudSide) => {
     switch (panel) {
@@ -432,9 +438,19 @@ export function GameScreen() {
       <div className={`game-bottom pointer-events-none absolute inset-x-0 bottom-2 z-20 flex flex-col gap-2 px-2 ${dockClear}`} style={{ zoom }}>
         {/* Only the dock itself takes clicks: this row spans the screen and would otherwise cover
             the dice box on wide screens. */}
-        <div className="flex justify-center">
-          <div className="game-dock-wrap pointer-events-auto min-w-0 max-w-full">
-            <Dock view={view} room={room} />
+        {/* Wide screens: the hand in the bottom-left corner, bigger, and the dock centred on its own. */}
+        {/* Wide screens: the hand in the bottom-left corner, and the dock centred unless the hand needs
+            the room (a hand wider than 36vw scrolls). The right column keeps the dock clear of the dice. */}
+        <div
+          className={`flex justify-center xl:grid xl:items-end xl:gap-3 ${rightCorner ? 'xl:grid-cols-[minmax(auto,1fr)_auto_minmax(10rem,1fr)]' : 'xl:grid-cols-[minmax(auto,1fr)_auto_minmax(0,1fr)]'}`}
+        >
+          {wide && (
+            <div className="pointer-events-auto w-max max-w-[36vw]">
+              {me !== null && <Hand view={view} size="xl" />}
+            </div>
+          )}
+          <div className="game-dock-wrap pointer-events-auto min-w-0 max-w-full xl:col-start-2">
+            <Dock view={view} room={room} hand={!wide} />
           </div>
         </div>
       </div>

@@ -37,6 +37,28 @@ export function CostPips({ cost, hand }: { cost: PartialHand; hand?: PartialHand
 }
 
 /**
+ * A build's cost as small dots, one per card, for the dock's build buttons: always visible, so you
+ * can see what you can afford at a glance. Cards the hand can't cover yet are greyed out.
+ */
+export function CostDots({ cost, hand }: { cost: PartialHand; hand: PartialHand }) {
+  const entries = (Object.entries(cost) as [Card, number][]).filter(([, n]) => n > 0);
+  const label = entries.map(([c, n]) => `${n} ${CARD_COLORS[c].label}`).join(', ');
+  return (
+    <span className="flex items-center gap-0.5" aria-label={`Costs ${label}`}>
+      {entries.flatMap(([c, n]) =>
+        Array.from({ length: n }, (_, i) => (
+          <span
+            key={`${c}${i}`}
+            className={`h-2.5 w-2 rounded-[2px] shadow-[inset_0_0_0_1px_rgb(0_0_0/0.3)] ${(hand[c] ?? 0) > i ? '' : 'opacity-30 grayscale'}`}
+            style={{ background: CARD_COLORS[c].bg }}
+          />
+        )),
+      )}
+    </span>
+  );
+}
+
+/**
  * The building-costs sheet (touch screens, where there's no hover): every build with its cost and
  * what it scores, like the cheat sheet each player gets with the board game. A reference card, so
  * nothing on it fades with the hand (the hover bubble does that).

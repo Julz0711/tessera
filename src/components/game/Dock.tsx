@@ -1,7 +1,7 @@
 'use client';
 
-import { ArrowLeftRight, BrickWall, Eye, Hammer, Hourglass, Landmark, Sailboat, ScrollText, Ship, Sparkles } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ArrowLeftRight, BrickWall, Eye, Hammer, Hourglass, Landmark, Sailboat, Ship, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import {
   COSTS,
   hasCards,
@@ -23,7 +23,8 @@ import { api } from '@/client/store';
 import { buildMode, useUi } from '@/client/ui';
 import { CityGlyph, KnightGlyph, RoadGlyph, SettlementGlyph } from '@/components/ui/Glyphs';
 import type { RoomDTO } from '@/shared/protocol';
-import { BuildCostsCard, CostPips } from './BuildCostsCard';
+import { Kbd } from '@/components/ui/Kbd';
+import { CostDots } from './BuildCostsCard';
 import { Hand } from './Hand';
 import { TradePanel } from './TradePanel';
 
@@ -76,52 +77,59 @@ function ActionButton({
   bankAnchor?: boolean;
   className?: string;
 }) {
+  const click = () => {
+    play('click');
+    onClick();
+  };
+  // The shortcut presses the button itself, so it only works while the button does.
+  const latest = useRef(click);
+  latest.current = click;
+  useEffect(() => {
+    if (!shortcut || disabled) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.key.toLowerCase() !== shortcut.toLowerCase()) return;
+      const el = e.target as Element | null;
+      if (el && typeof el.closest === 'function' && el.closest('input, textarea, select, [contenteditable="true"]')) return;
+      e.preventDefault();
+      latest.current();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [shortcut, disabled]);
+
   return (
     <button
       type="button"
-      onClick={() => {
-        play('click');
-        onClick();
-      }}
+      onClick={click}
       disabled={disabled}
       aria-pressed={active}
-      title={hint ?? label}
+      aria-keyshortcuts={shortcut}
+      title={shortcut ? `${hint ?? label} (${shortcut})` : (hint ?? label)}
       data-bank-anchor={bankAnchor ? '' : undefined}
-      className={`btn group relative min-w-0 flex-col gap-0.5 px-0 py-1.5 ${cost ? 'disabled:bg-paper/50 disabled:opacity-100' : ''} text-[10px] tracking-tight sm:min-w-16 sm:px-2.5 sm:text-[11px] sm:tracking-normal ${primary ? 'btn-primary' : active ? 'btn-primary' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''} ${className}`}
+      className={`btn group relative min-w-0 flex-col gap-0.5 px-0 py-1.5 ${cost ? 'disabled:opacity-100' : ''} text-[10px] tracking-tight sm:min-w-16 sm:px-2.5 sm:text-[11px] sm:tracking-normal ${primary ? 'btn-primary' : active ? 'btn-on' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''} ${className}`}
     >
-      {/* A build you can't make fades its icon and label, but not its cost bubble. */}
+      {shortcut && <Kbd k={shortcut} className="absolute left-1 top-1 text-[11px]" />}
+      {/* A build you can't make fades its icon and label, but not its cost: the dots show what's missing. */}
       <span className={`flex flex-col items-center gap-0.5 ${cost ? 'group-disabled:opacity-45' : ''}`}>
         {icon}
-        <span className="whitespace-nowrap leading-none">
-          {label}
-          {shortcut && <span className="pointer-coarse:hidden"> ({shortcut})</span>}
-        </span>
+        <span className="whitespace-nowrap leading-none">{label}</span>
       </span>
+      {cost && hand && <CostDots cost={cost} hand={hand} />}
       {left !== undefined && (
-        <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full border-2 border-ink bg-paper px-1 text-[10px] font-black leading-none text-ink" title={`${left} left`}>
+        <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full border border-white/20 bg-sea-900 px-1 text-[10px] font-extrabold leading-none text-foam" title={`${left} left`}>
           {left}
-        </span>
-      )}
-      {cost && (
-        // What it costs, on hover (with a mouse); touch screens have the building-costs sheet.
-        <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2.5 hidden -translate-x-1/2 rounded-lg border-2 border-ink bg-paper px-2 py-1.5 shadow-lg group-hover:flex">
-          <CostPips cost={cost} hand={hand} />
         </span>
       )}
     </button>
   );
 }
 
-export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
+/** `hand: false` leaves the hand out (wide screens give it its own corner, see GameScreen). */
+export function Dock({ view, room, hand = true }: { view: PlayerView; room: RoomDTO; hand?: boolean }) {
   const ui = useUi();
   const me = view.viewer;
   const seconds = useCountdown(room.deadline);
   const lowTime = seconds !== null && seconds <= 10;
-  const [costsOpen, setCostsOpen] = useState(false);
-  // The sheet makes way once a build, a panel or a card takes over.
-  useEffect(() => {
-    if (ui.mode || ui.panel || ui.card) setCostsOpen(false);
-  }, [ui.mode, ui.panel, ui.card]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -140,7 +148,6 @@ export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
       }
       if (me === null || view.phase !== 'play' || view.turn.seat !== me || view.pending.length) return;
       if (e.key.toLowerCase() === 'r' && !view.turn.rolled) void api.act({ type: 'rollDice' });
-      if (e.key.toLowerCase() === 'e' && view.turn.rolled) void api.act({ type: 'endTurn' });
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -174,8 +181,7 @@ export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
   return (
     <div className="game-dock flex w-full min-w-0 flex-col items-center gap-2 sm:w-auto">
       {ui.panel === 'trade' && <TradePanel view={view} />}
-      {costsOpen && <BuildCostsCard ck={ck} ships={voyage} onClose={() => setCostsOpen(false)} />}
-      <Hand view={view} />
+      {hand && <Hand view={view} />}
 
       {/* actions: one row where there's room; on phones the builds and the turn's other moves
           get a row each, every button the same width, so nothing hides off the edge. */}
@@ -183,6 +189,7 @@ export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
         <div className="grid auto-cols-fr grid-flow-col gap-1 sm:flex sm:gap-2">
           <ActionButton
             label="Road"
+            shortcut="1"
             icon={<RoadGlyph size={20} />}
             onClick={() => ui.toggleBuild('road')}
             active={building === 'road'}
@@ -194,6 +201,7 @@ export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
             <>
               <ActionButton
                 label="Ship"
+                shortcut="S"
                 icon={<Ship size={20} />}
                 onClick={() => ui.toggleBuild('ship')}
                 active={building === 'ship'}
@@ -214,6 +222,7 @@ export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
           )}
           <ActionButton
             label="Settle"
+            shortcut="2"
             icon={<SettlementGlyph size={20} />}
             onClick={() => ui.toggleBuild('settlement')}
             active={building === 'settlement'}
@@ -223,6 +232,7 @@ export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
           />
           <ActionButton
             label="City"
+            shortcut="3"
             icon={<CityGlyph size={20} />}
             onClick={() => ui.toggleBuild('city')}
             active={building === 'city'}
@@ -230,11 +240,12 @@ export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
             cost={COSTS.city} hand={p.hand}
             left={left.cities}
           />
-          {!ck && <ActionButton label="Buy card" icon={<Sparkles size={20} />} onClick={() => api.act({ type: 'buyDevCard' })} disabled={!devOk} cost={COSTS.devCard} hand={p.hand} />}
+          {!ck && <ActionButton label="Buy card" shortcut="4" icon={<Sparkles size={20} />} onClick={() => api.act({ type: 'buyDevCard' })} disabled={!devOk} cost={COSTS.devCard} hand={p.hand} />}
           {ck && (
             <>
               <ActionButton
                 label="Knight"
+                shortcut="4"
                 icon={<KnightGlyph size={20} />}
                 onClick={() => ui.toggleBuild('knight')}
                 active={building === 'knight'}
@@ -252,16 +263,15 @@ export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
         <div className="grid auto-cols-fr grid-flow-col gap-1.5 sm:flex sm:items-center sm:gap-2">
           {/* phones: Improve rides with the turn's other moves, keeping the build row short */}
           {ck && <ActionButton label="Improve" icon={<Hammer size={20} />} onClick={() => ui.setPanel('improve')} active={ui.panel === 'improve'} disabled={view.phase !== 'play'} hint="City improvements" className="sm:hidden" />}
-          {/* touch screens: no hover to show a build's cost, so the building-costs sheet instead */}
-          <ActionButton label="Costs" icon={<ScrollText size={20} />} onClick={() => setCostsOpen((o) => !o)} active={costsOpen} hint="Building costs" className="pointer-fine:hidden" />
           <ActionButton
             label="Trade"
+            shortcut="T"
             icon={<ArrowLeftRight size={20} />}
             onClick={() => ui.setPanel('trade')}
             active={ui.panel === 'trade'}
             disabled={view.phase !== 'play' || !view.turn.rolled || !free}
           />
-          <ActionButton label="Bank" icon={<Landmark size={20} />} onClick={() => ui.setPanel('bank')} active={ui.panel === 'bank'} disabled={!canBuild} bankAnchor />
+          <ActionButton label="Bank" shortcut="B" icon={<Landmark size={20} />} onClick={() => ui.setPanel('bank')} active={ui.panel === 'bank'} disabled={!canBuild} bankAnchor />
           <span className="mx-0.5 hidden h-8 w-px bg-white/15 sm:block" />
           <ActionButton
             label="End turn"
@@ -271,9 +281,9 @@ export function Dock({ view, room }: { view: PlayerView; room: RoomDTO }) {
               void api.act({ type: 'endTurn' });
             }}
             disabled={!canBuild}
-            hint="End your turn (E)"
+            hint="End your turn"
             shortcut="E"
-            danger
+            primary={canBuild}
             pulse={lowTime}
           />
         </div>
