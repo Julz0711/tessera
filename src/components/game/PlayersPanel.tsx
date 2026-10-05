@@ -87,29 +87,31 @@ export function ProgressCounts({ tracks }: { tracks: Record<Track, number> }) {
 
 /**
  * C&K city improvements at a glance: one column per track (trade, politics, science), filled from
- * the bottom. Levels 4–5, where metropolises are won, sit apart; a crown marks a metropolis held.
+ * the bottom, in even rows; a crown over a column marks a metropolis held.
  */
 export function ImprovementGrid({ levels, metropolis, compact = false }: { levels: Record<Track, number>; metropolis: Track[]; compact?: boolean }) {
   const cell = compact ? 'h-1.5 w-2' : 'h-2 w-2.5';
   const summary = TRACKS.map((t) => `${TRACK_STYLE[t].label} ${levels[t]}${metropolis.includes(t) ? ' (metropolis)' : ''}`).join(' · ');
   return (
-    <div className="flex shrink-0 items-end gap-0.5" title={`City improvements: ${summary}`} aria-label={`City improvements: ${summary}`}>
+    <div className="flex shrink-0 items-center gap-0.5" title={`City improvements: ${summary}`} aria-label={`City improvements: ${summary}`}>
       {TRACKS.map((t) => {
         const s = TRACK_STYLE[t];
         return (
-          <div key={t} className="flex flex-col items-center gap-px">
-            <Crown
-              size={compact ? 9 : 11}
-              strokeWidth={2.2}
-              className={`text-ink ${metropolis.includes(t) ? '' : 'invisible'}`}
-              style={{ fill: s.color }}
-            />
+          <div key={t} className="relative flex flex-col items-center gap-px">
+            {metropolis.includes(t) && (
+              <Crown
+                size={compact ? 9 : 11}
+                strokeWidth={2.2}
+                className="absolute bottom-full left-1/2 -translate-x-1/2 text-ink"
+                style={{ fill: s.color }}
+              />
+            )}
             {[5, 4, 3, 2, 1].map((lvl) => {
               const on = lvl <= levels[t];
               return (
                 <span
                   key={lvl}
-                  className={`${cell} rounded-xs border ${lvl === 4 ? 'mb-0.5' : ''} ${on ? 'border-ink/70' : ''}`}
+                  className={`${cell} rounded-xs border ${on ? 'border-ink/70' : ''}`}
                   // Empty cells keep a pale tint of their track, so each column reads even at level 0.
                   style={on ? { background: s.color } : { background: `${s.color}2e`, borderColor: `${s.color}73` }}
                 />
@@ -385,10 +387,10 @@ export function PlayerStrip({ view, room, leading }: { view: PlayerView; room: R
                 <span className="flex min-w-0 items-center gap-1">
                   <span className="min-w-0 flex-1 truncate text-xs font-extrabold leading-tight">{seat === me ? 'You' : p.name}</span>
                   {room?.seats[seat] && !room.seats[seat].isBot && !room.seats[seat].connected && <WifiOff size={11} className="shrink-0 text-terracotta" />}
-                  {view.longestRoad === seat && <Route size={12} className="shrink-0 rounded-sm bg-amber text-ink" />}
-                  {!ck && view.largestArmy === seat && <Swords size={12} className="shrink-0 rounded-sm bg-terracotta text-white" />}
-                  {view.merchant?.owner === seat && <Store size={12} className="shrink-0 rounded-sm bg-moss text-white" aria-label="Has the merchant" />}
-                  {p.defender > 0 && <ShieldHalf size={12} className="shrink-0 rounded-sm bg-sea-600 text-white" />}
+                  {view.longestRoad === seat && <Route size={12} className="shrink-0 rounded-xs bg-amber text-ink" />}
+                  {!ck && view.largestArmy === seat && <Swords size={12} className="shrink-0 rounded-xs bg-terracotta text-white" />}
+                  {view.merchant?.owner === seat && <Store size={12} className="shrink-0 rounded-xs bg-moss text-white" aria-label="Has the merchant" />}
+                  {p.defender > 0 && <ShieldHalf size={12} className="shrink-0 rounded-xs bg-sea-600 text-white" />}
                 </span>
                 <span className="flex items-center gap-[3px] text-[11px] font-black tabular text-ink-soft">
                   <span className="relative mr-auto text-[15px] leading-none text-ink" data-seat-anchor={seat}>

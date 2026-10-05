@@ -18,9 +18,9 @@ const LEVELS = [1, 2, 3, 4, 5];
 export function ProgressGrid({ view }: { view: PlayerView }) {
   const p = view.players[view.viewer!];
   return (
-    <span className="grid h-5 grid-flow-col gap-[2px]" aria-hidden>
+    <span className="grid grid-flow-col gap-[3px]" aria-hidden>
       {TRACKS.map((t) => (
-        <span key={t} className="flex flex-col-reverse justify-between py-[1px]">
+        <span key={t} className="flex flex-col-reverse gap-[2px] py-px">
           {LEVELS.map((n) => (
             <span
               key={n}

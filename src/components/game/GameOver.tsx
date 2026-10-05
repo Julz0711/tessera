@@ -32,7 +32,7 @@ function Confetti() {
       {bits.map((b, i) => (
         <span
           key={i}
-          className="absolute top-[-20px] h-3 w-2 rounded-sm"
+          className="absolute top-[-20px] h-3 w-2 rounded-xs"
           style={{ left: `${b.left}%`, background: b.color, transform: `rotate(${b.rot}deg)`, animation: `confetti ${b.dur}s ${b.delay}s cubic-bezier(.2,.6,.4,1) forwards` }}
         />
       ))}

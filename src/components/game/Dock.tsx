@@ -168,6 +168,11 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
     };
   }, [open]);
   useEffect(() => setOpen(null), [view.turn.n, view.turn.seat]);
+  // One of Build, Improve and Trade open at a time: opening one closes the others.
+  const toggleMenu = (menu: 'build' | 'improve') => {
+    if (ui.panel === 'trade') ui.setPanel(null);
+    setOpen((o) => (o === menu ? null : menu));
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -304,22 +309,11 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
           )}
         </div>
 
-        {ck && (
-          <div
-            ref={improveRef}
-            role="menu"
-            aria-label="Improve"
-            className={`${open === 'improve' ? 'flex' : 'hidden'} glass animate-rise absolute bottom-full right-0 z-30 mb-2 w-max gap-1.5 p-1.5 sm:gap-2 sm:p-2`}
-          >
-            <ImproveOptions view={view} onDone={() => setOpen(null)} />
-          </div>
-        )}
-
         <ActionButton
           label="Build"
           shortcut="B"
           icon={<Hammer size={24} />}
-          onClick={() => setOpen((o) => (o === 'build' ? null : 'build'))}
+          onClick={() => toggleMenu('build')}
           active={buildOpen || building !== null}
           disabled={!canBuild}
           hint="Roads, settlements, cities and more"
@@ -327,23 +321,37 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
           buildToggle
         />
         {ck && (
-          <ActionButton
-            label="Improve"
-            shortcut="I"
-            icon={<ProgressGrid view={view} />}
-            onClick={() => setOpen((o) => (o === 'improve' ? null : 'improve'))}
-            active={open === 'improve'}
-            disabled={view.phase !== 'play'}
-            hint="City improvements"
-            count={improvableCount(view) || undefined}
-            buildToggle
-          />
+          // The key and its menu together, so the menu rises centred over the key.
+          <div className="relative grid">
+            <div
+              ref={improveRef}
+              role="menu"
+              aria-label="Improve"
+              className={`${open === 'improve' ? 'flex' : 'hidden'} glass animate-rise absolute bottom-full left-1/2 z-30 mb-2 w-max -translate-x-1/2 gap-1.5 p-1.5 sm:gap-2 sm:p-2`}
+            >
+              <ImproveOptions view={view} onDone={() => setOpen(null)} />
+            </div>
+            <ActionButton
+              label="Improve"
+              shortcut="I"
+              icon={<ProgressGrid view={view} />}
+              onClick={() => toggleMenu('improve')}
+              active={open === 'improve'}
+              disabled={view.phase !== 'play'}
+              hint="City improvements"
+              count={improvableCount(view) || undefined}
+              buildToggle
+            />
+          </div>
         )}
         <ActionButton
           label="Trade"
           shortcut="T"
           icon={<ArrowLeftRight size={24} />}
-          onClick={() => ui.setPanel(ui.panel === 'trade' ? null : 'trade')}
+          onClick={() => {
+            setOpen(null);
+            ui.setPanel(ui.panel === 'trade' ? null : 'trade');
+          }}
           active={ui.panel === 'trade'}
           disabled={view.phase !== 'play' || !view.turn.rolled || !free}
           hint="Trade with the players or the bank"
