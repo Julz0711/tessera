@@ -203,6 +203,8 @@ export function PlayersPanel({
             ) : (
               <div className={`${compact ? 'h-9 w-9' : 'h-10 w-10'} rounded-full`} style={{ background: c.hex }} />
             )}
+            {/* A reaction covers the portrait; the points stay on top of it. */}
+            <ReactionBubble playerId={p.id} side={compact ? 'below' : align === 'right' ? 'left' : 'right'} cover />
             <span
               className="absolute -bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-md border-2 border-ink bg-paper px-1.5 text-sm font-black leading-4.5 tabular"
               title={`${vp} victory points`}
@@ -220,7 +222,6 @@ export function PlayersPanel({
                 <Store size={12} strokeWidth={2.4} />
               </span>
             )}
-            <ReactionBubble playerId={p.id} side={compact ? 'below' : align === 'right' ? 'left' : 'right'} />
           </div>
         );
         const contents = (

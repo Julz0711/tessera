@@ -52,15 +52,15 @@ export function DiceBox({
         <div
           role={canRoll ? 'button' : undefined}
           tabIndex={canRoll ? 0 : undefined}
-          className={`flex items-center gap-1.5 ${canRoll ? 'cursor-pointer' : ''}`}
+          className={`flex items-end gap-1.5 ${canRoll ? 'cursor-pointer' : ''}`}
           onClick={canRoll ? rollNow : undefined}
           onKeyDown={canRoll ? (e) => (e.key === 'Enter' || e.key === ' ') && rollNow() : undefined}
           aria-keyshortcuts={canRoll ? 'R' : undefined}
           aria-label={canRoll ? 'Roll the dice (R)' : roll ? `Last roll: ${roll.dice.red + roll.dice.yellow}` : undefined}
           title={canRoll ? 'Roll the dice (R)' : roll ? `Last roll: ${roll.dice.red + roll.dice.yellow}` : undefined}
         >
-          {/* The event die is the odd one out: half size, ahead of the number dice. */}
-          {roll?.dice.event && <EventDie face={roll.dice.event} size={Math.round(size / 2)} />}
+          {/* The event die is the odd one out: smaller, ahead of the number dice, on their baseline. */}
+          {roll?.dice.event && <EventDie face={roll.dice.event} size={Math.round(size * 0.62)} />}
           {/* No roll yet this game: the dice wait face up, dimmed. */}
           <span className={`flex items-center gap-1.5 ${roll ? '' : 'opacity-60'}`}>
             <Die size={size} value={roll?.dice.red ?? 1} rollKey={roll?.key ?? 0} bg={ck ? '#d9483b' : '#f6eddb'} pip={ck ? '#fff7f0' : '#1f1a14'} />

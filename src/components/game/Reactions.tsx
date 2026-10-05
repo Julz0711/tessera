@@ -74,7 +74,8 @@ export function ReactionPicker({ dock = false }: { /** In the dock: a labelled k
  * A player's latest reaction as a speech bubble beside their avatar; it fades after a few seconds.
  * Rendered into the page body at the avatar's position, so scrolling panels don't clip it.
  */
-export function ReactionBubble({ playerId, side }: { playerId: string; side: 'left' | 'right' | 'below' }) {
+/** `cover`: an emoji takes the place of the portrait it sits in, rather than popping up beside it. */
+export function ReactionBubble({ playerId, side, cover = false }: { playerId: string; side: 'left' | 'right' | 'below'; cover?: boolean }) {
   const r = useGame((s) => s.reactions[playerId]);
   const visible = useUntil(r ? r.at + REACTION_SHOW_MS : 0);
   const anchor = useRef<HTMLSpanElement>(null);
@@ -91,6 +92,19 @@ export function ReactionBubble({ playerId, side }: { playerId: string; side: 'le
   }, [visible, side, r?.at]);
   const text = r ? reactionText(r.reaction) : '';
   const emote = r ? isEmote(r.reaction) : false;
+  // An emoji takes the portrait's place for a moment, as on colonist; a phrase needs a bubble.
+  if (cover && r && visible && !emote) {
+    return (
+      <span
+        key={r.at}
+        className="pointer-events-none absolute inset-0 grid animate-pop place-items-center rounded-full border-2 border-ink bg-paper text-2xl leading-none"
+        role="status"
+        aria-label={`Reacted ${text}`}
+      >
+        {text}
+      </span>
+    );
+  }
   return (
     <span ref={anchor} className="hidden">
       {r &&
