@@ -1,6 +1,6 @@
 'use client';
 
-import { Ban, Bot, Crown, Route, ShieldHalf, Swords, WifiOff } from 'lucide-react';
+import { Ban, Bot, Crown, Route, ShieldHalf, Store, Swords, WifiOff } from 'lucide-react';
 import { useState } from 'react';
 import { api } from '@/client/store';
 import { TRACKS, handLimit, type Track } from '@/engine';
@@ -129,6 +129,8 @@ export function PlayersPanel({
   leading,
   align = 'right',
   highlight = true,
+  seats,
+  inline = false,
 }: {
   view: PlayerView;
   room: RoomDTO | null;
@@ -139,6 +141,10 @@ export function PlayersPanel({
   align?: 'left' | 'right';
   /** Mark whose move it is (off where something else on screen already does). */
   highlight?: boolean;
+  /** Only these seats (wide screens show the viewer's own card in the bottom bar). */
+  seats?: number[];
+  /** In the bottom bar: the card stays in line instead of sticking out on its turn. */
+  inline?: boolean;
 }) {
   // Whoever has to act: a pending prompt comes first (even a gold pick found during setup).
   const actors = new Set(
@@ -155,6 +161,7 @@ export function PlayersPanel({
     <ol className={compact ? 'scroll-thin flex gap-2 overflow-x-auto pb-1' : 'grid gap-2'}>
       {leading && <li className="flex shrink-0">{leading}</li>}
       {view.players.map((p, seat) => {
+        if (seats && !seats.includes(seat)) return null;
         const c = PLAYER_COLORS[p.color];
         const seatInfo = room?.seats[seat];
         const acting = highlight && actors.has(seat) && view.phase !== 'ended';
@@ -162,6 +169,8 @@ export function PlayersPanel({
         const clickable = me !== null && seat !== me && view.phase !== 'ended';
         const embargoed = myEmbargo.includes(seat);
         const toggle = () => setOpen(open === seat ? null : seat);
+        // Players waiting for their go fade back a little, so whose move it is reads at a glance.
+        const waiting = view.phase !== 'ended' && turnSeat !== null && seat !== turnSeat && !actors.has(seat);
         // The name, with who is a bot, offline or under your embargo.
         const nameRow = (
           <div className="flex min-w-0 items-center gap-1 pr-0.5">
@@ -245,6 +254,9 @@ export function PlayersPanel({
                   award={view.largestArmy === seat ? 'bg-terracotta text-white' : undefined}
                 />
               )}
+              {view.merchant?.owner === seat && (
+                <Stat icon={<Store size={13} />} value="1" title="Has the merchant: 1 VP while it stays" award="bg-moss text-white" />
+              )}
               {p.defender > 0 && (
                 <Stat
                   icon={<ShieldHalf size={13} />}
@@ -272,8 +284,8 @@ export function PlayersPanel({
               },
             })}
             className={`paper-flat relative flex shrink-0 flex-col gap-1 p-2 pl-3 pr-2.5 transition-all duration-300 motion-reduce:transition-none ${
-              compact ? 'min-w-max' : `min-w-0 ${highlight && turnSeat === seat ? (align === 'right' ? '-ml-4' : '-mr-4') : ''}`
-            } ${
+              compact ? 'min-w-max' : `min-w-0 ${highlight && !inline && turnSeat === seat ? (align === 'right' ? '-ml-4' : '-mr-4') : ''}`
+            } ${waiting ? 'opacity-70 saturate-50' : ''} ${
               acting ? 'ring-4 ring-amber' : ''
             } ${clickable ? 'cursor-pointer hover:brightness-[0.97]' : ''}`}
             style={{ boxShadow: `inset 5px 0 0 ${c.hex}` }}
@@ -342,6 +354,7 @@ export function PlayerStrip({ view, room, leading }: { view: PlayerView; room: R
           const awards = [
             view.longestRoad === seat && 'Longest road',
             !ck && view.largestArmy === seat && 'Largest army',
+            view.merchant?.owner === seat && 'Merchant',
             p.defender > 0 && 'Defender',
           ].filter(Boolean);
           return (
@@ -359,6 +372,7 @@ export function PlayerStrip({ view, room, leading }: { view: PlayerView; room: R
                   {room?.seats[seat] && !room.seats[seat].isBot && !room.seats[seat].connected && <WifiOff size={11} className="shrink-0 text-terracotta" />}
                   {view.longestRoad === seat && <Route size={12} className="shrink-0 rounded-sm bg-amber text-ink" />}
                   {!ck && view.largestArmy === seat && <Swords size={12} className="shrink-0 rounded-sm bg-terracotta text-white" />}
+                  {view.merchant?.owner === seat && <Store size={12} className="shrink-0 rounded-sm bg-moss text-white" aria-label="Has the merchant" />}
                   {p.defender > 0 && <ShieldHalf size={12} className="shrink-0 rounded-sm bg-sea-600 text-white" />}
                 </span>
                 <span className="flex items-center gap-[3px] text-[11px] font-black tabular text-ink-soft">

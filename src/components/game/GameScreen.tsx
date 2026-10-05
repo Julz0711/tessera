@@ -326,26 +326,28 @@ export function GameScreen() {
   // From Tailwind's `xl` up the hand gets its own corner; below that there's no room beside the dock.
   const wide = useWide(1280);
   const ready = !!(view && room && scene);
-  // The room the hand tray has beside the dock (wide screens), so its cards can size to fit.
-  const bottomRow = useRef<HTMLDivElement>(null);
-  const dockWrap = useRef<HTMLDivElement>(null);
+  // Wide screens put everything of yours in one bar along the bottom: the hand tray (its cards
+  // size to the room it has), the dock and your player card. The HUD's corners and columns sit
+  // above the bar, so its height (and the dice corner's) are measured into CSS variables.
+  const handCell = useRef<HTMLDivElement>(null);
+  const bar = useRef<HTMLDivElement>(null);
   const [trayRoom, setTrayRoom] = useState<number>();
-  // …and the dice corner's width, which the row keeps clear of.
-  const [cornerRoom, setCornerRoom] = useState(0);
+  const [barH, setBarH] = useState(0);
+  const [cornerH, setCornerH] = useState(0);
   useLayoutEffect(() => {
-    const row = bottomRow.current;
-    const dock = dockWrap.current;
-    if (!wide || !row || !dock) return;
+    const cell = handCell.current;
+    const row = bar.current;
+    if (!wide || !cell || !row) return;
     const corner = document.querySelector<HTMLElement>('[data-hud-corner="right"]');
     const measure = () => {
-      const pad = corner?.offsetWidth ? corner.offsetWidth + 12 : 0;
-      setCornerRoom(pad);
-      setTrayRoom(row.clientWidth - pad - dock.offsetWidth - 12);
+      setTrayRoom(cell.clientWidth);
+      setBarH(row.offsetHeight);
+      setCornerH(corner?.offsetHeight ?? 0);
     };
     measure();
     const ro = new ResizeObserver(measure);
+    ro.observe(cell);
     ro.observe(row);
-    ro.observe(dock);
     if (corner) ro.observe(corner);
     return () => ro.disconnect();
   }, [wide, ready]);
@@ -366,14 +368,14 @@ export function GameScreen() {
     HUD_PANELS.some((p) => p !== 'offers' && p !== 'zoom' && !unused(p) && (layout[p].slot === `${side}Top` || layout[p].slot === `${side}Bottom`));
   const board2d = {
     '--hud-t': `${64 * zoom}px`,
-    '--hud-b': `${168 * zoom}px`,
+    '--hud-b': `${(wide && barH ? barH + 16 : 168) * zoom}px`,
     '--hud-l': `${(columnUsed('left') ? 300 : 8) * zoom}px`,
     '--hud-r': `${(columnUsed('right') ? 300 : 8) * zoom}px`,
   } as React.CSSProperties;
   // The dock keeps clear of the corners that hold something.
   const rightCorner = slotPanels(layout, 'cornerRight').length > 0;
   // The hand has the bottom-left corner on wide screens, so a panel kept there pushes the whole row over.
-  const dockClear = `${rightCorner ? 'lg:right-56 xl:right-0' : ''} ${slotPanels(layout, 'cornerLeft').length ? 'lg:left-56' : ''}`;
+  const dockClear = `${rightCorner ? 'lg:right-56 xl:right-0' : ''} ${slotPanels(layout, 'cornerLeft').length ? 'lg:left-56 xl:left-0' : ''}`;
 
   const renderPanel = (panel: HudPanel, side: HudSide) => {
     switch (panel) {
@@ -388,7 +390,8 @@ export function GameScreen() {
       case 'bank':
         return <BankStrip view={view} />;
       case 'players':
-        return <PlayersPanel view={view} room={room} align={side} />;
+        // On wide screens your own card sits in the bottom bar; the others stack up here.
+        return <PlayersPanel view={view} room={room} align={side} seats={wide && me !== null ? view.players.map((_, i) => i).filter((i) => i !== me) : undefined} />;
       case 'dice':
         return <DiceBox view={view} size={60} />;
       case 'offers':
@@ -402,7 +405,7 @@ export function GameScreen() {
   return (
     <div
       className={`game-screen fixed inset-0 overflow-hidden ${prefs.view === '2d' ? 'sea-2d' : 'bg-sea-900'}`}
-      style={seaVars(PALETTES[prefs.boardTheme])}
+      style={{ ...seaVars(PALETTES[prefs.boardTheme]), ...(wide && me !== null ? { '--bar-h': `${barH}px`, '--corner-h': `${cornerH}px` } : {}) } as React.CSSProperties}
     >
       {/* The 3D canvas fills the screen (the camera frames the island above the dock); the flat
           2D board is fitted into the space the panels leave free. */}
@@ -430,10 +433,8 @@ export function GameScreen() {
         />
       </div>
 
-      {/* top: z-30 so the menu dropdown (opened from TopBar) paints above the bottom dock row
-          (dice box, mobile log/chat) instead of being covered by it — both are otherwise the same
-          stacking level and the dock comes later in the DOM. */}
-      <div className="game-top absolute inset-x-0 top-0 z-30" style={{ zoom }}>
+      {/* top: above the bottom bar, so the menu dropdown (opened from TopBar) paints over it. */}
+      <div className="game-top absolute inset-x-0 top-0 z-40" style={{ zoom }}>
         <TopBar view={view} room={room} />
         <div className="pointer-events-none mt-1 flex flex-col items-center gap-2">
           {myPrompt?.kind === 'freeRoads' && (
@@ -459,24 +460,35 @@ export function GameScreen() {
       </div>
 
       {/* dock; on phones the log, chat and dice live in the top bar */}
-      <div className={`game-bottom pointer-events-none absolute inset-x-0 bottom-2 z-20 flex flex-col gap-2 px-2 ${dockClear}`} style={{ zoom }}>
-        {/* Only the dock itself takes clicks: this row spans the screen and would otherwise cover
-            the dice box on wide screens. */}
-        {/* Wide screens: the hand on a white tray in the bottom-left corner with the trade panel
-            straight above it, and the dock (two rows there) to its right, clear of the dice. */}
-        <div ref={bottomRow} className="flex justify-center xl:items-end xl:justify-between xl:gap-3" style={wide ? { paddingRight: cornerRoom } : undefined}>
-          {wide && me !== null && (
-            <div className="pointer-events-auto flex min-w-0 flex-col gap-1.5">
-              {ui.panel === 'trade' && <TradePanel view={view} />}
-              <div className="paper max-w-full p-0">
+      <div className={`game-bottom pointer-events-none absolute inset-x-0 bottom-2 z-30 flex flex-col gap-2 px-2 ${dockClear}`} style={{ zoom }}>
+        {/* Wide screens: one bar from left to right, as on colonist: the hand on a white tray
+            (the trade panel opens straight above it), the dock, and your own player card. */}
+        {wide && me !== null ? (
+          <div ref={bar} className="flex items-stretch gap-2">
+            <div ref={handCell} className="pointer-events-auto relative flex min-w-0 flex-1">
+              {ui.panel === 'trade' && (
+                <div className="absolute bottom-full left-0 mb-2 w-full">
+                  <TradePanel view={view} />
+                </div>
+              )}
+              <div className="paper flex min-w-0 flex-1 items-end p-0">
                 <Hand view={view} tray room={trayRoom} />
               </div>
             </div>
-          )}
-          <div ref={dockWrap} className="game-dock-wrap pointer-events-auto min-w-0 max-w-full shrink-0">
-            <Dock view={view} room={room} hand={!wide} />
+            <div className="game-dock-wrap pointer-events-auto flex shrink-0">
+              <Dock view={view} room={room} hand={false} />
+            </div>
+            <div className="pointer-events-auto w-72 shrink-0 [&_li]:h-full [&_ol]:h-full">
+              <PlayersPanel view={view} room={room} seats={[me]} inline />
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex justify-center">
+            <div className="game-dock-wrap pointer-events-auto min-w-0 max-w-full">
+              <Dock view={view} room={room} hand />
+            </div>
+          </div>
+        )}
       </div>
 
       <FlyLayer />

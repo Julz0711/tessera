@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeftRight, BrickWall, Eye, Hammer, Hourglass, Landmark, Ship, Sparkles } from 'lucide-react';
+import { ArrowLeftRight, BrickWall, Castle, Eye, Hammer, Hourglass, Ship, Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
   COSTS,
@@ -22,7 +22,6 @@ import { api } from '@/client/store';
 import { buildMode, useUi } from '@/client/ui';
 import { CityGlyph, KnightGlyph, RoadGlyph, SettlementGlyph } from '@/components/ui/Glyphs';
 import type { RoomDTO } from '@/shared/protocol';
-import { ReactionPicker } from './Reactions';
 import { Kbd } from '@/components/ui/Kbd';
 import { CostDots } from './BuildCostsCard';
 import { Hand } from './Hand';
@@ -55,6 +54,8 @@ function ActionButton({
   shortcut,
   left,
   bankAnchor,
+  count,
+  buildToggle,
 }: {
   label: string;
   /** Keyboard key, shown after the label where there's a keyboard to press it on. */
@@ -75,6 +76,10 @@ function ActionButton({
   left?: number;
   /** Marks the button as the bank's spot on screen for flying cards (where the bank strip is hidden). */
   bankAnchor?: boolean;
+  /** How many options behind the button are open to you right now (the Build menu). */
+  count?: number;
+  /** The Build key: clicks on it don't count as clicking away from its menu. */
+  buildToggle?: boolean;
   className?: string;
 }) {
   const click = () => {
@@ -106,6 +111,8 @@ function ActionButton({
       aria-keyshortcuts={shortcut}
       title={shortcut ? `${hint ?? label} (${shortcut})` : (hint ?? label)}
       data-bank-anchor={bankAnchor ? '' : undefined}
+      data-build-toggle={buildToggle ? '' : undefined}
+      aria-haspopup={buildToggle ? 'menu' : undefined}
       className={`btn group relative min-w-0 flex-col gap-0.5 px-0 py-1.5 text-[10px] tracking-tight sm:min-w-16 sm:px-2.5 sm:text-[11px] sm:tracking-normal ${primary ? 'btn-primary' : active ? 'btn-on' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''} ${className}`}
     >
       {shortcut && <Kbd k={shortcut} className="absolute left-1 top-1 text-[11px]" />}
@@ -115,6 +122,11 @@ function ActionButton({
         <span className="whitespace-nowrap leading-none">{label}</span>
       </span>
       {cost && hand && <CostDots cost={cost} hand={hand} />}
+      {count !== undefined && (
+        <span className="hex-badge hex-badge-amber -right-1.5 -top-2" title={`${count} you can build now`}>
+          {count}
+        </span>
+      )}
       {left !== undefined && (
         <span className="hex-badge hex-badge-ink -right-1.5 -top-2" title={`${left} left`}>
           {left}
@@ -130,6 +142,24 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
   const me = view.viewer;
   const seconds = useCountdown(room.deadline);
   const lowTime = seconds !== null && seconds <= 10;
+  const [buildOpen, setBuildOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  // The build menu closes on Esc, on a click anywhere else, and when the turn moves on.
+  useEffect(() => {
+    if (!buildOpen) return;
+    const away = (e: PointerEvent) => {
+      const t = e.target as Element | null;
+      if (!menuRef.current?.contains(t) && !t?.closest?.('[data-build-toggle]')) setBuildOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setBuildOpen(false);
+    window.addEventListener('pointerdown', away);
+    window.addEventListener('keydown', esc);
+    return () => {
+      window.removeEventListener('pointerdown', away);
+      window.removeEventListener('keydown', esc);
+    };
+  }, [buildOpen]);
+  useEffect(() => setBuildOpen(false), [view.turn.n, view.turn.seat]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -177,45 +207,61 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
   const devOk = canBuild && !ck && view.devDeckCount > 0 && has(COSTS.devCard);
   const knightOk = canBuild && ck && left.knights[1] > 0 && has(COSTS.knight) && legalKnightSpots(view, me).length > 0;
   const wallOk = canBuild && ck && has(COSTS.wall) && wallSpots(view, me).length > 0;
+  // Every build in one menu that opens upwards from the Build key. It stays mounted while closed,
+  // so the builds' own shortcuts (1–4, S) keep working without opening it.
+  const pick = (fn: () => void) => () => {
+    fn();
+    setBuildOpen(false);
+  };
+  const builds = [
+    roadOk,
+    voyage && shipOk,
+    settlementOk,
+    cityOk,
+    !ck && devOk,
+    ck && knightOk,
+    ck && wallOk,
+  ].filter(Boolean).length;
   return (
-    <div className="game-dock flex w-full min-w-0 flex-col items-center gap-2 sm:w-auto">
+    <div className={`game-dock flex w-full min-w-0 flex-col items-center gap-2 sm:w-auto ${hand ? '' : 'h-full'}`}>
       {hand && ui.panel === 'trade' && <TradePanel view={view} />}
       {hand && <Hand view={view} />}
 
-      {/* actions: one row where there's room; on phones, and beside the hand on wide screens, the
-          builds and the turn's other moves get a row each, every button the same width. */}
-      <div role="group" aria-label="Game actions" className="game-actions glass flex w-full flex-col gap-1.5 p-1.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-center sm:gap-2 sm:p-2 xl:flex-col xl:gap-1.5">
-        <div className="grid auto-cols-fr grid-flow-col gap-1 sm:flex sm:gap-2 xl:grid xl:gap-1.5">
+      <div role="group" aria-label="Game actions" className={`game-actions glass relative grid w-full ${hand ? '' : 'h-full'} auto-cols-fr grid-flow-col gap-1.5 p-1.5 sm:w-auto sm:gap-2 sm:p-2`}>
+        <div
+          ref={menuRef}
+          role="menu"
+          aria-label="Build"
+          className={`${buildOpen ? 'grid' : 'hidden'} glass animate-rise absolute bottom-full right-0 z-30 mb-2 w-max max-w-[calc(100vw-16px)] grid-flow-col gap-1.5 p-1.5 max-sm:grid-flow-row max-sm:grid-cols-4 sm:gap-2 sm:p-2`}
+        >
           <ActionButton
             label="Road"
             shortcut="1"
             icon={<RoadGlyph size={20} />}
-            onClick={() => ui.toggleBuild('road')}
+            onClick={pick(() => ui.toggleBuild('road'))}
             active={building === 'road'}
             disabled={!roadOk}
             cost={COSTS.road} hand={p.hand}
             left={left.roads}
           />
           {voyage && (
-            <>
-              <ActionButton
-                label="Ship"
-                shortcut="S"
-                icon={<Ship size={20} />}
-                onClick={() => ui.toggleBuild('ship')}
-                active={building === 'ship'}
-                disabled={!shipOk}
-                cost={COSTS.ship} hand={p.hand}
-                left={left.ships}
-                hint="Build a ship on a sea or coast edge"
-              />
-            </>
+            <ActionButton
+              label="Ship"
+              shortcut="S"
+              icon={<Ship size={20} />}
+              onClick={pick(() => ui.toggleBuild('ship'))}
+              active={building === 'ship'}
+              disabled={!shipOk}
+              cost={COSTS.ship} hand={p.hand}
+              left={left.ships}
+              hint="Build a ship on a sea or coast edge"
+            />
           )}
           <ActionButton
             label="Settle"
             shortcut="2"
             icon={<SettlementGlyph size={20} />}
-            onClick={() => ui.toggleBuild('settlement')}
+            onClick={pick(() => ui.toggleBuild('settlement'))}
             active={building === 'settlement'}
             disabled={!settlementOk}
             cost={COSTS.settlement} hand={p.hand}
@@ -225,60 +271,66 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
             label="City"
             shortcut="3"
             icon={<CityGlyph size={20} />}
-            onClick={() => ui.toggleBuild('city')}
+            onClick={pick(() => ui.toggleBuild('city'))}
             active={building === 'city'}
             disabled={!cityOk}
             cost={COSTS.city} hand={p.hand}
             left={left.cities}
           />
-          {!ck && <ActionButton label="Buy card" shortcut="4" icon={<Sparkles size={20} />} onClick={() => api.act({ type: 'buyDevCard' })} disabled={!devOk} cost={COSTS.devCard} hand={p.hand} />}
+          {!ck && <ActionButton label="Buy card" shortcut="4" icon={<Sparkles size={20} />} onClick={pick(() => void api.act({ type: 'buyDevCard' }))} disabled={!devOk} cost={COSTS.devCard} hand={p.hand} />}
           {ck && (
             <>
               <ActionButton
                 label="Knight"
                 shortcut="4"
                 icon={<KnightGlyph size={20} />}
-                onClick={() => ui.toggleBuild('knight')}
+                onClick={pick(() => ui.toggleBuild('knight'))}
                 active={building === 'knight'}
                 disabled={!knightOk}
                 cost={COSTS.knight} hand={p.hand}
                 left={left.knights[1]}
                 hint="Recruit a basic knight"
               />
-              <ActionButton label="Wall" icon={<BrickWall size={20} />} onClick={() => ui.toggleBuild('wall')} active={building === 'wall'} disabled={!wallOk} cost={COSTS.wall} hand={p.hand} left={left.walls} hint="City wall: +2 hand limit" />
-              <ActionButton label="Improve" icon={<Hammer size={20} />} onClick={() => ui.setPanel('improve')} active={ui.panel === 'improve'} disabled={view.phase !== 'play'} hint="City improvements" className="max-sm:hidden" />
+              <ActionButton label="Wall" icon={<BrickWall size={20} />} onClick={pick(() => ui.toggleBuild('wall'))} active={building === 'wall'} disabled={!wallOk} cost={COSTS.wall} hand={p.hand} left={left.walls} hint="City wall: +2 hand limit" />
             </>
           )}
         </div>
-        <span className="mx-0.5 hidden h-8 w-px self-center bg-foam/20 sm:block xl:hidden" />
-        <div className="grid auto-cols-fr grid-flow-col gap-1.5 sm:flex sm:gap-2 xl:grid">
-          {/* phones: Improve rides with the turn's other moves, keeping the build row short */}
-          {ck && <ActionButton label="Improve" icon={<Hammer size={20} />} onClick={() => ui.setPanel('improve')} active={ui.panel === 'improve'} disabled={view.phase !== 'play'} hint="City improvements" className="sm:hidden" />}
-          <ActionButton
-            label="Trade"
-            shortcut="T"
-            icon={<ArrowLeftRight size={20} />}
-            onClick={() => ui.setPanel('trade')}
-            active={ui.panel === 'trade'}
-            disabled={view.phase !== 'play' || !view.turn.rolled || !free}
-          />
-          <ActionButton label="Bank" shortcut="B" icon={<Landmark size={20} />} onClick={() => ui.setPanel('bank')} active={ui.panel === 'bank'} disabled={!canBuild} bankAnchor />
-          <span className="mx-0.5 hidden h-8 w-px self-center bg-foam/20 sm:block xl:hidden" />
-          <ReactionPicker dock />
-          <ActionButton
-            label="End turn"
-            icon={seconds !== null ? <span className="font-mono text-base font-black leading-none tabular">{seconds}s</span> : <Hourglass size={20} />}
-            onClick={() => {
-              ui.reset();
-              void api.act({ type: 'endTurn' });
-            }}
-            disabled={!canBuild}
-            hint="End your turn"
-            shortcut="E"
-            danger
-            pulse={lowTime}
-          />
-        </div>
+
+        <ActionButton
+          label="Build"
+          shortcut="B"
+          icon={<Hammer size={20} />}
+          onClick={() => setBuildOpen((o) => !o)}
+          active={buildOpen || building !== null}
+          disabled={!canBuild}
+          hint="Roads, settlements, cities and more"
+          count={builds || undefined}
+          buildToggle
+        />
+        {ck && <ActionButton label="Improve" icon={<Castle size={20} />} onClick={() => ui.setPanel('improve')} active={ui.panel === 'improve'} disabled={view.phase !== 'play'} hint="City improvements" />}
+        <ActionButton
+          label="Trade"
+          shortcut="T"
+          icon={<ArrowLeftRight size={20} />}
+          onClick={() => ui.setPanel(ui.panel === 'trade' ? null : 'trade')}
+          active={ui.panel === 'trade'}
+          disabled={view.phase !== 'play' || !view.turn.rolled || !free}
+          hint="Trade with the players or the bank"
+          bankAnchor
+        />
+        <ActionButton
+          label="End turn"
+          icon={seconds !== null ? <span className="font-mono text-base font-black leading-none tabular">{seconds}s</span> : <Hourglass size={20} />}
+          onClick={() => {
+            ui.reset();
+            void api.act({ type: 'endTurn' });
+          }}
+          disabled={!canBuild}
+          hint="End your turn"
+          shortcut="E"
+          danger
+          pulse={lowTime}
+        />
       </div>
     </div>
   );

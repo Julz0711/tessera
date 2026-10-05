@@ -108,10 +108,12 @@ export function DesktopHud({
 
   const column = (side: HudSide) => (
     // The pl-4 / pr-4 strip on the board side is room for the current player's card to stick out into.
-    // The left column stops higher up: the hand has the bottom-left corner.
+    // Wide screens: both columns stop above the bottom bar (the right one above the dice too).
     <div
       className={`pointer-events-none absolute top-16 hidden w-76 flex-col gap-2 overflow-y-auto overflow-x-hidden scroll-thin lg:flex ${
-        side === 'right' ? 'bottom-25 right-2 pl-4' : 'bottom-25 left-2 pr-4 xl:bottom-40'
+        side === 'right'
+          ? 'bottom-25 right-2 pl-4 xl:bottom-[calc(var(--bar-h,0px)+var(--corner-h,0px)+24px)]'
+          : 'bottom-25 left-2 pr-4 xl:bottom-[calc(var(--bar-h,0px)+16px)]'
       } ${editing ? 'z-40' : 'z-10'}`}
       style={{ zoom }}
     >
@@ -125,10 +127,10 @@ export function DesktopHud({
     <>
       {column('left')}
       {column('right')}
-      <div className={`absolute bottom-2 left-2 hidden lg:block ${editing ? 'z-40' : 'z-20'}`} style={{ zoom }}>
+      <div className={`absolute bottom-2 left-2 hidden lg:block xl:bottom-[calc(var(--bar-h,0px)+16px)] ${editing ? 'z-40' : 'z-20'}`} style={{ zoom }}>
         {group('cornerLeft', 'left', editing ? 'min-w-40' : '')}
       </div>
-      <div data-hud-corner="right" className={`absolute bottom-2 right-2 hidden lg:block ${editing ? 'z-40' : 'z-20'}`} style={{ zoom }}>
+      <div data-hud-corner="right" className={`absolute bottom-2 right-2 hidden lg:block xl:bottom-[calc(var(--bar-h,0px)+16px)] ${editing ? 'z-40' : 'z-20'}`} style={{ zoom }}>
         {group('cornerRight', 'right', editing ? 'min-w-40' : '')}
       </div>
 

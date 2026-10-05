@@ -51,7 +51,7 @@ export function ReactionPicker({ dock = false }: { /** In the dock: a labelled k
         {cooling && <span key={last} className="absolute inset-x-0 bottom-0 h-1 origin-left animate-cooldown bg-amber" style={{ animationDuration: `${REACTION_COOLDOWN_MS}ms` }} />}
       </button>
       {open && (
-        <div className={`paper animate-pop absolute right-0 z-40 ${dock ? 'bottom-full mb-3' : 'top-12'} grid w-60 grid-cols-4 gap-1.5 p-2`} role="menu">
+        <div className={`paper animate-pop absolute z-40 ${dock ? 'right-0 bottom-full mb-3' : 'left-0 top-12'} grid w-60 grid-cols-4 gap-1.5 p-2`} role="menu">
           {REACTIONS.map((r) => (
             <button
               key={r.id}

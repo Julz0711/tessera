@@ -29,6 +29,7 @@ import { formatCode } from "@/components/room/Lobby";
 import { DiceBox } from "./DiceBox";
 import { LeaveDialog } from "./LeaveDialog";
 import { MobileSide } from "./MobileSide";
+import { ReactionPicker } from "./Reactions";
 import { RulebookDialog } from "@/components/rules/RulebookDialog";
 import { gameTypeOf } from "@/engine/maps";
 import type { RuleMode } from "@/config/rulebook";
@@ -219,6 +220,7 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
             {formatCode(room.code)}
           </span>
         </button>
+        {room.you.seat !== null && <ReactionPicker />}
                 {/* Only shown while the connection is lost: a working connection needs no badge. */}
         {conn !== "online" && (
           <span

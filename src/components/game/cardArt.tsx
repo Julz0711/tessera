@@ -1048,20 +1048,7 @@ export const BoardArt = memo(function BoardArt({ card, cx, cy, size }: { card: A
   );
 });
 
-/** A cream, faceted hexagon token (for progress cards' icons), centred at (cx, cy) in a card face. */
+/** A flat cream hexagon token (for progress cards' icons), centred at (cx, cy) in a card face. */
 export function Medallion({ cx, cy, r, outline = 2.4 }: { cx: number; cy: number; r: number; outline?: number }) {
-  const facets = [
-    ...dome(ngon(cx, cy, r, r, 6, Math.PI / 6), [cx - r * 0.12, cy - r * 0.16], ['#b9a57e', '#d8c7a0', '#efe4cb', '#fffaf0'], 1, 0.05),
-  ];
-  const inner = dome(ngon(cx, cy, r * 0.8, r * 0.8, 6, Math.PI / 6), [cx, cy], ['#e3d4b2', '#fbf4e4'], -0.6, 0.2);
-  return (
-    <>
-      <g fill={INK} stroke={INK} strokeWidth={outline * 2} strokeLinejoin="round">
-        <polygon points={pointsOf(ngon(cx, cy, r, r, 6, Math.PI / 6))} />
-      </g>
-      {[...facets, ...inner].map((f, i) => (
-        <polygon key={i} points={pointsOf(f.pts)} fill={f.fill} stroke={f.fill} strokeWidth={0.5} strokeLinejoin="round" />
-      ))}
-    </>
-  );
+  return <polygon points={pointsOf(ngon(cx, cy, r, r, 6, Math.PI / 6))} fill="#f6eddb" stroke={INK} strokeWidth={outline} strokeLinejoin="round" />;
 }

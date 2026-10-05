@@ -35,7 +35,7 @@ import { DEV_NAMES, DEV_TEXT, PROGRESS_NAMES } from '@/client/describe';
 import { CARD_COLORS } from '@/client/palette';
 import { PROGRESS_TEXT, TRACK_STYLE } from '@/client/progressText';
 import { RoadGlyph } from '@/components/ui/Glyphs';
-import { ArtShapes, FacetBackground, Medallion, MiniArt, mix } from './cardArt';
+import { ArtShapes, Medallion, MiniArt, mix } from './cardArt';
 
 type Icon = (p: { size?: number; strokeWidth?: number; className?: string }) => React.ReactNode;
 
@@ -125,8 +125,7 @@ function CardShell({
       type={onClick ? 'button' : undefined}
       onClick={onClick}
       title={title}
-      // The drop shadow is a class (not an inline style) so Tailwind's rings compose with it.
-      className={`relative flex shrink-0 flex-col items-center justify-center rounded-lg border-2 border-ink shadow-token ${CARD_BOX[size]} transition ${
+      className={`relative flex shrink-0 flex-col items-center justify-center rounded-[6px] border-[1.5px] border-ink ${CARD_BOX[size]} transition ${
         dim ? 'opacity-35' : ''
       } ${selected ? '-translate-y-2 ring-4 ring-amber' : glow ? 'ring-3 ring-amber' : ''} ${onClick ? 'cursor-pointer hover:-translate-y-1' : ''}`}
       style={{ background: bg, color: ink }}
@@ -142,18 +141,17 @@ function ResourceFace({ card, label }: { card: Card; label: boolean }) {
   const c = CARD_COLORS[card];
   const commodity = (COMMODITIES as readonly Card[]).includes(card);
   return (
-    <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[6px]">
+    <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[4.5px]">
       <svg className="h-full w-full" viewBox="0 0 100 140" preserveAspectRatio="xMidYMid slice">
-        <FacetBackground color={c.bg} seed={card} />
+        <rect width="100" height="140" fill={c.bg} />
         {/* commodities are finished goods: a fine inner frame sets them apart from raw resources */}
         {commodity && <rect x="5" y="5" width="90" height="130" rx="5" fill="none" stroke={mix(c.bg, '#fffaf0', 0.75)} strokeWidth="1.6" />}
         <g transform={label ? 'translate(-3 6) scale(1.06)' : 'translate(-6 8.4) scale(1.12)'}>
-          <ArtShapes card={card} shadow={mix(c.bg, '#000000', 0.28)} />
+          <ArtShapes card={card} />
         </g>
         {label && (
           <g>
-            <polygon points="7,111 93,111 89,120.5 93,130 7,130 11,120.5" fill={mix(c.bg, '#000000', 0.42)} />
-            <polygon points="11,120.5 89,120.5 93,130 7,130" fill={mix(c.bg, '#000000', 0.52)} />
+            <polygon points="7,111 93,111 89,120.5 93,130 7,130 11,120.5" fill={mix(c.bg, '#000000', 0.45)} />
             <text x="50" y="125" textAnchor="middle" fontSize="12.5" fontWeight="900" letterSpacing="1.2" fill="#fff7ea">
               {c.label.toUpperCase()}
             </text>
@@ -254,13 +252,9 @@ export function CardStack({
         <span
           key={i}
           aria-hidden
-          className={`absolute top-0 overflow-hidden rounded-lg border-2 border-ink shadow-token ${CARD_BOX[size]}`}
-          style={{ left: i * step, background: c.bg, filter: `brightness(${0.8 + i * 0.05})` }}
-        >
-          <svg className="h-full w-full" viewBox="0 0 100 140" preserveAspectRatio="xMidYMid slice">
-            <FacetBackground color={c.bg} seed={card} />
-          </svg>
-        </span>
+          className={`absolute top-0 rounded-[6px] border-[1.5px] border-ink ${CARD_BOX[size]}`}
+          style={{ left: i * step, background: c.bg }}
+        />
       ))}
       <ResourceCard card={card} count={count} size={size} warn={warn} onClick={onClick} />
     </div>
@@ -275,7 +269,7 @@ function Ribbon({ color, size, children }: { color: string; size: CardSize; chil
         size === 'lg' ? 'min-h-8 px-[11%] py-1 text-[11px]' : size === 'xl' ? 'min-h-[17%] px-[9%] py-[3px] text-[9.5px]' : 'min-h-[17%] px-[9%] py-[3px] text-[7px] sm:text-[7.5px]'
       }`}
       style={{
-        background: `linear-gradient(${mix(color, '#000000', 0.4)} 50%, ${mix(color, '#000000', 0.5)} 50%)`,
+        background: mix(color, '#000000', 0.45),
         color: '#fff7ea',
         clipPath: 'polygon(0 0, 100% 0, 94% 50%, 100% 100%, 0 100%, 6% 50%)',
       }}
@@ -307,11 +301,11 @@ export function DevCardFace({
 }) {
   return (
     <CardShell bg={DEV_BG} ink="#f6eddb" size={size} title={`${DEV_NAMES[type]}: ${DEV_TEXT[type]}`} onClick={onClick} glow={glow} badge={count}>
-      <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[6px]">
+      <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[4.5px]">
         <svg className="h-full w-full" viewBox="0 0 100 140" preserveAspectRatio="xMidYMid slice">
-          <FacetBackground color={DEV_BG} seed={type} />
+          <rect width="100" height="140" fill={DEV_BG} />
           <g transform="translate(-2 1) scale(1.04)">
-            <ArtShapes card={type} shadow={mix(DEV_BG, '#000000', 0.3)} />
+            <ArtShapes card={type} />
           </g>
         </svg>
       </span>
@@ -371,9 +365,9 @@ export function ProgressCardFace({ card, size = 'md', glow, onClick }: { card: P
       onClick={onClick}
       glow={glow}
     >
-      <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[6px]">
+      <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[4.5px]">
         <svg className="h-full w-full" viewBox="0 0 100 140" preserveAspectRatio="xMidYMid slice">
-          <FacetBackground color={style.color} seed={card.type} />
+          <rect width="100" height="140" fill={style.color} />
           <Medallion cx={50} cy={50} r={31} />
         </svg>
       </span>

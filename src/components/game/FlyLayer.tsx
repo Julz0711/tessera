@@ -60,7 +60,7 @@ function FlyingCard({ flight }: { flight: Flight }) {
   return (
     <span
       ref={ref}
-      className={`pointer-events-none fixed z-[60] grid place-items-center rounded-md border-2 border-ink shadow-token ${
+      className={`pointer-events-none fixed z-[60] grid place-items-center rounded-md border-[1.5px] border-ink ${
         flight.big && flight.spawn ? 'h-16 w-12' : flight.big ? 'h-12 w-9' : flight.spawn ? 'h-11 w-8' : 'h-9 w-7'
       }`}
       style={{ left: flight.from.x, top: flight.from.y, background: c ? c.bg : '#1d5a6b', opacity: 0 }}

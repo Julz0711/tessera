@@ -469,6 +469,9 @@ body {
   --hx-fill: var(--color-ink);
   color: var(--color-paper);
 }
+.hex-badge-amber {
+  --hx-fill: var(--color-amber);
+}
 .hex-badge-warn {
   --hx-fill: var(--color-danger);
   color: #fff;
