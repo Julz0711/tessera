@@ -10,7 +10,7 @@ import { AUTO_DECLINE_MS, autoDeclineLeft, openTrade, unaffordableOffer, useTrad
 import { useUi } from '@/client/ui';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
-import { CardStack, ResourceCard } from './cards';
+import { CardStack, ResourceCard, type CardSize } from './cards';
 
 type Answer = 'yes' | 'no' | 'wait';
 
@@ -48,8 +48,11 @@ function DealRow({
   cards,
   onCard,
   hint,
+  size = 'xs',
 }: {
   side: TradeSide;
+  /** Card size: hand-sized in the wide screens' trade panel. */
+  size?: CardSize;
   who: React.ReactNode;
   cards: PartialHand;
   /** Clicking a card (the draft takes one back). */
@@ -59,7 +62,7 @@ function DealRow({
 }) {
   const held = CARDS.filter((c) => (cards[c] ?? 0) > 0);
   return (
-    <div className="flex min-h-13 items-center gap-1.5 py-1">
+    <div className={`flex items-center gap-1.5 py-1 ${size === 'md' ? 'min-h-21' : 'min-h-13'}`}>
       {/* Who and which way, without words: the arrow points into your hand or out of it. */}
       <div className="flex w-11 shrink-0 items-center" title={side === 'want' ? 'You get' : 'You give'} aria-label={side === 'want' ? 'You get' : 'You give'}>
         {who}
@@ -70,7 +73,7 @@ function DealRow({
         {held.map((c) => (
           // A card arrives from where it came from: up from the hand, down from the picker.
           <span key={c} className={side === 'give' ? 'animate-slide-up' : 'animate-slide-down'}>
-            <CardStack card={c} count={cards[c]!} size="xs" onClick={onCard ? () => onCard(c) : undefined} />
+            <CardStack card={c} count={cards[c]!} size={size} onClick={onCard ? () => onCard(c) : undefined} />
           </span>
         ))}
         {!held.length && hint && <span className="text-xs font-bold text-ink-faint">{hint}</span>}
@@ -305,7 +308,8 @@ function asBankExchange(view: PlayerView, me: number, give: PartialHand, want: P
  * The trade panel, docked above the hand: pick what you want from the top row, click cards in your
  * hand to put them on the give side, then trade with the bank or offer it to the players on top.
  */
-export function TradePanel({ view }: { view: PlayerView }) {
+/** `big`: wide screens, where the cards are as big as the hand's under the panel. */
+export function TradePanel({ view, big = false }: { view: PlayerView; big?: boolean }) {
   const ui = useUi();
   const draft = useTradeDraft();
   const me = view.viewer!;
@@ -345,7 +349,7 @@ export function TradePanel({ view }: { view: PlayerView }) {
         {/* everything you can ask for, and who the offer goes to */}
         <div className="flex flex-wrap items-center gap-1.5 bg-paper-2 px-2 py-1.5">
           {cards.map((c) => (
-            <ResourceCard key={c} card={c} count={0} size="sm" onClick={() => draft.add('want', c)} />
+            <ResourceCard key={c} card={c} count={0} size={big ? 'md' : 'sm'} onClick={() => draft.add('want', c)} />
           ))}
           <span className="ml-auto flex items-center gap-1 pl-2">
             {(isActive ? others : [view.turn.seat]).map((seat) => {
@@ -367,8 +371,8 @@ export function TradePanel({ view }: { view: PlayerView }) {
           </span>
         </div>
         <div className="grid divide-y divide-ink/10 px-2">
-          <DealRow side="want" who={<Users size={22} className="text-ink-soft" />} cards={want} onCard={(c) => draft.remove('want', c)} hint="Tap a card above to add it" />
-          <DealRow side="give" who={<Avatar view={view} seat={me} size={26} />} cards={give} onCard={(c) => draft.remove('give', c)} hint="Tap a card in your hand to add it" />
+          <DealRow side="want" who={<Users size={22} className="text-ink-soft" />} cards={want} onCard={(c) => draft.remove('want', c)} hint="Tap a card above to add it" size={big ? 'md' : 'xs'} />
+          <DealRow side="give" who={<Avatar view={view} seat={me} size={26} />} cards={give} onCard={(c) => draft.remove('give', c)} hint="Tap a card in your hand to add it" size={big ? 'md' : 'xs'} />
         </div>
       </div>
       <div className="grid content-start gap-1.5 border-l-[1.5px] border-ink/10 bg-paper-2/60 p-1.5">

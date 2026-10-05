@@ -475,7 +475,7 @@ export function GameScreen() {
             <div ref={handCell} className="pointer-events-auto relative flex min-w-0 flex-1">
               {ui.panel === 'trade' && (
                 <div className="absolute bottom-full left-0 mb-2 w-full">
-                  <TradePanel view={view} />
+                  <TradePanel view={view} big />
                 </div>
               )}
               <div className="paper flex min-w-0 flex-1 items-end p-0">
