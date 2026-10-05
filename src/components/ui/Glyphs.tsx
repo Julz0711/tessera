@@ -64,12 +64,12 @@ export function RobberGlyph({ size, ...p }: P) {
 }
 
 export function KnightGlyph({ size, ...p }: P) {
-  // The chess knight: a bold head and mane on a plinth.
+  // The chess knight: a classic head on a stepped plinth.
   return (
     <svg {...base(size, p)}>
-      <path d="M6 20.5h12" />
-      <path d="M8.5 20.5c0-3.2 1.2-5 3-6.5l-3.6.6c-1.2.2-2-1-1.4-2l3.4-5 1.6-2.3.9 1.9c3.6.6 6.1 3.6 6.1 8.1V20.5" />
-      <circle cx="13" cy="8.9" r="0.95" fill="currentColor" stroke="none" />
+      <path d="M8 16l-1.45.72a1 1 0 0 0-.55.9v2.38h12v-2.38a1 1 0 0 0-.55-.9L16 16H8Z" />
+      <path d="M9 3l1 3-3.49 2.15a1 1 0 0 0 .52 1.85H10l-2.07 6h7.96l.11-5c0-3-1.09-5.98-4-7-1.94-.68-2.94-1.01-3-1Z" />
+      <circle cx="10.6" cy="6.9" r="0.9" fill="currentColor" stroke="none" />
     </svg>
   );
 }

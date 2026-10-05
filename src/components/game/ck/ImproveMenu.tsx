@@ -18,14 +18,14 @@ const LEVELS = [1, 2, 3, 4, 5];
 export function ProgressGrid({ view }: { view: PlayerView }) {
   const p = view.players[view.viewer!];
   return (
-    <span className="dim-group grid grid-flow-col gap-[3px]" aria-hidden>
+    <span className="dim-group grid grid-flow-col gap-1" aria-hidden>
       {TRACKS.map((t) => (
-        <span key={t} className="flex flex-col-reverse gap-[2px] py-px">
+        <span key={t} className="flex flex-col-reverse gap-[1.5px]">
           {LEVELS.map((n) => (
             <span
               key={n}
-              className="h-[3px] w-[6px] rounded-[1px] outline outline-1 outline-current"
-              style={{ background: n <= p.improvements[t] ? TRACK_STYLE[t].color : 'transparent', opacity: n <= p.improvements[t] ? 1 : 0.45 }}
+              className="h-[4px] w-[8px] rounded-[1px] border-[1.5px] border-current"
+              style={{ background: n <= p.improvements[t] ? TRACK_STYLE[t].color : 'var(--color-paper)' }}
             />
           ))}
         </span>

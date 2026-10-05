@@ -365,7 +365,6 @@ body {
   color: var(--color-ink);
   opacity: 0.45;
 }
-.btn:disabled .hex-badge,
 .btn:disabled [aria-label^='Costs'] {
   opacity: 0.45;
 }

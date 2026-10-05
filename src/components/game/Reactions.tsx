@@ -23,6 +23,19 @@ export function ReactionPicker({ dock = false }: { /** In the dock: a labelled k
   const last = useGame((s) => s.lastReactionAt);
   const cooling = useUntil(last + REACTION_COOLDOWN_MS);
 
+  // Y opens and closes the picker.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.key.toLowerCase() !== 'y') return;
+      const el = e.target as Element | null;
+      if (el && typeof el.closest === 'function' && el.closest('input, textarea, select, [contenteditable="true"]')) return;
+      e.preventDefault();
+      setOpen((o) => !o);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const close = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
@@ -43,7 +56,8 @@ export function ReactionPicker({ dock = false }: { /** In the dock: a labelled k
         onClick={() => setOpen((o) => !o)}
         aria-label="Quick reaction"
         aria-expanded={open}
-        title={cooling ? 'Wait a moment…' : 'Quick reaction'}
+        aria-keyshortcuts="Y"
+        title={cooling ? 'Wait a moment…' : 'Quick reaction (Y)'}
       >
         <SmilePlus size={dock ? 20 : 18} />
         {dock && <span className="whitespace-nowrap leading-none">React</span>}
