@@ -351,27 +351,23 @@ body {
 .btn:active:not(:disabled) {
   transform: translateY(1px);
 }
-/* Out of reach: the key loses its fill and is only drawn in outline, so what you can press stands
-   out at a glance. */
+/* Out of reach: greyed out like an inactive player's card. A pale key inside the same ink outline,
+   its contents faded; icons fade as one layer, so crossing strokes don't darken. */
 .btn:disabled {
-  background: transparent;
-  /* The outline stays ink like every other edge; only what's inside fades. */
+  background: linear-gradient(135deg, var(--color-paper-2) calc(100% - 0.85rem), var(--color-paper-3) 0);
   border-color: var(--color-ink);
   box-shadow: none;
-  color: color-mix(in srgb, var(--faded) 50%, transparent);
+  color: rgb(31 26 20 / 0.45);
   cursor: not-allowed;
 }
-/* Icons dim as a whole (like an inactive player's card): drawn in a see-through colour, their
-   strokes darken wherever two lines cross. */
 .btn:disabled svg,
 .btn:disabled .dim-group {
-  color: var(--faded);
-  opacity: 0.5;
+  color: var(--color-ink);
+  opacity: 0.45;
 }
-/* The dock's keys stand straight on the board: an unavailable one keeps a deep-sea body so it still
-   reads as a key over the island, just dimmed. */
-.game-actions .btn:disabled {
-  background: var(--color-sea-800);
+.btn:disabled .hex-badge,
+.btn:disabled [aria-label^='Costs'] {
+  opacity: 0.45;
 }
 /* While a dock menu is open it stands where the dice and the turn pill are: they step aside. */
 .game-dock-wrap:has([role='menu']:not(.hidden)) > .dock-above {

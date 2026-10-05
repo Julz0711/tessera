@@ -8,7 +8,7 @@ const base = (size = 20, props: P) => ({
   viewBox: '0 0 24 24',
   fill: 'none',
   stroke: 'currentColor',
-  strokeWidth: 1.8,
+  strokeWidth: 2,
   strokeLinecap: 'round' as const,
   strokeLinejoin: 'round' as const,
   'aria-hidden': true,
@@ -33,12 +33,14 @@ export function SettlementGlyph({ size, ...p }: P) {
 }
 
 export function CityGlyph({ size, ...p }: P) {
+  // A house beside a taller hall, as one bold silhouette like the settlement's.
   return (
     <svg {...base(size, p)}>
-      <path d="M3 20v-8l4-3 4 3v8" />
-      <path d="M11 20V7h3V4h2v3h3v13Z" />
-      <path d="M3 20h18" />
-      <path d="M14.5 11h1M14.5 14h1" />
+      <path d="M2.5 20.5V12l4.5-3.8 4.5 3.8" />
+      <path d="M11.5 20.5V8.5L16.2 4.5l4.8 4v12Z" />
+      <path d="M2 20.5h20" />
+      <path d="M5.5 20.5v-4h3v4" />
+      <rect x="14.6" y="11" width="3.2" height="3.4" rx="0.4" fill="currentColor" stroke="none" />
     </svg>
   );
 }
@@ -62,11 +64,12 @@ export function RobberGlyph({ size, ...p }: P) {
 }
 
 export function KnightGlyph({ size, ...p }: P) {
+  // The chess knight: a bold head and mane on a plinth.
   return (
     <svg {...base(size, p)}>
-      <path d="M7 20h10" />
-      <path d="M8 20c0-3 .5-4.5 2-6-2-1-3-3-2-6 1-2.5 4-4 7-3l-1 2.5c1.8.5 3 2 3 4.5 0 2-1.2 3-2.8 3.2L15 20" />
-      <circle cx="12.5" cy="8.5" r="0.7" fill="currentColor" />
+      <path d="M6 20.5h12" />
+      <path d="M8.5 20.5c0-3.2 1.2-5 3-6.5l-3.6.6c-1.2.2-2-1-1.4-2l3.4-5 1.6-2.3.9 1.9c3.6.6 6.1 3.6 6.1 8.1V20.5" />
+      <circle cx="13" cy="8.9" r="0.95" fill="currentColor" stroke="none" />
     </svg>
   );
 }
