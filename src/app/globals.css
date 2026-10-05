@@ -586,6 +586,25 @@ body {
 /* Something waiting on you (the dice box before your roll, the status pill while it's your move): an
    amber outline that blinks like the hexes of a rolled number (Board2D). A blink moves nothing, so
    reduced motion keeps it too. */
+/* Your roll: the dice above the dock breathe in and out until you roll. */
+.animate-dice-call {
+  animation: dice-call 1.1s ease-in-out infinite;
+  transform-origin: bottom right;
+}
+@keyframes dice-call {
+  50% {
+    transform: scale(1.12);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) .animate-dice-call {
+    animation: none;
+  }
+}
+:root[data-motion='reduced'] .animate-dice-call {
+  animation: none;
+}
+
 .attention {
   outline: 3px solid var(--color-amber);
   outline-offset: 3px;

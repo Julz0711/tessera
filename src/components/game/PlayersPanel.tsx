@@ -244,8 +244,8 @@ export function PlayersPanel({
               )}
             </div>
             {ck && <ImprovementGrid levels={p.improvements} metropolis={TRACKS.filter((t) => view.metropolis[t] === seat)} compact />}
-            {/* Two rows at most (Defender points start a second column), so every card keeps one height. */}
-            <div className={`ml-auto shrink-0 text-xs font-black text-ink-soft ${compact ? 'flex items-center gap-1' : 'grid grid-flow-col grid-rows-2 gap-x-0.5 gap-y-0.5'}`}>
+            {/* One column: road, knights, and Defender points when there are any. */}
+            <div className={`ml-auto shrink-0 text-xs font-black text-ink-soft ${compact ? 'flex items-center gap-1' : 'grid gap-px leading-4'}`}>
               <Stat
                 icon={<Route size={13} />}
                 value={p.roadLength}
