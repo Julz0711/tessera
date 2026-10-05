@@ -3,7 +3,8 @@
 import { Ban, Bot, Crown, Route, ShieldHalf, Store, Swords, WifiOff } from 'lucide-react';
 import { useState } from 'react';
 import { api } from '@/client/store';
-import { TRACKS, handLimit, type Track } from '@/engine';
+import { TERRAIN_RESOURCE, TRACKS, handLimit, type Track } from '@/engine';
+import { CARD_COLORS } from '@/client/palette';
 import type { PlayerView } from '@/engine/view';
 import { TRACK_STYLE } from '@/client/progressText';
 import type { RoomDTO } from '@/shared/protocol';
@@ -124,6 +125,13 @@ export function ImprovementGrid({ levels, metropolis, compact = false }: { level
   );
 }
 
+/** The merchant badge's colours: the resource of the hex it stands on, if that hex yields one. */
+function merchantColors(view: PlayerView): React.CSSProperties | undefined {
+  const hex = view.merchant ? view.board.hexes[view.merchant.hex] : undefined;
+  const res = hex ? TERRAIN_RESOURCE[hex.terrain] : null;
+  return res ? { background: CARD_COLORS[res].bg, color: CARD_COLORS[res].ink } : undefined;
+}
+
 export function PlayersPanel({
   view,
   room,
@@ -216,6 +224,8 @@ export function PlayersPanel({
             {view.merchant?.owner === seat && (
               <span
                 className="absolute -right-1.5 -top-1 grid h-5 w-5 place-items-center rounded-md border-[1.5px] border-ink bg-moss text-white"
+                // In the colour of the resource the merchant stands on (the one you trade 2:1).
+                style={merchantColors(view)}
                 title="Has the merchant: 1 VP while it stays"
                 aria-label="Has the merchant"
               >
