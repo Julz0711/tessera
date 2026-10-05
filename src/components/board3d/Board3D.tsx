@@ -10,7 +10,7 @@ import { PALETTES } from '@/client/themes';
 import type { BoardProps, BoardScene, BoardTargets } from '@/components/board/types';
 import { barbarianTrackLayout } from '@/components/board/barbarian';
 import { Barbarians } from './barbarians';
-import { City, CityWall, HarborPiece, Merchant, MetropolisTower, NumberToken, ROBBER_OFFSET, Road, Robber, Settlement } from './pieces';
+import { City, CityWall, HarborPiece, Merchant, NumberToken, ROBBER_OFFSET, Road, Robber, Settlement } from './pieces';
 import { Targets } from './targets';
 import { Pirate, Ship, TreasureChest } from './voyage';
 import { HexTile } from './terrain';
@@ -209,9 +209,8 @@ function Island({
         if (!b.city) return <Settlement key={`b${v}`} x={p.x} z={p.y} color={scene.colors[b.owner]} />;
         return (
           <group key={`b${v}`}>
-            <City x={p.x} z={p.y} color={scene.colors[b.owner]} />
+            <City x={p.x} z={p.y} color={scene.colors[b.owner]} metropolis={b.metropolis} />
             {b.wall && <CityWall x={p.x} z={p.y} color={scene.colors[b.owner]} />}
-            {b.metropolis && <MetropolisTower x={p.x} z={p.y} color={scene.colors[b.owner]} track={b.metropolis} />}
           </group>
         );
       })}

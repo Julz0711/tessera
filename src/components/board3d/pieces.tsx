@@ -4,13 +4,15 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { Topology } from '@/engine/board/topology';
-import type { Harbor, Hex, PlayerColor } from '@/engine/types';
+import type { Harbor, Hex, PlayerColor, Track } from '@/engine/types';
+import { TRACK_STYLE } from '@/client/progressText';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { GEO, mat } from './materials';
 import { usePieceScale } from './pieceScale';
 import { TILE_TOP } from './terrain';
 import { ClassicCity, ClassicRobber, ClassicSettlement } from './models';
-import { useBoardKit, useBoardPalette } from './themes';
+import { useBoardKit, useBoardPalette, useBoardThemeId } from './themes';
+import { METROPOLIS } from './metropolis';
 import { harborTexture, tokenTexture } from './textures';
 import { harborAnchor } from '../board/harbor';
 import { faceCamera } from './faceCamera';
@@ -103,16 +105,18 @@ export function Settlement({ x, z, color, ghost = false }: { x: number; z: numbe
   );
 }
 
-export function City({ x, z, color, ghost = false }: { x: number; z: number; color: PlayerColor; ghost?: boolean }) {
+/** A city, or with `metropolis` set (C&K) the theme's metropolis in its place, showing that track's colour. */
+export function City({ x, z, color, ghost = false, metropolis = null }: { x: number; z: number; color: PlayerColor; ghost?: boolean; metropolis?: Track | null }) {
   const c = PLAYER_COLORS[color];
   const o = ghost ? { opacity: 0.55 } : {};
   const ref = useAppear(ghost);
   const k = usePieceScale();
   const Model = useBoardKit().City ?? ClassicCity;
+  const Metropolis = METROPOLIS[useBoardThemeId()];
   return (
     <group ref={ref} position={[x, TILE_TOP, z]} scale={ghost ? 1 : 0.001}>
       <group scale={k}>
-        <Model c={c} o={o} ghost={ghost} />
+        {metropolis ? <Metropolis c={c} o={o} ghost={ghost} accent={TRACK_STYLE[metropolis].color} /> : <Model c={c} o={o} ghost={ghost} />}
       </group>
     </group>
   );
@@ -122,16 +126,10 @@ const CK_GEO = {
   wall: new THREE.CylinderGeometry(0.32, 0.35, 0.11, 6, 1, true),
   wallTop: new THREE.TorusGeometry(0.335, 0.028, 4, 6),
   crenel: new THREE.BoxGeometry(0.07, 0.06, 0.045),
-  tower: new THREE.BoxGeometry(0.13, 0.46, 0.13),
-  towerRoof: new THREE.ConeGeometry(0.12, 0.16, 4),
-  pole: new THREE.CylinderGeometry(0.008, 0.008, 0.22, 4),
-  flag: new THREE.BoxGeometry(0.12, 0.07, 0.008),
   merchantBody: new THREE.ConeGeometry(0.1, 0.28, 6),
   merchantHead: new THREE.IcosahedronGeometry(0.065, 0),
   merchantHat: new THREE.CylinderGeometry(0.035, 0.08, 0.06, 6),
 };
-
-const TRACK_FLAG = { trade: '#e9c35a', politics: '#3a74d8', science: '#3f9b4f' } as const;
 
 /** Angles (hex corners) around the wall ring where a crenellation block sits. */
 const CRENEL_ANGLES = [0, 1, 2, 3, 4, 5].map((i) => (i * Math.PI) / 3);
@@ -170,24 +168,6 @@ export function CityWall({ x, z, color }: { x: number; z: number; color: PlayerC
   return (
     <group position={[x, TILE_TOP, z]} scale={k}>
       {Themed ? <Themed c={c} /> : <ClassicCityWall />}
-    </group>
-  );
-}
-
-/**
- * Metropolis: a tall tower beside the city flying the track's flag. It stands back and to the right,
- * 60° round from the roads (which leave a corner at 30°, 90°, 150°… from east), so no road runs
- * through it, and out past the themed cities' side buildings (water tower, obelisk, turret).
- */
-export function MetropolisTower({ x, z, color, track }: { x: number; z: number; color: PlayerColor; track: 'trade' | 'politics' | 'science' }) {
-  const c = PLAYER_COLORS[color];
-  const k = usePieceScale();
-  return (
-    <group position={[x + 0.17 * k, TILE_TOP, z - 0.29 * k]} scale={k}>
-      <mesh geometry={CK_GEO.tower} material={mat(c.hex)} position={[0, 0.23, 0]} castShadow />
-      <mesh geometry={CK_GEO.towerRoof} material={mat(c.dark)} position={[0, 0.54, 0]} rotation={[0, Math.PI / 4, 0]} castShadow />
-      <mesh geometry={CK_GEO.pole} material={mat('#5a3d22')} position={[0, 0.71, 0]} />
-      <mesh geometry={CK_GEO.flag} material={mat(TRACK_FLAG[track])} position={[0.06, 0.78, 0]} />
     </group>
   );
 }
