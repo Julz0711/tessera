@@ -45,7 +45,7 @@ export function DiceBox({
 
   return (
     // Your turn and the dice still to roll: the box pulses like the "Your turn" pill up top.
-    <div className={`flex items-center ${bare ? '' : 'glass'} ${className} ${compact ? 'h-11 w-28 justify-center gap-1.5 p-1' : bare ? 'gap-2 rounded-[8px] p-1' : 'gap-3 p-2.5'} ${canRoll ? 'attention' : ''}`}>
+    <div className={`flex items-center ${bare ? '' : 'glass'} ${className} ${compact ? 'h-11 w-28 justify-center gap-1.5 p-1' : bare ? 'gap-2 rounded-[6px]' : 'gap-3 p-2.5'} ${canRoll ? 'attention' : ''}`}>
       {/* Compact and about to roll: the Roll button alone, the old roll is stale. */}
       {!(compact && canRoll) && (
         // Wide screens have no Roll button: the dice themselves roll (and R, as the turn pill says).

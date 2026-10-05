@@ -364,7 +364,7 @@ export function PlayerStrip({ view, room, leading }: { view: PlayerView; room: R
                 onClick={() => setDetails(true)}
                 aria-haspopup="dialog"
                 aria-label={`${p.name}${seat === me ? ' (you)' : ''}: ${vp} points, ${p.handCount} cards${awards.length ? `, ${awards.join(', ')}` : ''}${acting ? ', to play' : ''}`}
-                className={`paper-flat relative grid w-full gap-0.5 py-1 pl-2 pr-1 text-left transition-colors ${acting ? 'bg-amber shadow-[0_3px_0_0_#1f1a14]' : ''}`}
+                className={`paper-flat relative grid w-full gap-0.5 py-1 pl-2 pr-1 text-left transition-colors ${acting ? 'bg-amber' : ''}`}
                 style={{ boxShadow: `inset 4px 0 0 ${PLAYER_COLORS[p.color].hex}` }}
               >
                 <span className="flex min-w-0 items-center gap-1">

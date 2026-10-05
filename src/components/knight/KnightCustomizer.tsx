@@ -204,14 +204,14 @@ export function KnightCustomizer({
               role="tab"
               aria-selected={on}
               onClick={() => choose(n)}
-              className={`flex items-center gap-2 rounded-xl border-2 py-1 pl-1 pr-3 text-left transition ${
-                on ? 'border-ink bg-paper shadow-[0_3px_0_0_#1f1a14]' : 'border-ink/15 hover:border-ink/40'
+              className={`flex items-center gap-2 rounded-[6px] border-[1.5px] py-1 pl-1 pr-3 text-left transition ${
+                on ? 'border-ink bg-amber' : 'border-ink/15 hover:border-ink/40'
               }`}
             >
               <KnightBadge knight={knightLook(value, n)} color={color} size={44} />
               <span className="grid leading-tight">
                 <span className="text-sm font-black">Knight {n}</span>
-                <span className="text-[11px] font-bold text-ink-faint">
+                <span className={`text-[11px] font-bold ${on ? 'text-ink-soft' : 'text-ink-faint'}`}>
                   {KNIGHT_SLOT_NAMES[n]}
                   {!hasOwnLook(value, n) && ' · same look as knight 1'}
                 </span>

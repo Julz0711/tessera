@@ -227,7 +227,9 @@ function Segmented<T extends string | number>({
   format?: (v: T) => string;
 }) {
   return (
-    <div role="radiogroup" className="seg flex-wrap">
+    // One row across the panel: each option grows from its label's width, and a long label wraps
+    // inside its option instead of pushing the last options onto a second row.
+    <div role="radiogroup" className="seg flex w-full">
       {options.map((o) => (
         <button
           key={String(o)}
@@ -236,7 +238,7 @@ function Segmented<T extends string | number>({
           disabled={disabled}
           onClick={() => onChange(o)}
           aria-checked={value === o}
-          className="seg-opt min-h-10"
+          className="seg-opt min-h-10 min-w-0 flex-auto px-1.5 text-center text-[13px] leading-tight sm:px-2.5 sm:text-sm"
         >
           {format ? format(o) : String(o)}
         </button>
@@ -330,10 +332,10 @@ function Toggle({
         aria-label={label}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={`relative h-6 w-11 rounded-full border-2 border-ink transition ${checked ? "bg-moss" : "bg-paper-3"}`}
+        className={`relative h-6 w-11 rounded-[5px] border-[1.5px] border-ink transition ${checked ? "bg-amber" : "bg-paper-3"}`}
       >
         <span
-          className={`absolute top-0.5 h-4 w-4 rounded-full border-2 border-ink bg-paper transition-all ${checked ? "left-5.5" : "left-0.5"}`}
+          className={`absolute top-[2px] h-4 w-4 rounded-[3px] border-[1.5px] border-ink bg-paper transition-all ${checked ? "left-5.5" : "left-[2px]"}`}
         />
       </button>
     </label>
@@ -510,7 +512,7 @@ export function Lobby({ room }: { room: RoomDTO }) {
   return (
     <div className="lobby-page mx-auto grid w-full max-w-6xl gap-5 px-4 py-5 sm:py-8">
       <RoomHeader room={room} onLeave={leave} />
-      <div className="grid gap-5 lg:grid-cols-[1.25fr_1fr]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.25fr_1fr]">
         <section className="grid content-start gap-4">
           <div className="flex items-end justify-between">
             <h1 className="display text-4xl font-black text-paper">

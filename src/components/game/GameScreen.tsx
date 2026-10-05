@@ -482,7 +482,7 @@ export function GameScreen() {
               </div>
             </div>
             <div className="game-dock-wrap pointer-events-auto relative flex shrink-0">
-              <div className="absolute inset-x-0 bottom-full mb-2 flex justify-center">
+              <div className="absolute inset-x-0 bottom-full mb-2 flex justify-end">
                 <DiceBox view={view} size={48} bare />
               </div>
               <Dock view={view} room={room} hand={false} />

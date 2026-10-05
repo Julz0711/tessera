@@ -120,7 +120,7 @@ export function Hand({
         )}
         {held.length > 0 && (
           <div
-            className={`-mx-1.5 -my-1 flex items-end gap-2.5 rounded-xl px-1.5 py-1 transition-colors sm:gap-3 ${over ? 'bg-danger/25 ring-2 ring-danger/70' : ''}`}
+            className={`-my-1 flex items-end gap-2.5 rounded-[6px] px-1.5 py-1 transition-colors sm:gap-3 ${over ? 'bg-danger/25 ring-2 ring-inset ring-danger/70' : ''}`}
             title={over ? `${total} cards, over your limit of ${limit}: a 7 would cost you ${Math.floor(total / 2)}` : undefined}
           >
             {held.map((c) => [

@@ -110,10 +110,11 @@ export function DesktopHud({
     // The pl-4 / pr-4 strip on the board side is room for the current player's card to stick out into.
     // Wide screens: both columns stop above the bottom bar (the right one above the dice too).
     <div
-      className={`pointer-events-none absolute top-16 hidden w-76 flex-col gap-2 overflow-y-auto overflow-x-hidden scroll-thin lg:flex ${
+      // A 4px margin on every other side keeps highlight rings and outlines from being clipped.
+      className={`pointer-events-none absolute top-15 hidden w-78 flex-col gap-2 overflow-y-auto overflow-x-hidden scroll-thin py-1 lg:flex ${
         side === 'right'
-          ? 'bottom-25 right-2 pl-4 xl:bottom-[calc(var(--bar-h,0px)+var(--corner-h,0px)+24px)]'
-          : 'bottom-25 left-2 pr-4 xl:bottom-[calc(var(--bar-h,0px)+16px)]'
+          ? 'bottom-24 right-1 pl-4 pr-1 xl:bottom-[calc(var(--bar-h,0px)+var(--corner-h,0px)+20px)]'
+          : 'bottom-24 left-1 pl-1 pr-4 xl:bottom-[calc(var(--bar-h,0px)+12px)]'
       } ${editing ? 'z-40' : 'z-10'}`}
       style={{ zoom }}
     >

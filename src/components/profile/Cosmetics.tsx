@@ -342,8 +342,8 @@ export function CosmeticsPicker({
               disabled={!open}
               onClick={() => onChange({ ...value, frame: f.id })}
               aria-pressed={on}
-              className={`grid justify-items-center gap-1 rounded-xl border-2 p-2 transition ${
-                on ? 'border-ink bg-amber/25 shadow-[0_2px_0_0_#000]' : 'border-transparent bg-paper-2/70 hover:border-ink/30'
+              className={`grid justify-items-center gap-1 rounded-[6px] border-[1.5px] p-2 transition ${
+                on ? 'border-ink bg-amber' : 'border-transparent bg-paper-2/70 hover:border-ink/30'
               } ${open ? '' : 'cursor-not-allowed'}`}
             >
               <span className={open ? '' : 'opacity-45 grayscale'}>
@@ -351,7 +351,7 @@ export function CosmeticsPicker({
                   {(s) => <KnightBadge knight={knight} color={color} size={s} />}
                 </Framed>
               </span>
-              <span className="text-xs font-extrabold leading-tight" style={{ color: open ? TIER_COLOR[f.tier] : undefined }}>
+              <span className="text-xs font-extrabold leading-tight" style={{ color: open && !on ? TIER_COLOR[f.tier] : undefined }}>
                 {f.name}
               </span>
               {!open && <Progress req={f.req} stats={stats} />}
@@ -363,7 +363,7 @@ export function CosmeticsPicker({
         <button
           type="button"
           onClick={() => onChange({ ...value, title: null })}
-          className={`btn px-2.5 py-1 text-xs ${value.title === null ? 'btn-primary' : ''}`}
+          className={`btn px-2.5 py-1 text-xs ${value.title === null ? 'btn-on' : ''}`}
         >
           No title
         </button>
@@ -379,10 +379,14 @@ export function CosmeticsPicker({
               onClick={() => onChange({ ...value, title: t.id })}
               aria-pressed={on}
               title={open ? t.name : `${requirementText(t.req)}${p && t.req.kind !== 'rating' ? ` (${p.have}/${p.need})` : ''}`}
-              className={`flex items-center gap-1 rounded-lg border-2 px-2 py-1 text-xs font-black uppercase tracking-wider transition ${
-                on ? 'border-ink shadow-[0_2px_0_0_#000]' : open ? 'border-transparent hover:border-ink/30' : 'cursor-not-allowed border-transparent opacity-50'
+              className={`flex items-center gap-1 rounded-[5px] border-[1.5px] px-2 py-1 text-xs font-black uppercase tracking-wider transition ${
+                on ? 'border-ink' : open ? 'border-transparent hover:border-ink/30' : 'cursor-not-allowed border-transparent opacity-50'
               }`}
-              style={{ color: open ? TIER_COLOR[t.tier] : undefined, background: open ? `${TIER_COLOR[t.tier]}1f` : 'rgb(0 0 0 / 0.05)' }}
+              style={
+                on
+                  ? { color: 'var(--color-ink)', background: 'var(--color-amber)' }
+                  : { color: open ? TIER_COLOR[t.tier] : undefined, background: open ? `${TIER_COLOR[t.tier]}1f` : 'rgb(0 0 0 / 0.05)' }
+              }
             >
               {!open && <Lock size={11} />}
               {t.name}
