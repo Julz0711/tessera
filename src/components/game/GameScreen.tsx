@@ -23,6 +23,7 @@ import { ChatPanel } from '@/components/room/ChatPanel';
 import { BankPanel } from './BankPanel';
 import { BankStrip } from './BankStrip';
 import { BarbarianMeter } from './ck/BarbarianMeter';
+import { BarbarianTrack } from './ck/BarbarianTrack';
 import { CkPromptDialog, PickBanner } from './ck/CkPrompts';
 import { ImprovementsPanel } from './ck/ImprovementsPanel';
 import { KnightMenu } from './ck/KnightMenu';
@@ -367,9 +368,11 @@ export function GameScreen() {
   // On wide screens the dice sit just above the dock and the other players on top of your own
   // card, both out of the HUD (so they can't be moved).
   const barred = wide && me !== null;
+  // The tall barbarian track stands at the left edge of wide screens, outside the movable panels; the small one is a HUD panel.
+  const bigTrack = wide && view.mode === 'ck' && prefs.barbarianTrack === 'large';
   // The 2D board's zoom buttons only show when turned on (Settings → Accessibility).
   const unused = (panel: HudPanel) =>
-    (panel === 'barbarian' && view.mode !== 'ck') || ((panel === 'dice' || panel === 'players') && barred) || (panel === 'zoom' && !prefs.zoomButtons);
+    (panel === 'barbarian' && (view.mode !== 'ck' || bigTrack)) || ((panel === 'dice' || panel === 'players') && barred) || (panel === 'zoom' && !prefs.zoomButtons);
   // A side column takes room from the flat board when it holds more than the (usually empty) offers
   // and the small zoom buttons.
   const columnUsed = (side: HudSide) =>
@@ -377,7 +380,7 @@ export function GameScreen() {
   const board2d = {
     '--hud-t': `${64 * zoom}px`,
     '--hud-b': `${(wide && barH ? barH + 16 : 168) * zoom}px`,
-    '--hud-l': `${(columnUsed('left') ? 300 : 8) * zoom}px`,
+    '--hud-l': `${(columnUsed('left') ? 300 : bigTrack ? 104 : 8) * zoom}px`,
     '--hud-r': `${(columnUsed('right') ? 300 : 8) * zoom}px`,
   } as React.CSSProperties;
   // The dock keeps clear of the corners that hold something.
@@ -454,6 +457,12 @@ export function GameScreen() {
           </div>
         </div>
       </div>
+
+      {bigTrack && (
+        <div className="game-barbarians pointer-events-none absolute left-2 top-1/2 z-10 -translate-y-1/2" style={{ zoom }}>
+          <BarbarianTrack view={view} theme={prefs.boardTheme} />
+        </div>
+      )}
 
       {/* log/chat, bank, players, dice and offers on wide screens, wherever the player put them */}
       <DesktopHud render={renderPanel} skip={unused} />

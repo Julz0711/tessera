@@ -8,14 +8,13 @@ import { getTopology, type Topology } from "@/engine/board/topology";
 import type { Hex, PlayerColor, Terrain, Track } from "@/engine/types";
 import { CARD_COLORS } from "@/client/palette";
 import { PALETTES, type BoardPalette, type BoardThemeId, type TileColors } from "@/client/themes";
-import { THEME_ACCENTS, THEME_BARBARIAN_SHIPS, THEME_PIECES, type BarbarianShipGlyph } from "./themes";
+import { THEME_ACCENTS, THEME_PIECES } from "./themes";
 import { classicAccents, GoldNuggets } from "./themes/classic";
 import { castlePath, OUTLINE, Pennant, ROAD_WEIGHT, RoadBase } from "./themes/shared";
 import { TRACK_STYLE } from "@/client/progressText";
 import { VOYAGE_GLYPHS } from "./themes/voyage";
 import { PLAYER_COLORS } from "@/shared/colors";
 import { harborAnchor, pirateSpot } from "@/components/board/harbor";
-import { BARBARIAN_HEADER_H, barbarianTrackLayout, type BarbarianLayout } from "@/components/board/barbarian";
 import type { BoardProps, BoardScene } from "@/components/board/types";
 import { useZoomPan } from "./useZoomPan";
 import { useWide, useZoomHost } from "@/client/hud";
@@ -536,185 +535,6 @@ function Gloom({
   );
 }
 
-/** A flat pointy-top hexagon, sized like the barbarian track's little sea-steps. */
-function hexStepPoints(cx: number, cy: number, r: number): string {
-  const w = r * (Math.sqrt(3) / 2);
-  return [
-    [cx, cy - r],
-    [cx + w, cy - r / 2],
-    [cx + w, cy + r / 2],
-    [cx, cy + r],
-    [cx - w, cy + r / 2],
-    [cx - w, cy - r / 2],
-  ]
-    .map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`)
-    .join(" ");
-}
-
-type PierColors = { deck: string; plank: string; post: string };
-
-/** The classic barbarian longship: hull, curled prow, a striped sail and a few shields along the gunwale. */
-const classicShip: BarbarianShipGlyph = ({ danger, wood }) => {
-  const hull = danger ? "#8a1f14" : wood.deck;
-  const sail = danger ? "#f3d9d3" : "#f6eddb";
-  const stripe = danger ? "#8a1f14" : "#a83b2e";
-  return (
-    <g pointerEvents="none">
-      <path d="M-26 8h52l-10 14h-32Z" fill={hull} stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
-      {/* curled prow */}
-      <path d="M26 8q14-2 14-14q0-8-8-8" fill="none" stroke={wood.post} strokeWidth="3.5" strokeLinecap="round" />
-      <rect x="-1.5" y="-36" width="3" height="45" fill={wood.post} />
-      <path d="M-18-32h34q-4 16 0 32h-34q4-16 0-32Z" fill={sail} stroke="#1f1a14" strokeWidth="2.5" strokeLinejoin="round" />
-      <rect x="-7" y="-32" width="5" height="32" fill={stripe} />
-      <rect x="6" y="-32" width="5" height="32" fill={stripe} />
-      <circle cx="-14" cy="15" r="4" fill={stripe} stroke="#1f1a14" strokeWidth="1.2" />
-      <circle cx="0" cy="16" r="4" fill={sail} stroke="#1f1a14" strokeWidth="1.2" />
-      <circle cx="14" cy="15" r="4" fill={stripe} stroke="#1f1a14" strokeWidth="1.2" />
-    </g>
-  );
-};
-
-/** The ship for the barbarian track's current step: the theme's own glyph, or the classic longship. */
-function BarbarianShipGlyph({
-  x,
-  y,
-  danger,
-  wood,
-  ps,
-  theme,
-}: {
-  x: number;
-  y: number;
-  danger: boolean;
-  wood: PierColors;
-  ps: number;
-  theme: BoardThemeId;
-}) {
-  const glyph = THEME_BARBARIAN_SHIPS[theme] ?? classicShip;
-  return <g transform={`translate(${x} ${y}) scale(${1.15 * ps})`}>{glyph({ danger, wood })}</g>;
-}
-
-/** One sword pointing up, centred on its grip's top (a blade, crossguard, grip and pommel). */
-function Sword({ angle }: { angle: number }) {
-  return (
-    <g transform={`rotate(${angle})`}>
-      <path d="M0 -14 L2.4 -10.5 L2.4 3.5 L-2.4 3.5 L-2.4 -10.5 Z" />
-      <rect x="-6" y="3.5" width="12" height="2.6" rx="1" />
-      <rect x="-1.3" y="6.1" width="2.6" height="5" />
-      <circle cy="12.4" r="2.1" />
-    </g>
-  );
-}
-
-/** Two swords crossing: the island's knight defense. */
-function CrossedSwords({ x, y, color }: { x: number; y: number; color: string }) {
-  return (
-    <g transform={`translate(${x} ${y})`} fill={color} stroke="#0b2233" strokeWidth="0.8" strokeLinejoin="round">
-      <Sword angle={-40} />
-      <Sword angle={40} />
-    </g>
-  );
-}
-
-/** A small ship silhouette: the barbarians' strength. */
-function ShipIcon({ x, y, color }: { x: number; y: number; color: string }) {
-  return (
-    <g transform={`translate(${x} ${y})`} fill={color}>
-      <path d="M-13 3 H13 L8 10 H-8 Z" />
-      <rect x="-1" y="-13" width="2" height="16" />
-      <path d="M1 -12 L11 -3 L1 -1 Z" />
-      <path d="M-1 -10 L-9 -1 L-1 0 Z" />
-    </g>
-  );
-}
-
-/** Width of the lane beside the barbarian steps that holds the voyage arrow. */
-const BARBARIAN_ARROW_LANE = 22;
-
-/** A slim arrow pointing down the barbarian track, from the first step to the landing. */
-function VoyageArrow({ x, from, to, danger }: { x: number; from: number; to: number; danger: boolean }) {
-  const color = danger ? "#ff8a73" : "#f6eddb";
-  return (
-    <g opacity={danger ? 0.95 : 0.7} stroke={color} strokeLinecap="round" strokeLinejoin="round" fill="none">
-      <path d={`M${x} ${from} V${to - 4}`} strokeWidth="4" strokeDasharray="2 9" />
-      <path d={`M${x - 8} ${to - 12} L${x} ${to} L${x + 8} ${to - 12}`} strokeWidth="4.5" />
-    </g>
-  );
-}
-
-/** The barbarian track's field (its dark backdrop) in board units. */
-function barbarianTrackBox(distance: number, layout: BarbarianLayout) {
-  const r = layout.r * S;
-  const steps = Array.from({ length: distance + 1 }, (_, i) => layout.at(i));
-  const xs = steps.map((p) => p.x * S);
-  const left = Math.min(...xs) - r - 10 - BARBARIAN_ARROW_LANE;
-  const width = Math.max(...xs) - Math.min(...xs) + 2 * r + 20 + BARBARIAN_ARROW_LANE;
-  const top = layout.header.y * S - (BARBARIAN_HEADER_H * S) / 2 - 4;
-  const bottom = steps[steps.length - 1].y * S + r + 10;
-  return { left, top, width, height: bottom - top, steps };
-}
-
-/**
- * The barbarian ship's voyage (C&K): a dark field west of the island with the status on top
- * (barbarian strength against the island's knight defense) and a zigzag strip of touching hex steps
- * below, the landing (last step) warm orange, the ship on its current step.
- */
-function BarbarianTrack2D({
-  barbarian,
-  layout,
-  palette,
-  theme,
-}: {
-  barbarian: NonNullable<BoardScene["barbarian"]>;
-  layout: BarbarianLayout;
-  palette: BoardPalette;
-  theme: BoardThemeId;
-}) {
-  const wood = palette.pier ?? { deck: "#9c6f42", plank: "#8a6139", post: "#6b4a2b" };
-  const danger = barbarian.position >= barbarian.distance - 2;
-  const losing = barbarian.strength > barbarian.defense;
-  const r = layout.r * S;
-  // The field leaves a lane on its outer (west) side for the arrow of the voyage.
-  const { left, top, width, height, steps } = barbarianTrackBox(barbarian.distance, layout);
-  const bottom = top + height;
-  const hx = layout.header.x * S;
-  const hy = layout.header.y * S;
-  const ship = steps[barbarian.position];
-  const paper = "#f6eddb";
-  return (
-    <g pointerEvents="none">
-      <rect x={left} y={top} width={width} height={bottom - top} rx="16" fill="#0b2233" opacity="0.5" />
-      {/* the way the ship sails: down the steps to the landing, where it attacks the island */}
-      <VoyageArrow x={left + BARBARIAN_ARROW_LANE / 2 + 4} from={steps[0].y * S - r * 0.5} to={steps[steps.length - 1].y * S + r * 0.35} danger={danger} />
-      <g aria-label={`Barbarians ${barbarian.strength}, knights ${barbarian.defense}`}>
-        <ShipIcon x={hx - 38} y={hy} color={losing ? "#ff8a73" : paper} />
-        <text x={hx - 20} y={hy + 8} className="display" fontSize="22" fontWeight="900" fill={losing ? "#ff8a73" : paper}>
-          {barbarian.strength}
-        </text>
-        <CrossedSwords x={hx + 16} y={hy} color={losing ? paper : "#8fe0a8"} />
-        <text x={hx + 32} y={hy + 8} className="display" fontSize="22" fontWeight="900" fill={losing ? paper : "#8fe0a8"}>
-          {barbarian.defense}
-        </text>
-      </g>
-      {steps.map((p, i) => {
-        const landing = i === barbarian.distance;
-        return (
-          <polygon
-            key={i}
-            points={hexStepPoints(p.x * S, p.y * S, r * 0.94)}
-            fill={landing ? (danger ? "#e0503a" : "#f2994a") : wood.deck}
-            stroke={landing ? "#8a3a14" : wood.post}
-            strokeWidth="2.5"
-            strokeLinejoin="round"
-            opacity={landing ? 1 : 0.7}
-          />
-        );
-      })}
-      <BarbarianShipGlyph x={ship.x * S} y={ship.y * S} danger={danger} wood={wood} ps={1} theme={theme} />
-    </g>
-  );
-}
-
 export default function Board2D({
   scene,
   targets,
@@ -736,29 +556,19 @@ export default function Board2D({
   const harborEdges = scene.board.harbors.map((h) => h.edge);
   const pirate = scene.pirate != null ? pirateSpot(topo, scene.board.hexes, scene.pirate, harborEdges) : null;
   const [hover, setHover] = useState<string | null>(null);
-  const barbarian = scene.barbarian;
-  const barbLayout = useMemo(
-    () => (barbarian ? barbarianTrackLayout(topo, barbarian.distance + 1) : null),
-    [topo, barbarian],
-  );
   const bounds = useMemo(() => {
     const xs = topo.vertices.map((v) => v.x * S);
     const ys = topo.vertices.map((v) => v.y * S);
     const pad = fitPad;
-    let minX = Math.min(...xs) - pad;
-    let minY = Math.min(...ys) - pad;
-    // Room for the barbarian track's steps and badges, west of the island.
-    if (barbLayout) {
-      minX = Math.min(minX, (barbLayout.at(0).x - barbLayout.r) * S - 30 - BARBARIAN_ARROW_LANE);
-      minY = Math.min(minY, (barbLayout.header.y - BARBARIAN_HEADER_H / 2) * S - 20);
-    }
+    const minX = Math.min(...xs) - pad;
+    const minY = Math.min(...ys) - pad;
     return {
       minX,
       minY,
       w: Math.max(...xs) + pad - minX,
       h: Math.max(...ys) + pad - minY,
     };
-  }, [topo, barbLayout, fitPad]);
+  }, [topo, fitPad]);
   const hexTargets = new Set(targets.hexes);
   const land = scene.board.hexes.filter((h) => h.terrain !== "sea" || h.fog);
   const myColor = scene.myColor;
@@ -1286,15 +1096,11 @@ export default function Board2D({
             <PirateShip x={pirate.x * S} y={pirate.y * S} theme={theme} k={ps} />
           )}
 
-          {/* barbarian ship's voyage (C&K) */}
-          {barbarian && barbLayout && (
-            <BarbarianTrack2D barbarian={barbarian} layout={barbLayout} palette={palette} theme={theme} />
-          )}
 
       </>
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- derived values (topo, pirate…) follow from these
-    [scene, targets, theme, ps, barbLayout],
+    [scene, targets, theme, ps],
   );
   // The only layer that follows the pointer: hovering a spot rebuilds just the hints and targets.
   const targetsLayer = useMemo(

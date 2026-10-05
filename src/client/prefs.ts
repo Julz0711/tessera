@@ -43,6 +43,8 @@ export interface Prefs {
   musicVolume: number;
   /** Zoom in / out / reset buttons for the 2D board (the wheel, pinch and drag work without them). */
   zoomButtons: boolean;
+  /** The barbarians' progress (Knights & Barbarians): the tall track beside the board, or the small panel in the HUD. */
+  barbarianTrack: 'large' | 'small';
 }
 
 const KEY = 'prefs.v1';
@@ -73,6 +75,7 @@ const defaults = (): Prefs => ({
   autoDeclineTrades: true,
   musicVolume: 0,
   zoomButtons: false,
+  barbarianTrack: 'large',
 });
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -114,6 +117,7 @@ export function sanitizePrefs(raw: unknown): Prefs {
     autoDeclineTrades: typeof p.autoDeclineTrades === 'boolean' ? p.autoDeclineTrades : base.autoDeclineTrades,
     musicVolume: typeof p.musicVolume === 'number' && Number.isFinite(p.musicVolume) ? clamp01(p.musicVolume) : base.musicVolume,
     zoomButtons: typeof p.zoomButtons === 'boolean' ? p.zoomButtons : base.zoomButtons,
+    barbarianTrack: p.barbarianTrack === 'small' ? 'small' : 'large',
   };
 }
 
@@ -129,7 +133,7 @@ export function read(): Prefs {
 /** The settings that follow a signed-in player to their profile. Name, colour, knight and cosmetics already live there. */
 export const SYNCED_FIELDS = [
   'view', 'graphics', 'volume', 'buildHints', 'confirmBuilds', 'boardScale', 'motion', 'boardTheme', 'hudScale', 'hudLayout', 'sfxVolume', 'weather',
-  'autoDeclineTrades', 'musicVolume', 'zoomButtons',
+  'autoDeclineTrades', 'musicVolume', 'zoomButtons', 'barbarianTrack',
 ] as const satisfies readonly (keyof Prefs)[];
 
 interface PrefsStore extends Prefs {

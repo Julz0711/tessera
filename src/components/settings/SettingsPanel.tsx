@@ -191,6 +191,16 @@ export function SettingsPanel() {
                 ]}
               />
             </Section>
+            <Section title="Barbarian track" hint="In Knights & Barbarians: the tall track of the ship's voyage beside the board, or a small panel with the HUD.">
+              <Segmented
+                value={prefs.barbarianTrack}
+                onChange={(barbarianTrack) => prefs.set({ barbarianTrack })}
+                options={[
+                  { value: 'large', label: 'Large' },
+                  { value: 'small', label: 'Small' },
+                ]}
+              />
+            </Section>
             <Section title="Zoom buttons" hint="Zoom in, out and back on the 2D board with buttons. Without them, scroll, pinch or drag the board.">
               <Segmented
                 value={prefs.zoomButtons}

@@ -5,7 +5,7 @@ import { BARBARIAN_DISTANCE, barbarianStrength, knightStrength } from '@/engine'
 import type { PlayerView } from '@/engine/view';
 
 /** The barbarians' voyage in numbers: where the ship is, how far it has to go, strength against defense. */
-function barbarianStatus(view: PlayerView) {
+export function barbarianStatus(view: PlayerView) {
   const position = view.barbarian.position;
   const left = Math.max(1, BARBARIAN_DISTANCE - position);
   const strength = barbarianStrength(view);
@@ -13,7 +13,7 @@ function barbarianStatus(view: PlayerView) {
   return { position, left, strength, defense, danger: left <= 2, losing: strength > defense };
 }
 
-function describe(s: ReturnType<typeof barbarianStatus>): string {
+export function describeBarbarians(s: ReturnType<typeof barbarianStatus>): string {
   const when = s.left === 1 ? 'They attack on the next ship roll' : `${s.left} more ship rolls until they attack`;
   return `Barbarians: ${when}. Their strength ${s.strength} (one per city) against the knights' defense ${s.defense} (active knights).`;
 }
@@ -27,18 +27,18 @@ function describe(s: ReturnType<typeof barbarianStatus>): string {
 export function BarbarianMeter({ view, compact = false }: { view: PlayerView; compact?: boolean }) {
   if (view.mode !== 'ck') return null;
   const s = barbarianStatus(view);
-  const label = describe(s);
+  const label = describeBarbarians(s);
   const warn = s.danger ? 'text-[#ff8a73]' : '';
   const versus = (
     <span className="flex items-center gap-1 font-black tabular">
       <span className={`flex items-center gap-0.5 ${s.losing ? 'text-[#ff8a73]' : ''}`} title="Barbarian strength: cities on the board">
         <Sailboat size={compact ? 11 : 14} strokeWidth={2.5} />
-        {s.strength}
+        <span className="min-w-[2ch]">{s.strength}</span>
       </span>
       <span className="text-[10px] font-bold opacity-60">vs</span>
       <span className={`flex items-center gap-0.5 ${s.losing ? '' : 'text-[#8fe0a8]'}`} title="Knight defense: active knights">
         <Swords size={compact ? 11 : 14} strokeWidth={2.5} />
-        {s.defense}
+        <span className="min-w-[2ch]">{s.defense}</span>
       </span>
     </span>
   );
