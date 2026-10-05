@@ -278,10 +278,9 @@ body {
 }
 
 @layer components {
-  /* A printed game component: white card, thin ink rule, soft drop. */
+  /* A printed game component: white card, thin ink rule. Flat: the ink line sets it apart. */
   .paper {
     @apply rounded-[var(--radius-card)] border-[1.5px] border-ink bg-paper text-ink;
-    box-shadow: var(--shadow-float);
   }
   .paper-flat {
     @apply rounded-[var(--radius-card)] border-[1.5px] border-ink/70 bg-paper text-ink;
@@ -290,7 +289,6 @@ body {
      against any board theme. */
   .glass {
     @apply rounded-[var(--radius-card)] border-[1.5px] border-ink bg-sea-800;
-    box-shadow: var(--shadow-float);
   }
   .label {
     @apply text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft;
