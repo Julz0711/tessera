@@ -26,6 +26,9 @@
   --color-ink-faint: #82949a;
 
   --color-amber: #f2b33d;
+  /* The selected state (a chosen option, a pressed toggle): pale sea blue, apart from the amber primary. */
+  --color-pick: #c9e4f0;
+  --color-pick-shade: #a6cfe0;
   --color-amber-deep: #b97b12;
   --color-terracotta: #cf6440;
   --color-moss: #5e8c46;
@@ -366,8 +369,8 @@ body {
 }
 /* Switched on (a build being placed, an open panel, the chosen option): amber, like the next action. */
 .btn.btn-on {
-  --btn-bg: #f6be4c;
-  --btn-shade: #eaa733;
+  --btn-bg: var(--color-pick);
+  --btn-shade: var(--color-pick-shade);
 }
 /* A control standing straight on the board: deep sea with the ink line, like the HUD panels. */
 .btn.btn-dark {
@@ -423,7 +426,7 @@ body {
 }
 .seg-opt[aria-checked='true'] {
   border-color: var(--color-ink);
-  background: linear-gradient(135deg, #f6be4c calc(100% - 0.7rem), #eaa733 0);
+  background: linear-gradient(135deg, var(--color-pick) calc(100% - 0.7rem), var(--color-pick-shade) 0);
   color: var(--color-ink);
 }
 .seg-opt:disabled {

@@ -205,7 +205,7 @@ export function KnightCustomizer({
               aria-selected={on}
               onClick={() => choose(n)}
               className={`flex items-center gap-2 rounded-[6px] border-[1.5px] py-1 pl-1 pr-3 text-left transition ${
-                on ? 'border-ink bg-amber' : 'border-ink/15 hover:border-ink/40'
+                on ? 'border-ink bg-pick' : 'border-ink/15 hover:border-ink/40'
               }`}
             >
               <KnightBadge knight={knightLook(value, n)} color={color} size={44} />

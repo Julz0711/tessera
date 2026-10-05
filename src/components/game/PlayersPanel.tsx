@@ -208,6 +208,25 @@ export function PlayersPanel({
               {view.winner === seat && <Crown size={12} className="text-amber-deep" />}
               {vp}
             </span>
+            {/* The merchant and Defender points (C&K) ride on the portrait, so every card keeps one height. */}
+            {p.defender > 0 && (
+              <span
+                className="absolute -left-1.5 -top-1 flex h-5 items-center gap-px rounded-[5px] border-[1.5px] border-ink bg-sea-600 px-0.5 text-[10px] font-black leading-none text-white tabular"
+                title="Defender of the island: 1 VP for each barbarian attack this player beat back best"
+                aria-label={`Defender of the island: +${p.defender} VP`}
+              >
+                <ShieldHalf size={10} strokeWidth={2.6} />+{p.defender}
+              </span>
+            )}
+            {view.merchant?.owner === seat && (
+              <span
+                className="absolute -right-1.5 -top-1 grid h-5 w-5 place-items-center rounded-[5px] border-[1.5px] border-ink bg-moss text-white"
+                title="Has the merchant: 1 VP while it stays"
+                aria-label="Has the merchant"
+              >
+                <Store size={12} strokeWidth={2.4} />
+              </span>
+            )}
             <ReactionBubble playerId={p.id} side={compact ? 'below' : align === 'right' ? 'left' : 'right'} />
           </div>
         );
@@ -219,11 +238,12 @@ export function PlayersPanel({
                 ink="#1f1a14"
                 n={p.handCount}
                 title="Cards in hand"
-                small={compact}
+                small={compact || ck}
                 warn={view.phase === 'play' && p.handCount > handLimit(view, seat) ? `over ${handLimit(view, seat)}: a 7 costs half` : undefined}
               />
               {ck ? (
                 <span className="flex items-center gap-2.5">
+                  {/* the hand and the three progress decks share one size, so their badges line up */}
                   {TRACKS.map((t) => (
                     <CardIcon key={t} bg={TRACK_STYLE[t].color} ink={TRACK_STYLE[t].ink} n={p.progressTracks[t]} title={`${TRACK_STYLE[t].label} progress cards`} glyph="" small />
                   ))}
@@ -252,17 +272,6 @@ export function PlayersPanel({
                   value={p.knightsPlayed}
                   title={view.largestArmy === seat ? `Largest army (${p.knightsPlayed} knights)` : 'Knights played'}
                   award={view.largestArmy === seat ? 'bg-terracotta text-white' : undefined}
-                />
-              )}
-              {view.merchant?.owner === seat && (
-                <Stat icon={<Store size={13} />} value="1" title="Has the merchant: 1 VP while it stays" award="bg-moss text-white" />
-              )}
-              {p.defender > 0 && (
-                <Stat
-                  icon={<ShieldHalf size={13} />}
-                  value={`+${p.defender}`}
-                  title="Defender of the island: 1 VP for each barbarian attack this player beat back best"
-                  award="bg-sea-600 text-white"
                 />
               )}
             </div>

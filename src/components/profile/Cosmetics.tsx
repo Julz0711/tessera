@@ -343,7 +343,7 @@ export function CosmeticsPicker({
               onClick={() => onChange({ ...value, frame: f.id })}
               aria-pressed={on}
               className={`grid justify-items-center gap-1 rounded-[6px] border-[1.5px] p-2 transition ${
-                on ? 'border-ink bg-amber' : 'border-transparent bg-paper-2/70 hover:border-ink/30'
+                on ? 'border-ink bg-pick' : 'border-transparent bg-paper-2/70 hover:border-ink/30'
               } ${open ? '' : 'cursor-not-allowed'}`}
             >
               <span className={open ? '' : 'opacity-45 grayscale'}>
@@ -384,7 +384,7 @@ export function CosmeticsPicker({
               }`}
               style={
                 on
-                  ? { color: 'var(--color-ink)', background: 'var(--color-amber)' }
+                  ? { color: 'var(--color-ink)', background: 'var(--color-pick)' }
                   : { color: open ? TIER_COLOR[t.tier] : undefined, background: open ? `${TIER_COLOR[t.tier]}1f` : 'rgb(0 0 0 / 0.05)' }
               }
             >
