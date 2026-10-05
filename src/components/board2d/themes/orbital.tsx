@@ -47,18 +47,23 @@ const orbitalRoad: RoadGlyph = ({ x1, y1, x2, y2, color, ghost, k = 1 }) => {
   );
 };
 
-/** Orbital's metropolis: a great dome circled by a ring in the track's colour, a beacon on top. */
+/** Orbital's metropolis: a great dome on a plinth, girdled by a tilted ring in the track's colour, a beacon on its mast. */
 const orbitalMetropolis: MetropolisGlyph = ({ x, y, color, accent }) => {
   const c = pc(color);
+  // The ring's ellipse, tilted; its back half is drawn behind the dome and its front half over it.
+  const ring = (sweep: 0 | 1) => `M${x - 29} ${y + 1}A29 7 -12 0 ${sweep} ${x + 29} ${y - 11}`;
   return (
-    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round">
-      <line x1={x} y1={y - 18} x2={x} y2={y - 34} stroke={c.dark} strokeWidth="2.4" />
-      <circle cx={x} cy={y - 36} r="3" fill={accent} strokeWidth="2" />
-      <path d={`M${x - 24} ${y + 9}a24 27 0 0 1 48 0Z`} fill={c.hex} />
-      <ellipse cx={x} cy={y - 2} rx="30" ry="6" fill="none" stroke={accent} strokeWidth="3.4" />
-      <rect x={x - 28} y={y + 8} width="56" height="10" rx="2" fill={c.dark} />
-      <circle cx={x - 10} cy={y - 8} r="2" fill={CYAN} />
-      <circle cx={x + 9} cy={y - 10} r="2" fill={CYAN} />
+    <g stroke={c.dark} strokeWidth={OUTLINE} strokeLinejoin="round" strokeLinecap="round">
+      <line x1={x} y1={y - 20} x2={x} y2={y - 33} strokeWidth="2.4" />
+      <circle cx={x} cy={y - 35} r="3.2" fill={accent} strokeWidth="2" />
+      <path d={ring(1)} fill="none" stroke={c.dark} strokeWidth="7" />
+      <path d={ring(1)} fill="none" stroke={accent} strokeWidth="3" />
+      <path d={`M${x - 22} ${y + 9}a22 29 0 0 1 44 0Z`} fill={c.hex} />
+      <circle cx={x - 8} cy={y - 7} r="2" fill={CYAN} strokeWidth="1.4" />
+      <circle cx={x + 8} cy={y - 10} r="2" fill={CYAN} strokeWidth="1.4" />
+      <rect x={x - 27} y={y + 8} width="54" height="10" rx="2" fill={c.dark} />
+      <path d={ring(0)} fill="none" stroke={c.dark} strokeWidth="7" />
+      <path d={ring(0)} fill="none" stroke={accent} strokeWidth="3" />
     </g>
   );
 };
