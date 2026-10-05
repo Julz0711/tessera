@@ -185,18 +185,18 @@ export function Landing() {
         <div className="hidden items-center gap-2 md:flex">
           <Link
             href="/patch-notes"
-            className="btn btn-dark relative h-9 w-9 p-0"
+            className="btn btn-dark btn-hex relative h-9 w-9 p-0"
             title={`Patch notes (${LATEST_PATCH})`}
             aria-label={newPatch ? `Patch notes: ${LATEST_PATCH} is new` : "Patch notes"}
           >
             <ScrollText size={17} />
             {newPatch && (
-              <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-ink bg-amber" />
+              <span className="absolute right-1 top-2 h-2.5 w-2.5 rounded-full border-2 border-ink bg-amber" />
             )}
           </Link>
           <Link
             href="/leaderboard"
-            className="btn btn-dark h-9 w-9 p-0"
+            className="btn btn-dark btn-hex h-9 w-9 p-0"
             title="Leaderboard"
             aria-label="Leaderboard"
           >
@@ -216,7 +216,7 @@ export function Landing() {
           )}
           <button
             type="button"
-            className="btn btn-dark h-9 w-9 p-0"
+            className="btn btn-dark btn-hex h-9 w-9 p-0"
             title="Settings"
             aria-label="Settings"
             onClick={() => useSettingsUI.getState().show()}
@@ -230,7 +230,7 @@ export function Landing() {
         </div>
         <div className="flex shrink-0 items-center gap-2 md:hidden">
           <Link href="/profile" className="btn btn-dark h-11 w-11 p-0" aria-label="Your profile"><KnightBadge knight={knight} color={color} size={28} /></Link>
-          <button className="btn btn-dark h-11 w-11 p-0" aria-label="Open navigation" aria-haspopup="dialog" onClick={() => setMenu(true)}><Menu size={20} /></button>
+          <button className="btn btn-dark btn-hex h-11 w-11 p-0" aria-label="Open navigation" aria-haspopup="dialog" onClick={() => setMenu(true)}><Menu size={20} /></button>
         </div>
       </header>
 

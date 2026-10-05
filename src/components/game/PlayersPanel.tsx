@@ -57,7 +57,7 @@ function CardIcon({
     >
       {glyph}
       <span
-        className={`absolute -right-2 -top-2 grid h-4.5 min-w-4.5 place-items-center rounded-full border-2 border-ink px-0.5 text-[10px] leading-none tabular ${warn ? 'bg-danger text-paper' : 'bg-paper text-ink'}`}
+        className={`hex-badge -right-2 -top-2.5 w-4.5 tabular ${warn ? 'hex-badge-warn' : ''}`}
       >
         {n}
       </span>

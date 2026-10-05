@@ -39,7 +39,7 @@ export function ReactionPicker() {
     <div className="relative">
       <button
         type="button"
-        className="btn btn-dark relative h-10 w-10 overflow-hidden p-0"
+        className="btn btn-dark btn-hex relative h-10 w-10 overflow-hidden p-0"
         onClick={() => setOpen((o) => !o)}
         aria-label="Quick reaction"
         aria-expanded={open}
@@ -47,7 +47,7 @@ export function ReactionPicker() {
       >
         <SmilePlus size={18} />
         {/* the cooldown drains across the button */}
-        {cooling && <span key={last} className="absolute inset-x-0 bottom-0 h-1 origin-left animate-cooldown bg-amber" style={{ animationDuration: `${REACTION_COOLDOWN_MS}ms` }} />}
+        {cooling && <span key={last} className="absolute inset-x-1 bottom-3 h-1 origin-left animate-cooldown bg-amber" style={{ animationDuration: `${REACTION_COOLDOWN_MS}ms` }} />}
       </button>
       {open && (
         <div className="paper animate-pop absolute right-0 top-12 z-40 grid w-60 grid-cols-4 gap-1.5 p-2" role="menu">

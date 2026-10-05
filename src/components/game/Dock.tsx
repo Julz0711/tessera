@@ -106,7 +106,7 @@ function ActionButton({
       aria-keyshortcuts={shortcut}
       title={shortcut ? `${hint ?? label} (${shortcut})` : (hint ?? label)}
       data-bank-anchor={bankAnchor ? '' : undefined}
-      className={`btn group relative min-w-0 flex-col gap-0.5 px-0 py-1.5 ${cost ? 'disabled:opacity-100' : ''} text-[10px] tracking-tight sm:min-w-16 sm:px-2.5 sm:text-[11px] sm:tracking-normal ${primary ? 'btn-primary' : active ? 'btn-on' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''} ${className}`}
+      className={`btn group relative min-w-0 flex-col gap-0.5 px-0 py-1.5 ${cost ? 'btn-keep' : ''} text-[10px] tracking-tight sm:min-w-16 sm:px-2.5 sm:text-[11px] sm:tracking-normal ${primary ? 'btn-primary' : active ? 'btn-on' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''} ${className}`}
     >
       {shortcut && <Kbd k={shortcut} className="absolute left-1 top-1 text-[11px]" />}
       {/* A build you can't make fades its icon and label, but not its cost: the dots show what's missing. */}
@@ -116,7 +116,7 @@ function ActionButton({
       </span>
       {cost && hand && <CostDots cost={cost} hand={hand} />}
       {left !== undefined && (
-        <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full border border-white/20 bg-sea-900 px-1 text-[10px] font-extrabold leading-none text-foam" title={`${left} left`}>
+        <span className="hex-badge hex-badge-ink -right-1.5 -top-2" title={`${left} left`}>
           {left}
         </span>
       )}
@@ -185,7 +185,7 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
 
       {/* actions: one row where there's room; on phones the builds and the turn's other moves
           get a row each, every button the same width, so nothing hides off the edge. */}
-      <div role="group" aria-label="Game actions" className="game-actions glass flex w-full flex-col gap-1.5 p-1.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-2 sm:p-2">
+      <div role="group" aria-label="Game actions" className="game-actions paper flex w-full flex-col gap-1.5 p-1.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-2 sm:p-2">
         <div className="grid auto-cols-fr grid-flow-col gap-1 sm:flex sm:gap-2">
           <ActionButton
             label="Road"
@@ -259,7 +259,7 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
             </>
           )}
         </div>
-        <span className="mx-0.5 hidden h-8 w-px bg-white/15 sm:block" />
+        <span className="mx-0.5 hidden h-8 w-px bg-ink/20 sm:block" />
         <div className="grid auto-cols-fr grid-flow-col gap-1.5 sm:flex sm:items-center sm:gap-2">
           {/* phones: Improve rides with the turn's other moves, keeping the build row short */}
           {ck && <ActionButton label="Improve" icon={<Hammer size={20} />} onClick={() => ui.setPanel('improve')} active={ui.panel === 'improve'} disabled={view.phase !== 'play'} hint="City improvements" className="sm:hidden" />}
@@ -272,7 +272,7 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
             disabled={view.phase !== 'play' || !view.turn.rolled || !free}
           />
           <ActionButton label="Bank" shortcut="B" icon={<Landmark size={20} />} onClick={() => ui.setPanel('bank')} active={ui.panel === 'bank'} disabled={!canBuild} bankAnchor />
-          <span className="mx-0.5 hidden h-8 w-px bg-white/15 sm:block" />
+          <span className="mx-0.5 hidden h-8 w-px bg-ink/20 sm:block" />
           <ActionButton
             label="End turn"
             icon={seconds !== null ? <span className="font-mono text-base font-black leading-none tabular">{seconds}s</span> : <Hourglass size={20} />}

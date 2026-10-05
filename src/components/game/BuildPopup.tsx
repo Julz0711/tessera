@@ -53,7 +53,7 @@ export function BuildPopup({ view, armed }: { view: PlayerView; armed: Armed }) 
             {LABEL[o.what]}
             {armed.options.length === 1 && <Kbd k="↵" />}
           </span>
-          <span className="absolute -right-2 -top-2 grid h-6 min-w-6 place-items-center rounded-full border border-ink/30 bg-paper px-1 text-[11px] font-black" title={`${count[o.what]} left`}>
+          <span className="hex-badge -right-2 -top-2.5 w-6 text-[11px]" title={`${count[o.what]} left`}>
             {count[o.what]}
           </span>
         </button>
