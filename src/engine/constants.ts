@@ -191,9 +191,7 @@ export const TREASURE_DECK: readonly TreasureKind[] = [
 export const VEILED_FOG_SEAS = 2;
 /** Veiled Isles: gold fields hidden under the fog, every game. */
 export const VEILED_FOG_GOLDS = 2;
-/** Veiled Isles: numbers for hidden and outer land (never 2, 7 or 12). */
-export const VEILED_NUMBERS: readonly number[] = [3, 4, 5, 6, 8, 9, 10, 11];
-/** Veiled Isles: the hidden land's numbers, plus one more drawn at random from `VEILED_NUMBERS`. */
+/** Veiled Isles: the numbers for the 12 hidden hexes that produce (gold included). */
 export const VEILED_FOG_TOKENS: readonly number[] = [3, 11, 4, 10, 5, 5, 9, 9, 6, 6, 8, 8];
 /** Veiled Isles "three resources" treasure. */
 export const TREASURE_BUNDLE = { wool: 1, grain: 1, brick: 1 } as const;

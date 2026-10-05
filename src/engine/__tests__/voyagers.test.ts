@@ -293,7 +293,7 @@ describe('Zealand', () => {
 });
 
 describe('Veiled Isles', () => {
-  it('hides exactly 2 sea and 2 gold under fog, with an even spread of 3–11 numbers', () => {
+  it('hides exactly 2 sea, 2 gold, 1 desert and 2 of each resource under fog, with an even spread of 3–11 numbers', () => {
     const seaSpots = new Set<string>();
     for (const seed of seeds) {
       const board = generateBoard({ rng: seed }, 'veiledIsles');
@@ -303,20 +303,23 @@ describe('Veiled Isles', () => {
       expect(seas, `seed ${seed}`).toHaveLength(2);
       seaSpots.add(seas.map((h) => h.id).join());
       expect(fog.filter((h) => h.terrain === 'gold'), `seed ${seed}`).toHaveLength(2);
-      expect(fog.filter((h) => h.terrain === 'desert')).toHaveLength(0);
+      expect(fog.filter((h) => h.terrain === 'desert'), `seed ${seed}`).toHaveLength(1);
+      for (const r of ['forest', 'hills', 'pasture', 'fields', 'mountains']) {
+        expect(fog.filter((h) => h.terrain === r), `seed ${seed} ${r}`).toHaveLength(2);
+      }
       for (const h of fog) {
-        if (h.terrain === 'sea') expect(h.token).toBeNull();
+        if (h.terrain === 'sea' || h.terrain === 'desert') expect(h.token).toBeNull();
         else expect([3, 4, 5, 6, 8, 9, 10, 11]).toContain(h.token);
       }
-      // One each of 3, 11, 4 and 10, two each of 5, 9, 6 and 8, and one more at random.
-      const tokens = fog.filter((h) => h.terrain !== 'sea').map((h) => h.token!);
+      // Exactly one each of 3, 11, 4 and 10, two each of 5, 9, 6 and 8.
+      const tokens = fog.filter((h) => h.terrain !== 'sea' && h.terrain !== 'desert').map((h) => h.token!);
       const base = [3, 11, 4, 10, 5, 5, 9, 9, 6, 6, 8, 8];
       const rest = [...tokens];
       for (const n of base) {
         expect(rest, `seed ${seed}`).toContain(n);
         rest.splice(rest.indexOf(n), 1);
       }
-      expect(rest, `seed ${seed}`).toHaveLength(1);
+      expect(rest, `seed ${seed}`).toHaveLength(0);
       // No 6s or 8s side by side.
       const t = getTopology(board.hexes);
       for (const h of fog) if (h.token === 6 || h.token === 8) {
