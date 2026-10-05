@@ -225,7 +225,7 @@ export function PlayersPanel({
         );
         const contents = (
           <>
-            <div className={`flex items-center ${compact ? 'gap-2.5' : 'gap-2 pt-1'}`}>
+            <div className={`flex items-center ${compact ? 'gap-2.5' : 'gap-3 pt-1'}`}>
               <CardIcon
                 bg={HAND_BG}
                 ink="#1f1a14"
@@ -235,7 +235,7 @@ export function PlayersPanel({
                 warn={view.phase === 'play' && p.handCount > handLimit(view, seat) ? `over ${handLimit(view, seat)}: a 7 costs half` : undefined}
               />
               {ck ? (
-                <span className={`flex items-center ${compact ? 'gap-2.5' : 'gap-2'}`}>
+                <span className={`flex items-center ${compact ? 'gap-2.5' : 'gap-3'}`}>
                   {/* the hand and the three progress decks share one size, so their badges line up */}
                   {TRACKS.map((t) => (
                     <CardIcon key={t} bg={TRACK_STYLE[t].color} ink={TRACK_STYLE[t].ink} n={p.progressTracks[t]} title={`${TRACK_STYLE[t].label} progress cards`} glyph="" small />
@@ -318,7 +318,7 @@ export function PlayersPanel({
             ) : (
               <>
                 {nameRow}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {avatar}
                   {contents}
                 </div>
