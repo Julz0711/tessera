@@ -49,12 +49,13 @@ function TrackKey({ view, track, onDone }: { view: PlayerView; track: Track; onD
   const myTurn = view.phase === 'play' && view.turn.seat === me && view.turn.rolled && view.pending.length === 0;
   const metropolis = view.metropolis[track] === me;
   const next = level + 1;
+  const off = !myTurn || !!blocker;
   const hint = level >= 5 ? `${style.label}: top level reached` : `${style.label} level ${next}${next === 3 ? ` unlocks ${style.ability}` : next >= 4 ? ' can win the metropolis' : ''}${blocker ? `. ${blocker}` : ''}`;
   return (
     <button
       type="button"
       role="menuitem"
-      disabled={!myTurn || !!blocker}
+      disabled={off}
       title={hint}
       className="btn relative size-20 flex-col gap-1 px-1 py-1 text-[11px]"
       onClick={() => {
@@ -64,17 +65,19 @@ function TrackKey({ view, track, onDone }: { view: PlayerView; track: Track; onD
       }}
     >
       <span className="flex items-center gap-1 leading-none">
-        <MiniArt card={style.commodity} size={14} />
+        <span className={off ? 'opacity-50 grayscale' : ''}>
+          <MiniArt card={style.commodity} size={14} />
+        </span>
         {style.label}
       </span>
       <span className="flex items-end gap-[3px]" aria-label={`Level ${level} of 5`}>
         {LEVELS.map((n) => (
           <span
             key={n}
-            className="grid w-3 place-items-center rounded-[2px] border border-ink"
-            style={{ height: 8 + n * 2.5, background: n <= level ? style.color : 'transparent', color: style.ink }}
+            className={`grid w-3 place-items-center rounded-[2px] border ${off ? 'border-current' : 'border-ink'}`}
+            style={{ height: 8 + n * 2.5, background: n <= level && !off ? style.color : 'transparent', color: off ? undefined : style.ink }}
           >
-            {n === 3 && <Star size={7} strokeWidth={4} className={n <= level ? '' : 'text-ink/40'} />}
+            {n === 3 && <Star size={7} strokeWidth={4} className={off ? '' : n <= level ? '' : 'text-ink/40'} />}
           </span>
         ))}
       </span>

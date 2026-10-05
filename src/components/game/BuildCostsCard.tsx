@@ -47,10 +47,15 @@ export function CostDots({ cost, hand }: { cost: PartialHand; hand: PartialHand 
     <span className="flex items-center gap-0.5" aria-label={`Costs ${label}`}>
       {entries.flatMap(([c, n]) =>
         Array.from({ length: n }, (_, i) => (
+          // A card you're missing is the same pip left hollow, in its colour, rather than greyed out.
           <span
             key={`${c}${i}`}
-            className={`h-2.5 w-2 rounded-[2px] shadow-[inset_0_0_0_1px_rgb(0_0_0/0.3)] ${(hand[c] ?? 0) > i ? '' : 'opacity-30 grayscale'}`}
-            style={{ background: CARD_COLORS[c].bg }}
+            className="h-2.5 w-2 rounded-[2px]"
+            style={
+              (hand[c] ?? 0) > i
+                ? { background: CARD_COLORS[c].bg, boxShadow: 'inset 0 0 0 1px rgb(0 0 0 / 0.3)' }
+                : { boxShadow: `inset 0 0 0 1.5px ${CARD_COLORS[c].bg}`, opacity: 0.8 }
+            }
           />
         )),
       )}

@@ -58,7 +58,9 @@ export function Die({ value, rollKey, size = 44, bg = '#f6eddb', pip = '#1f1a14'
         style={{
           ['--half' as string]: `${size / 2}px`,
           transformStyle: 'preserve-3d',
-          transform: `${spin} ${FACE_TRANSFORM[value] ?? ''}`,
+          // The perspective draws the front face 1/16 larger than the die's box (it sits half a die
+          // nearer); scaling it back keeps the die's edges on its box, in line with the HUD.
+          transform: `scale(0.9375) ${spin} ${FACE_TRANSFORM[value] ?? ''}`,
           transition: 'transform 0.95s cubic-bezier(0.22, 1.2, 0.36, 1)',
         }}
       >
