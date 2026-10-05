@@ -227,19 +227,16 @@ function Segmented<T extends string | number>({
   format?: (v: T) => string;
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div role="radiogroup" className="seg flex-wrap">
       {options.map((o) => (
         <button
           key={String(o)}
           type="button"
+          role="radio"
           disabled={disabled}
           onClick={() => onChange(o)}
-          aria-pressed={value === o}
-          className={`min-h-11 rounded-lg border-2 px-3 py-1 text-sm font-bold transition disabled:cursor-default ${
-            value === o
-              ? "border-ink bg-ink text-paper"
-              : "border-ink/20 bg-white/40 enabled:hover:border-ink/60"
-          } ${disabled && value !== o ? "opacity-40" : ""}`}
+          aria-checked={value === o}
+          className="seg-opt min-h-10"
         >
           {format ? format(o) : String(o)}
         </button>
@@ -296,10 +293,10 @@ function MapSegmented({
           disabled={disabled}
           onClick={() => onChange(o)}
           aria-pressed={value === o}
-          className={`flex flex-col items-center gap-1 rounded-lg border-2 px-3 py-1.5 text-sm font-bold transition disabled:cursor-default ${
+          className={`flex flex-col items-center gap-1 rounded-[5px] border-[1.5px] px-3 py-1.5 text-sm font-bold transition disabled:cursor-default ${
             value === o
-              ? "border-ink bg-ink text-paper"
-              : "border-ink/20 bg-white/40 enabled:hover:border-ink/60"
+              ? "border-ink bg-[#fffaf0] shadow-[0_0_0_2px_var(--color-amber)]"
+              : "border-ink/20 bg-white/30 enabled:hover:border-ink/60"
           } ${disabled && value !== o ? "opacity-40" : ""}`}
         >
           <MapPreview map={o} size={64} />

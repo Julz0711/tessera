@@ -276,10 +276,13 @@ body {
   .paper-flat {
     @apply grain rounded-[var(--radius-card)] border-[1.5px] border-ink/70 bg-paper text-ink;
   }
-  /* A HUD panel over the board: solid enough to read against any board theme, with a cream rim
-     like the logo's. */
+  /* A HUD panel over the board, framed like the logo: deep sea inside a thin ink line and a cream
+     rim, solid enough to read against any board theme. */
   .glass {
-    @apply rounded-[var(--radius-card)] border-[1.5px] border-foam/20 bg-sea-900/92 backdrop-blur-md;
+    @apply rounded-[var(--radius-card)] border-[1.5px] border-ink bg-sea-800;
+    box-shadow:
+      0 0 0 2px var(--color-paper),
+      var(--shadow-float);
   }
   .label {
     @apply text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft;
@@ -301,17 +304,27 @@ body {
 /* Component classes live in the components layer so Tailwind utilities (utilities layer)
    can still override them, e.g. `btn sm:hidden` or `btn gap-0.5`. */
 @layer components {
-/* The app's one button, on every page and in the HUD. Printed like a game piece: a light cream
-   fill with a thin ink line, square-ish corners and no drop shadow, so it reads the same over the
-   board, in the dock and in dialogs. Things that are live right now (the next action, a switched-on
-   build) add the logo's cream rim outside the ink line. Variants set
-   --btn-bg / --btn-fg / --btn-line / --btn-hover. */
+/* The logo's language, applied to every control:
+   - the edge: a cream rim, a thin ink line, then the content (the logo hex's two strokes);
+   - the facet: each fill has a shaded corner cut off at 45 degrees, bottom right, like the shade
+     side of the logo's peak (fixed size, so wide and small keys look alike);
+   - its palette: sea teal, mountain green, cream, with amber as the one primary colour.
+   HUD panels are framed like the logo; buttons are printed cream keys on them. Variants set
+   --btn-bg / --btn-shade / --btn-fg / --btn-line / --btn-rim. */
+:root {
+  --rim: var(--color-paper);
+  /* What a faded (disabled) control is drawn in: foam over the dark HUD, ink on paper. */
+  --faded: rgb(212 236 230);
+}
+:is(.paper, .paper-flat, .bg-paper) {
+  --faded: rgb(31 26 20);
+}
 .btn {
   --btn-bg: #fffaf0;
+  --btn-shade: #f1e4c9;
   --btn-fg: var(--color-ink);
   --btn-line: var(--color-ink);
-  --btn-hover: #ffffff;
-  --btn-rim: none;
+  --btn-rim: transparent;
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -319,120 +332,125 @@ body {
   gap: 0.5rem;
   border: 1.5px solid var(--btn-line);
   border-radius: 4px;
-  background: var(--btn-bg);
+  background: linear-gradient(135deg, var(--btn-bg) calc(100% - 0.85rem), var(--btn-shade) 0);
   color: var(--btn-fg);
-  box-shadow: var(--btn-rim);
+  box-shadow: 0 0 0 2px var(--btn-rim);
   font-weight: 700;
   letter-spacing: 0.01em;
   transition:
     transform 0.06s ease,
-    background-color 0.12s ease,
-    border-color 0.12s ease;
+    filter 0.12s ease;
   user-select: none;
 }
 .btn:hover:not(:disabled) {
-  background: var(--btn-hover);
+  filter: brightness(1.05);
 }
 .btn:active:not(:disabled) {
   transform: translateY(1px);
 }
-/* Out of reach: the button stays printed but fades back, so the ones you can take stand out. */
+/* Out of reach: the key loses its fill and is only drawn in outline, so what you can press stands
+   out at a glance. */
 .btn:disabled {
-  --btn-rim: none;
-  opacity: 0.42;
-  cursor: not-allowed;
-}
-/* A build you can't afford keeps its cost dots at full strength (they say what's missing), so
-   only the button's fill and line drop away. */
-.btn.btn-keep:disabled {
-  opacity: 1;
   background: transparent;
-  border-color: color-mix(in srgb, var(--btn-line), transparent 62%);
+  border-color: color-mix(in srgb, var(--faded) 30%, transparent);
+  box-shadow: none;
+  color: color-mix(in srgb, var(--faded) 50%, transparent);
+  cursor: not-allowed;
 }
 .btn:focus-visible {
   outline: 2px solid var(--color-amber);
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
-/* The one action to take next: amber with the ink line and the logo's cream rim. */
+/* The one action to take next: amber, with the logo's cream rim. */
 .btn.btn-primary {
-  --btn-bg: var(--color-amber);
-  --btn-hover: #f6c45f;
-  --btn-rim: 0 0 0 2px var(--color-paper);
+  --btn-bg: #f6be4c;
+  --btn-shade: #eaa733;
+  --btn-rim: var(--rim);
 }
-/* Switched on: a build being placed, an open panel, the chosen option in a group. */
+/* Switched on (a build being placed, an open panel, the chosen option): the logo's green. */
 .btn.btn-on {
-  --btn-bg: var(--color-sea-500);
-  --btn-fg: #fffaf0;
-  --btn-hover: #33909f;
-  --btn-rim: 0 0 0 2px var(--color-paper);
+  --btn-bg: #a6d677;
+  --btn-shade: #8dc160;
+  --btn-rim: var(--rim);
 }
-/* On paper the rim would vanish into the cream anyway, as it does around the logo. */
+/* On paper the rim vanishes into the cream, as it does around the logo. */
 :is(.paper, .paper-flat, .bg-paper) .btn {
-  --btn-rim: none;
+  --btn-rim: transparent;
 }
-/* For the few controls that sit straight on the board and must stay out of its way. */
+/* A control standing straight on the board: the logo itself, sea teal with the cream rim. */
 .btn.btn-dark {
-  --btn-bg: var(--color-sea-900);
-  --btn-fg: var(--color-paper);
-  --btn-line: rgb(212 236 230 / 0.35);
-  --btn-hover: var(--color-sea-800);
+  --btn-bg: #2f8a9b;
+  --btn-shade: #27788a;
+  --btn-fg: #fffaf0;
+  --btn-rim: var(--rim);
 }
 .btn.btn-danger {
-  --btn-bg: var(--color-terracotta);
+  --btn-bg: #d76f4b;
+  --btn-shade: #c45f3b;
   --btn-fg: #fff8ef;
-  --btn-hover: #d97a57;
 }
 .btn.btn-ghost {
   --btn-bg: transparent;
+  --btn-shade: transparent;
   --btn-fg: inherit;
   --btn-line: transparent;
-  --btn-hover: rgb(127 127 127 / 0.14);
+  --btn-rim: transparent;
+}
+.btn.btn-ghost:hover:not(:disabled) {
+  filter: none;
+  background: rgb(127 127 127 / 0.14);
 }
 .btn.btn-ghost:disabled {
   border-color: transparent;
 }
+/* Mutually exclusive options in one track (S · M · L): the chosen one is a raised cream key. */
+.seg {
+  display: inline-flex;
+  width: fit-content;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 6px;
+  border: 1.5px solid color-mix(in srgb, var(--faded) 22%, transparent);
+  background: color-mix(in srgb, var(--faded) 8%, transparent);
+}
+.seg-opt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 2.75rem;
+  padding: 0.4rem 0.9rem;
+  border: 1.5px solid transparent;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--faded) 70%, transparent);
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.seg-opt:hover:not(:disabled):not([aria-checked='true']) {
+  color: var(--faded);
+  background: color-mix(in srgb, var(--faded) 8%, transparent);
+}
+.seg-opt[aria-checked='true'] {
+  border-color: var(--color-ink);
+  background: linear-gradient(135deg, #fffaf0 calc(100% - 0.7rem), #efe2c6 0);
+  color: var(--color-ink);
+}
+.seg-opt:disabled {
+  cursor: default;
+}
+.seg-opt:disabled:not([aria-checked='true']) {
+  opacity: 0.5;
+}
+.seg-opt:focus-visible {
+  outline: 2px solid var(--color-amber);
+  outline-offset: 1px;
+}
 
-/* Square things take the logo's own shape: a pointy-top hex with the same ink line, drawn as the
-   hex in the line colour with the fill inset over it (a border can't follow a clip-path). */
-.btn.btn-hex,
+/* A small count on a card, a button or an avatar, as a little hex in the logo's shape: ink line,
+   cream fill (drawn as the hex in the line colour with the fill inset over it, since a border
+   can't follow a clip-path). */
 .hex-badge {
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  isolation: isolate;
-  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-}
-.btn.btn-hex {
-  height: auto !important;
-  aspect-ratio: 0.866;
-  background: var(--btn-line);
-}
-.btn.btn-hex::before,
-.hex-badge::before {
-  content: '';
-  position: absolute;
-  inset: 1.75px;
-  z-index: -1;
-  clip-path: inherit;
-  background: var(--btn-bg, var(--hx-fill));
-  transition: background-color 0.12s ease;
-}
-.btn.btn-hex:hover:not(:disabled) {
-  background: var(--btn-line);
-}
-.btn.btn-hex:hover:not(:disabled)::before {
-  background: var(--btn-hover);
-}
-.btn.btn-hex:focus-visible {
-  outline: 0;
-  background: var(--color-amber);
-}
-.btn.btn-hex.btn-dark {
-  --btn-line: rgb(212 236 230 / 0.45);
-}
-/* A small count on a card, a button or an avatar, as a little hex: ink line, cream fill. */
-.hex-badge {
-  --btn-bg: initial; /* don't pick up the fill of a button it sits on */
   --hx-line: var(--color-ink);
   --hx-fill: var(--color-paper);
   position: absolute;
@@ -440,13 +458,23 @@ body {
   place-items: center;
   width: 1.25rem;
   aspect-ratio: 0.866;
+  isolation: isolate;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   background: var(--hx-line);
   color: var(--color-ink);
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
 }
-/* Ink on cream, the logo's edge in miniature: for counts sitting on light buttons. */
+.hex-badge::before {
+  content: '';
+  position: absolute;
+  inset: 1.75px;
+  z-index: -1;
+  clip-path: inherit;
+  background: var(--hx-fill);
+}
+/* Cream on ink, for counts sitting on the cream keys. */
 .hex-badge-ink {
   --hx-line: var(--color-paper);
   --hx-fill: var(--color-ink);

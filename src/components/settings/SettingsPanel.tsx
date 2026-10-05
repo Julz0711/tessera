@@ -9,6 +9,7 @@ import { DEFAULT_HUD_LAYOUT, HUD_SCALE, useHud, type HudScale } from '@/client/h
 import { useSettingsUI, type SettingsTab } from '@/client/settingsUI';
 import { play, setVolume, setSfxVolumes, SFX_GROUPS } from '@/client/sound';
 import { MUSIC_MOOD_NAMES } from '@/client/music';
+import { Segmented } from '@/components/ui/Segmented';
 import { ThemeSwatch } from '@/components/ui/ThemeSwatch';
 import { InstallAppButton, useAppInstall } from '@/components/ui/AppExperience';
 
@@ -60,7 +61,7 @@ export function SettingsPanel() {
           <button
             key={t.id}
             type="button"
-            className={`btn shrink-0 justify-start gap-2 px-3 py-2 text-sm ${tab === t.id ? 'btn-primary' : ''}`}
+            className={`btn shrink-0 justify-start gap-2 px-3 py-2 text-sm ${tab === t.id ? 'btn-on' : ''}`}
             onClick={() => setTab(t.id)}
             aria-pressed={tab === t.id}
           >
@@ -74,21 +75,25 @@ export function SettingsPanel() {
           <>
             <Section title="Graphics" hint="The 2D board is lighter on older phones and laptops. You can switch any time during a game.">
               <div className="flex flex-wrap gap-2">
-                <button type="button" className={`btn px-4 py-2 ${prefs.view === '3d' ? 'btn-primary' : ''}`} onClick={() => prefs.set({ view: '3d' })}>
-                  <Box size={16} /> 3D board
-                </button>
-                <button type="button" className={`btn px-4 py-2 ${prefs.view === '2d' ? 'btn-primary' : ''}`} onClick={() => prefs.set({ view: '2d' })}>
-                  <Grid2x2 size={16} /> 2D board
-                </button>
+                <Segmented
+                  label="Board view"
+                  value={prefs.view}
+                  onChange={(view) => prefs.set({ view })}
+                  options={[
+                    { value: '3d', label: <><Box size={16} /> 3D board</> },
+                    { value: '2d', label: <><Grid2x2 size={16} /> 2D board</> },
+                  ]}
+                />
                 {prefs.view === '3d' && (
-                  <>
-                    <span className="mx-1 hidden w-px self-stretch bg-ink/10 sm:block" />
-                    {(['high', 'low'] as const).map((q) => (
-                      <button key={q} type="button" className={`btn px-4 py-2 capitalize ${prefs.graphics === q ? 'btn-primary' : ''}`} onClick={() => prefs.set({ graphics: q })}>
-                        {q} quality
-                      </button>
-                    ))}
-                  </>
+                  <Segmented
+                    label="Quality"
+                    value={prefs.graphics}
+                    onChange={(graphics) => prefs.set({ graphics })}
+                    options={[
+                      { value: 'high', label: 'High quality' },
+                      { value: 'low', label: 'Low quality' },
+                    ]}
+                  />
                 )}
               </div>
             </Section>
@@ -98,7 +103,7 @@ export function SettingsPanel() {
                   <button
                     key={t.id}
                     type="button"
-                    className={`btn justify-start gap-3 px-3 py-2 text-left ${prefs.boardTheme === t.id ? 'btn-primary' : ''}`}
+                    className={`btn justify-start gap-3 px-3 py-2 text-left ${prefs.boardTheme === t.id ? 'btn-on' : ''}`}
                     onClick={() => prefs.set({ boardTheme: t.id })}
                   >
                     <ThemeSwatch theme={t.id} size={44} />
@@ -111,22 +116,25 @@ export function SettingsPanel() {
               </div>
             </Section>
             <Section title="Weather" hint="Rain, blossom, snow, fireflies and more over the 3D board, to suit the theme. Stays off while animations are reduced.">
-              <div className="flex flex-wrap gap-2">
-                {([true, false] as const).map((on) => (
-                  <button key={String(on)} type="button" className={`btn px-4 py-2 ${prefs.weather === on ? 'btn-primary' : ''}`} onClick={() => prefs.set({ weather: on })}>
-                    {on ? 'On' : 'Off'}
-                  </button>
-                ))}
-              </div>
+              <Segmented
+                value={prefs.weather}
+                onChange={(weather) => prefs.set({ weather })}
+                options={[
+                  { value: true, label: 'On' },
+                  { value: false, label: 'Off' },
+                ]}
+              />
             </Section>
             <Section title="Board size" hint="Size of the pieces, number tokens and harbors on the board.">
-              <div className="flex flex-wrap gap-2">
-                {(['small', 'medium', 'large'] as const).map((s) => (
-                  <button key={s} type="button" className={`btn px-4 py-2 capitalize ${prefs.boardScale === s ? 'btn-primary' : ''}`} onClick={() => prefs.set({ boardScale: s })}>
-                    {s}
-                  </button>
-                ))}
-              </div>
+              <Segmented
+                value={prefs.boardScale}
+                onChange={(boardScale) => prefs.set({ boardScale })}
+                options={[
+                  { value: 'small', label: 'Small' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'large', label: 'Large' },
+                ]}
+              />
             </Section>
           </>
         )}
@@ -134,48 +142,48 @@ export function SettingsPanel() {
         {tab === 'gameplay' && (
           <>
             <Section title="Build hints" hint="Hovering a spot you can afford to build on previews the piece; click it to build.">
-              <div className="flex flex-wrap gap-2">
-                {([true, false] as const).map((on) => (
-                  <button key={String(on)} type="button" className={`btn px-4 py-2 ${prefs.buildHints === on ? 'btn-primary' : ''}`} onClick={() => prefs.set({ buildHints: on })}>
-                    {on ? 'On' : 'Off'}
-                  </button>
-                ))}
-              </div>
+              <Segmented
+                value={prefs.buildHints}
+                onChange={(buildHints) => prefs.set({ buildHints })}
+                options={[
+                  { value: true, label: 'On' },
+                  { value: false, label: 'Off' },
+                ]}
+              />
             </Section>
             <Section title="Confirm placements" hint="Placing a piece or moving the robber asks first: pick it in the popup, or click the spot again.">
-              <div className="flex flex-wrap gap-2">
-                {([true, false] as const).map((on) => (
-                  <button key={String(on)} type="button" className={`btn px-4 py-2 ${prefs.confirmBuilds === on ? 'btn-primary' : ''}`} onClick={() => prefs.set({ confirmBuilds: on })}>
-                    {on ? 'On' : 'Off'}
-                  </button>
-                ))}
-              </div>
+              <Segmented
+                value={prefs.confirmBuilds}
+                onChange={(confirmBuilds) => prefs.set({ confirmBuilds })}
+                options={[
+                  { value: true, label: 'On' },
+                  { value: false, label: 'Off' },
+                ]}
+              />
             </Section>
             <Section
               title="Auto-decline trades"
               hint="A trade offer asking for cards you don't have declines itself after 5 seconds (a bar on the offer counts down). Off: it waits until you answer."
             >
-              <div className="flex flex-wrap gap-2">
-                {([true, false] as const).map((on) => (
-                  <button
-                    key={String(on)}
-                    type="button"
-                    className={`btn px-4 py-2 ${prefs.autoDeclineTrades === on ? 'btn-primary' : ''}`}
-                    onClick={() => prefs.set({ autoDeclineTrades: on })}
-                  >
-                    {on ? 'After 5 seconds' : 'Off'}
-                  </button>
-                ))}
-              </div>
+              <Segmented
+                value={prefs.autoDeclineTrades}
+                onChange={(autoDeclineTrades) => prefs.set({ autoDeclineTrades })}
+                options={[
+                  { value: true, label: 'After 5 seconds' },
+                  { value: false, label: 'Off' },
+                ]}
+              />
             </Section>
             <Section title="Animations" hint="Cards flying to whoever gets them. System follows your device's reduce-motion setting; Reduced shows cards where they land instead.">
-              <div className="flex flex-wrap gap-2">
-                {(['system', 'full', 'reduced'] as const).map((m) => (
-                  <button key={m} type="button" className={`btn px-4 py-2 capitalize ${prefs.motion === m ? 'btn-primary' : ''}`} onClick={() => prefs.set({ motion: m })}>
-                    {m}
-                  </button>
-                ))}
-              </div>
+              <Segmented
+                value={prefs.motion}
+                onChange={(motion) => prefs.set({ motion })}
+                options={[
+                  { value: 'system', label: 'System' },
+                  { value: 'full', label: 'Full' },
+                  { value: 'reduced', label: 'Reduced' },
+                ]}
+              />
             </Section>
           </>
         )}
@@ -183,13 +191,11 @@ export function SettingsPanel() {
         {tab === 'interface' && (
           <>
             <Section title="HUD scale" hint="Size of the in-game panels, top bar and dock on wide screens. Phones fit them to the screen.">
-              <div className="flex flex-wrap gap-2">
-                {(Object.keys(HUD_SCALE) as HudScale[]).map((s) => (
-                  <button key={s} type="button" className={`btn px-4 py-2 ${prefs.hudScale === s ? 'btn-primary' : ''}`} onClick={() => prefs.set({ hudScale: s })}>
-                    {s === 'small' ? 'S' : s === 'medium' ? 'M' : 'L'}
-                  </button>
-                ))}
-              </div>
+              <Segmented
+                value={prefs.hudScale}
+                onChange={(hudScale) => prefs.set({ hudScale })}
+                options={(Object.keys(HUD_SCALE) as HudScale[]).map((s) => ({ value: s, label: s === 'small' ? 'S' : s === 'medium' ? 'M' : 'L' }))}
+              />
             </Section>
             <Section
               title="HUD layout"

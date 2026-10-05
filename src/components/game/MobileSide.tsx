@@ -21,9 +21,9 @@ export function MobileSide({ view }: { view: PlayerView }) {
   const [open, setOpen] = useState<SideTab | null>(null);
   const unread = useGame((s) => s.unread);
   const button = (id: SideTab, label: string, icon: React.ReactNode) => (
-    <button key={id} type="button" className="btn btn-dark btn-hex relative h-10 w-10 p-0" onClick={() => setOpen(id)} aria-label={label} aria-haspopup="dialog">
+    <button key={id} type="button" className="btn btn-dark relative h-10 w-10 p-0" onClick={() => setOpen(id)} aria-label={label} aria-haspopup="dialog">
       {icon}
-      {id === 'chat' && unread > 0 && <span className="absolute right-1.5 top-2.5 h-2.5 w-2.5 rounded-full border-2 border-ink bg-amber" />}
+      {id === 'chat' && unread > 0 && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-ink bg-amber" />}
     </button>
   );
   return (
@@ -39,7 +39,7 @@ export function MobileSide({ view }: { view: PlayerView }) {
               role="tab"
               aria-selected={open === t.id}
               onClick={() => setOpen(t.id)}
-              className={`btn flex-1 gap-1.5 px-2 py-1.5 text-sm ${open === t.id ? 'btn-primary' : ''}`}
+              className={`btn flex-1 gap-1.5 px-2 py-1.5 text-sm ${open === t.id ? 'btn-on' : ''}`}
             >
               {t.icon} {t.label}
             </button>

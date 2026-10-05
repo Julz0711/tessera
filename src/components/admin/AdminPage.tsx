@@ -134,7 +134,7 @@ export function AdminPage() {
             .map(([k, v]) => <div key={k} className="rounded-xl bg-paper-2/70 p-3"><dt className="label">{k}</dt><dd className="text-lg font-black tabular">{v}</dd></div>)}
         </dl>}
         <div role="tablist" aria-label="Tables" className="flex gap-1.5">
-          {(['games', 'users', 'guests'] as const).map((t) => <button key={t} role="tab" aria-selected={tab === t} className={`btn px-3 py-2 text-sm capitalize ${tab === t ? 'btn-primary' : ''}`} onClick={() => switchTab(t)}>{t}</button>)}
+          {(['games', 'users', 'guests'] as const).map((t) => <button key={t} role="tab" aria-selected={tab === t} className={`btn px-3 py-2 text-sm capitalize ${tab === t ? 'btn-on' : ''}`} onClick={() => switchTab(t)}>{t}</button>)}
         </div>
         <div className="flex flex-wrap gap-2">
           <input aria-label="Search" className={`${input} basis-full sm:basis-0 sm:flex-1`} value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }}

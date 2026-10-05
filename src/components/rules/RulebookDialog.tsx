@@ -78,7 +78,7 @@ export function RulebookDialog({ open, onClose, modes }: { open: boolean; onClos
               type="button"
               onClick={() => pick(c.id)}
               aria-current={c.id === chapter.id ? 'page' : undefined}
-              className={`btn shrink-0 justify-start whitespace-nowrap px-3 py-1.5 text-left text-sm md:whitespace-normal ${c.id === chapter.id ? 'btn-primary' : ''}`}
+              className={`btn shrink-0 justify-start whitespace-nowrap px-3 py-1.5 text-left text-sm md:whitespace-normal ${c.id === chapter.id ? 'btn-on' : ''}`}
             >
               {c.title}
             </button>

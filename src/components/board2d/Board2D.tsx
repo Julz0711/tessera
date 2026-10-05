@@ -775,7 +775,7 @@ export default function Board2D({
         <div className="flex gap-1.5">
           <button
             type="button"
-            className="btn btn-dark btn-hex h-10 w-10 p-0"
+            className="btn btn-dark h-10 w-10 p-0"
             onClick={zoomIn}
             disabled={zoom >= maxZoom - 1e-6}
             aria-label="Zoom in"
@@ -784,7 +784,7 @@ export default function Board2D({
           </button>
           <button
             type="button"
-            className="btn btn-dark btn-hex h-10 w-10 p-0"
+            className="btn btn-dark h-10 w-10 p-0"
             onClick={zoomOut}
             disabled={zoom <= minZoom + 1e-6}
             aria-label="Zoom out"
@@ -793,7 +793,7 @@ export default function Board2D({
           </button>
           <button
             type="button"
-            className="btn btn-dark btn-hex h-10 w-10 p-0"
+            className="btn btn-dark h-10 w-10 p-0"
             onClick={reset}
             disabled={atHome}
             aria-label="Reset zoom"

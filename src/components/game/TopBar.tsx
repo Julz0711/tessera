@@ -82,7 +82,7 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
         <div className="relative">
           <button
             type="button"
-            className="btn btn-dark btn-hex h-10 w-10 p-0"
+            className="btn btn-dark h-10 w-10 p-0"
             onClick={() => setMenu((m) => !m)}
             aria-label="Menu"
             aria-expanded={menu}
@@ -205,7 +205,7 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
         </div>
         <button
           type="button"
-          className="btn btn-dark btn-hex h-10 w-10 p-0 max-lg:hidden"
+          className="btn btn-dark h-10 w-10 p-0 max-lg:hidden"
           onClick={() => useSettingsUI.getState().show()}
           aria-label="Settings"
           title="Settings"

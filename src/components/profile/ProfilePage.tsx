@@ -86,7 +86,7 @@ export function ProfilePage() {
         {authError && <p className="paper-flat p-3 text-sm font-semibold text-terracotta">Sign-in didn&apos;t go through. Give it another try.</p>}
 
         {data && <nav aria-label="Profile sections" className="flex gap-2">{['overview', 'history', 'friends'].map((name) => (
-          <button key={name} type="button" aria-pressed={tab === name} onClick={() => change({ tab: name })} className={`btn px-4 py-2 capitalize ${tab === name ? 'btn-primary' : 'btn-dark'}`}>{name}</button>
+          <button key={name} type="button" aria-pressed={tab === name} onClick={() => change({ tab: name })} className={`btn px-4 py-2 capitalize ${tab === name ? 'btn-on' : 'btn-dark'}`}>{name}</button>
         ))}</nav>}
         {data && tab === 'overview' && (
           <section className="paper animate-rise grid grid-cols-[minmax(0,1fr)] gap-6 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:p-7">
