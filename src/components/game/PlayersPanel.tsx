@@ -51,8 +51,12 @@ function CardIcon({
   const label = `${title}: ${n}${warn ? ` (${warn})` : ''}`;
   return (
     <span
-      className={`relative grid shrink-0 place-items-center rounded-md border-2 border-ink font-black shadow-[0_2px_0_0_#1f1a14] ${small ? 'h-7.5 w-5 text-[11px]' : 'h-9 w-6.5 text-sm'} ${n ? '' : 'opacity-45'}`}
-      style={{ background: warn ? WARN_BG : bg, color: warn ? '#5a1510' : ink }}
+      className={`relative grid shrink-0 place-items-center rounded-md border-2 border-ink font-black shadow-[0_2px_0_0_#1f1a14] ${small ? 'h-7.5 w-5 text-[11px]' : 'h-9 w-6.5 text-sm'}`}
+      // None held: the outline stays ink, the face pales (fading the whole icon greyed its outline).
+      style={{
+        background: warn ? WARN_BG : n ? bg : bg.startsWith('#') ? `color-mix(in srgb, ${bg} 30%, #fbfcfc)` : '#efe9dc',
+        color: warn ? '#5a1510' : n ? ink : 'rgb(31 26 20 / 0.35)',
+      }}
       title={label}
       aria-label={label}
     >
@@ -313,7 +317,7 @@ export function PlayersPanel({
             })}
             className={`paper-flat relative flex shrink-0 flex-col gap-0.5 px-2.5 py-1.5 pl-3 transition-all duration-300 motion-reduce:transition-none ${
               compact ? 'min-w-max' : `min-w-0 ${highlight && !inline && turnSeat === seat ? (align === 'right' ? '-ml-4' : '-mr-4') : ''}`
-            } ${waiting ? 'opacity-70 saturate-50' : ''} ${
+            } ${waiting ? 'bg-paper-2 *:opacity-70 *:saturate-50' : ''} ${
               acting ? 'ring-4 ring-amber' : ''
             } ${clickable ? 'cursor-pointer hover:brightness-[0.97]' : ''}`}
             style={{ boxShadow: `inset 5px 0 0 ${c.hex}` }}

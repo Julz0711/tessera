@@ -283,7 +283,7 @@ body {
     @apply rounded-[var(--radius-card)] border-2 border-ink bg-paper text-ink;
   }
   .paper-flat {
-    @apply rounded-[var(--radius-card)] border-2 border-ink/70 bg-paper text-ink;
+    @apply rounded-[var(--radius-card)] border-2 border-ink bg-paper text-ink;
   }
   /* A HUD panel over the board: solid deep sea inside the logo's thin ink line, so it reads
      against any board theme. */
@@ -355,7 +355,8 @@ body {
    out at a glance. */
 .btn:disabled {
   background: transparent;
-  border-color: color-mix(in srgb, var(--faded) 30%, transparent);
+  /* The outline stays ink like every other edge; only what's inside fades. */
+  border-color: var(--color-ink);
   box-shadow: none;
   color: color-mix(in srgb, var(--faded) 50%, transparent);
   cursor: not-allowed;
@@ -363,11 +364,6 @@ body {
 /* The dock's keys stand straight on the board: an unavailable one keeps a deep-sea body so it still
    reads as a key over the island, just dimmed. */
 .game-actions .btn:disabled {
-  background: color-mix(in srgb, var(--color-sea-800) 88%, transparent);
-  border-color: color-mix(in srgb, var(--faded) 35%, transparent);
-}
-/* Menu keys float over the dice and the turn pill, so they stay solid. */
-.game-actions [role='menu'] .btn:disabled {
   background: var(--color-sea-800);
 }
 /* While a dock menu is open it stands where the dice and the turn pill are: they step aside. */
