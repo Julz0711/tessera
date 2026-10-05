@@ -358,6 +358,12 @@ body {
   color: color-mix(in srgb, var(--faded) 50%, transparent);
   cursor: not-allowed;
 }
+/* The dock's keys stand straight on the board: an unavailable one keeps a deep-sea body so it still
+   reads as a key over the island, just dimmed. */
+.game-actions .btn:disabled {
+  background: color-mix(in srgb, var(--color-sea-800) 88%, transparent);
+  border-color: color-mix(in srgb, var(--faded) 35%, transparent);
+}
 .btn:focus-visible {
   outline: 2px solid var(--color-amber);
   outline-offset: 3px;

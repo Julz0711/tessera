@@ -232,7 +232,7 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
       {hand && ui.panel === 'trade' && <TradePanel view={view} />}
       {hand && <Hand view={view} />}
 
-      <div role="group" aria-label="Game actions" className={`game-actions glass relative grid w-full ${hand ? '' : 'h-full'} auto-cols-fr grid-flow-col gap-1.5 p-1.5 sm:w-auto sm:gap-2 sm:p-2`}>
+      <div role="group" aria-label="Game actions" className={`game-actions relative grid w-full ${hand ? '' : 'h-full'} auto-cols-fr grid-flow-col gap-1.5 sm:w-auto sm:gap-2`}>
         <div
           ref={menuRef}
           role="menu"
