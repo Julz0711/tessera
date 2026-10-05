@@ -105,7 +105,7 @@ function FaceControls({ look, onChange, onDone }: { look: KnightLook; onChange: 
   const zoomButton = (label: string, onClick: () => void, icon: React.ReactNode) => (
     <button
       type="button"
-      className="grid h-8 w-8 shrink-0 place-items-center rounded-md border-[1.5px] border-ink bg-paper hover:bg-paper-2 active:bg-paper-3"
+      className="grid h-8 w-8 shrink-0 place-items-center rounded-md border-2 border-ink bg-paper hover:bg-paper-2 active:bg-paper-3"
       onClick={onClick}
       aria-label={label}
       title={label}
@@ -204,7 +204,7 @@ export function KnightCustomizer({
               role="tab"
               aria-selected={on}
               onClick={() => choose(n)}
-              className={`flex items-center gap-2 rounded-lg border-[1.5px] py-1 pl-1 pr-3 text-left transition ${
+              className={`flex items-center gap-2 rounded-lg border-2 py-1 pl-1 pr-3 text-left transition ${
                 on ? 'border-ink bg-pick' : 'border-ink/15 hover:border-ink/40'
               }`}
             >

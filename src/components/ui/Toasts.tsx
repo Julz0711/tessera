@@ -9,7 +9,7 @@ export function Toasts() {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className={`animate-pop max-w-full break-words rounded-lg border-[1.5px] border-ink px-4 py-2 text-sm font-bold shadow-float ${
+          className={`animate-pop max-w-full break-words rounded-lg border-2 border-ink px-4 py-2 text-sm font-bold shadow-float ${
             t.tone === 'error' ? 'bg-terracotta text-white' : t.tone === 'good' ? 'bg-moss text-white' : 'bg-paper text-ink'
           }`}
         >

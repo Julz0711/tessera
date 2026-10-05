@@ -130,7 +130,7 @@ function CardShell({
       onClick={onClick}
       title={title}
       // The drop shadow is a class (not an inline style) so Tailwind's rings compose with it.
-      className={`relative flex shrink-0 flex-col items-center justify-center rounded-lg border-[1.5px] border-ink shadow-card ${CARD_BOX[size]} transition ${
+      className={`relative flex shrink-0 flex-col items-center justify-center rounded-lg border-2 border-ink shadow-card ${CARD_BOX[size]} transition ${
         dim ? 'opacity-35' : ''
       } ${selected ? '-translate-y-2 ring-4 ring-amber' : glow ? 'ring-3 ring-amber' : ''} ${onClick ? 'cursor-pointer hover:-translate-y-1' : ''}`}
       style={{ background: bg, color: ink }}
@@ -268,7 +268,7 @@ export function CardStack({
           aria-hidden
           // The copies behind are the card itself, a shade deeper the further back, with one shadow
           // under the whole stack (each its own shadow muddied the edges into dark stripes).
-          className={`absolute top-0 rounded-lg border-[1.5px] border-ink ${i === 0 ? 'shadow-card' : ''} ${CARD_BOX[size]}`}
+          className={`absolute top-0 rounded-lg border-2 border-ink ${i === 0 ? 'shadow-card' : ''} ${CARD_BOX[size]}`}
           style={{ left: i * step, background: mix(c.bg, '#000000', 0.04 * (extra - i)) }}
         />
       ))}

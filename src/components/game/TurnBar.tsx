@@ -17,7 +17,7 @@ export function TurnBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
   return (
     <div className="flex w-full items-stretch gap-2" aria-live="polite">
       <div
-        className={`game-status flex min-w-0 flex-1 items-center justify-center rounded-lg border-[1.5px] border-ink px-3 py-1.5 text-center text-[13px] font-extrabold leading-tight ${
+        className={`game-status flex min-w-0 flex-1 items-center justify-center rounded-lg border-2 border-ink px-3 py-1.5 text-center text-[13px] font-extrabold leading-tight ${
           status.mine ? 'bg-amber text-ink' : 'bg-sea-800 text-paper'
         }`}
       >
@@ -25,7 +25,7 @@ export function TurnBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
       </div>
       {seconds !== null && (
         <div
-          className={`grid w-22 shrink-0 place-items-center rounded-lg border-[1.5px] border-ink font-mono text-sm font-black tabular ${
+          className={`grid w-22 shrink-0 place-items-center rounded-lg border-2 border-ink font-mono text-sm font-black tabular ${
             low ? 'animate-pulse bg-danger text-paper' : 'bg-sea-800 text-paper'
           }`}
           title="Time left this turn"

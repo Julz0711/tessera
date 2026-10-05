@@ -21,7 +21,7 @@ function TrackColumn({ view, track }: { view: PlayerView; track: Track }) {
   // The Crane's discount, struck through on the button so the full price stays visible.
   const discounted = cost < level + 1;
   return (
-    <div className="grid content-start gap-2 rounded-lg border-[1.5px] border-ink p-3" style={{ background: `${style.color}33` }}>
+    <div className="grid content-start gap-2 rounded-lg border-2 border-ink p-3" style={{ background: `${style.color}33` }}>
       <div className="flex items-center justify-between">
         <span className="display text-xl font-black">{style.label}</span>
         <CardChip card={style.commodity} />

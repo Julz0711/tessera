@@ -35,7 +35,7 @@ const SIDES: { value: number; transform: string }[] = [
 const Face = memo(function Face({ value, pip, bg, transform }: { value: number; pip: string; bg: string; transform: string }) {
   return (
     <div
-      className="absolute inset-0 grid grid-cols-3 grid-rows-3 rounded-[12%] border-[1.5px] border-ink p-[14%]"
+      className="absolute inset-0 grid grid-cols-3 grid-rows-3 rounded-[12%] border-2 border-ink p-[14%]"
       style={{ transform, background: bg, backfaceVisibility: 'hidden' }}
     >
       {Array.from({ length: 9 }, (_, i) => (
@@ -83,7 +83,7 @@ export function EventDie({ face, size = 44 }: { face: EventFace; size?: number }
   const s = EVENT_STYLE[face];
   return (
     <div
-      className="animate-pop grid place-items-center rounded-[12%] border-[1.5px] border-ink text-white [&>svg]:h-[45%] [&>svg]:w-[45%]"
+      className="animate-pop grid place-items-center rounded-[12%] border-2 border-ink text-white [&>svg]:h-[45%] [&>svg]:w-[45%]"
       style={{ width: size, height: size, background: s.bg }}
       title={s.label}
     >

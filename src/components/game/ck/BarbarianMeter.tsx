@@ -50,7 +50,7 @@ export function BarbarianMeter({ view, compact = false }: { view: PlayerView; co
         role="status"
         aria-label={label}
         title={label}
-        className={`glass grid min-w-19 content-center gap-0.5 px-2 py-1 text-[11px] text-paper ${s.danger ? 'border-danger! shadow-[inset_0_0_0_1.5px_var(--color-danger)]' : ''}`}
+        className={`glass grid min-w-19 content-center gap-0.5 px-2 py-1 text-[11px] text-paper ${s.danger ? 'border-danger! shadow-[inset_0_0_0_2px_var(--color-danger)]' : ''}`}
       >
         <span className="flex items-center gap-1 font-extrabold">
           <Sailboat size={12} strokeWidth={2.5} className={warn} />
@@ -62,7 +62,7 @@ export function BarbarianMeter({ view, compact = false }: { view: PlayerView; co
   }
 
   return (
-    <div role="status" aria-label={label} title={label} className={`glass grid gap-2 px-3 py-2.5 text-sm text-paper ${s.danger ? 'border-danger! shadow-[inset_0_0_0_1.5px_var(--color-danger)]' : ''}`}>
+    <div role="status" aria-label={label} title={label} className={`glass grid gap-2 px-3 py-2.5 text-sm text-paper ${s.danger ? 'border-danger! shadow-[inset_0_0_0_2px_var(--color-danger)]' : ''}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="label-light flex items-center gap-1.5">
           <Sailboat size={13} strokeWidth={2.5} /> Barbarians

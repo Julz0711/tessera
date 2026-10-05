@@ -184,7 +184,7 @@ body {
 @media (min-width: 768px) { .dialog-sheet.dialog-top { align-self: start; margin-top: 3dvh; max-height: calc(100% - 3dvh); } }
 .settings-body { height: min(70dvh, 720px); min-height: 0; }
 .mobile-side-content { height: min(55dvh, 440px); min-height: 0; }
-.app-notice { position: fixed; z-index: 80; bottom: calc(1rem + var(--safe-bottom)); left: max(1rem, var(--safe-left)); right: max(1rem, var(--safe-right)); margin: auto; max-width: 560px; display: flex; align-items: center; justify-content: center; gap: .75rem; padding: .75rem 1rem; border: 1.5px solid #ffffff30; border-radius: 6px; background: var(--color-sea-900); box-shadow: var(--shadow-float); font-size: .875rem; }
+.app-notice { position: fixed; z-index: 80; bottom: calc(1rem + var(--safe-bottom)); left: max(1rem, var(--safe-left)); right: max(1rem, var(--safe-right)); margin: auto; max-width: 560px; display: flex; align-items: center; justify-content: center; gap: .75rem; padding: .75rem 1rem; border: 2px solid #ffffff30; border-radius: 6px; background: var(--color-sea-900); box-shadow: var(--shadow-float); font-size: .875rem; }
 .app-notice svg { flex-shrink: 0; }
 .install-steps { display: grid; gap: .75rem; }
 .install-steps li { display: flex; align-items: center; gap: 1rem; padding: 1rem; border-radius: 6px; background: var(--color-paper-2); font-size: .875rem; }
@@ -280,15 +280,15 @@ body {
 @layer components {
   /* A printed game component: white card, thin ink rule. Flat: the ink line sets it apart. */
   .paper {
-    @apply rounded-[var(--radius-card)] border-[1.5px] border-ink bg-paper text-ink;
+    @apply rounded-[var(--radius-card)] border-2 border-ink bg-paper text-ink;
   }
   .paper-flat {
-    @apply rounded-[var(--radius-card)] border-[1.5px] border-ink/70 bg-paper text-ink;
+    @apply rounded-[var(--radius-card)] border-2 border-ink/70 bg-paper text-ink;
   }
   /* A HUD panel over the board: solid deep sea inside the logo's thin ink line, so it reads
      against any board theme. */
   .glass {
-    @apply rounded-[var(--radius-card)] border-[1.5px] border-ink bg-sea-800;
+    @apply rounded-[var(--radius-card)] border-2 border-ink bg-sea-800;
   }
   .label {
     @apply text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft;
@@ -334,7 +334,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border: 1.5px solid var(--btn-line);
+  border: 2px solid var(--btn-line);
   border-radius: 4px;
   background: linear-gradient(135deg, var(--btn-bg) calc(100% - 0.85rem), var(--btn-shade) 0);
   color: var(--btn-fg);
@@ -424,7 +424,7 @@ body {
   gap: 2px;
   padding: 3px;
   border-radius: 6px;
-  border: 1.5px solid color-mix(in srgb, var(--faded) 22%, transparent);
+  border: 2px solid color-mix(in srgb, var(--faded) 22%, transparent);
   background: color-mix(in srgb, var(--faded) 8%, transparent);
 }
 .seg-opt {
@@ -434,7 +434,7 @@ body {
   gap: 0.4rem;
   min-width: 2.75rem;
   padding: 0.4rem 0.9rem;
-  border: 1.5px solid transparent;
+  border: 2px solid transparent;
   border-radius: 4px;
   font-size: 0.875rem;
   font-weight: 700;
@@ -483,7 +483,7 @@ body {
 .hex-badge::before {
   content: '';
   position: absolute;
-  inset: 1.75px;
+  inset: 2.25px;
   z-index: -1;
   clip-path: inherit;
   background: var(--hx-fill);
@@ -525,7 +525,7 @@ body {
 .range {
   appearance: none;
   height: 6px;
-  border: 1.5px solid rgb(31 26 20 / 0.5);
+  border: 2px solid rgb(31 26 20 / 0.5);
   border-radius: 999px;
   background: var(--color-paper-3);
   cursor: pointer;
@@ -534,14 +534,14 @@ body {
   appearance: none;
   width: 18px;
   height: 18px;
-  border: 1.5px solid var(--color-ink);
+  border: 2px solid var(--color-ink);
   border-radius: 999px;
   background: var(--color-amber);
 }
 .range::-moz-range-thumb {
   width: 16px;
   height: 16px;
-  border: 1.5px solid var(--color-ink);
+  border: 2px solid var(--color-ink);
   border-radius: 999px;
   background: var(--color-amber);
 }
@@ -552,7 +552,7 @@ body {
 
 .input {
   width: 100%;
-  border: 1.5px solid rgb(31 26 20 / 0.55);
+  border: 2px solid rgb(31 26 20 / 0.55);
   border-radius: 4px;
   background: #ffffff;
   color: var(--color-ink);

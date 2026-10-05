@@ -114,7 +114,7 @@ export function Hand({
     <div className="max-w-full overflow-x-auto scroll-thin" data-hand-anchor>
       <div className={`${tray ? 'px-2.5 pb-1.5 pt-2' : 'mx-auto px-3 pb-2 pt-3'} flex w-max items-end gap-2.5 sm:gap-3`}>
         {held.length === 0 && special === 0 && !trading && (
-          <div className={`grid place-items-center rounded-lg border-[1.5px] border-dashed px-5 text-xs font-bold ${tray ? 'border-ink/20 text-ink-faint' : 'border-white/20 text-foam/60'} ${max === 'xl' ? 'h-27.5' : 'h-18'}`}>
+          <div className={`grid place-items-center rounded-lg border-2 border-dashed px-5 text-xs font-bold ${tray ? 'border-ink/20 text-ink-faint' : 'border-white/20 text-foam/60'} ${max === 'xl' ? 'h-27.5' : 'h-18'}`}>
             No cards in hand
           </div>
         )}

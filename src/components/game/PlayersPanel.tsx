@@ -26,7 +26,7 @@ function Stat({ icon, value, title, award }: { icon: React.ReactNode; value: Rea
 }
 
 function CardBack({ bg }: { bg: string }) {
-  return <span className="h-3.75 w-2.75 shrink-0 rounded-[3px] border-[1.5px] border-ink" style={{ background: bg }} />;
+  return <span className="h-3.75 w-2.75 shrink-0 rounded-[3px] border-2 border-ink" style={{ background: bg }} />;
 }
 
 /** A face-down card at the table with its count in a badge, as on colonist. */
@@ -223,7 +223,7 @@ export function PlayersPanel({
             {/* The merchant (C&K) rides on its holder's portrait, so the card keeps its height. */}
             {view.merchant?.owner === seat && (
               <span
-                className="absolute -right-1.5 -top-1 grid h-5 w-5 place-items-center rounded-md border-[1.5px] border-ink bg-moss text-white"
+                className="absolute -right-1.5 -top-1 grid h-5 w-5 place-items-center rounded-md border-2 border-ink bg-moss text-white"
                 // In the colour of the resource the merchant stands on (the one you trade 2:1).
                 style={merchantColors(view)}
                 title="Has the merchant: 1 VP while it stays"

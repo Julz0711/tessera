@@ -375,7 +375,7 @@ export function TradePanel({ view, big = false }: { view: PlayerView; big?: bool
           <DealRow side="give" who={<Avatar view={view} seat={me} size={26} />} cards={give} onCard={(c) => draft.remove('give', c)} hint="Tap a card in your hand to add it" size={big ? 'md' : 'xs'} />
         </div>
       </div>
-      <div className="grid content-start gap-1.5 border-l-[1.5px] border-ink/10 bg-paper-2/60 p-1.5">
+      <div className="grid content-start gap-1.5 border-l-2 border-ink/10 bg-paper-2/60 p-1.5">
         {isActive && (
           <DealButton
             big

@@ -240,7 +240,7 @@ export function TopBar({ view, room, status: showStatus = true }: { view: Player
       </div>
 
       {showStatus && (<div
-        className={`game-status pointer-events-auto max-w-[min(560px,55vw)] rounded-lg border-[1.5px] border-ink px-3 py-2 text-center text-sm font-extrabold sm:px-4 sm:text-base ${
+        className={`game-status pointer-events-auto max-w-[min(560px,55vw)] rounded-lg border-2 border-ink px-3 py-2 text-center text-sm font-extrabold sm:px-4 sm:text-base ${
           status.mine ? "attention bg-amber text-ink" : "bg-sea-800 text-paper"
         }`}
         aria-live="polite"

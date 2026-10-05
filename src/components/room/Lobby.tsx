@@ -295,7 +295,7 @@ function MapSegmented({
           disabled={disabled}
           onClick={() => onChange(o)}
           aria-pressed={value === o}
-          className={`flex flex-col items-center gap-1 rounded-md border-[1.5px] px-3 py-1.5 text-sm font-bold transition disabled:cursor-default ${
+          className={`flex flex-col items-center gap-1 rounded-md border-2 px-3 py-1.5 text-sm font-bold transition disabled:cursor-default ${
             value === o
               ? "border-ink bg-pick"
               : "border-ink/20 bg-white/30 enabled:hover:border-ink/60"
@@ -332,10 +332,10 @@ function Toggle({
         aria-label={label}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={`relative h-6 w-11 rounded-md border-[1.5px] border-ink transition ${checked ? "bg-sea-500" : "bg-paper-3"}`}
+        className={`relative h-6 w-11 rounded-md border-2 border-ink transition ${checked ? "bg-sea-500" : "bg-paper-3"}`}
       >
         <span
-          className={`absolute top-[2px] h-4 w-4 rounded-sm border-[1.5px] border-ink bg-paper transition-all ${checked ? "left-5.5" : "left-[2px]"}`}
+          className={`absolute top-[2px] h-4 w-4 rounded-sm border-2 border-ink bg-paper transition-all ${checked ? "left-5.5" : "left-[2px]"}`}
         />
       </button>
     </label>

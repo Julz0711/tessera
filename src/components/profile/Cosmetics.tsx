@@ -342,7 +342,7 @@ export function CosmeticsPicker({
               disabled={!open}
               onClick={() => onChange({ ...value, frame: f.id })}
               aria-pressed={on}
-              className={`grid justify-items-center gap-1 rounded-lg border-[1.5px] p-2 transition ${
+              className={`grid justify-items-center gap-1 rounded-lg border-2 p-2 transition ${
                 on ? 'border-ink bg-pick' : 'border-transparent bg-paper-2/70 hover:border-ink/30'
               } ${open ? '' : 'cursor-not-allowed'}`}
             >
@@ -379,7 +379,7 @@ export function CosmeticsPicker({
               onClick={() => onChange({ ...value, title: t.id })}
               aria-pressed={on}
               title={open ? t.name : `${requirementText(t.req)}${p && t.req.kind !== 'rating' ? ` (${p.have}/${p.need})` : ''}`}
-              className={`flex items-center gap-1 rounded-md border-[1.5px] px-2 py-1 text-xs font-black uppercase tracking-wider transition ${
+              className={`flex items-center gap-1 rounded-md border-2 px-2 py-1 text-xs font-black uppercase tracking-wider transition ${
                 on ? 'border-ink' : open ? 'border-transparent hover:border-ink/30' : 'cursor-not-allowed border-transparent opacity-50'
               }`}
               style={
