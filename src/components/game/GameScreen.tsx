@@ -368,8 +368,9 @@ export function GameScreen() {
   // On wide screens the dice sit just above the dock and the other players on top of your own
   // card, both out of the HUD (so they can't be moved).
   const barred = wide && me !== null;
-  // The tall barbarian track stands at the left edge of wide screens, outside the movable panels; the small one is a HUD panel.
-  const bigTrack = wide && view.mode === 'ck' && prefs.barbarianTrack === 'large';
+  // On the 2D board the barbarians' progress is the tall track at the left edge of wide screens (outside
+  // the movable panels) or the small HUD panel, as set; the 3D board keeps its own track on the sea, plus the small panel.
+  const bigTrack = wide && view.mode === 'ck' && prefs.view === '2d' && prefs.barbarianTrack === 'large';
   // The 2D board's zoom buttons only show when turned on (Settings → Accessibility).
   const unused = (panel: HudPanel) =>
     (panel === 'barbarian' && (view.mode !== 'ck' || bigTrack)) || ((panel === 'dice' || panel === 'players') && barred) || (panel === 'zoom' && !prefs.zoomButtons);

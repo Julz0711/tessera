@@ -43,7 +43,7 @@ export interface Prefs {
   musicVolume: number;
   /** Zoom in / out / reset buttons for the 2D board (the wheel, pinch and drag work without them). */
   zoomButtons: boolean;
-  /** The barbarians' progress (Knights & Barbarians): the tall track beside the board, or the small panel in the HUD. */
+  /** The barbarians' progress on the 2D board (Knights & Barbarians): the tall track beside the board, or the small panel in the HUD. */
   barbarianTrack: 'large' | 'small';
 }
 

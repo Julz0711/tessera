@@ -191,7 +191,7 @@ export function SettingsPanel() {
                 ]}
               />
             </Section>
-            <Section title="Barbarian track" hint="In Knights & Barbarians: the tall track of the ship's voyage beside the board, or a small panel with the HUD.">
+            <Section title="Barbarian track" hint="On the 2D board in Knights & Barbarians: the tall track of the ship's voyage beside the board, or a small panel with the HUD. The 3D board shows its track on the sea.">
               <Segmented
                 value={prefs.barbarianTrack}
                 onChange={(barbarianTrack) => prefs.set({ barbarianTrack })}
