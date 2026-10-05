@@ -483,7 +483,7 @@ export function GameScreen() {
               </div>
             </div>
             <div className="game-dock-wrap pointer-events-auto relative flex shrink-0">
-              <div className="absolute inset-x-0 bottom-full mb-2 flex flex-col items-end gap-2">
+              <div className="dock-above absolute inset-x-0 bottom-full mb-2 flex flex-col items-end gap-2">
                 <DiceBox view={view} size={58} bare />
                 <TurnBar view={view} room={room} />
               </div>

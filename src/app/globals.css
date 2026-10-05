@@ -368,6 +368,14 @@ body {
   background: color-mix(in srgb, var(--color-sea-800) 88%, transparent);
   border-color: color-mix(in srgb, var(--faded) 35%, transparent);
 }
+/* Menu keys float over the dice and the turn pill, so they stay solid. */
+.game-actions [role='menu'] .btn:disabled {
+  background: var(--color-sea-800);
+}
+/* While a dock menu is open it stands where the dice and the turn pill are: they step aside. */
+.game-dock-wrap:has([role='menu']:not(.hidden)) > .dock-above {
+  visibility: hidden;
+}
 .btn:focus-visible {
   outline: 2px solid var(--color-amber);
   outline-offset: 3px;

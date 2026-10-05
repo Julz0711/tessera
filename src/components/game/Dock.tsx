@@ -245,7 +245,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
           ref={menuRef}
           role="menu"
           aria-label="Build"
-          className={`${buildOpen ? 'grid' : 'hidden'} glass animate-rise absolute bottom-full right-0 z-30 mb-2 w-max max-w-[calc(100vw-16px)] grid-flow-col gap-1.5 p-1.5 max-sm:grid-flow-row max-sm:grid-cols-4 sm:gap-2 sm:p-2`}
+          className={`${buildOpen ? 'grid' : 'hidden'} animate-rise absolute bottom-full right-0 z-30 mb-2 w-max max-w-[calc(100vw-16px)] grid-flow-col gap-1.5 max-sm:grid-flow-row max-sm:grid-cols-4 sm:gap-2`}
         >
           <ActionButton
             label="Road"
@@ -329,7 +329,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
               ref={improveRef}
               role="menu"
               aria-label="Improve"
-              className={`${open === 'improve' ? 'flex' : 'hidden'} glass animate-rise absolute bottom-full left-1/2 z-30 mb-2 w-max -translate-x-1/2 gap-1.5 p-1.5 sm:gap-2 sm:p-2`}
+              className={`${open === 'improve' ? 'flex' : 'hidden'} animate-rise absolute bottom-full left-1/2 z-30 mb-2 w-max -translate-x-1/2 gap-1.5 sm:gap-2`}
             >
               <ImproveOptions view={view} onDone={() => setOpen(null)} />
             </div>
