@@ -265,8 +265,10 @@ export function CardStack({
         <span
           key={i}
           aria-hidden
-          className={`absolute top-0 rounded-lg border-[1.5px] border-ink shadow-card ${CARD_BOX[size]}`}
-          style={{ left: i * step, background: mix(c.bg, '#000000', 0.18 - i * 0.03) }}
+          // The copies behind are the card itself, a shade deeper the further back, with one shadow
+          // under the whole stack (each its own shadow muddied the edges into dark stripes).
+          className={`absolute top-0 rounded-lg border-[1.5px] border-ink ${i === 0 ? 'shadow-card' : ''} ${CARD_BOX[size]}`}
+          style={{ left: i * step, background: mix(c.bg, '#000000', 0.04 * (extra - i)) }}
         />
       ))}
       <ResourceCard card={card} count={count} size={size} warn={warn} onClick={onClick} />
