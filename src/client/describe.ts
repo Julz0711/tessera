@@ -234,8 +234,30 @@ export function statusLine(view: PlayerView): { text: string; mine: boolean } {
     return { text: texts[mine.kind] ?? 'Your decision', mine: true };
   }
   if (view.pending.length) {
+    // Say what everyone is waiting on, not just who: "Waiting for Ada to move the robber".
+    const doing: Record<string, string> = {
+      discard: 'discard',
+      robber: 'move the robber',
+      freeRoads: 'place free roads',
+      loseCity: 'choose a city to lose',
+      relocateKnight: 'move a displaced knight',
+      rewardDeck: 'choose a progress card deck',
+      aqueduct: 'pick an Aqueduct resource',
+      goldPick: 'pick their resources',
+      discardProgress: 'discard a progress card',
+      giveCards: 'choose cards to give',
+      commercialHarbor: 'answer the Commercial Harbor',
+      deserterRemove: 'choose a knight to desert',
+      deserterPlace: 'place the deserted knight',
+      moveRoad: 'move a road (Diplomat)',
+      spy: 'spy on progress cards',
+      masterMerchant: 'take cards (Master Merchant)',
+      placeMetropolis: 'place a metropolis',
+    };
     const seats = [...new Set(view.pending.map((p) => p.seat))];
-    return { text: `Waiting for ${seats.map(name).join(', ')}…`, mine: false };
+    const kinds = [...new Set(view.pending.map((p) => p.kind))];
+    const what = kinds.length === 1 && doing[kinds[0]] ? ` to ${doing[kinds[0]]}` : '';
+    return { text: `Waiting for ${seats.map(name).join(', ')}${what}…`, mine: false };
   }
   if (view.phase === 'setup' && view.setup) {
     const seat = view.setup.order[view.setup.index];

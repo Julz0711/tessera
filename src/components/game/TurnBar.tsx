@@ -24,7 +24,7 @@ export function TurnBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
       </div>
       {seconds !== null && (
         <div
-          className={`grid w-16 shrink-0 place-items-center rounded-lg border-[1.5px] border-ink font-mono text-sm font-black tabular ${
+          className={`grid w-22 shrink-0 place-items-center rounded-lg border-[1.5px] border-ink font-mono text-sm font-black tabular ${
             low ? 'animate-pulse bg-danger text-paper' : 'bg-sea-800 text-paper'
           }`}
           title="Time left this turn"

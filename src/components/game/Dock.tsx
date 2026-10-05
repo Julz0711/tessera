@@ -114,7 +114,7 @@ function ActionButton({
       data-bank-anchor={bankAnchor ? '' : undefined}
       data-build-toggle={buildToggle ? '' : undefined}
       aria-haspopup={buildToggle ? 'menu' : undefined}
-      className={`btn group relative min-w-0 flex-col gap-0.5 px-0 py-1.5 text-[10px] tracking-tight sm:size-16 sm:px-1 sm:py-1 sm:text-[11px] sm:tracking-normal ${primary ? 'btn-primary' : active ? 'btn-on' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''} ${className}`}
+      className={`btn group relative min-w-0 flex-col gap-0.5 px-0 py-1.5 text-[10px] tracking-tight sm:size-22 sm:px-1 sm:py-1 sm:text-xs sm:tracking-normal ${primary ? 'btn-primary' : active ? 'btn-on' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''} ${className}`}
     >
       {shortcut && <Kbd k={shortcut} className="absolute left-1 top-1 text-[11px]" />}
       {/* A build you can't make is drawn in outline, but its cost dots stay: they show what's missing. */}
@@ -245,7 +245,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
           <ActionButton
             label="Road"
             shortcut="1"
-            icon={<RoadGlyph size={20} />}
+            icon={<RoadGlyph size={24} />}
             onClick={pick(() => ui.toggleBuild('road'))}
             active={building === 'road'}
             disabled={!roadOk}
@@ -256,7 +256,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
             <ActionButton
               label="Ship"
               shortcut="S"
-              icon={<Ship size={20} />}
+              icon={<Ship size={24} />}
               onClick={pick(() => ui.toggleBuild('ship'))}
               active={building === 'ship'}
               disabled={!shipOk}
@@ -268,7 +268,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
           <ActionButton
             label="Settle"
             shortcut="2"
-            icon={<SettlementGlyph size={20} />}
+            icon={<SettlementGlyph size={24} />}
             onClick={pick(() => ui.toggleBuild('settlement'))}
             active={building === 'settlement'}
             disabled={!settlementOk}
@@ -278,20 +278,20 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
           <ActionButton
             label="City"
             shortcut="3"
-            icon={<CityGlyph size={20} />}
+            icon={<CityGlyph size={24} />}
             onClick={pick(() => ui.toggleBuild('city'))}
             active={building === 'city'}
             disabled={!cityOk}
             cost={COSTS.city} hand={p.hand}
             left={left.cities}
           />
-          {!ck && <ActionButton label="Buy card" shortcut="4" icon={<Sparkles size={20} />} onClick={pick(() => void api.act({ type: 'buyDevCard' }))} disabled={!devOk} cost={COSTS.devCard} hand={p.hand} />}
+          {!ck && <ActionButton label="Buy card" shortcut="4" icon={<Sparkles size={24} />} onClick={pick(() => void api.act({ type: 'buyDevCard' }))} disabled={!devOk} cost={COSTS.devCard} hand={p.hand} />}
           {ck && (
             <>
               <ActionButton
                 label="Knight"
                 shortcut="4"
-                icon={<KnightGlyph size={20} />}
+                icon={<KnightGlyph size={24} />}
                 onClick={pick(() => ui.toggleBuild('knight'))}
                 active={building === 'knight'}
                 disabled={!knightOk}
@@ -299,7 +299,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
                 left={left.knights[1]}
                 hint="Recruit a basic knight"
               />
-              <ActionButton label="Wall" icon={<BrickWall size={20} />} onClick={pick(() => ui.toggleBuild('wall'))} active={building === 'wall'} disabled={!wallOk} cost={COSTS.wall} hand={p.hand} left={left.walls} hint="City wall: +2 hand limit" />
+              <ActionButton label="Wall" icon={<BrickWall size={24} />} onClick={pick(() => ui.toggleBuild('wall'))} active={building === 'wall'} disabled={!wallOk} cost={COSTS.wall} hand={p.hand} left={left.walls} hint="City wall: +2 hand limit" />
             </>
           )}
         </div>
@@ -318,7 +318,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
         <ActionButton
           label="Build"
           shortcut="B"
-          icon={<Hammer size={20} />}
+          icon={<Hammer size={24} />}
           onClick={() => setOpen((o) => (o === 'build' ? null : 'build'))}
           active={buildOpen || building !== null}
           disabled={!canBuild}
@@ -342,7 +342,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
         <ActionButton
           label="Trade"
           shortcut="T"
-          icon={<ArrowLeftRight size={20} />}
+          icon={<ArrowLeftRight size={24} />}
           onClick={() => ui.setPanel(ui.panel === 'trade' ? null : 'trade')}
           active={ui.panel === 'trade'}
           disabled={view.phase !== 'play' || !view.turn.rolled || !free}
@@ -351,7 +351,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
         />
         <ActionButton
           label="End turn"
-          icon={timer && seconds !== null ? <span className="font-mono text-base font-black leading-none tabular">{seconds}s</span> : <Hourglass size={20} />}
+          icon={timer && seconds !== null ? <span className="font-mono text-base font-black leading-none tabular">{seconds}s</span> : <Hourglass size={24} />}
           onClick={() => {
             ui.reset();
             void api.act({ type: 'endTurn' });

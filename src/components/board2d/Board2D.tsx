@@ -661,14 +661,11 @@ function BarbarianTrack2D({
   layout,
   palette,
   theme,
-  pinned = false,
 }: {
   barbarian: NonNullable<BoardScene["barbarian"]>;
   layout: BarbarianLayout;
   palette: BoardPalette;
   theme: BoardThemeId;
-  /** Stuck to the screen's edge over the zoomed-in board: on a solid field so the board doesn't show through. */
-  pinned?: boolean;
 }) {
   const wood = palette.pier ?? { deck: "#9c6f42", plank: "#8a6139", post: "#6b4a2b" };
   const danger = barbarian.position >= barbarian.distance - 2;
@@ -683,7 +680,7 @@ function BarbarianTrack2D({
   const paper = "#f6eddb";
   return (
     <g pointerEvents="none">
-      <rect x={left} y={top} width={width} height={bottom - top} rx="16" fill="#0b2233" opacity={pinned ? 0.94 : 0.5} />
+      <rect x={left} y={top} width={width} height={bottom - top} rx="16" fill="#0b2233" opacity="0.5" />
       {/* the way the ship sails: down the steps to the landing, where it attacks the island */}
       <VoyageArrow x={left + BARBARIAN_ARROW_LANE / 2 + 4} from={steps[0].y * S - r * 0.5} to={steps[steps.length - 1].y * S + r * 0.35} danger={danger} />
       <g aria-label={`Barbarians ${barbarian.strength}, knights ${barbarian.defense}`}>
@@ -863,27 +860,6 @@ export default function Board2D({
     const x = Math.min(Math.max(p.x - box.left, margin), box.width - margin);
     setPopupAt({ x, y: p.y - box.top, below });
   }, [armed, hasPopup, viewBox, topo, resized, svgRef]);
-
-  // Zoomed in, the barbarian track would leave the screen with the island's west coast (and grow
-  // with it): it sticks to the board's left edge instead, at the size it has fully zoomed out,
-  // centred in the height on screen.
-  const [trackPin, setTrackPin] = useState<string | null>(null);
-  useLayoutEffect(() => {
-    const ctm = svgRef.current?.getScreenCTM();
-    const box = wrapRef.current?.getBoundingClientRect();
-    if (!barbarian || !barbLayout || !ctm || !box || atHome) {
-      setTrackPin(null);
-      return;
-    }
-    const inv = ctm.inverse();
-    const margin = 8;
-    const tl = new DOMPoint(box.left + margin, box.top + margin).matrixTransform(inv);
-    const br = new DOMPoint(box.right - margin, box.bottom - margin).matrixTransform(inv);
-    const t = barbarianTrackBox(barbarian.distance, barbLayout);
-    const k = 1 / zoom;
-    const y = (tl.y + br.y) / 2 - (t.height * k) / 2;
-    setTrackPin(`translate(${tl.x} ${y}) scale(${k}) translate(${-t.left} ${-t.top})`);
-  }, [viewBox, resized, barbarian, barbLayout, svgRef, atHome, zoom]);
 
   // Everything inside the board, kept apart from the view: panning and zooming change only the
   // svg's viewBox, many times a second, and rebuilding the whole island for each of those made
@@ -1312,6 +1288,11 @@ export default function Board2D({
             <PirateShip x={pirate.x * S} y={pirate.y * S} theme={theme} k={ps} />
           )}
 
+          {/* barbarian ship's voyage (C&K) */}
+          {barbarian && barbLayout && (
+            <BarbarianTrack2D barbarian={barbarian} layout={barbLayout} palette={palette} theme={theme} />
+          )}
+
       </>
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- derived values (topo, pirate…) follow from these
@@ -1619,12 +1600,6 @@ export default function Board2D({
       )}
       {piecesLayer}
       {targetsLayer}
-      {/* barbarian ship's voyage (C&K): drawn last, and kept in view on the left when zoomed in */}
-      {barbarian && barbLayout && (
-        <g transform={trackPin ?? undefined}>
-          <BarbarianTrack2D barbarian={barbarian} layout={barbLayout} palette={palette} theme={theme} pinned={trackPin !== null} />
-        </g>
-      )}
     </>
   );
 
