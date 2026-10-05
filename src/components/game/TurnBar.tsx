@@ -3,6 +3,7 @@
 import { statusLine } from '@/client/describe';
 import type { PlayerView } from '@/engine/view';
 import type { RoomDTO } from '@/shared/protocol';
+import { WithKeys } from '@/components/ui/Kbd';
 import { useCountdown } from './Dock';
 
 /**
@@ -20,7 +21,7 @@ export function TurnBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
           status.mine ? 'bg-amber text-ink' : 'bg-sea-800 text-paper'
         }`}
       >
-        {status.text}
+        <WithKeys text={status.text} />
       </div>
       {seconds !== null && (
         <div

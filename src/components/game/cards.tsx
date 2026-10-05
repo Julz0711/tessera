@@ -78,7 +78,7 @@ export type CardSize = 'xs' | 'sm' | 'md' | 'xl' | 'lg';
 const CARD_BOX: Record<CardSize, string> = {
   xs: 'h-11 w-8',
   sm: 'h-14 w-10',
-  md: 'h-18 w-13 sm:h-20 sm:w-14',
+  md: 'h-18 w-13',
   /** The hand in its own corner on wide screens. */
   xl: 'h-27.5 w-19.5',
   lg: 'h-36 w-26',

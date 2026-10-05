@@ -298,7 +298,7 @@ export function PlayersPanel({
                 toggle();
               },
             })}
-            className={`paper-flat relative flex shrink-0 flex-col gap-1 p-2 pl-3 pr-2.5 transition-all duration-300 motion-reduce:transition-none ${
+            className={`paper-flat relative flex shrink-0 flex-col gap-0.5 px-2.5 py-1.5 pl-3 transition-all duration-300 motion-reduce:transition-none ${
               compact ? 'min-w-max' : `min-w-0 ${highlight && !inline && turnSeat === seat ? (align === 'right' ? '-ml-4' : '-mr-4') : ''}`
             } ${waiting ? 'opacity-70 saturate-50' : ''} ${
               acting ? 'ring-4 ring-amber' : ''

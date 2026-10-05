@@ -29,13 +29,13 @@ describe('hand tray fit', () => {
   });
 
   it('tightens the stacks, then lays them flat, before it shrinks the cards', () => {
-    // md flat needs 20 + 11 * 68 + 2 * 13 = 794px; the 8 slivers share what is left plus 8px
+    // md flat needs 20 + 11 * 64 + 2 * 13 = 750px; the 8 slivers share what is left plus 8px
     // of each gap before them.
     expect(fitTray(820, counts, 3, 2)).toEqual({ size: 'md', fan: true, step: 7 });
     expect(fitTray(794, counts, 3, 2)).toEqual({ size: 'md', fan: true, step: 7 });
     const full = [3, 6, 3, 7, 3, 6, 3, 6];
-    expect(fitTray(815, full, 3, 2)).toEqual({ size: 'md', fan: true, step: 4 });
-    expect(fitTray(794, [5, 5, 5, 5, 5, 5, 5, 5], 3, 2)).toEqual({ size: 'md', fan: false, step: 0 });
+    expect(fitTray(815, full, 3, 2)).toEqual({ size: 'md', fan: true, step: 6 });
+    expect(fitTray(752, [5, 5, 5, 5, 5, 5, 5, 5], 3, 2)).toEqual({ size: 'md', fan: false, step: 0 });
   });
 
   it('shrinks the cards when even flat ones do not fit', () => {

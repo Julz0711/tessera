@@ -506,7 +506,7 @@ body {
   opacity: 0.55;
 }
 @media (pointer: coarse) {
-  .kbd { display: none; }
+  .kbd, .kbd-hint { display: none; }
 }
 
 /* Slider: a thin track with an outlined thumb, to match the buttons. */

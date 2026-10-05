@@ -114,7 +114,7 @@ function ActionButton({
       data-bank-anchor={bankAnchor ? '' : undefined}
       data-build-toggle={buildToggle ? '' : undefined}
       aria-haspopup={buildToggle ? 'menu' : undefined}
-      className={`btn group relative min-w-0 flex-col gap-0.5 px-0 py-1.5 text-[10px] tracking-tight sm:size-22 sm:px-1 sm:py-1 sm:text-xs sm:tracking-normal ${primary ? 'btn-primary' : active ? 'btn-on' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''} ${className}`}
+      className={`btn group relative min-w-0 flex-col gap-0.5 px-0 py-1.5 text-[10px] tracking-tight sm:size-22 sm:rounded-lg! sm:px-1 sm:py-1 sm:text-xs sm:tracking-normal ${primary ? 'btn-primary' : active ? 'btn-on' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''} ${className}`}
     >
       {shortcut && <Kbd k={shortcut} className="absolute left-1 top-1 text-[11px]" />}
       {/* A build you can't make is drawn in outline, but its cost dots stay: they show what's missing. */}

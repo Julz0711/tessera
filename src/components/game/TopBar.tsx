@@ -26,6 +26,7 @@ import { useGameDialog } from "@/client/ui";
 import type { PlayerView } from "@/engine/view";
 import type { RoomDTO } from "@/shared/protocol";
 import { formatCode } from "@/components/room/Lobby";
+import { WithKeys } from "@/components/ui/Kbd";
 import { DiceBox } from "./DiceBox";
 import { LeaveDialog } from "./LeaveDialog";
 import { MobileSide } from "./MobileSide";
@@ -244,7 +245,7 @@ export function TopBar({ view, room, status: showStatus = true }: { view: Player
         }`}
         aria-live="polite"
       >
-        {status.text}
+        <WithKeys text={status.text} />
       </div>)}
 
       <div className="pointer-events-auto flex items-center gap-2">

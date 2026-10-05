@@ -471,7 +471,7 @@ export function GameScreen() {
         {/* Wide screens: one bar from left to right, as on colonist: the hand on a white tray
             (the trade panel opens straight above it), the dock, and your own player card. */}
         {wide && me !== null ? (
-          <div ref={bar} className="flex items-stretch gap-2">
+          <div ref={bar} className="flex h-22 items-stretch gap-2">
             <div ref={handCell} className="pointer-events-auto relative flex min-w-0 flex-1">
               {ui.panel === 'trade' && (
                 <div className="absolute bottom-full left-0 mb-2 w-full">
