@@ -310,15 +310,17 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
         </div>
 
         <ActionButton
-          label="Build"
-          shortcut="B"
-          icon={<Hammer size={24} />}
-          onClick={() => toggleMenu('build')}
-          active={buildOpen || building !== null}
-          disabled={!canBuild}
-          hint="Roads, settlements, cities and more"
-          count={builds || undefined}
-          buildToggle
+          label="Trade"
+          shortcut="T"
+          icon={<ArrowLeftRight size={24} />}
+          onClick={() => {
+            setOpen(null);
+            ui.setPanel(ui.panel === 'trade' ? null : 'trade');
+          }}
+          active={ui.panel === 'trade'}
+          disabled={view.phase !== 'play' || !view.turn.rolled || !free}
+          hint="Trade with the players or the bank"
+          bankAnchor
         />
         {ck && (
           // The key and its menu together, so the menu rises centred over the key.
@@ -345,17 +347,15 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
           </div>
         )}
         <ActionButton
-          label="Trade"
-          shortcut="T"
-          icon={<ArrowLeftRight size={24} />}
-          onClick={() => {
-            setOpen(null);
-            ui.setPanel(ui.panel === 'trade' ? null : 'trade');
-          }}
-          active={ui.panel === 'trade'}
-          disabled={view.phase !== 'play' || !view.turn.rolled || !free}
-          hint="Trade with the players or the bank"
-          bankAnchor
+          label="Build"
+          shortcut="B"
+          icon={<Hammer size={24} />}
+          onClick={() => toggleMenu('build')}
+          active={buildOpen || building !== null}
+          disabled={!canBuild}
+          hint="Roads, settlements, cities and more"
+          count={builds || undefined}
+          buildToggle
         />
         <ActionButton
           label="End turn"
