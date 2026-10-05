@@ -38,7 +38,7 @@ function Pager({ data, onPage }: { data: Paged<unknown>; onPage: (p: number) => 
 }
 
 function Live({ code }: { code: string }) {
-  return <span className="rounded bg-terracotta/15 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-terracotta">Live · {code}</span>;
+  return <span className="rounded-md bg-terracotta/15 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-terracotta">Live · {code}</span>;
 }
 
 export function AdminPage() {

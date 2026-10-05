@@ -28,7 +28,7 @@ export function ColorPicker({
             title={isTaken ? `${info.label} is taken` : info.label}
             disabled={isTaken}
             onClick={() => onChange(c)}
-            className={`grid h-10 w-10 place-items-center rounded-[5px] border-[1.5px] border-ink transition disabled:cursor-not-allowed disabled:opacity-30 ${
+            className={`grid h-10 w-10 place-items-center rounded-md border-[1.5px] border-ink transition disabled:cursor-not-allowed disabled:opacity-30 ${
               value === c ? 'outline-3 outline-offset-2 outline-sea-500' : 'hover:-translate-y-0.5'
             }`}
             style={{ background: info.hex }}

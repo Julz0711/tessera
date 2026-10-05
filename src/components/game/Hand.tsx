@@ -114,13 +114,13 @@ export function Hand({
     <div className="max-w-full overflow-x-auto scroll-thin" data-hand-anchor>
       <div className={`${tray ? 'px-2.5 pb-2 pt-3' : 'mx-auto px-3 pb-2 pt-3'} flex w-max items-end gap-2.5 sm:gap-3`}>
         {held.length === 0 && special === 0 && !trading && (
-          <div className={`grid place-items-center rounded-[5px] border-[1.5px] border-dashed px-5 text-xs font-bold ${tray ? 'border-ink/20 text-ink-faint' : 'border-white/20 text-foam/60'} ${max === 'xl' ? 'h-27.5' : 'h-18 sm:h-20'}`}>
+          <div className={`grid place-items-center rounded-lg border-[1.5px] border-dashed px-5 text-xs font-bold ${tray ? 'border-ink/20 text-ink-faint' : 'border-white/20 text-foam/60'} ${max === 'xl' ? 'h-27.5' : 'h-18 sm:h-20'}`}>
             No cards in hand
           </div>
         )}
         {held.length > 0 && (
           <div
-            className={`-my-1 flex items-end gap-2.5 rounded-[6px] px-1.5 py-1 transition-colors sm:gap-3 ${over ? 'bg-danger/25 ring-2 ring-inset ring-danger/70' : ''}`}
+            className={`-my-1 flex items-end gap-2.5 rounded-lg px-1.5 py-1 transition-colors sm:gap-3 ${over ? 'bg-danger/25 ring-2 ring-inset ring-danger/70' : ''}`}
             title={over ? `${total} cards, over your limit of ${limit}: a 7 would cost you ${Math.floor(total / 2)}` : undefined}
           >
             {held.map((c) => [

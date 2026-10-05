@@ -34,7 +34,8 @@ import { RulebookDialog } from "@/components/rules/RulebookDialog";
 import { gameTypeOf } from "@/engine/maps";
 import type { RuleMode } from "@/config/rulebook";
 
-export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
+/** `status: false` leaves the turn pill out (wide screens show it above the dock, see TurnBar). */
+export function TopBar({ view, room, status: showStatus = true }: { view: PlayerView; room: RoomDTO; status?: boolean }) {
   const router = useRouter();
   const conn = useGame((s) => s.conn);
   const prefs = usePrefs();
@@ -237,14 +238,14 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
         </div>
       </div>
 
-      <div
-        className={`game-status pointer-events-auto max-w-[min(560px,55vw)] rounded-[6px] border-[1.5px] border-ink px-3 py-2 text-center text-sm font-extrabold sm:px-4 sm:text-base ${
+      {showStatus && (<div
+        className={`game-status pointer-events-auto max-w-[min(560px,55vw)] rounded-lg border-[1.5px] border-ink px-3 py-2 text-center text-sm font-extrabold sm:px-4 sm:text-base ${
           status.mine ? "attention bg-amber text-ink" : "bg-sea-800 text-paper"
         }`}
         aria-live="polite"
       >
         {status.text}
-      </div>
+      </div>)}
 
       <div className="pointer-events-auto flex items-center gap-2">
         <div className="lg:hidden">

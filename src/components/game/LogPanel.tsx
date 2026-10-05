@@ -35,7 +35,7 @@ const Line = memo(function Line({ parts, who }: { parts: Part[]; who: Who }) {
           if (!color) return null;
           const c = PLAYER_COLORS[color];
           return (
-            <span key={i} className="rounded px-1 font-extrabold" style={{ background: c.hex, color: c.ink }}>
+            <span key={i} className="rounded-md px-1 font-extrabold" style={{ background: c.hex, color: c.ink }}>
               {who.names[p.player]}
             </span>
           );
@@ -53,7 +53,7 @@ const Line = memo(function Line({ parts, who }: { parts: Part[]; who: Who }) {
             <button
               key={i}
               type="button"
-              className="ml-1 inline-flex -translate-y-px items-center gap-0.5 rounded border border-white/25 px-1 align-middle text-[11px] font-bold text-foam hover:bg-white/10"
+              className="ml-1 inline-flex -translate-y-px items-center gap-0.5 rounded-md border border-white/25 px-1 align-middle text-[11px] font-bold text-foam hover:bg-white/10"
               onClick={() => useBoardFlash.getState().flash(p.hexes)}
               title="Light up these tiles on the board"
             >

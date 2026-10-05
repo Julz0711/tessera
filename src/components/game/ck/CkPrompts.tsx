@@ -62,7 +62,7 @@ export function CkPromptDialog({ view, prompt }: { view: PlayerView; prompt: Pro
           <div className="grid gap-2">
             {view.players[me].progress.map((c) => (
               <button key={c.id} type="button" className="btn justify-start px-3 py-2 text-left" onClick={() => api.act({ type: 'discardProgress', card: c.id })}>
-                <span className="h-6 w-4 rounded border border-ink" style={{ background: TRACK_STYLE[c.track].color }} />
+                <span className="h-6 w-4 rounded-md border border-ink" style={{ background: TRACK_STYLE[c.track].color }} />
                 <span>
                   <b>{PROGRESS_NAMES[c.type]}</b> <span className="text-xs font-normal text-ink-soft">{PROGRESS_TEXT[c.type]}</span>
                 </span>
@@ -112,7 +112,7 @@ export function CkPromptDialog({ view, prompt }: { view: PlayerView; prompt: Pro
           <div className="grid gap-2">
             {prompt.cards.map((c) => (
               <button key={c.id} type="button" className="btn justify-start px-3 py-2 text-left" onClick={() => api.act({ type: 'takeProgress', card: c.id })}>
-                <span className="h-6 w-4 rounded border border-ink" style={{ background: TRACK_STYLE[c.track].color }} />
+                <span className="h-6 w-4 rounded-md border border-ink" style={{ background: TRACK_STYLE[c.track].color }} />
                 <b>{PROGRESS_NAMES[c.type]}</b>
               </button>
             ))}

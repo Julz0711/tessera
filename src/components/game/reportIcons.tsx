@@ -152,7 +152,7 @@ const ROW_ICONS: Record<string, ReactNode> = {
 /** A card's art on its colour, at row-icon size. */
 function CardTile({ card, bg }: { card: Parameters<typeof MiniArt>[0]['card']; bg: string }) {
   return (
-    <span className="grid h-5 w-5 place-items-center rounded border border-black/30" style={{ background: bg }}>
+    <span className="grid h-5 w-5 place-items-center rounded-md border border-black/30" style={{ background: bg }}>
       <MiniArt card={card} size={15} />
     </span>
   );

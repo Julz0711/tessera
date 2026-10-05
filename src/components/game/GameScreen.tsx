@@ -39,6 +39,7 @@ import { PlayerStrip, PlayersPanel } from './PlayersPanel';
 import { DiscardDialog, FreeRoadsBanner, GoldDialog } from './Prompts';
 import { RobberPopup } from './RobberPopup';
 import { TopBar } from './TopBar';
+import { TurnBar } from './TurnBar';
 import { OffersTray, TradePanel } from './TradePanel';
 import { cardList, fly, type Place } from '@/client/fx';
 import { TERRAIN_COMMODITY, TERRAIN_RESOURCE } from '@/engine/constants';
@@ -441,7 +442,7 @@ export function GameScreen() {
 
       {/* top: above the bottom bar, so the menu dropdown (opened from TopBar) paints over it. */}
       <div className="game-top absolute inset-x-0 top-0 z-40" style={{ zoom }}>
-        <TopBar view={view} room={room} />
+        <TopBar view={view} room={room} status={!barred} />
         <div className="pointer-events-none mt-1 flex flex-col items-center gap-2">
           {myPrompt?.kind === 'freeRoads' && (
             <div className="pointer-events-auto">
@@ -482,10 +483,11 @@ export function GameScreen() {
               </div>
             </div>
             <div className="game-dock-wrap pointer-events-auto relative flex shrink-0">
-              <div className="absolute inset-x-0 bottom-full mb-2 flex justify-end">
+              <div className="absolute inset-x-0 bottom-full mb-2 flex flex-col items-end gap-2">
                 <DiceBox view={view} size={58} bare />
+                <TurnBar view={view} room={room} />
               </div>
-              <Dock view={view} room={room} hand={false} />
+              <Dock view={view} room={room} hand={false} timer={false} />
             </div>
             <div className="relative w-72 shrink-0">
               <div ref={others} className="pointer-events-auto absolute inset-x-0 bottom-full mb-2">

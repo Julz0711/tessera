@@ -52,7 +52,7 @@ export function RulebookDialog({ open, onClose, modes }: { open: boolean; onClos
       {modes && (
         <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
           <span className="text-ink-soft">Showing</span>
-          <div className="flex rounded-[6px] border-[1.5px] border-ink/25 p-0.5" role="radiogroup" aria-label="Which rules to show">
+          <div className="flex rounded-lg border-[1.5px] border-ink/25 p-0.5" role="radiogroup" aria-label="Which rules to show">
             {[false, true].map((all) => (
               <button
                 key={String(all)}

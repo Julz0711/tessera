@@ -45,7 +45,7 @@ export function BankPanel({ view }: { view: PlayerView }) {
               return (
                 <div key={c} className="flex flex-col items-center gap-1">
                   <ResourceCard card={c} count={hand[c]} size="sm" selected={give === c} dim={!ok} onClick={ok ? () => (setGive(c), setCount(1), get === c && setGet(null)) : undefined} />
-                  <span className={`rounded px-1 text-[11px] font-black ${r < 4 ? 'bg-amber' : 'text-ink-faint'}`}>{r}:1</span>
+                  <span className={`rounded-md px-1 text-[11px] font-black ${r < 4 ? 'bg-amber' : 'text-ink-faint'}`}>{r}:1</span>
                 </div>
               );
             })}

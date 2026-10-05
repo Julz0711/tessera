@@ -17,7 +17,7 @@ import { Modal } from '@/components/ui/Modal';
 /** A number beside its icon; `award` tints it when the player holds that award (Longest road, Largest army). */
 function Stat({ icon, value, title, award }: { icon: React.ReactNode; value: React.ReactNode; title: string; award?: string }) {
   return (
-    <span className={`flex items-center justify-between gap-0.5 rounded px-0.5 tabular ${award ?? ''}`} title={title}>
+    <span className={`flex items-center justify-between gap-0.5 rounded-md px-0.5 tabular ${award ?? ''}`} title={title}>
       {icon}
       {value}
     </span>
@@ -211,7 +211,7 @@ export function PlayersPanel({
             {/* The merchant (C&K) rides on its holder's portrait, so the card keeps its height. */}
             {view.merchant?.owner === seat && (
               <span
-                className="absolute -right-1.5 -top-1 grid h-5 w-5 place-items-center rounded-[5px] border-[1.5px] border-ink bg-moss text-white"
+                className="absolute -right-1.5 -top-1 grid h-5 w-5 place-items-center rounded-md border-[1.5px] border-ink bg-moss text-white"
                 title="Has the merchant: 1 VP while it stays"
                 aria-label="Has the merchant"
               >
@@ -396,7 +396,7 @@ export function PlayerStrip({ view, room, leading }: { view: PlayerView; room: R
                     {vp}
                     <ReactionBubble playerId={p.id} side="below" />
                   </span>
-                  <span className={`flex items-center gap-0.5 ${over ? 'rounded bg-danger px-0.5 text-paper' : ''}`}>
+                  <span className={`flex items-center gap-0.5 ${over ? 'rounded-md bg-danger px-0.5 text-paper' : ''}`}>
                     <CardBack bg={over ? WARN_BG : HAND_BG} />
                     {p.handCount}
                   </span>

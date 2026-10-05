@@ -20,7 +20,7 @@ export function CostPips({ cost, hand }: { cost: PartialHand; hand?: PartialHand
         return (
           <span
             key={c}
-            className={`relative grid h-6 min-w-6 place-items-center rounded border border-black/40 ${short ? 'opacity-30 grayscale' : ''}`}
+            className={`relative grid h-6 min-w-6 place-items-center rounded-md border border-black/40 ${short ? 'opacity-30 grayscale' : ''}`}
             style={{ background: CARD_COLORS[c].bg }}
           >
             <MiniArt card={c} size={18} />

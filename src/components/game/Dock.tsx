@@ -29,7 +29,7 @@ import { TradePanel } from './TradePanel';
 import { ImproveOptions, ProgressGrid, improvableCount } from './ck/ImproveMenu';
 
 /** Seconds left until `deadline`, ticking every 250ms; null once there's no active deadline. */
-function useCountdown(deadline: number | null): number | null {
+export function useCountdown(deadline: number | null): number | null {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!deadline) return;
@@ -114,7 +114,7 @@ function ActionButton({
       data-bank-anchor={bankAnchor ? '' : undefined}
       data-build-toggle={buildToggle ? '' : undefined}
       aria-haspopup={buildToggle ? 'menu' : undefined}
-      className={`btn group relative min-w-0 flex-col gap-0.5 px-0 py-1.5 text-[10px] tracking-tight sm:min-w-16 sm:px-2.5 sm:text-[11px] sm:tracking-normal ${primary ? 'btn-primary' : active ? 'btn-on' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''} ${className}`}
+      className={`btn group relative min-w-0 flex-col gap-0.5 px-0 py-1.5 text-[10px] tracking-tight sm:size-16 sm:px-1 sm:py-1 sm:text-[11px] sm:tracking-normal ${primary ? 'btn-primary' : active ? 'btn-on' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''} ${className}`}
     >
       {shortcut && <Kbd k={shortcut} className="absolute left-1 top-1 text-[11px]" />}
       {/* A build you can't make is drawn in outline, but its cost dots stay: they show what's missing. */}
@@ -137,8 +137,11 @@ function ActionButton({
   );
 }
 
-/** `hand: false` leaves the hand and the trade panel out (wide screens give them their own corner, see GameScreen). */
-export function Dock({ view, room, hand = true }: { view: PlayerView; room: RoomDTO; hand?: boolean }) {
+/**
+ * `hand: false` leaves the hand and the trade panel out (wide screens give them their own corner, see
+ * GameScreen); `timer: false` leaves the countdown off End turn (it sits above it instead, see TurnBar).
+ */
+export function Dock({ view, room, hand = true, timer = true }: { view: PlayerView; room: RoomDTO; hand?: boolean; timer?: boolean }) {
   const ui = useUi();
   const me = view.viewer;
   const seconds = useCountdown(room.deadline);
@@ -348,7 +351,7 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
         />
         <ActionButton
           label="End turn"
-          icon={seconds !== null ? <span className="font-mono text-base font-black leading-none tabular">{seconds}s</span> : <Hourglass size={20} />}
+          icon={timer && seconds !== null ? <span className="font-mono text-base font-black leading-none tabular">{seconds}s</span> : <Hourglass size={20} />}
           onClick={() => {
             ui.reset();
             void api.act({ type: 'endTurn' });
@@ -357,7 +360,7 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
           hint="End your turn"
           shortcut="E"
           danger
-          pulse={lowTime}
+          pulse={timer && lowTime}
         />
       </div>
     </div>

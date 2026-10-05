@@ -57,7 +57,7 @@ export function ChatPanel({ className = '', dark = false, autoFocus = false }: {
           ) : (
             <p key={m.id} className={`break-words text-sm leading-snug ${dark ? 'text-paper' : 'text-ink'}`}>
               <span
-                className="mr-1.5 rounded px-1.5 py-px text-xs font-extrabold"
+                className="mr-1.5 rounded-md px-1.5 py-px text-xs font-extrabold"
                 style={m.color ? { background: PLAYER_COLORS[m.color].hex, color: PLAYER_COLORS[m.color].ink } : undefined}
               >
                 {m.name}

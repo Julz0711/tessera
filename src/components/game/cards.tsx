@@ -129,7 +129,7 @@ function CardShell({
       onClick={onClick}
       title={title}
       // The drop shadow is a class (not an inline style) so Tailwind's rings compose with it.
-      className={`relative flex shrink-0 flex-col items-center justify-center rounded-[6px] border-[1.5px] border-ink shadow-card ${CARD_BOX[size]} transition ${
+      className={`relative flex shrink-0 flex-col items-center justify-center rounded-lg border-[1.5px] border-ink shadow-card ${CARD_BOX[size]} transition ${
         dim ? 'opacity-35' : ''
       } ${selected ? '-translate-y-2 ring-4 ring-amber' : glow ? 'ring-3 ring-amber' : ''} ${onClick ? 'cursor-pointer hover:-translate-y-1' : ''}`}
       style={{ background: bg, color: ink }}
@@ -265,7 +265,7 @@ export function CardStack({
         <span
           key={i}
           aria-hidden
-          className={`absolute top-0 rounded-[6px] border-[1.5px] border-ink shadow-card ${CARD_BOX[size]}`}
+          className={`absolute top-0 rounded-lg border-[1.5px] border-ink shadow-card ${CARD_BOX[size]}`}
           style={{ left: i * step, background: mix(c.bg, '#000000', 0.18 - i * 0.03) }}
         />
       ))}
@@ -326,7 +326,7 @@ export function DevCardFace({
         {DEV_NAMES[type]}
       </Ribbon>
       {fresh && (
-        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded border-2 border-ink bg-paper px-1 text-[8px] font-black uppercase leading-3 text-ink">
+        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-md border-2 border-ink bg-paper px-1 text-[8px] font-black uppercase leading-3 text-ink">
           New
         </span>
       )}
