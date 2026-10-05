@@ -128,7 +128,7 @@ export function DesktopHud({
       <div className={`absolute bottom-2 left-2 hidden lg:block ${editing ? 'z-40' : 'z-20'}`} style={{ zoom }}>
         {group('cornerLeft', 'left', editing ? 'min-w-40' : '')}
       </div>
-      <div className={`absolute bottom-2 right-2 hidden lg:block ${editing ? 'z-40' : 'z-20'}`} style={{ zoom }}>
+      <div data-hud-corner="right" className={`absolute bottom-2 right-2 hidden lg:block ${editing ? 'z-40' : 'z-20'}`} style={{ zoom }}>
         {group('cornerRight', 'right', editing ? 'min-w-40' : '')}
       </div>
 

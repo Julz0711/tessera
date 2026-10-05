@@ -1,10 +1,11 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { COMMODITIES, RESOURCES, handLimit, handTotal, type Card, type DevCardType } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { openTrade, useTradeDraft } from '@/client/trade';
 import { useUi } from '@/client/ui';
-import { CardStack, DevCardFace, ProgressCardFace, type CardSize } from './cards';
+import { CardStack, DevCardFace, ProgressCardFace, stackStep, type CardSize } from './cards';
 import { canPlayProgress } from './ck/ProgressCardDialog';
 import { canPlayDev } from './DevCardDialog';
 
@@ -18,6 +19,25 @@ const FITS: [CardSize, number][] = [
   ['xs', Infinity],
 ];
 
+/** Card widths in px on wide screens, for fitting the hand tray to the room it has. */
+const CARD_W: Partial<Record<CardSize, number>> = { xs: 32, sm: 40, md: 56 };
+const GAP = 12;
+
+/**
+ * The hand's layout for `room` px: the biggest card size that fits, fanned stacks if they
+ * still fit, else one card per kind with its count (like Colonist's hand).
+ */
+export function fitTray(room: number, counts: number[], special: number, rules: number, max: CardSize = 'md'): { size: CardSize; fan: boolean } {
+  const width = (size: CardSize, fan: boolean) =>
+    20 + (counts.length + special) * (CARD_W[size]! + GAP) + rules * (1 + GAP) + (fan ? counts.reduce((n, c) => n + Math.min(c - 1, 4) * stackStep(size), 0) : 0);
+  const sizes = (['md', 'sm', 'xs'] as const).filter((s) => s !== 'md' || max !== 'sm');
+  for (const size of sizes) {
+    if (width(size, true) <= room) return { size, fan: true };
+    if (width(size, false) <= room) return { size, fan: false };
+  }
+  return { size: 'xs', fan: false };
+}
+
 /** The biggest size no larger than `max` that fits `stacks` cards. */
 export function fit(max: CardSize, stacks: number): CardSize {
   const from = FITS.findIndex(([s]) => s === max);
@@ -29,15 +49,40 @@ export function fit(max: CardSize, stacks: number): CardSize {
  * commodity held, then development or progress cards face up. Cards playable right now are ringed;
  * clicking one opens it.
  */
-export function Hand({ view, max = 'md' }: { view: PlayerView; /** The biggest the cards may get; a full hand shrinks below it. */ max?: CardSize }) {
+export function Hand({
+  view,
+  max = 'md',
+  tray = false,
+  room,
+}: {
+  view: PlayerView;
+  /** The biggest the cards may get; a full hand shrinks below it. */
+  max?: CardSize;
+  /** Laid out on the white hand tray (wide screens) rather than straight on the board. */
+  tray?: boolean;
+  /** The tray's room in px: the cards shrink, then stop fanning, to fit it. */
+  room?: number;
+}) {
   const ui = useUi();
+  // Off the tray the hand spans the screen above the dock, so the viewport is its room.
+  const [screen, setScreen] = useState<number>();
+  useEffect(() => {
+    if (tray) return;
+    const update = () => setScreen(window.innerWidth - 24);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [tray]);
+  const fitRoom = tray ? room : screen;
   const draft = useTradeDraft();
   const p = view.players[view.viewer!];
   const ck = view.mode === 'ck';
   // While trading, cards put up on the give side have left the hand.
   const trading = ui.panel === 'trade';
   const count = (c: Card) => p.hand[c] - (trading ? Math.min(draft.give[c] ?? 0, p.hand[c]) : 0);
-  const held = (ck ? [...RESOURCES, ...COMMODITIES] : RESOURCES).filter((c) => count(c) > 0);
+  const resources = RESOURCES.filter((c) => count(c) > 0);
+  const commodities = ck ? COMMODITIES.filter((c) => count(c) > 0) : [];
+  const held = [...resources, ...commodities];
   const dev = ck
     ? []
     : DEV_ORDER.map((type) => ({ type, cards: p.devCards.filter((c) => c.type === type) })).filter((g) => g.cards.length > 0);
@@ -50,15 +95,17 @@ export function Hand({ view, max = 'md' }: { view: PlayerView; /** The biggest t
   const over = view.phase === 'play' && total > limit;
   // Everything in hand has to fit beside the dock without scrolling: with all eight kinds in
   // Knights & Barbarians, plus progress cards, the cards step down a size instead.
-  const size = fit(max, held.length + special);
+  const rules = (commodities.length && resources.length ? 1 : 0) + (held.length && special ? 1 : 0);
+  const { size, fan } =
+    fitRoom !== undefined ? fitTray(fitRoom, held.map((c) => count(c)), special, rules, max) : { size: fit(max, held.length + special), fan: true };
 
   return (
     // The inner row is only as wide as its cards, so it centres when it fits and scrolls from the
     // first card when it doesn't.
     <div className="max-w-full overflow-x-auto scroll-thin" data-hand-anchor>
-      <div className={`${max === 'xl' ? '' : 'mx-auto'} flex w-max items-end gap-2.5 px-3 pb-2 pt-3 sm:gap-3`}>
+      <div className={`${tray ? 'px-2.5 pb-2 pt-3' : 'mx-auto px-3 pb-2 pt-3'} flex w-max items-end gap-2.5 sm:gap-3`}>
         {held.length === 0 && special === 0 && !trading && (
-          <div className={`grid place-items-center rounded-lg border-2 border-dashed border-white/20 px-5 text-xs font-bold text-foam/60 ${max === 'xl' ? 'h-27.5' : 'h-18 sm:h-20'}`}>
+          <div className={`grid place-items-center rounded-[5px] border-[1.5px] border-dashed px-5 text-xs font-bold ${tray ? 'border-ink/20 text-ink-faint' : 'border-white/20 text-foam/60'} ${max === 'xl' ? 'h-27.5' : 'h-18 sm:h-20'}`}>
             No cards in hand
           </div>
         )}
@@ -67,7 +114,9 @@ export function Hand({ view, max = 'md' }: { view: PlayerView; /** The biggest t
             className={`-mx-1.5 -my-1 flex items-end gap-2.5 rounded-xl px-1.5 py-1 transition-colors sm:gap-3 ${over ? 'bg-danger/25 ring-2 ring-danger/70' : ''}`}
             title={over ? `${total} cards, over your limit of ${limit}: a 7 would cost you ${Math.floor(total / 2)}` : undefined}
           >
-            {held.map((c) => (
+            {held.map((c) => [
+              // Knights & Barbarians: a thin rule between the resources and the commodities.
+              c === commodities[0] && resources.length > 0 && <span key="rule" aria-hidden className={`h-12 w-px self-center ${tray ? 'bg-ink/15' : 'bg-white/20'}`} />,
               <CardStack
                 key={c}
                 card={c}
@@ -75,12 +124,13 @@ export function Hand({ view, max = 'md' }: { view: PlayerView; /** The biggest t
                 count={count(c)}
                 held={p.hand[c]}
                 warn={over}
+                fan={fan}
                 onClick={canTrade ? () => (trading ? draft.add('give', c) : openTrade({ [c]: 1 })) : undefined}
-              />
-            ))}
+              />,
+            ])}
           </div>
         )}
-        {held.length > 0 && special > 0 && <span aria-hidden className="h-12 w-px self-center bg-white/20" />}
+        {held.length > 0 && special > 0 && <span aria-hidden className={`h-12 w-px self-center ${tray ? 'bg-ink/15' : 'bg-white/20'}`} />}
         {dev.map(({ type, cards }) => (
           <DevCardFace
             key={type}

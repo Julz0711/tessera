@@ -1,7 +1,7 @@
 'use client';
 
 import { ChartColumn, MessageSquare, ScrollText, Trophy } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CARDS, shipsInPlay, type Card, type DevCardType, type GameEvent, type PartialHand, type ProgressCardType } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { DEV_NAMES, PROGRESS_NAMES, TRACK_NAMES } from '@/client/describe';
@@ -39,7 +39,7 @@ import { PlayerStrip, PlayersPanel } from './PlayersPanel';
 import { DiscardDialog, FreeRoadsBanner, GoldDialog } from './Prompts';
 import { RobberPopup } from './RobberPopup';
 import { TopBar } from './TopBar';
-import { OffersTray } from './TradePanel';
+import { OffersTray, TradePanel } from './TradePanel';
 import { cardList, fly, type Place } from '@/client/fx';
 import { TERRAIN_COMMODITY, TERRAIN_RESOURCE } from '@/engine/constants';
 import { FlyLayer } from './FlyLayer';
@@ -325,6 +325,30 @@ export function GameScreen() {
   const onHex = useCallback((id: number) => view && void handlePick(view, 'hex', id), [view]);
   // From Tailwind's `xl` up the hand gets its own corner; below that there's no room beside the dock.
   const wide = useWide(1280);
+  const ready = !!(view && room && scene);
+  // The room the hand tray has beside the dock (wide screens), so its cards can size to fit.
+  const bottomRow = useRef<HTMLDivElement>(null);
+  const dockWrap = useRef<HTMLDivElement>(null);
+  const [trayRoom, setTrayRoom] = useState<number>();
+  // …and the dice corner's width, which the row keeps clear of.
+  const [cornerRoom, setCornerRoom] = useState(0);
+  useLayoutEffect(() => {
+    const row = bottomRow.current;
+    const dock = dockWrap.current;
+    if (!wide || !row || !dock) return;
+    const corner = document.querySelector<HTMLElement>('[data-hud-corner="right"]');
+    const measure = () => {
+      const pad = corner?.offsetWidth ? corner.offsetWidth + 12 : 0;
+      setCornerRoom(pad);
+      setTrayRoom(row.clientWidth - pad - dock.offsetWidth - 12);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(row);
+    ro.observe(dock);
+    if (corner) ro.observe(corner);
+    return () => ro.disconnect();
+  }, [wide, ready]);
 
   if (!view || !room || !scene) {
     return <div className="grid min-h-dvh place-items-center text-foam/60">Setting up the board…</div>;
@@ -438,18 +462,18 @@ export function GameScreen() {
       <div className={`game-bottom pointer-events-none absolute inset-x-0 bottom-2 z-20 flex flex-col gap-2 px-2 ${dockClear}`} style={{ zoom }}>
         {/* Only the dock itself takes clicks: this row spans the screen and would otherwise cover
             the dice box on wide screens. */}
-        {/* Wide screens: the hand in the bottom-left corner, bigger, and the dock centred on its own. */}
-        {/* Wide screens: the hand in the bottom-left corner, and the dock centred unless the hand needs
-            the room (a hand wider than 36vw scrolls). The right column keeps the dock clear of the dice. */}
-        <div
-          className={`flex justify-center xl:grid xl:items-end xl:gap-3 ${rightCorner ? 'xl:grid-cols-[minmax(auto,1fr)_auto_minmax(10rem,1fr)]' : 'xl:grid-cols-[minmax(auto,1fr)_auto_minmax(0,1fr)]'}`}
-        >
-          {wide && (
-            <div className="pointer-events-auto w-max max-w-[38vw]">
-              {me !== null && <Hand view={view} max="xl" />}
+        {/* Wide screens: the hand on a white tray in the bottom-left corner with the trade panel
+            straight above it, and the dock (two rows there) to its right, clear of the dice. */}
+        <div ref={bottomRow} className="flex justify-center xl:items-end xl:justify-between xl:gap-3" style={wide ? { paddingRight: cornerRoom } : undefined}>
+          {wide && me !== null && (
+            <div className="pointer-events-auto flex min-w-0 flex-col gap-1.5">
+              {ui.panel === 'trade' && <TradePanel view={view} />}
+              <div className="paper max-w-full p-0">
+                <Hand view={view} tray room={trayRoom} />
+              </div>
             </div>
           )}
-          <div className="game-dock-wrap pointer-events-auto min-w-0 max-w-full xl:col-start-2">
+          <div ref={dockWrap} className="game-dock-wrap pointer-events-auto min-w-0 max-w-full shrink-0">
             <Dock view={view} room={room} hand={!wide} />
           </div>
         </div>

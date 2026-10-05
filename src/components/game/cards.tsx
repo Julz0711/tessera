@@ -206,6 +206,9 @@ export function ResourceCard({
   );
 }
 
+/** How far each extra card of a stack peeks out, in px. */
+export const stackStep = (size: CardSize) => (size === 'xl' ? 9 : size === 'md' || size === 'lg' ? 7 : 4);
+
 /**
  * Cards of one kind, fanned like a real stack: a sliver per extra card (up to 4), plus a count.
  * `held` is only passed for the hand: it marks the stack as where flying cards land.
@@ -216,6 +219,7 @@ export function CardStack({
   held,
   size = 'md',
   warn,
+  fan = true,
   onClick,
 }: {
   card: Card;
@@ -223,11 +227,13 @@ export function CardStack({
   held?: number;
   size?: CardSize;
   warn?: boolean;
+  /** Off: one card with its count, no slivers behind it (a full hand short of room). */
+  fan?: boolean;
   onClick?: () => void;
 }) {
   const c = CARD_COLORS[card];
-  const extra = Math.min(count - 1, 4);
-  const step = size === 'xl' ? 9 : size === 'md' || size === 'lg' ? 7 : 4;
+  const extra = fan ? Math.min(count - 1, 4) : 0;
+  const step = stackStep(size);
   const ref = useRef<HTMLDivElement>(null);
   const before = useRef(held);
   // More cards of this kind came in (not just back from the trade panel): the stack hops as the

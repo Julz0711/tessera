@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeftRight, BrickWall, Eye, Hammer, Hourglass, Landmark, Sailboat, Ship, Sparkles } from 'lucide-react';
+import { ArrowLeftRight, BrickWall, Eye, Hammer, Hourglass, Landmark, Ship, Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
   COSTS,
@@ -11,7 +11,6 @@ import {
   legalSettlementSpots,
   legalShipSpots,
   piecesLeft,
-  sailableShips,
   shipsInPlay,
   wallSpots,
   type PartialHand,
@@ -125,7 +124,7 @@ function ActionButton({
   );
 }
 
-/** `hand: false` leaves the hand out (wide screens give it its own corner, see GameScreen). */
+/** `hand: false` leaves the hand and the trade panel out (wide screens give them their own corner, see GameScreen). */
 export function Dock({ view, room, hand = true }: { view: PlayerView; room: RoomDTO; hand?: boolean }) {
   const ui = useUi();
   const me = view.viewer;
@@ -174,20 +173,19 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
   const settlementOk = canBuild && left.settlements > 0 && has(COSTS.settlement) && legalSettlementSpots(view, me).length > 0;
   const voyage = shipsInPlay(view);
   const shipOk = canBuild && left.ships > 0 && has(COSTS.ship) && legalShipSpots(view, me).length > 0;
-  const sailOk = canBuild && sailableShips(view, me).length > 0;
   const cityOk = canBuild && left.cities > 0 && has(COSTS.city) && legalCitySpots(view, me).length > 0;
   const devOk = canBuild && !ck && view.devDeckCount > 0 && has(COSTS.devCard);
   const knightOk = canBuild && ck && left.knights[1] > 0 && has(COSTS.knight) && legalKnightSpots(view, me).length > 0;
   const wallOk = canBuild && ck && has(COSTS.wall) && wallSpots(view, me).length > 0;
   return (
     <div className="game-dock flex w-full min-w-0 flex-col items-center gap-2 sm:w-auto">
-      {ui.panel === 'trade' && <TradePanel view={view} />}
+      {hand && ui.panel === 'trade' && <TradePanel view={view} />}
       {hand && <Hand view={view} />}
 
-      {/* actions: one row where there's room; on phones the builds and the turn's other moves
-          get a row each, every button the same width, so nothing hides off the edge. */}
-      <div role="group" aria-label="Game actions" className="game-actions glass flex w-full flex-col gap-1.5 p-1.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-center sm:gap-2 sm:p-2">
-        <div className="grid auto-cols-fr grid-flow-col gap-1 sm:flex sm:gap-2">
+      {/* actions: one row where there's room; on phones, and beside the hand on wide screens, the
+          builds and the turn's other moves get a row each, every button the same width. */}
+      <div role="group" aria-label="Game actions" className="game-actions glass flex w-full flex-col gap-1.5 p-1.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-center sm:gap-2 sm:p-2 xl:flex-col xl:gap-1.5">
+        <div className="grid auto-cols-fr grid-flow-col gap-1 sm:flex sm:gap-2 xl:grid xl:gap-1.5">
           <ActionButton
             label="Road"
             shortcut="1"
@@ -210,14 +208,6 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
                 cost={COSTS.ship} hand={p.hand}
                 left={left.ships}
                 hint="Build a ship on a sea or coast edge"
-              />
-              <ActionButton
-                label="Sail"
-                icon={<Sailboat size={20} />}
-                onClick={() => ui.setMode(ui.mode?.t === 'shipMove' ? null : { t: 'shipMove', from: null })}
-                active={ui.mode?.t === 'shipMove'}
-                disabled={!sailOk}
-                hint="Move the ship at the open end of a route (once a turn)"
               />
             </>
           )}
@@ -260,8 +250,8 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
             </>
           )}
         </div>
-        <span className="mx-0.5 hidden h-8 w-px self-center bg-foam/20 sm:block" />
-        <div className="grid auto-cols-fr grid-flow-col gap-1.5 sm:flex sm:gap-2">
+        <span className="mx-0.5 hidden h-8 w-px self-center bg-foam/20 sm:block xl:hidden" />
+        <div className="grid auto-cols-fr grid-flow-col gap-1.5 sm:flex sm:gap-2 xl:grid">
           {/* phones: Improve rides with the turn's other moves, keeping the build row short */}
           {ck && <ActionButton label="Improve" icon={<Hammer size={20} />} onClick={() => ui.setPanel('improve')} active={ui.panel === 'improve'} disabled={view.phase !== 'play'} hint="City improvements" className="sm:hidden" />}
           <ActionButton
@@ -273,7 +263,8 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
             disabled={view.phase !== 'play' || !view.turn.rolled || !free}
           />
           <ActionButton label="Bank" shortcut="B" icon={<Landmark size={20} />} onClick={() => ui.setPanel('bank')} active={ui.panel === 'bank'} disabled={!canBuild} bankAnchor />
-          <span className="mx-0.5 hidden h-8 w-px self-center bg-foam/20 sm:block" />
+          <span className="mx-0.5 hidden h-8 w-px self-center bg-foam/20 sm:block xl:hidden" />
+          <ReactionPicker dock />
           <ActionButton
             label="End turn"
             icon={seconds !== null ? <span className="font-mono text-base font-black leading-none tabular">{seconds}s</span> : <Hourglass size={20} />}
@@ -287,7 +278,6 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
             danger
             pulse={lowTime}
           />
-          {room.you.seat !== null && <ReactionPicker dock />}
         </div>
       </div>
     </div>

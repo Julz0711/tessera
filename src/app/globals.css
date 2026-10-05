@@ -278,13 +278,11 @@ body {
   .paper-flat {
     @apply rounded-[var(--radius-card)] border-[1.5px] border-ink/70 bg-paper text-ink;
   }
-  /* A HUD panel over the board, framed like the logo: deep sea inside a thin ink line and a white
-     rim, solid enough to read against any board theme. */
+  /* A HUD panel over the board: solid deep sea inside the logo's thin ink line, so it reads
+     against any board theme. */
   .glass {
     @apply rounded-[var(--radius-card)] border-[1.5px] border-ink bg-sea-800;
-    box-shadow:
-      0 0 0 2px var(--rim),
-      var(--shadow-float);
+    box-shadow: var(--shadow-float);
   }
   .label {
     @apply text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft;
@@ -307,14 +305,13 @@ body {
    can still override them, e.g. `btn sm:hidden` or `btn gap-0.5`. */
 @layer components {
 /* The logo's language, applied to every control:
-   - the edge: a white rim, a thin ink line, then the content (the logo hex's two strokes);
+   - the edge: the logo's thin ink line;
    - the facet: each fill has a shaded corner cut off at 45 degrees, bottom right, like the shade
      side of the logo's peak (fixed size, so wide and small keys look alike);
-   - its palette: sea teal, mountain green, white, with amber as the one primary colour.
-   HUD panels are framed like the logo; buttons are white keys on them. Variants set
-   --btn-bg / --btn-shade / --btn-fg / --btn-line / --btn-rim. */
+   - its palette: deep sea and white, with amber for the next action and whatever is selected.
+   Buttons are white keys on the deep-sea HUD panels. Variants set
+   --btn-bg / --btn-shade / --btn-fg / --btn-line. */
 :root {
-  --rim: #ffffff;
   /* What a faded (disabled) control is drawn in: foam over the dark HUD, ink on paper. */
   --faded: rgb(212 236 230);
 }
@@ -326,7 +323,6 @@ body {
   --btn-shade: #e3ebec;
   --btn-fg: var(--color-ink);
   --btn-line: var(--color-ink);
-  --btn-rim: transparent;
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -336,7 +332,6 @@ body {
   border-radius: 4px;
   background: linear-gradient(135deg, var(--btn-bg) calc(100% - 0.85rem), var(--btn-shade) 0);
   color: var(--btn-fg);
-  box-shadow: 0 0 0 2px var(--btn-rim);
   font-weight: 700;
   letter-spacing: 0.01em;
   transition:
@@ -363,41 +358,32 @@ body {
   outline: 2px solid var(--color-amber);
   outline-offset: 3px;
 }
-/* The one action to take next: amber, with the logo's white rim. */
+/* The one action to take next. */
 .btn.btn-primary {
   --btn-bg: #f6be4c;
   --btn-shade: #eaa733;
-  --btn-rim: var(--rim);
 }
-/* Switched on (a build being placed, an open panel, the chosen option): the logo's green. */
+/* Switched on (a build being placed, an open panel, the chosen option): amber, like the next action. */
 .btn.btn-on {
-  --btn-bg: #a6d677;
-  --btn-shade: #8dc160;
-  --btn-rim: var(--rim);
+  --btn-bg: #f6be4c;
+  --btn-shade: #eaa733;
 }
-/* On paper the rim vanishes into the white, as it does around the logo. */
-:is(.paper, .paper-flat, .bg-paper) .btn {
-  --btn-rim: transparent;
-}
-/* A control standing straight on the board: the logo itself, sea teal with the white rim. */
+/* A control standing straight on the board: deep sea with the ink line, like the HUD panels. */
 .btn.btn-dark {
-  --btn-bg: #2f8a9b;
-  --btn-shade: #27788a;
+  --btn-bg: var(--color-sea-800);
+  --btn-shade: #0b2630;
   --btn-fg: #ffffff;
-  --btn-rim: var(--rim);
 }
 .btn.btn-danger {
   --btn-bg: #d9483b;
   --btn-shade: #c23a2e;
   --btn-fg: #ffffff;
-  --btn-rim: var(--rim);
 }
 .btn.btn-ghost {
   --btn-bg: transparent;
   --btn-shade: transparent;
   --btn-fg: inherit;
   --btn-line: transparent;
-  --btn-rim: transparent;
 }
 .btn.btn-ghost:hover:not(:disabled) {
   filter: none;
@@ -406,7 +392,7 @@ body {
 .btn.btn-ghost:disabled {
   border-color: transparent;
 }
-/* Mutually exclusive options in one track (S · M · L): the chosen one is a raised white key. */
+/* Mutually exclusive options in one track (S · M · L): the chosen one is a raised amber key. */
 .seg {
   display: inline-flex;
   width: fit-content;
@@ -436,7 +422,7 @@ body {
 }
 .seg-opt[aria-checked='true'] {
   border-color: var(--color-ink);
-  background: linear-gradient(135deg, #ffffff calc(100% - 0.7rem), #e3ebec 0);
+  background: linear-gradient(135deg, #f6be4c calc(100% - 0.7rem), #eaa733 0);
   color: var(--color-ink);
 }
 .seg-opt:disabled {

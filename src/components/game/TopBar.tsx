@@ -236,7 +236,7 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
       </div>
 
       <div
-        className={`game-status pointer-events-auto max-w-[min(560px,55vw)] rounded-[6px] border-[1.5px] border-ink px-3 py-2 text-center text-sm font-extrabold shadow-[0_0_0_2px_var(--rim)] sm:px-4 sm:text-base ${
+        className={`game-status pointer-events-auto max-w-[min(560px,55vw)] rounded-[6px] border-[1.5px] border-ink px-3 py-2 text-center text-sm font-extrabold sm:px-4 sm:text-base ${
           status.mine ? "attention bg-amber text-ink" : "bg-sea-800 text-paper"
         }`}
         aria-live="polite"

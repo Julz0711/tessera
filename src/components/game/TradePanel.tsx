@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowDown, ArrowLeftRight, ArrowUp, Check, ChevronDown, ChevronUp, Hourglass, Landmark, Pencil, Users, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronUp, Hourglass, Landmark, Pencil, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { CARDS, RESOURCES, exchangeValue, handTotal, hasCards, type Card, type PartialHand, type TradeOffer } from '@/engine';
 import type { PlayerView } from '@/engine/view';
@@ -92,7 +92,10 @@ function DealButton({
   danger,
   tint,
   status,
+  big,
 }: {
+  /** The trade panel's action column: larger keys. */
+  big?: boolean;
   label: string;
   icon: React.ReactNode;
   onClick?: () => void;
@@ -109,7 +112,7 @@ function DealButton({
   return (
     <button
       type="button"
-      className={`btn relative h-9 w-9 p-0 ${primary ? 'btn-primary' : danger ? 'btn-danger' : ''} ${status ? 'pointer-events-none' : ''}`}
+      className={`btn relative p-0 ${big ? 'h-12 w-12' : 'h-9 w-9'} ${primary ? 'btn-primary' : danger ? 'btn-danger' : ''} ${status ? 'pointer-events-none' : ''}`}
       style={tint ? ({ '--btn-bg': `color-mix(in srgb, ${tint} 45%, var(--color-paper))` } as React.CSSProperties) : undefined}
       disabled={disabled}
       tabIndex={status ? -1 : undefined}
@@ -337,54 +340,53 @@ export function TradePanel({ view }: { view: PlayerView }) {
   };
 
   return (
-    // As wide as the deal needs to keep each row of cards on one line, within the screen.
-    <div className="grid w-max min-w-[min(420px,calc(100vw-16px))] max-w-[calc(100vw-16px)] animate-rise gap-1.5">
-      {/* everything you can ask for */}
-      <div className="paper flex flex-wrap items-center justify-center gap-1.5 p-1.5">
-        {cards.map((c) => (
-          <ResourceCard key={c} card={c} count={0} size="xs" onClick={() => draft.add('want', c)} />
-        ))}
+    // One white panel sitting straight on the hand: what you can ask for along the top, the deal
+    // below it, and the actions in a column on the right. As wide as the hand under it.
+    <div className="paper grid w-full min-w-[min(440px,calc(100vw-16px))] max-w-[calc(100vw-16px)] animate-rise grid-cols-[minmax(0,1fr)_auto] overflow-hidden p-0">
+      <div className="grid min-w-0">
+        {/* everything you can ask for, and who the offer goes to */}
+        <div className="flex flex-wrap items-center gap-1.5 bg-paper-2 px-2 py-1.5">
+          {cards.map((c) => (
+            <ResourceCard key={c} card={c} count={0} size="sm" onClick={() => draft.add('want', c)} />
+          ))}
+          <span className="ml-auto flex items-center gap-1 pl-2">
+            {(isActive ? others : [view.turn.seat]).map((seat) => {
+              const on = !isActive || targets.includes(seat);
+              return (
+                <button
+                  key={seat}
+                  type="button"
+                  aria-pressed={on}
+                  disabled={!isActive}
+                  title={blocksMe(seat) ? `${view.players[seat].name} has an embargo on you` : `${on ? 'Offer to' : 'Not offering to'} ${view.players[seat].name}`}
+                  onClick={() => setTargets((t) => (on ? t.filter((x) => x !== seat) : [...t, seat]))}
+                  className={`rounded-full transition ${on ? '' : 'opacity-35 grayscale'}`}
+                >
+                  <Avatar view={view} seat={seat} answer={blocksMe(seat) ? 'no' : undefined} />
+                </button>
+              );
+            })}
+          </span>
+        </div>
+        <div className="grid divide-y divide-ink/10 px-2">
+          <DealRow side="want" who={<Users size={22} className="text-ink-soft" />} cards={want} onCard={(c) => draft.remove('want', c)} hint="Tap a card above to add it" />
+          <DealRow side="give" who={<Avatar view={view} seat={me} size={26} />} cards={give} onCard={(c) => draft.remove('give', c)} hint="Tap a card in your hand to add it" />
+        </div>
       </div>
-      <DealCard
-        header={(isActive ? others : [view.turn.seat]).map((seat) => {
-          const on = !isActive || targets.includes(seat);
-          return (
-            <button
-              key={seat}
-              type="button"
-              aria-pressed={on}
-              disabled={!isActive}
-              title={blocksMe(seat) ? `${view.players[seat].name} has an embargo on you` : `${on ? 'Offer to' : 'Not offering to'} ${view.players[seat].name}`}
-              onClick={() => setTargets((t) => (on ? t.filter((x) => x !== seat) : [...t, seat]))}
-              className={`rounded-full transition ${on ? '' : 'opacity-35 grayscale'}`}
-            >
-              <Avatar view={view} seat={seat} answer={blocksMe(seat) ? 'no' : undefined} />
-            </button>
-          );
-        })}
-        footer={
-          <>
-            {isActive && (
-              <DealButton
-                label={
-                  exchange?.ok
-                    ? `Trade ${handTotal(give)} for ${handTotal(want)} with the bank`
-                    : (exchange?.why ?? 'Trade with the bank on your turn, after rolling')
-                }
-                icon={<Landmark size={16} />}
-                onClick={tradeBank}
-                disabled={!exchange?.ok}
-                ok={!!exchange?.ok}
-              />
-            )}
-            <DealButton label={isActive ? 'Offer to players' : 'Send counter-offer'} icon={<ArrowLeftRight size={16} />} onClick={send} disabled={!ready} ok={ready} primary />
-            <DealButton label="Close (Esc)" danger icon={<X size={17} strokeWidth={3} />} onClick={() => ui.setPanel(null)} />
-          </>
-        }
-      >
-        <DealRow side="want" who={<Users size={22} className="text-ink-soft" />} cards={want} onCard={(c) => draft.remove('want', c)} hint="Tap a card above to add it" />
-        <DealRow side="give" who={<Avatar view={view} seat={me} size={26} />} cards={give} onCard={(c) => draft.remove('give', c)} hint="Tap a card in your hand to add it" />
-      </DealCard>
+      <div className="grid content-start gap-1.5 border-l-[1.5px] border-ink/10 bg-paper-2/60 p-1.5">
+        {isActive && (
+          <DealButton
+            big
+            label={exchange?.ok ? `Trade ${handTotal(give)} for ${handTotal(want)} with the bank` : (exchange?.why ?? 'Trade with the bank on your turn, after rolling')}
+            icon={<Landmark size={20} />}
+            onClick={tradeBank}
+            disabled={!exchange?.ok}
+            ok={!!exchange?.ok}
+          />
+        )}
+        <DealButton big label={isActive ? 'Offer to players' : 'Send counter-offer'} icon={<Users size={20} />} onClick={send} disabled={!ready} ok={ready} primary />
+        <DealButton big label="Close (Esc)" danger icon={<X size={20} strokeWidth={3} />} onClick={() => ui.setPanel(null)} />
+      </div>
     </div>
   );
 }
