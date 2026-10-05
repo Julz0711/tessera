@@ -17,7 +17,7 @@ import { Modal } from '@/components/ui/Modal';
 /** A number beside its icon; `award` tints it when the player holds that award (Longest road, Largest army). */
 function Stat({ icon, value, title, award }: { icon: React.ReactNode; value: React.ReactNode; title: string; award?: string }) {
   return (
-    <span className={`flex items-center justify-between gap-1 rounded px-1 tabular ${award ?? ''}`} title={title}>
+    <span className={`flex items-center justify-between gap-0.5 rounded px-0.5 tabular ${award ?? ''}`} title={title}>
       {icon}
       {value}
     </span>
@@ -208,16 +208,7 @@ export function PlayersPanel({
               {view.winner === seat && <Crown size={12} className="text-amber-deep" />}
               {vp}
             </span>
-            {/* The merchant and Defender points (C&K) ride on the portrait, so every card keeps one height. */}
-            {p.defender > 0 && (
-              <span
-                className="absolute -left-1.5 -top-1 flex h-5 items-center gap-px rounded-[5px] border-[1.5px] border-ink bg-sea-600 px-0.5 text-[10px] font-black leading-none text-white tabular"
-                title="Defender of the island: 1 VP for each barbarian attack this player beat back best"
-                aria-label={`Defender of the island: +${p.defender} VP`}
-              >
-                <ShieldHalf size={10} strokeWidth={2.6} />+{p.defender}
-              </span>
-            )}
+            {/* The merchant (C&K) rides on its holder's portrait, so the card keeps its height. */}
             {view.merchant?.owner === seat && (
               <span
                 className="absolute -right-1.5 -top-1 grid h-5 w-5 place-items-center rounded-[5px] border-[1.5px] border-ink bg-moss text-white"
@@ -232,7 +223,7 @@ export function PlayersPanel({
         );
         const contents = (
           <>
-            <div className={`flex items-center gap-2.5 ${compact ? '' : 'pt-1'}`}>
+            <div className={`flex items-center ${compact ? 'gap-2.5' : 'gap-2 pt-1'}`}>
               <CardIcon
                 bg={HAND_BG}
                 ink="#1f1a14"
@@ -242,7 +233,7 @@ export function PlayersPanel({
                 warn={view.phase === 'play' && p.handCount > handLimit(view, seat) ? `over ${handLimit(view, seat)}: a 7 costs half` : undefined}
               />
               {ck ? (
-                <span className="flex items-center gap-2.5">
+                <span className={`flex items-center ${compact ? 'gap-2.5' : 'gap-2'}`}>
                   {/* the hand and the three progress decks share one size, so their badges line up */}
                   {TRACKS.map((t) => (
                     <CardIcon key={t} bg={TRACK_STYLE[t].color} ink={TRACK_STYLE[t].ink} n={p.progressTracks[t]} title={`${TRACK_STYLE[t].label} progress cards`} glyph="" small />
@@ -253,7 +244,8 @@ export function PlayersPanel({
               )}
             </div>
             {ck && <ImprovementGrid levels={p.improvements} metropolis={TRACKS.filter((t) => view.metropolis[t] === seat)} compact />}
-            <div className={`ml-auto shrink-0 text-xs font-black text-ink-soft ${compact ? 'flex items-center gap-1' : 'grid gap-0.5'}`}>
+            {/* Two rows at most (Defender points start a second column), so every card keeps one height. */}
+            <div className={`ml-auto shrink-0 text-xs font-black text-ink-soft ${compact ? 'flex items-center gap-1' : 'grid grid-flow-col grid-rows-2 gap-x-0.5 gap-y-0.5'}`}>
               <Stat
                 icon={<Route size={13} />}
                 value={p.roadLength}
@@ -261,17 +253,31 @@ export function PlayersPanel({
                 award={view.longestRoad === seat ? 'bg-amber text-ink' : undefined}
               />
               {ck ? (
-                <Stat
-                  icon={<Swords size={13} />}
-                  value={view.knights.reduce((n, k) => n + (k && k.owner === seat && k.active ? k.level : 0), 0)}
-                  title="Active knight strength"
-                />
+                (() => {
+                  const strength = view.knights.reduce((n, k) => n + (k && k.owner === seat && k.active ? k.level : 0), 0);
+                  // Active knights light the swords up in gold (as on colonist); none active, they fade.
+                  return (
+                    <Stat
+                      icon={<Swords size={13} strokeWidth={strength ? 2.6 : 2} className={strength ? 'text-amber-deep' : 'opacity-40'} />}
+                      value={<span className={strength ? 'text-ink' : 'opacity-40'}>{strength}</span>}
+                      title={strength ? `Active knight strength: ${strength}` : 'No active knights'}
+                    />
+                  );
+                })()
               ) : (
                 <Stat
                   icon={<Swords size={13} />}
                   value={p.knightsPlayed}
                   title={view.largestArmy === seat ? `Largest army (${p.knightsPlayed} knights)` : 'Knights played'}
                   award={view.largestArmy === seat ? 'bg-terracotta text-white' : undefined}
+                />
+              )}
+              {p.defender > 0 && (
+                <Stat
+                  icon={<ShieldHalf size={13} />}
+                  value={p.defender}
+                  title={`Defender of the island: ${p.defender} VP, one for each barbarian attack this player beat back best`}
+                  award="bg-sea-600 text-white"
                 />
               )}
             </div>
@@ -310,7 +316,7 @@ export function PlayersPanel({
             ) : (
               <>
                 {nameRow}
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2">
                   {avatar}
                   {contents}
                 </div>
