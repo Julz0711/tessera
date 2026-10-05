@@ -222,7 +222,7 @@ export function CardStack({
   size = 'md',
   warn,
   fan = true,
-  up = false,
+  step: stepOverride,
   onClick,
 }: {
   card: Card;
@@ -232,13 +232,13 @@ export function CardStack({
   warn?: boolean;
   /** Off: one card with its count, no slivers behind it (a full hand short of room). */
   fan?: boolean;
-  /** Stack the slivers upwards rather than sideways, so a full hand keeps its width (the hand tray). */
-  up?: boolean;
+  /** How far each extra card peeks out, in px, when the hand is short of room (default: `stackStep`). */
+  step?: number;
   onClick?: () => void;
 }) {
   const c = CARD_COLORS[card];
-  const extra = fan || up ? Math.min(count - 1, 4) : 0;
-  const step = up ? 4 : stackStep(size);
+  const extra = fan ? Math.min(count - 1, 4) : 0;
+  const step = stepOverride ?? stackStep(size);
   const ref = useRef<HTMLDivElement>(null);
   const before = useRef(held);
   // More cards of this kind came in (not just back from the trade panel): the stack hops as the
@@ -254,13 +254,13 @@ export function CardStack({
     );
   }, [held]);
   return (
-    <div ref={ref} className="relative flex shrink-0" style={up ? { paddingTop: extra * step } : { paddingLeft: extra * step }} data-hand-card={held !== undefined ? card : undefined}>
+    <div ref={ref} className="relative flex shrink-0" style={{ paddingLeft: extra * step }} data-hand-card={held !== undefined ? card : undefined}>
       {Array.from({ length: extra }, (_, i) => (
         <span
           key={i}
           aria-hidden
-          className={`absolute ${up ? '' : 'top-0'} rounded-[6px] border-[1.5px] border-ink shadow-card ${CARD_BOX[size]}`}
-          style={{ ...(up ? { top: i * step, left: 0 } : { left: i * step }), background: mix(c.bg, '#000000', 0.18 - i * 0.03) }}
+          className={`absolute top-0 rounded-[6px] border-[1.5px] border-ink shadow-card ${CARD_BOX[size]}`}
+          style={{ left: i * step, background: mix(c.bg, '#000000', 0.18 - i * 0.03) }}
         />
       ))}
       <ResourceCard card={card} count={count} size={size} warn={warn} onClick={onClick} />

@@ -25,16 +25,17 @@ describe('hand tray fit', () => {
   const counts = [2, 2, 2, 2, 2, 2, 2, 2];
 
   it('keeps full-size fanned cards when there is room', () => {
-    expect(fitTray(1200, counts, 3, 2)).toEqual({ size: 'md', fan: true });
+    expect(fitTray(1200, counts, 3, 2)).toEqual({ size: 'md', fan: true, step: 7 });
   });
 
-  it('stops fanning before it shrinks the cards', () => {
-    // md fanned needs 20 + 11 * 68 + 2 * 13 + 8 * 7 = 850px; md flat 794px.
-    expect(fitTray(820, counts, 3, 2)).toEqual({ size: 'md', fan: false });
+  it('tightens the stacks, then lays them flat, before it shrinks the cards', () => {
+    // md flat needs 20 + 11 * 68 + 2 * 13 = 794px; the 8 slivers share what is left.
+    expect(fitTray(820, counts, 3, 2)).toEqual({ size: 'md', fan: true, step: 3 });
+    expect(fitTray(800, counts, 3, 2)).toEqual({ size: 'md', fan: false, step: 0 });
   });
 
   it('shrinks the cards when even flat ones do not fit', () => {
-    expect(fitTray(640, counts, 3, 2)).toEqual({ size: 'sm', fan: false });
-    expect(fitTray(100, counts, 3, 2)).toEqual({ size: 'xs', fan: false });
+    expect(fitTray(640, counts, 3, 2)).toEqual({ size: 'sm', fan: false, step: 0 });
+    expect(fitTray(100, counts, 3, 2)).toEqual({ size: 'xs', fan: false, step: 0 });
   });
 });

@@ -23,19 +23,25 @@ const FITS: [CardSize, number][] = [
 const CARD_W: Partial<Record<CardSize, number>> = { xs: 32, sm: 40, md: 56 };
 const GAP = 12;
 
+/** The least a stacked card may peek out by and still read as a stack, in px. */
+const MIN_STEP = 3;
+
 /**
- * The hand's layout for `room` px: the biggest card size that fits, fanned stacks if they
- * still fit, else one card per kind with its count (like Colonist's hand).
+ * The hand's layout for `room` px: the biggest card size whose cards fit side by side, with each
+ * kind's extra cards peeking out to the left of it by as much as the room left over allows (the
+ * full `stackStep` at most). Short of even a sliver of room, the cards lie flat with their counts.
  */
-export function fitTray(room: number, counts: number[], special: number, rules: number, max: CardSize = 'md'): { size: CardSize; fan: boolean } {
-  const width = (size: CardSize, fan: boolean) =>
-    20 + (counts.length + special) * (CARD_W[size]! + GAP) + rules * (1 + GAP) + (fan ? counts.reduce((n, c) => n + Math.min(c - 1, 4) * stackStep(size), 0) : 0);
+export function fitTray(room: number, counts: number[], special: number, rules: number, max: CardSize = 'md'): { size: CardSize; fan: boolean; step: number } {
+  const flat = (size: CardSize) => 20 + (counts.length + special) * (CARD_W[size]! + GAP) + rules * (1 + GAP);
+  const slivers = counts.reduce((n, c) => n + Math.min(c - 1, 4), 0);
   const sizes = (['md', 'sm', 'xs'] as const).filter((s) => s !== 'md' || max !== 'sm');
   for (const size of sizes) {
-    if (width(size, true) <= room) return { size, fan: true };
-    if (width(size, false) <= room) return { size, fan: false };
+    const spare = room - flat(size);
+    if (spare < 0) continue;
+    const step = slivers ? Math.min(stackStep(size), Math.floor(spare / slivers)) : stackStep(size);
+    return step >= MIN_STEP ? { size, fan: true, step } : { size, fan: false, step: 0 };
   }
-  return { size: 'xs', fan: false };
+  return { size: 'xs', fan: false, step: 0 };
 }
 
 /** The biggest size no larger than `max` that fits `stacks` cards. */
@@ -96,8 +102,8 @@ export function Hand({
   // Everything in hand has to fit beside the dock without scrolling: with all eight kinds in
   // Knights & Barbarians, plus progress cards, the cards step down a size instead.
   const rules = (commodities.length && resources.length ? 1 : 0) + (held.length && special ? 1 : 0);
-  const { size, fan } =
-    tray && fitRoom !== undefined ? { ...fitTray(fitRoom, held.map((c) => count(c)), special, rules, max), fan: false } : fitRoom !== undefined ? fitTray(fitRoom, held.map((c) => count(c)), special, rules, max) : { size: fit(max, held.length + special), fan: true };
+  const { size, fan, step } =
+    fitRoom !== undefined ? fitTray(fitRoom, held.map((c) => count(c)), special, rules, max) : { size: fit(max, held.length + special), fan: true, step: undefined };
 
   return (
     // The inner row is only as wide as its cards, so it centres when it fits and scrolls from the
@@ -125,7 +131,7 @@ export function Hand({
                 held={p.hand[c]}
                 warn={over}
                 fan={fan}
-                up={tray}
+                step={step}
                 onClick={canTrade ? () => (trading ? draft.add('give', c) : openTrade({ [c]: 1 })) : undefined}
               />,
             ])}

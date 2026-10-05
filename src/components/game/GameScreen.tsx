@@ -331,6 +331,7 @@ export function GameScreen() {
   // above the bar, so its height (and the dice corner's) are measured into CSS variables.
   const handCell = useRef<HTMLDivElement>(null);
   const bar = useRef<HTMLDivElement>(null);
+  const others = useRef<HTMLDivElement>(null);
   const [trayRoom, setTrayRoom] = useState<number>();
   const [barH, setBarH] = useState(0);
   const [cornerH, setCornerH] = useState(0);
@@ -338,17 +339,18 @@ export function GameScreen() {
     const cell = handCell.current;
     const row = bar.current;
     if (!wide || !cell || !row) return;
-    const corner = document.querySelector<HTMLElement>('[data-hud-corner="right"]');
+    // The other players' cards stack on top of yours, so the right column stops above them.
+    const stack = others.current;
     const measure = () => {
       setTrayRoom(cell.clientWidth);
       setBarH(row.offsetHeight);
-      setCornerH(corner?.offsetHeight ?? 0);
+      setCornerH(stack?.offsetHeight ?? 0);
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(cell);
     ro.observe(row);
-    if (corner) ro.observe(corner);
+    if (stack) ro.observe(stack);
     return () => ro.disconnect();
   }, [wide, ready]);
 
@@ -361,8 +363,10 @@ export function GameScreen() {
   const zoom = HUD_SCALE[prefs.hudScale];
   const layout = prefs.hudLayout;
   // Panels with nothing to show in this game: the barbarians outside Knights & Barbarians.
-  // On wide screens the dice sit just above the dock, out of the HUD.
-  const unused = (panel: HudPanel) => (panel === 'barbarian' && view.mode !== 'ck') || (panel === 'dice' && wide && me !== null);
+  // On wide screens the dice sit just above the dock and the other players on top of your own
+  // card, both out of the HUD (so they can't be moved).
+  const barred = wide && me !== null;
+  const unused = (panel: HudPanel) => (panel === 'barbarian' && view.mode !== 'ck') || ((panel === 'dice' || panel === 'players') && barred);
   // A side column takes room from the flat board when it holds more than the (usually empty) offers
   // and the small zoom buttons.
   const columnUsed = (side: HudSide) =>
@@ -391,8 +395,7 @@ export function GameScreen() {
       case 'bank':
         return <BankStrip view={view} />;
       case 'players':
-        // On wide screens your own card sits in the bottom bar; the others stack up here.
-        return <PlayersPanel view={view} room={room} align={side} seats={wide && me !== null ? view.players.map((_, i) => i).filter((i) => i !== me) : undefined} />;
+        return <PlayersPanel view={view} room={room} align={side} />;
       case 'dice':
         return <DiceBox view={view} size={60} />;
       case 'offers':
@@ -477,13 +480,18 @@ export function GameScreen() {
               </div>
             </div>
             <div className="game-dock-wrap pointer-events-auto relative flex shrink-0">
-              <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2">
-                <DiceBox view={view} size={48} />
+              <div className="absolute inset-x-0 bottom-full mb-2 flex justify-center">
+                <DiceBox view={view} size={48} className="w-full justify-center" />
               </div>
               <Dock view={view} room={room} hand={false} />
             </div>
-            <div className="pointer-events-auto w-72 shrink-0 [&_li]:h-full [&_ol]:h-full">
-              <PlayersPanel view={view} room={room} seats={[me]} inline />
+            <div className="relative w-72 shrink-0">
+              <div ref={others} className="pointer-events-auto absolute inset-x-0 bottom-full mb-2">
+                <PlayersPanel view={view} room={room} seats={view.players.map((_, i) => i).filter((i) => i !== me)} inline />
+              </div>
+              <div className="pointer-events-auto h-full [&_li]:h-full [&_ol]:h-full">
+                <PlayersPanel view={view} room={room} seats={[me]} inline />
+              </div>
             </div>
           </div>
         ) : (

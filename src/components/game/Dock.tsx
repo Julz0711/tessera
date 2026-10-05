@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeftRight, BrickWall, Castle, Eye, Hammer, Hourglass, Ship, Sparkles } from 'lucide-react';
+import { ArrowLeftRight, BrickWall, Eye, Hammer, Hourglass, Ship, Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
   COSTS,
@@ -26,6 +26,7 @@ import { Kbd } from '@/components/ui/Kbd';
 import { CostDots } from './BuildCostsCard';
 import { Hand } from './Hand';
 import { TradePanel } from './TradePanel';
+import { ImproveOptions, ProgressGrid, improvableCount } from './ck/ImproveMenu';
 
 /** Seconds left until `deadline`, ticking every 250ms; null once there's no active deadline. */
 function useCountdown(deadline: number | null): number | null {
@@ -142,24 +143,28 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
   const me = view.viewer;
   const seconds = useCountdown(room.deadline);
   const lowTime = seconds !== null && seconds <= 10;
-  const [buildOpen, setBuildOpen] = useState(false);
+  // The Build or Improve key's menu, opening upwards from the dock.
+  const [open, setOpen] = useState<'build' | 'improve' | null>(null);
+  const buildOpen = open === 'build';
+  const setBuildOpen = (o: boolean) => setOpen(o ? 'build' : null);
   const menuRef = useRef<HTMLDivElement>(null);
-  // The build menu closes on Esc, on a click anywhere else, and when the turn moves on.
+  const improveRef = useRef<HTMLDivElement>(null);
+  // A menu closes on Esc, on a click anywhere else, and when the turn moves on.
   useEffect(() => {
     if (!buildOpen) return;
     const away = (e: PointerEvent) => {
       const t = e.target as Element | null;
-      if (!menuRef.current?.contains(t) && !t?.closest?.('[data-build-toggle]')) setBuildOpen(false);
+      if (!menuRef.current?.contains(t) && !improveRef.current?.contains(t) && !t?.closest?.('[data-build-toggle]')) setOpen(null);
     };
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setBuildOpen(false);
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(null);
     window.addEventListener('pointerdown', away);
     window.addEventListener('keydown', esc);
     return () => {
       window.removeEventListener('pointerdown', away);
       window.removeEventListener('keydown', esc);
     };
-  }, [buildOpen]);
-  useEffect(() => setBuildOpen(false), [view.turn.n, view.turn.seat]);
+  }, [open]);
+  useEffect(() => setOpen(null), [view.turn.n, view.turn.seat]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -296,18 +301,41 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
           )}
         </div>
 
+        {ck && (
+          <div
+            ref={improveRef}
+            role="menu"
+            aria-label="Improve"
+            className={`${open === 'improve' ? 'flex' : 'hidden'} glass animate-rise absolute bottom-full right-0 z-30 mb-2 w-max gap-1.5 p-1.5 sm:gap-2 sm:p-2`}
+          >
+            <ImproveOptions view={view} onDone={() => setOpen(null)} />
+          </div>
+        )}
+
         <ActionButton
           label="Build"
           shortcut="B"
           icon={<Hammer size={20} />}
-          onClick={() => setBuildOpen((o) => !o)}
+          onClick={() => setOpen((o) => (o === 'build' ? null : 'build'))}
           active={buildOpen || building !== null}
           disabled={!canBuild}
           hint="Roads, settlements, cities and more"
           count={builds || undefined}
           buildToggle
         />
-        {ck && <ActionButton label="Improve" icon={<Castle size={20} />} onClick={() => ui.setPanel('improve')} active={ui.panel === 'improve'} disabled={view.phase !== 'play'} hint="City improvements" />}
+        {ck && (
+          <ActionButton
+            label="Improve"
+            shortcut="I"
+            icon={<ProgressGrid view={view} />}
+            onClick={() => setOpen((o) => (o === 'improve' ? null : 'improve'))}
+            active={open === 'improve'}
+            disabled={view.phase !== 'play'}
+            hint="City improvements"
+            count={improvableCount(view) || undefined}
+            buildToggle
+          />
+        )}
         <ActionButton
           label="Trade"
           shortcut="T"
