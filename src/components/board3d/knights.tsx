@@ -9,7 +9,7 @@ import { PLAYER_COLORS } from '@/shared/colors';
 import { DEFAULT_KNIGHT, KNIGHT_STEEL, faceFrame, faceUrl, knightLook, type KnightCustomization } from '@/shared/knight';
 import type { BoardScene } from '@/components/board/types';
 import { mat } from './materials';
-import { useAppear } from './pieces';
+import { Grounded, useAppear } from './pieces';
 import { usePieceScale } from './pieceScale';
 import { TILE_TOP } from './terrain';
 import { useBoardKit } from './themes';
@@ -199,7 +199,9 @@ export function KnightModel({
       <group position={[0, level !== undefined ? 0.05 : 0, 0]}>
         {KNIGHT_FORMATION[level ?? 1].map((figure, i) => (
           <group key={i} position={[figure.pos[0], 0, figure.pos[1]]} scale={figure.scale}>
-            <Figure metal={metal} trim={trim} cloth={cloth} dark={dark} faceMat={faceMat} faceGeo={faceGeo} shadows={s} headY={headY} />
+            <Grounded>
+              <Figure metal={metal} trim={trim} cloth={cloth} dark={dark} faceMat={faceMat} faceGeo={faceGeo} shadows={s} headY={headY} />
+            </Grounded>
           </group>
         ))}
       </group>

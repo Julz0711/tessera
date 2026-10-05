@@ -33,7 +33,7 @@ const G = {
   staveRoof: new THREE.ConeGeometry(0.1, 0.22, 4),
   saloon: new THREE.BoxGeometry(0.44, 0.26, 0.26),
   facade: new THREE.BoxGeometry(0.5, 0.4, 0.03),
-  bellTower: new THREE.BoxGeometry(0.13, 0.14, 0.13),
+  bellTower: new THREE.BoxGeometry(0.13, 0.3, 0.13),
   bellRoof: new THREE.ConeGeometry(0.11, 0.1, 4),
   sign: new THREE.BoxGeometry(0.32, 0.08, 0.012),
   porch: new THREE.BoxGeometry(0.54, 0.025, 0.1),
@@ -153,8 +153,8 @@ function FrontierMetropolis({ c, o, ghost, accent }: MetropolisProps) {
       <mesh geometry={G.sign} material={mat(accent, o)} position={[0, 0.3, 0.142]} />
       <mesh geometry={G.porch} material={mat(c.dark, o)} position={[0, 0.15, 0.18]} castShadow={s} />
       <mesh geometry={G.door} material={mat(c.dark, o)} position={[0, 0.06, 0.141]} />
-      <mesh geometry={G.bellTower} material={mat(c.hex, o)} position={[0, 0.47, 0.02]} castShadow={s} />
-      <mesh geometry={G.bellRoof} material={mat(c.dark, o)} position={[0, 0.59, 0.02]} rotation={[0, Math.PI / 4, 0]} castShadow={s} />
+      <mesh geometry={G.bellTower} material={mat(c.hex, o)} position={[0, 0.41, -0.02]} castShadow={s} />
+      <mesh geometry={G.bellRoof} material={mat(c.dark, o)} position={[0, 0.61, -0.02]} rotation={[0, Math.PI / 4, 0]} castShadow={s} />
     </>
   );
 }

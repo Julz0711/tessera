@@ -1,7 +1,7 @@
 'use client';
 
 import { useFrame } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
 import * as THREE from 'three';
 import type { Topology } from '@/engine/board/topology';
 import type { Harbor, Hex, PlayerColor, Track } from '@/engine/types';
@@ -192,24 +192,53 @@ export function Merchant({ x, z, color }: { x: number; z: number; color: PlayerC
  */
 export const ROBBER_OFFSET = { x: 0.5, z: 0.08 };
 
+/**
+ * Stands a figure on the ground: measures its lowest point in its own frame and lifts or drops it
+ * so the feet meet y = 0, whatever a theme's model does, so no knight or robber hovers.
+ */
+export function Grounded({ children }: { children: ReactNode }) {
+  const ref = useRef<THREE.Group>(null);
+  useLayoutEffect(() => {
+    const g = ref.current;
+    if (!g) return;
+    g.position.y = 0;
+    g.updateWorldMatrix(true, true);
+    const inv = g.matrixWorld.clone().invert();
+    const box = new THREE.Box3();
+    const m = new THREE.Matrix4();
+    g.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+      box.union(mesh.geometry.boundingBox!.clone().applyMatrix4(m.multiplyMatrices(inv, mesh.matrixWorld)));
+    });
+    if (!box.isEmpty()) g.position.y = -box.min.y;
+  });
+  return <group ref={ref}>{children}</group>;
+}
+
 export function Robber({ x, z, ghost = false }: { x: number; z: number; ghost?: boolean }) {
   const ref = useRef<THREE.Group>(null);
-  const target = useRef(new THREE.Vector3(x, 0, z));
+  const target = useRef(new THREE.Vector3(x, TILE_TOP, z));
   const k = usePieceScale();
   const o = ghost ? { opacity: 0.55 } : {};
   const Model = useBoardKit().Robber ?? ClassicRobber;
-  target.current.set(x, 0, z);
+  target.current.set(x, TILE_TOP, z);
   useFrame(() => {
     const g = ref.current;
     if (!g) return;
+    // Slide across, hopping up in proportion to the distance left; standing still it rests on the tile.
+    g.position.y = TILE_TOP;
     g.position.lerp(target.current, 0.12);
-    const dist = g.position.distanceTo(target.current);
-    g.position.y = TILE_TOP + Math.min(0.6, dist * 0.5);
+    const dist = Math.hypot(g.position.x - x, g.position.z - z);
+    g.position.y = TILE_TOP + (dist < 0.002 ? 0 : Math.min(0.6, dist * 0.5));
   });
   return (
     <group ref={ref} position={[x, TILE_TOP, z]}>
       <group scale={k}>
-        <Model o={o} ghost={ghost} />
+        <Grounded>
+          <Model o={o} ghost={ghost} />
+        </Grounded>
       </group>
     </group>
   );

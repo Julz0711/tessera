@@ -31,7 +31,10 @@ const G = {
   gantryPost: new THREE.BoxGeometry(0.016, 0.22, 0.016),
   gantryBeam: new THREE.BoxGeometry(0.2, 0.018, 0.018),
   nozzle: new THREE.BoxGeometry(0.03, 0.03, 0.03),
-  // pasture: a glass helmet on every sheep, and a light mast over the meadow
+  // pasture: a glass-walled pen holding the flock, a glass helmet on every sheep, a light mast
+  penWall: new THREE.CylinderGeometry(0.26, 0.26, 0.07, 18, 1, true),
+  penRim: new THREE.TorusGeometry(0.26, 0.012, 4, 18).rotateX(Math.PI / 2),
+  penPost: new THREE.BoxGeometry(0.022, 0.09, 0.022),
   helmet: new THREE.SphereGeometry(0.048, 10, 8),
   mast: new THREE.CylinderGeometry(0.007, 0.009, 0.24, 5),
   lamp: new THREE.BoxGeometry(0.05, 0.02, 0.05),
@@ -104,9 +107,19 @@ function props(terrain: Terrain, seed: number): Prop[] | null {
       for (const [x, z] of spread(rand, 10, TOKEN_CLEAR + 0.04, EDGE - 0.04)) {
         out.push({ geo: 'tuft', color: rand() > 0.5 ? '#6fa84f' : '#8fc46a', p: [x, y + 0.045, z], r: [0, rand() * 3, 0] });
       }
-      for (const [x, z] of spread(rand, 3, 0.5, 0.64)) {
+      // The flock stays together in one glass-walled pen at a corner, away from the light mast.
+      const [cx, cz] = polar(pick([CORNERS[0], CORNERS[1], CORNERS[2]]), 0.62);
+      out.push({ geo: G.penWall, color: '#cff6ff', p: [cx, y + 0.035, cz], opacity: 0.3 });
+      out.push({ geo: G.penRim, color: '#8a93a8', p: [cx, y + 0.07, cz] });
+      for (let k = 0; k < 6; k++) {
+        const pa = (k * Math.PI) / 3;
+        out.push({ geo: G.penPost, color: '#8a93a8', p: [cx + Math.cos(pa) * 0.26, y + 0.045, cz + Math.sin(pa) * 0.26] });
+      }
+      const flock: [number, number][] = [[-0.1, -0.06], [0.1, -0.04], [0, 0.1]];
+      for (const [fx, fz] of flock) {
+        const [x, z] = [cx + fx, cz + fz];
         const a = rand() * Math.PI * 2;
-        const [hx, hz] = [x + Math.cos(a) * 0.1, z - Math.sin(a) * 0.1];
+        const [hx, hz] = [x + Math.cos(a) * 0.08, z - Math.sin(a) * 0.08];
         out.push({ geo: 'sheepBody', color: '#f4f1e6', p: [x, y + 0.07, z], s: [1.35, 1, 1], r: [0, a, 0] });
         out.push({ geo: 'sheepHead', color: '#3a3530', p: [hx, y + 0.085, hz], r: [0, a, 0] });
         out.push({ geo: G.helmet, color: '#cff6ff', p: [hx, y + 0.09, hz], opacity: 0.35 });

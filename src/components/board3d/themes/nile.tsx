@@ -156,7 +156,9 @@ function props(terrain: Terrain, seed: number): Prop[] | null {
       out.push({ geo: G.sphinxHead, color: '#cfa85c', p: [sx, y + 0.055, sz + 0.05] });
       const [tx, tz] = polar(pa === CORNERS[3] ? CORNERS[5] : CORNERS[3], 0.62);
       palm(out, rand, tx, tz, 0.8);
-      for (const [x, z] of spread(rand, 3, 0.35, 0.55)) out.push({ geo: 'dune', color: rand() > 0.5 ? '#e6cf96' : '#f0dcaa', p: [x, y - 0.01, z], s: [1.1, 0.3, 0.9] });
+      // Sand drifts only where they leave the pyramids standing clear.
+      const clear = ([x, z]: [number, number, number]) => Math.hypot(x, z + 0.34) > 0.42 && Math.hypot(x - px, z - pz) > 0.3;
+      for (const [x, z] of spread(rand, 6, 0.35, 0.6).filter(clear).slice(0, 3)) out.push({ geo: 'dune', color: rand() > 0.5 ? '#e6cf96' : '#f0dcaa', p: [x, y - 0.01, z], s: [1.1, 0.3, 0.9] });
       break;
     }
     default:
