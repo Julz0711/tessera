@@ -18,7 +18,7 @@ function useUntil(until: number): boolean {
 }
 
 /** The smiley button and its grid of quick reactions, with a short cooldown after each one. */
-export function ReactionPicker() {
+export function ReactionPicker({ dock = false }: { /** In the dock: a labelled key like its neighbours, opening upwards. */ dock?: boolean }) {
   const [open, setOpen] = useState(false);
   const last = useGame((s) => s.lastReactionAt);
   const cooling = useUntil(last + REACTION_COOLDOWN_MS);
@@ -36,21 +36,22 @@ export function ReactionPicker() {
   };
 
   return (
-    <div className="relative">
+    <div className={dock ? "relative flex" : "relative"}>
       <button
         type="button"
-        className="btn btn-dark relative h-10 w-10 overflow-hidden p-0"
+        className={`btn relative overflow-hidden ${dock ? 'h-full w-full flex-col gap-0.5 px-0 py-1.5 text-[10px] sm:min-w-16 sm:px-2.5 sm:text-[11px]' : 'btn-dark h-10 w-10 p-0'}`}
         onClick={() => setOpen((o) => !o)}
         aria-label="Quick reaction"
         aria-expanded={open}
         title={cooling ? 'Wait a moment…' : 'Quick reaction'}
       >
-        <SmilePlus size={18} />
+        <SmilePlus size={dock ? 20 : 18} />
+        {dock && <span className="whitespace-nowrap leading-none">React</span>}
         {/* the cooldown drains across the button */}
         {cooling && <span key={last} className="absolute inset-x-0 bottom-0 h-1 origin-left animate-cooldown bg-amber" style={{ animationDuration: `${REACTION_COOLDOWN_MS}ms` }} />}
       </button>
       {open && (
-        <div className="paper animate-pop absolute right-0 top-12 z-40 grid w-60 grid-cols-4 gap-1.5 p-2" role="menu">
+        <div className={`paper animate-pop absolute right-0 z-40 ${dock ? 'bottom-full mb-3' : 'top-12'} grid w-60 grid-cols-4 gap-1.5 p-2`} role="menu">
           {REACTIONS.map((r) => (
             <button
               key={r.id}

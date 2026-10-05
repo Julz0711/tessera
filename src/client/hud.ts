@@ -44,9 +44,9 @@ export const PANEL_LABEL: Record<HudPanel, string> = {
 };
 
 /**
- * Offers top-left, log/bank/players down the right (the barbarians' progress, in Knights &
- * Barbarians games, right under the log), dice bottom-right and the zoom buttons at the bottom of the left column (the bottom-left corner
- * is the hand's on wide screens). The
+ * Zoom buttons and offers top-left, log/bank/players down the right (the barbarians' progress, in
+ * Knights & Barbarians games, right under the log) and dice bottom-right (the bottom-left corner is
+ * the hand's on wide screens). The
  * barbarians' 0.5 slots them in between in layouts saved before the panel existed, too.
  */
 export const DEFAULT_HUD_LAYOUT: HudLayout = {
@@ -56,7 +56,7 @@ export const DEFAULT_HUD_LAYOUT: HudLayout = {
   bank: { slot: 'rightTop', order: 1 },
   players: { slot: 'rightTop', order: 2 },
   dice: { slot: 'cornerRight', order: 0 },
-  zoom: { slot: 'leftBottom', order: 0 },
+  zoom: { slot: 'leftTop', order: -1 },
 };
 
 /** Whether `panel` may sit in `slot`: the corners beside the dock only have room for small panels. */

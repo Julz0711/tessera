@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   Volume2,
   VolumeX,
-  Wifi,
   WifiOff,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -30,9 +29,7 @@ import { formatCode } from "@/components/room/Lobby";
 import { DiceBox } from "./DiceBox";
 import { LeaveDialog } from "./LeaveDialog";
 import { MobileSide } from "./MobileSide";
-import { ReactionPicker } from "./Reactions";
 import { RulebookDialog } from "@/components/rules/RulebookDialog";
-import { BetaBadge } from "@/components/ui/BetaBadge";
 import { gameTypeOf } from "@/engine/maps";
 import type { RuleMode } from "@/config/rulebook";
 
@@ -103,7 +100,7 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
               </button>
               <button
                 type="button"
-                className="btn py-1.5 text-sm lg:hidden"
+                className="btn py-1.5 text-sm"
                 onClick={() => {
                   setMenu(false);
                   prefs.set({ view: prefs.view === "3d" ? "2d" : "3d" });
@@ -215,38 +212,32 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
         <button
           type="button"
           onClick={copy}
-          className="game-code glass hidden items-center gap-2 px-3 py-2 lg:flex"
+          className="game-code btn btn-dark hidden h-10 px-3 lg:inline-flex"
           title="Copy invite link"
         >
-          <span className="font-mono text-sm font-black tracking-[0.18em] text-paper">
+          <span className="font-mono text-sm font-black tracking-[0.18em]">
             {formatCode(room.code)}
           </span>
         </button>
-        <BetaBadge className="max-lg:hidden" />
-        <span
-          className={`game-connection glass flex h-10 items-center px-2.5 ${conn === "online" ? "text-moss max-lg:hidden" : "text-terracotta"}`}
-          title={conn}
-          role="status"
-          aria-label={
-            conn === "online" ? "Connected" : "Reconnecting to your table"
-          }
-        >
-          {conn === "online" ? (
-            <Wifi size={16} />
-          ) : (
+                {/* Only shown while the connection is lost: a working connection needs no badge. */}
+        {conn !== "online" && (
+          <span
+            className="game-connection glass flex h-10 items-center px-2.5 text-terracotta"
+            title={conn}
+            role="status"
+            aria-label="Reconnecting to your table"
+          >
             <WifiOff size={16} className="animate-pulse" />
-          )}
-        </span>
+          </span>
+        )}
         <div className="flex items-center gap-1.5 lg:hidden">
           {room.you.seat !== null && <MobileSide view={view} />}
         </div>
       </div>
 
       <div
-        className={`game-status pointer-events-auto max-w-[min(560px,55vw)] rounded-xl border-2 px-3 py-2 text-center text-sm font-extrabold shadow-[0_3px_0_0_#000] sm:px-4 sm:text-base ${
-          status.mine
-            ? "attention border-ink bg-amber text-ink"
-            : "border-black bg-sea-900/90 text-paper"
+        className={`game-status pointer-events-auto max-w-[min(560px,55vw)] rounded-[6px] border-[1.5px] border-ink px-3 py-2 text-center text-sm font-extrabold shadow-[0_0_0_2px_var(--rim)] sm:px-4 sm:text-base ${
+          status.mine ? "attention bg-amber text-ink" : "bg-sea-800 text-paper"
         }`}
         aria-live="polite"
       >
@@ -254,22 +245,9 @@ export function TopBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
       </div>
 
       <div className="pointer-events-auto flex items-center gap-2">
-        {room.you.seat !== null && <ReactionPicker />}
         <div className="lg:hidden">
           <DiceBox view={view} size={28} compact />
         </div>
-        <button
-          type="button"
-          className="btn btn-dark h-10 px-3 text-sm max-lg:hidden"
-          onClick={() => prefs.set({ view: prefs.view === "3d" ? "2d" : "3d" })}
-          title="Switch between 3D and 2D board"
-          aria-label={`Switch to ${prefs.view === "3d" ? "2D" : "3D"} board`}
-        >
-          {prefs.view === "3d" ? <Grid2x2 size={16} /> : <Box size={16} />}
-          <span className="hidden sm:inline">
-            {prefs.view === "3d" ? "2D" : "3D"}
-          </span>
-        </button>
       </div>
     </div>
   );

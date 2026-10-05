@@ -5,10 +5,10 @@ import { read } from '../prefs';
 describe('hud layout', () => {
   it('starts as the classic screen', () => {
     expect(slotPanels(DEFAULT_HUD_LAYOUT, 'rightTop')).toEqual(['side', 'barbarian', 'bank', 'players']);
-    expect(slotPanels(DEFAULT_HUD_LAYOUT, 'leftTop')).toEqual(['offers']);
+    expect(slotPanels(DEFAULT_HUD_LAYOUT, 'leftTop')).toEqual(['zoom', 'offers']);
     expect(slotPanels(DEFAULT_HUD_LAYOUT, 'cornerRight')).toEqual(['dice']);
     expect(slotPanels(DEFAULT_HUD_LAYOUT, 'cornerLeft')).toEqual([]);
-    expect(slotPanels(DEFAULT_HUD_LAYOUT, 'leftBottom')).toEqual(['zoom']);
+    expect(slotPanels(DEFAULT_HUD_LAYOUT, 'leftBottom')).toEqual([]);
   });
 
   it('places every panel exactly once', () => {
@@ -18,11 +18,11 @@ describe('hud layout', () => {
 
   it('moves a panel to the end of a slot and renumbers both slots', () => {
     const l = movePanel(DEFAULT_HUD_LAYOUT, 'side', 'leftTop');
-    expect(slotPanels(l, 'leftTop')).toEqual(['offers', 'side']);
+    expect(slotPanels(l, 'leftTop')).toEqual(['zoom', 'offers', 'side']);
     expect(slotPanels(l, 'rightTop')).toEqual(['barbarian', 'bank', 'players']);
     expect(l.barbarian.order).toBe(0);
     expect(l.bank.order).toBe(1);
-    expect(l.side.order).toBe(1);
+    expect(l.side.order).toBe(2);
   });
 
   it('moving within the same slot sends the panel to the bottom', () => {
@@ -33,7 +33,7 @@ describe('hud layout', () => {
     expect(fits('dice', 'cornerLeft')).toBe(true);
     expect(fits('players', 'cornerLeft')).toBe(false);
     expect(movePanel(DEFAULT_HUD_LAYOUT, 'players', 'cornerLeft')).toBe(DEFAULT_HUD_LAYOUT);
-    expect(slotPanels(movePanel(DEFAULT_HUD_LAYOUT, 'dice', 'leftBottom'), 'leftBottom')).toEqual(['zoom', 'dice']);
+    expect(slotPanels(movePanel(DEFAULT_HUD_LAYOUT, 'dice', 'leftBottom'), 'leftBottom')).toEqual(['dice']);
     expect(slotPanels(movePanel(DEFAULT_HUD_LAYOUT, 'dice', 'cornerLeft'), 'cornerLeft')).toEqual(['dice']);
   });
 

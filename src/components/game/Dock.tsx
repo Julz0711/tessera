@@ -23,6 +23,7 @@ import { api } from '@/client/store';
 import { buildMode, useUi } from '@/client/ui';
 import { CityGlyph, KnightGlyph, RoadGlyph, SettlementGlyph } from '@/components/ui/Glyphs';
 import type { RoomDTO } from '@/shared/protocol';
+import { ReactionPicker } from './Reactions';
 import { Kbd } from '@/components/ui/Kbd';
 import { CostDots } from './BuildCostsCard';
 import { Hand } from './Hand';
@@ -185,7 +186,7 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
 
       {/* actions: one row where there's room; on phones the builds and the turn's other moves
           get a row each, every button the same width, so nothing hides off the edge. */}
-      <div role="group" aria-label="Game actions" className="game-actions glass flex w-full flex-col gap-1.5 p-1.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-2 sm:p-2">
+      <div role="group" aria-label="Game actions" className="game-actions glass flex w-full flex-col gap-1.5 p-1.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-center sm:gap-2 sm:p-2">
         <div className="grid auto-cols-fr grid-flow-col gap-1 sm:flex sm:gap-2">
           <ActionButton
             label="Road"
@@ -259,8 +260,8 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
             </>
           )}
         </div>
-        <span className="mx-0.5 hidden h-8 w-px bg-foam/20 sm:block" />
-        <div className="grid auto-cols-fr grid-flow-col gap-1.5 sm:flex sm:items-center sm:gap-2">
+        <span className="mx-0.5 hidden h-8 w-px self-center bg-foam/20 sm:block" />
+        <div className="grid auto-cols-fr grid-flow-col gap-1.5 sm:flex sm:gap-2">
           {/* phones: Improve rides with the turn's other moves, keeping the build row short */}
           {ck && <ActionButton label="Improve" icon={<Hammer size={20} />} onClick={() => ui.setPanel('improve')} active={ui.panel === 'improve'} disabled={view.phase !== 'play'} hint="City improvements" className="sm:hidden" />}
           <ActionButton
@@ -272,7 +273,7 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
             disabled={view.phase !== 'play' || !view.turn.rolled || !free}
           />
           <ActionButton label="Bank" shortcut="B" icon={<Landmark size={20} />} onClick={() => ui.setPanel('bank')} active={ui.panel === 'bank'} disabled={!canBuild} bankAnchor />
-          <span className="mx-0.5 hidden h-8 w-px bg-foam/20 sm:block" />
+          <span className="mx-0.5 hidden h-8 w-px self-center bg-foam/20 sm:block" />
           <ActionButton
             label="End turn"
             icon={seconds !== null ? <span className="font-mono text-base font-black leading-none tabular">{seconds}s</span> : <Hourglass size={20} />}
@@ -283,9 +284,10 @@ export function Dock({ view, room, hand = true }: { view: PlayerView; room: Room
             disabled={!canBuild}
             hint="End your turn"
             shortcut="E"
-            primary={canBuild}
+            danger
             pulse={lowTime}
           />
+          {room.you.seat !== null && <ReactionPicker dock />}
         </div>
       </div>
     </div>
