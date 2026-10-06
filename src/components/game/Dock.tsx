@@ -231,7 +231,6 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
     voyage && shipOk,
     settlementOk,
     cityOk,
-    !ck && devOk,
     ck && knightOk,
     ck && wallOk,
   ].filter(Boolean).length;
@@ -290,7 +289,6 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
             cost={COSTS.city} hand={p.hand}
             left={left.cities}
           />
-          {!ck && <ActionButton label="Buy card" shortcut="V" icon={<Sparkles size={24} />} onClick={pick(() => void api.act({ type: 'buyDevCard' }))} disabled={!devOk} cost={COSTS.devCard} hand={p.hand} />}
           {ck && (
             <>
               <ActionButton
@@ -322,6 +320,22 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
           hint="Trade with the players or the bank"
           bankAnchor
         />
+        {!ck && (
+          // Classic: buying a progress card is its own key, where C&K has Improve.
+          <ActionButton
+            label="Progress"
+            shortcut="V"
+            icon={<Sparkles size={24} />}
+            onClick={() => {
+              setOpen(null);
+              void api.act({ type: 'buyDevCard' });
+            }}
+            disabled={!devOk}
+            cost={COSTS.devCard}
+            hand={p.hand}
+            hint="Buy a progress card"
+          />
+        )}
         {ck && (
           // The key and its menu together, so the menu rises centred over the key.
           <div className="relative grid">
