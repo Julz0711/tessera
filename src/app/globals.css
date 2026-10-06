@@ -324,11 +324,25 @@ body {
 :is(.paper, .paper-flat, .bg-paper) {
   --faded: rgb(31 26 20);
 }
+/* The key's shaded corner (its colour and size), registered so hover can animate them. Initial values
+   are absolute (px, hex): a registered property can't start from rem. */
+@property --btn-corner {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: #e3ebec;
+}
+@property --facet {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 13.6px;
+}
 .btn {
   --btn-bg: #ffffff;
   --btn-shade: #e3ebec;
   --btn-fg: var(--color-ink);
   --btn-line: var(--color-ink);
+  --btn-corner: var(--btn-shade);
+  --facet: 0.85rem;
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -336,31 +350,39 @@ body {
   gap: 0.5rem;
   border: 2px solid var(--btn-line);
   border-radius: 4px;
-  background: linear-gradient(135deg, var(--btn-bg) calc(100% - 0.85rem), var(--btn-shade) 0);
+  background: linear-gradient(135deg, var(--btn-bg) calc(100% - var(--facet)), var(--btn-corner) 0);
   color: var(--btn-fg);
   font-weight: 700;
   letter-spacing: 0.01em;
   transition:
-    transform 0.06s ease,
-    filter 0.12s ease;
+    --btn-corner 0.18s ease,
+    --facet 0.18s ease,
+    filter 0.18s ease,
+    scale 0.12s ease;
   user-select: none;
 }
-.btn:hover:not(:disabled) {
-  filter: brightness(1.05);
-}
-/* On hover the shaded corner lights up amber ("do this"); amber and red keys light theirs in ink. */
+/* Hover: the shaded corner grows and lights up amber ("do this"), ink on amber and red keys, and the
+   key brightens a touch. A click presses the key in for a moment. */
 @media (hover: hover) {
   .btn:hover:not(:disabled) {
-    --btn-shade: var(--color-amber);
+    --btn-corner: var(--color-amber);
+    --facet: 1.4rem;
+    filter: brightness(1.06);
   }
   .btn.btn-primary:hover:not(:disabled),
   .btn.btn-danger:hover:not(:disabled),
   .game-actions .btn.btn-on:hover:not(:disabled) {
-    --btn-shade: var(--color-ink);
+    --btn-corner: var(--color-ink);
   }
 }
 .btn:active:not(:disabled) {
-  transform: translateY(1px);
+  scale: 0.95;
+  transition-duration: 0.05s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
 }
 /* Out of reach: greyed out like an inactive player's card. A pale key inside the same ink outline,
    its contents faded; icons fade as one layer, so crossing strokes don't darken. */
