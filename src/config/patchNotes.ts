@@ -88,6 +88,11 @@ export const PATCH_NOTES: PatchNote[] = [
         ],
         maps: ["veiledIsles", "vulcan"],
       },
+      {
+        title: "Misc",
+        icon: "log",
+        items: ["Various bug fixes."],
+      },
     ],
   },
   {
