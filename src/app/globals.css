@@ -360,11 +360,6 @@ body {
   scale: 0.97;
   transition-duration: 0.06s;
 }
-@media (prefers-reduced-motion: reduce) {
-  .btn {
-    transition: none;
-  }
-}
 /* Out of reach: greyed out like an inactive player's card. A pale key inside the same ink outline,
    its contents faded; icons fade as one layer, so crossing strokes don't darken. */
 .btn:disabled {
@@ -599,13 +594,19 @@ body {
 }
 
 /* Reduced motion: the system's setting, unless the Animations preference (html[data-motion], see
-   PrefsLoader) says "full"; "reduced" applies it whatever the system says. */
+   PrefsLoader) says "full"; "reduced" applies it whatever the system says.
+   A key's hover fill and press stay: they follow the pointer and barely move, so they're feedback,
+   not motion. */
 @media (prefers-reduced-motion: reduce) {
   :root:not([data-motion='full']) *,
   :root:not([data-motion='full']) *::before,
   :root:not([data-motion='full']) *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
+  }
+  :root:not([data-motion='full']) *:not(.btn),
+  :root:not([data-motion='full']) *::before,
+  :root:not([data-motion='full']) *::after {
     transition-duration: 0.001ms !important;
   }
 }
@@ -614,6 +615,10 @@ body {
 :root[data-motion='reduced'] *::after {
   animation-duration: 0.001ms !important;
   animation-iteration-count: 1 !important;
+}
+:root[data-motion='reduced'] *:not(.btn),
+:root[data-motion='reduced'] *::before,
+:root[data-motion='reduced'] *::after {
   transition-duration: 0.001ms !important;
 }
 
