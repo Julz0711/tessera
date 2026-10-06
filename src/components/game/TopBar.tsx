@@ -6,7 +6,7 @@ import {
   ChartColumn,
   Copy,
   Grid2x2,
-  LogOut,
+  ArrowLeft,
   Menu,
   Music,
   Settings,
@@ -185,7 +185,7 @@ export function TopBar({ view, room, status: showStatus = true }: { view: Player
                 className="btn btn-danger py-1.5 text-sm"
                 onClick={askLeave}
               >
-                <LogOut size={15} /> Leave game
+                <ArrowLeft size={15} /> Leave game
               </button>
             </div>
           )}

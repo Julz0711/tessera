@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, BookOpen, Bot, LogIn, LogOut, Menu, ScrollText, Settings, Trophy } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Bot, LogIn, Menu, ScrollText, Settings, Trophy } from "lucide-react";
 import { RulebookDialog } from "@/components/rules/RulebookDialog";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -80,7 +80,7 @@ function ResumeTables({ rooms, onAbandon }: { rooms: ActiveRoom[]; onAbandon: (r
             aria-label={`Abandon table ${r.code}`}
             title={r.status === "lobby" ? "Leave this table" : "Abandon this game: a bot takes your seat"}
           >
-            <LogOut size={18} strokeWidth={2.75} aria-hidden />
+            <ArrowLeft size={18} strokeWidth={2.75} aria-hidden />
           </button>
         </div>
       ))}

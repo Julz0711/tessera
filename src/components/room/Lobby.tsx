@@ -6,7 +6,7 @@ import {
   Copy,
   Crown,
   Eye,
-  LogOut,
+  ArrowLeft,
   Minus,
   Pencil,
   Play,
@@ -94,7 +94,7 @@ export function RoomHeader({
           className="btn btn-dark px-3 py-2 text-sm"
           title="Leave room"
         >
-          <LogOut size={16} /> Leave
+          <ArrowLeft size={16} /> Leave
         </button>
         <Logomark size={30} />
       </div>
