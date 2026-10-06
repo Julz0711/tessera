@@ -258,7 +258,7 @@ const VULCAN_TERRAIN: Record<string, Terrain> = { B: 'hills', W: 'pasture', Gr: 
  * the game starts. The shape, the ash, the fog and the volcano are as in VULCAN_LAYOUT; each game
  * shuffles the corners' tiles, and deals the corners' and the mountains' numbers from the layout's own
  * (so the corners never get a 2, 3, 11 or 12), one 6 or 8 in each corner, and the ring of mountains
- * around the volcano only 4, 5, 9 and 10. The fog hides a random deal.
+ * around the volcano only 4, 5, 9 and 10. The fog hides a random deal, never on a 2 or 12.
  */
 function vulcanBoard(rng: RngHolder): Board {
   const topo = getTopology(VULCAN_HEX_COORDS);
@@ -302,7 +302,8 @@ function vulcanBoard(rng: RngHolder): Board {
       [home, homeNumbers],
       [ring, ringNumbers],
       [outer, outerNumbers],
-      [hiddenNumbered, balancedTokens(hiddenNumbered.length)],
+      // No 2 or 12 under the fog: exploring should pay, so those trade up to a 4 and a 10.
+      [hiddenNumbered, balancedTokens(hiddenNumbered.length).map((t) => (t === 2 ? 4 : t === 12 ? 10 : t))],
     ],
     tokens,
     true,

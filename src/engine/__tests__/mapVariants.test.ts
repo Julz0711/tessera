@@ -143,7 +143,10 @@ describe('map variants', () => {
         const expected = ref[i];
         expect({ q: h.q, r: h.r }).toEqual({ q: VULCAN_TILES[i].q, r: VULCAN_TILES[i].r });
         const got = `${code[h.terrain]}${h.token ?? ''}`;
-        if (expected === '?') expect(h.fog).toBe(true);
+        if (expected === '?') {
+          expect(h.fog).toBe(true);
+          expect([2, 12]).not.toContain(h.token); // the fog never hides a 2 or 12
+        }
         else if (isCorner(expected)) corners.push(got);
         else if (kindOf(expected) === 'O') {
           expect(h.terrain).toBe('mountains');
