@@ -552,10 +552,10 @@ export function Lobby({ room }: { room: RoomDTO }) {
                 {host && (
                   <button
                     type="button"
-                    className="btn btn-dark px-3 py-1.5 text-sm"
+                    className="btn btn-dark gap-2 px-3 py-1.5 text-sm leading-none"
                     onClick={() => api.addBot()}
                   >
-                    <Plus size={14} /> <Bot size={15} /> Add bot
+                    <Plus size={16} strokeWidth={2.75} /> Add bot <Bot size={16} className="-translate-y-px" />
                   </button>
                 )}
               </li>
