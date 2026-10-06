@@ -52,7 +52,7 @@ export function PatchNotesPage() {
             <header className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
               <h2 className="display text-3xl font-black">
                 Patch {patch.version}
-                {i === 0 && <span className="ml-2 rounded-md bg-amber px-1.5 py-0.5 align-middle text-xs font-black uppercase tracking-wider text-ink">Latest</span>}
+                {i === 0 && <span className="ml-2 rounded-md bg-amber px-1.5 py-0.5 align-middle text-xs font-black uppercase tracking-caps text-ink">Latest</span>}
               </h2>
               <time dateTime={patch.date} className="text-sm font-bold text-ink-faint">
                 {formatDate(patch.date)}
@@ -62,7 +62,7 @@ export function PatchNotesPage() {
             <div className="mt-5 grid gap-5">
               {patch.sections.map((section) => (
                 <section key={section.title}>
-                  <h3 className="flex items-center gap-2 font-extrabold">
+                  <h3 className="flex items-center gap-2 font-bold">
                     <span className="grid h-7 w-7 place-items-center rounded-lg border-2 border-ink bg-paper-2 text-ink">{ICON[section.icon]}</span>
                     {section.title}
                   </h3>
@@ -78,7 +78,7 @@ export function PatchNotesPage() {
                       {section.maps.map((map) => (
                         <figure key={map} className="grid w-[112px] justify-items-center gap-1 rounded-xl border-2 border-ink bg-paper-2 p-2">
                           <MapPreview map={map} size={92} />
-                          <figcaption className="text-center text-xs font-extrabold leading-tight">{MAPS[map].name}</figcaption>
+                          <figcaption className="text-center text-xs font-bold leading-tight">{MAPS[map].name}</figcaption>
                         </figure>
                       ))}
                     </div>

@@ -7,6 +7,11 @@
   --font-display: var(--font-fraunces), 'Iowan Old Style', Georgia, serif;
   --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
 
+  /* Two letter-spacings for capitals: `label` for small-caps labels and codes standing on their
+     own, `caps` for the tighter capitals inside badges and chips. */
+  --tracking-label: 0.14em;
+  --tracking-caps: 0.08em;
+
   --color-sea-950: #061419;
   --color-sea-900: #0a2029;
   --color-sea-800: #0f2f3b;
@@ -204,14 +209,19 @@ body {
   .landing-footer a { display: inline-flex; align-items: center; min-height: 44px; }
   .app-dialog { padding: max(.75rem, var(--safe-top)) max(.5rem, var(--safe-right)) 0 max(.5rem, var(--safe-left)); }
   .app-dialog[open] { align-items: end; }
+  /* A game choice opens at the top, so the hand at the bottom stays in view (Modal `clearHand`). */
+  .app-dialog.dialog-clear-hand[open] { align-items: start; }
+  .dialog-clear-hand .dialog-sheet { border-radius: 6px; padding-bottom: 1rem; }
   .dialog-sheet { border-radius: 6px 6px 0 0; padding: 1rem 1rem calc(1rem + var(--safe-bottom)); }
   .dialog-heading { position: sticky; top: -1rem; z-index: 5; margin: -1rem -1rem .75rem; padding: 1rem 1rem .75rem; background: var(--color-paper); border-bottom: 1px solid #131a1d15; }
   .settings-body { height: min(72dvh, calc(var(--visible-height, 100dvh) - 110px - var(--safe-top) - var(--safe-bottom))); }
   .settings-panel { grid-template-rows: auto minmax(0, 1fr); }
-  .lobby-header { align-items: start; }
-  .lobby-invite { flex: 1 1 100%; min-width: 0; flex-wrap: nowrap; }
-  .lobby-invite > :first-child { flex: 1; min-width: 0; }
-  .lobby-start { position: sticky; bottom: max(.75rem, var(--safe-bottom)); z-index: 10; box-shadow: 0 0 0 6px var(--color-paper), 0 12px 28px #0006; }
+  /* Leave and the logo on the left, the room code in the top-right corner, all in one row. */
+  .lobby-header { flex-wrap: nowrap; }
+  .lobby-invite { min-width: 0; flex-wrap: nowrap; }
+  /* The start key floats over the settings as they scroll under it: a paper collar, a soft shadow
+     upwards over the tiles behind it, and a deeper one below. */
+  .lobby-start { position: sticky; bottom: max(.75rem, var(--safe-bottom)); z-index: 10; box-shadow: 0 0 0 6px var(--color-paper), 0 -10px 22px 2px rgb(19 26 29 / 0.22), 0 14px 32px rgb(6 20 25 / 0.55); }
   .create-submit { position: sticky; bottom: 0; z-index: 5; padding: .75rem 0; background: var(--color-paper); }
   .create-submit button { width: 100%; }
 }
@@ -223,13 +233,17 @@ body {
     display: grid;
     grid-template: 'top' auto 'players' auto 'board' minmax(0, 1fr) 'bottom' auto / minmax(0, 1fr);
     height: 100dvh;
-    padding: var(--safe-top) max(6px, var(--safe-right)) max(6px, var(--safe-bottom)) max(6px, var(--safe-left));
+    /* Room from the edges for the phone's rounded corners and the status bar: never closer than 10px. */
+    padding: calc(var(--safe-top) + 6px) max(10px, var(--safe-right)) max(10px, var(--safe-bottom)) max(10px, var(--safe-left));
     bottom: auto;
     overscroll-behavior: none;
   }
   .game-top, .game-players, .game-board, .game-bottom { position: relative; inset: auto; min-width: 0; zoom: 1 !important; }
   .game-top { grid-area: top; }
-  .game-toolbar { display: grid; grid-template-columns: 1fr auto; padding: 6px 2px; gap: 12px 6px; }
+  /* 3px in from the sides: the status pill's attention ring (3px, hugging the pill) then ends flush
+     with the players strip and the barbarian bar below. */
+  .game-toolbar { display: grid; grid-template-columns: 1fr auto; padding: 6px 3px; gap: 12px 6px; }
+  .game-status.attention { outline-offset: 0; }
   .game-toolbar > :last-child { grid-column: 2; grid-row: 1; }
   .game-status { grid-column: 1 / -1; grid-row: 2; width: 100%; max-width: none; padding: 7px 10px; font-size: 13px; line-height: 1.3; }
   .game-connection { height: 44px; }
@@ -237,7 +251,9 @@ body {
   /* The one place that pans and zooms, and the only thing a pinch moves. No frame: the sea runs on under the bars. */
   .game-board { grid-area: board; min-height: 0; width: 100%; height: 100%; overflow: clip; touch-action: none; }
   .game-screen { touch-action: pan-x pan-y; }
-  .game-offers { left: max(8px, var(--safe-left)); top: calc(180px + var(--safe-top)); max-height: 40dvh; overflow-y: auto; zoom: 1 !important; }
+  .game-offers { max-height: 40dvh; overflow-y: auto; zoom: 1 !important; }
+  /* One message lane: the top bar's status row shows toasts in a game (see TopBar). */
+  body:has(.game-screen) .toasts-layer { display: none; }
   .game-bottom { grid-area: bottom; padding: 0; gap: 3px; }
   .game-dock-wrap { width: 100%; }
   .game-top > :nth-child(2):empty { display: none; }
@@ -291,10 +307,10 @@ body {
     @apply rounded-[var(--radius-card)] border-2 border-ink bg-sea-800;
   }
   .label {
-    @apply text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft;
+    @apply text-[11px] font-bold uppercase tracking-label text-ink-soft;
   }
   .label-light {
-    @apply text-[11px] font-bold uppercase tracking-[0.14em] text-foam/70;
+    @apply text-[11px] font-bold uppercase tracking-label text-foam/70;
   }
   .display {
     font-family: var(--font-display);
@@ -435,6 +451,24 @@ body {
 .btn.btn-ghost:disabled {
   border-color: transparent;
 }
+/* One option among several picture tiles (board themes, the lobby's modes and maps): until it's
+   picked, its line is faded so the picked key (ink line, pale blue) stands apart; hovering an option
+   draws its line in ink, as the key it becomes. */
+.btn.btn-choice:not(.btn-on) {
+  --btn-line: color-mix(in srgb, var(--color-ink) 32%, transparent);
+  transition:
+    background-size 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.15s ease,
+    scale 0.12s ease;
+}
+@media (hover: hover) {
+  .btn.btn-choice:not(.btn-on):hover:not(:disabled) {
+    --btn-line: var(--color-ink);
+  }
+}
+.btn.btn-choice:not(.btn-on):disabled {
+  border-color: color-mix(in srgb, var(--color-ink) 32%, transparent);
+}
 /* Mutually exclusive options in one track (S · M · L): the chosen one is a raised amber key. */
 .seg {
   display: inline-flex;
@@ -459,11 +493,12 @@ body {
   color: color-mix(in srgb, var(--faded) 70%, transparent);
   transition: background-color 0.12s ease, color 0.12s ease;
 }
-.seg-opt:hover:not(:disabled):not([aria-checked='true']) {
+.seg-opt:hover:not(:disabled):not([aria-checked='true']):not([aria-selected='true']) {
   color: var(--faded);
   background: color-mix(in srgb, var(--faded) 8%, transparent);
 }
-.seg-opt[aria-checked='true'] {
+.seg-opt[aria-checked='true'],
+.seg-opt[aria-selected='true'] {
   border-color: var(--color-ink);
   background: linear-gradient(135deg, var(--color-pick) calc(100% - 0.7rem), var(--color-pick-shade) 0);
   color: var(--color-ink);
@@ -495,7 +530,7 @@ body {
   background: var(--hx-line);
   color: var(--color-ink);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 900;
   line-height: 1;
 }
 .hex-badge::before {
@@ -529,9 +564,10 @@ body {
   padding: 0 0.25em;
   border: 1px solid currentColor;
   border-radius: 4px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* The UI face, not a code font: the hint should read as part of its label. */
+  font-family: var(--font-sans);
   font-size: 0.72em;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1;
   opacity: 0.55;
 }

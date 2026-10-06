@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Trophy } from 'lucide-react';
 import { Logomark } from '@/components/ui/Logomark';
 import { useCallback, useEffect, useState } from 'react';
 import type { Mode } from '@/engine';
@@ -40,7 +40,7 @@ function Pager({ data, onPage }: { data: Paged<unknown>; onPage: (p: number) => 
 }
 
 function Live({ code }: { code: string }) {
-  return <span className="rounded-md bg-terracotta/15 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-terracotta">Live · {code}</span>;
+  return <span className="rounded-md bg-terracotta/15 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-caps text-terracotta">Live · {code}</span>;
 }
 
 export function AdminPage() {
@@ -167,10 +167,10 @@ export function AdminPage() {
               <th className="p-2">Game</th><th className="p-2">Players</th><th className="p-2">Started</th><th className="p-2" /></tr></thead>
             <tbody>{games.map((g) => <tr key={g.id} className="border-t border-ink/10 align-top">
               <td className="p-2"><input type="checkbox" aria-label={`Select game ${g.code}`} checked={selected.has(g.id)} onChange={() => toggle(g.id)} /></td>
-              <td className="p-2"><p className="font-extrabold">{MODE_LABEL[ratingPoolFor(g.mode, g.map ?? undefined)] ?? g.mode} <span className="font-mono text-xs text-ink-faint">{g.code}</span></p>
+              <td className="p-2"><p className="font-bold">{MODE_LABEL[ratingPoolFor(g.mode, g.map ?? undefined)] ?? g.mode} <span className="font-mono text-xs text-ink-faint">{g.code}</span></p>
                 <p className="text-xs text-ink-faint">{g.status === 'finished' ? `Finished · ${g.turns} turns` : 'Unfinished'} {g.live && <Live code={g.code} />}</p></td>
               <td className="p-2 text-xs">{g.players.map((p, i) => <span key={i} className={`mr-2 inline-block ${p.won ? 'font-black' : ''}`}>
-                {p.won && '★ '}{p.name}<span className="text-ink-faint"> {p.kind === 'user' ? '' : `(${p.kind})`}{p.vp !== null ? ` ${p.vp}VP` : ''}</span></span>)}</td>
+                {p.won && <Trophy size={11} className="mr-0.5 inline align-[-1px]" aria-label="Winner" />}{p.name}<span className="text-ink-faint"> {p.kind === 'user' ? '' : `(${p.kind})`}{p.vp !== null ? ` ${p.vp}VP` : ''}</span></span>)}</td>
               <td className="p-2 text-xs whitespace-nowrap">{date(g.startedAt)}</td>
               <td className="p-2 text-right"><button className="btn btn-danger px-2 py-1 text-xs" disabled={busy} onClick={() => deleteGames([g.id])}>Delete</button></td>
             </tr>)}</tbody></table></div>}
@@ -178,7 +178,7 @@ export function AdminPage() {
           {tab === 'users' && data.entries.length > 0 && <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-left text-sm">
             <thead className="label"><tr><th className="p-2">User</th><th className="p-2">Games</th><th className="p-2">Joined</th><th className="p-2" /></tr></thead>
             <tbody>{(data.entries as UserRow[]).map((u) => <tr key={u.id} className="border-t border-ink/10 align-top">
-              <td className="p-2"><p className="font-extrabold">{u.name} {u.liveRoom && <Live code={u.liveRoom} />}</p>
+              <td className="p-2"><p className="font-bold">{u.name} {u.liveRoom && <Live code={u.liveRoom} />}</p>
                 <p className="text-xs text-ink-faint">{u.email ?? 'no email'} · {u.providers.join(', ') || 'no sign-in'}</p>
                 <p className="font-mono text-[10px] text-ink-faint">{u.id}</p></td>
               <td className="p-2 text-xs">{u.gamesPlayed} played · {u.gamesWon} won{u.rating ? ` · best ${u.rating}` : ''}</td>
@@ -189,7 +189,7 @@ export function AdminPage() {
           {tab === 'guests' && data.entries.length > 0 && <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-left text-sm">
             <thead className="label"><tr><th className="p-2">Guest</th><th className="p-2">Games</th><th className="p-2">Last seen</th><th className="p-2" /></tr></thead>
             <tbody>{(data.entries as GuestRow[]).map((g) => <tr key={g.id} className="border-t border-ink/10 align-top">
-              <td className="p-2"><p className="font-extrabold">{g.displayName ?? <span className="text-ink-faint">(no name)</span>} {g.liveRoom && <Live code={g.liveRoom} />}</p>
+              <td className="p-2"><p className="font-bold">{g.displayName ?? <span className="text-ink-faint">(no name)</span>} {g.liveRoom && <Live code={g.liveRoom} />}</p>
                 <p className="font-mono text-[10px] text-ink-faint">{g.id}</p></td>
               <td className="p-2 text-xs">{g.gamesPlayed} played · {g.gamesWon} won</td>
               <td className="p-2 text-xs whitespace-nowrap">{date(g.lastSeenAt)}</td>

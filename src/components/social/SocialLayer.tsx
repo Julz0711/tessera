@@ -39,7 +39,7 @@ export function SocialLayer() {
       {live.map((inv) => (
         <div key={inv.roomCode} className="paper animate-pop flex items-center gap-3 p-3" role="alert">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-extrabold leading-tight">{inv.from} invites you to play</p>
+            <p className="text-sm font-bold leading-tight">{inv.from} invites you to play</p>
             <p className="text-xs text-ink-faint">Room {inv.roomCode.slice(0, 4)}-{inv.roomCode.slice(4)}</p>
           </div>
           <Link href={`/r/${inv.roomCode}`} className="btn btn-primary h-9 px-3 text-sm" onClick={() => dismiss(inv.roomCode)}>

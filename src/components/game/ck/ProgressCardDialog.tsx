@@ -204,7 +204,7 @@ export function ProgressCardDialog({ view, id }: { view: PlayerView; id: number 
         <div className="flex gap-4">
           <ProgressCardFace card={card} size="lg" />
           <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-ink-soft">
+            <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-label text-ink-soft">
               <span className="h-2.5 w-2.5 rounded-full border border-ink" style={{ background: style.color }} />
               {style.label}
             </span>

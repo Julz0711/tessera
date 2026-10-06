@@ -45,7 +45,7 @@ export function JoinCard({ code, onJoined }: { code: string; onJoined: () => voi
       <div className="paper animate-rise p-5 sm:p-7">
         <p className="label">You&apos;re invited</p>
         <h1 className="display mt-1 text-4xl font-black">
-          Room <span className="whitespace-nowrap font-mono tracking-wider">{code.slice(0, 4)}-{code.slice(4)}</span>
+          Room <span className="whitespace-nowrap tabular tracking-label">{code.slice(0, 4)}-{code.slice(4)}</span>
         </h1>
         <p className="mt-1 text-ink-soft">Choose how you&apos;ll appear at the table.</p>
         <div className="mt-6">{draft ? <ProfileFields value={draft} onChange={setDraft} autoFocus={!draft.name} /> : <div className="h-64 animate-pulse rounded-xl bg-paper-2" />}</div>

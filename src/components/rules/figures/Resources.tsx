@@ -24,7 +24,7 @@ export function ResourcesFigure() {
             <MiniCard card={card} w={28} />
           ) : (
             <span className="display grid h-9 min-w-9 place-items-center rounded-md border-2 border-dashed border-ink/50 px-1 text-sm font-black text-ink">
-              {terrain === 'desert' ? '∅' : 'any'}
+              {terrain === 'desert' ? 'none' : 'any'}
             </span>
           )}
         </div>

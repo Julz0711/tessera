@@ -46,7 +46,7 @@ export function AwardBadges({ report, detailed = false, className = 'mt-5' }: { 
                 {ICONS[a.title] ?? <AwardIcon size={16} />}
               </span>
               <span className="grid min-w-0 leading-tight">
-                <b className="truncate text-[13px] font-extrabold">{a.title}</b>
+                <b className="truncate text-[13px] font-bold">{a.title}</b>
                 <span className="truncate text-xs text-ink-soft">{names}</span>
                 {detailed && (
                   <span className="truncate text-[11px] text-ink-faint">

@@ -97,22 +97,27 @@ export function RoomHeader({
         >
           <ArrowLeft size={16} /> Leave
         </button>
-        <Logomark size={30} />
+        {/* Very narrow phones need its room for the room code and the share key. */}
+        <span className="max-[399px]:hidden">
+          <Logomark size={30} />
+        </span>
       </div>
       <div className="lobby-invite flex flex-wrap items-center justify-end gap-2">
         <button
           type="button"
           onClick={copy}
-          className="glass flex shrink-0 items-center gap-3 px-3 py-1.5 transition hover:border-amber/60"
+          className="glass flex min-w-0 shrink-0 items-center gap-2 px-2 py-1.5 transition hover:border-amber/60 sm:gap-3 sm:px-3"
           title="Copy invite link"
+          aria-label={`Room ${formatCode(room.code)}: copy invite link`}
         >
-          <span className="label-light shrink-0">Room</span>
-          <span className="whitespace-nowrap font-mono text-lg font-black tracking-[0.2em] text-paper">
+          {/* Phones: just the code and a copy key, so it fits in the corner beside Leave. */}
+          <span className="label-light hidden shrink-0 sm:inline">Room</span>
+          <span className="whitespace-nowrap text-base font-black tabular tracking-label text-paper sm:text-lg">
             {formatCode(room.code)}
           </span>
-          <span className={`ml-auto flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-extrabold ${copied ? "bg-moss text-white" : "bg-paper text-ink"}`}>
+          <span className={`ml-auto flex shrink-0 items-center gap-1.5 rounded-lg px-1.5 py-1 text-xs font-bold sm:px-2 ${copied ? "bg-moss text-white" : "bg-paper text-ink"}`}>
             {copied ? <Check size={14} /> : <Copy size={14} />}
-            {copied ? "Copied" : "Copy link"}
+            <span className="hidden sm:inline">{copied ? "Copied" : "Copy link"}</span>
           </span>
         </button>
         {typeof navigator !== "undefined" && "share" in navigator && (
@@ -152,7 +157,7 @@ function SeatCard({
       </Framed>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="truncate text-lg font-extrabold">{seat.name}</span>
+          <span className="truncate text-lg font-bold">{seat.name}</span>
           {seat.isHost && (
             <Crown
               size={16}
@@ -161,7 +166,7 @@ function SeatCard({
             />
           )}
           {seat.isYou && (
-            <span className="rounded-md bg-ink px-1.5 text-[10px] font-black uppercase tracking-wider text-paper">
+            <span className="rounded-md bg-ink px-1.5 text-[10px] font-black uppercase tracking-caps text-paper">
               You
             </span>
           )}
@@ -259,7 +264,7 @@ function MapInfo({ map }: { map: MapId }) {
       {needs.map((tag) => (
         <span
           key={tag}
-          className="rounded-[4px] border-2 border-ink bg-white px-1.5 py-px text-[11px] font-black uppercase tracking-wide text-ink"
+          className="rounded-[4px] border-2 border-ink bg-white px-1.5 py-px text-[11px] font-black uppercase tracking-caps text-ink"
         >
           {tag === "seafarers" ? "Voyagers" : tag}
         </span>
@@ -267,7 +272,7 @@ function MapInfo({ map }: { map: MapId }) {
       {onlyModes.map((mode) => (
         <span
           key={mode}
-          className="rounded-[4px] border-2 border-ink bg-white px-1.5 py-px text-[11px] font-black uppercase tracking-wide text-ink"
+          className="rounded-[4px] border-2 border-ink bg-white px-1.5 py-px text-[11px] font-black uppercase tracking-caps text-ink"
         >
           {mode === "ck" ? "K&B" : "Classic only"}
         </span>
@@ -391,7 +396,7 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
           >
             <Minus size={18} strokeWidth={3} />
           </button>
-          <span className="display w-10 text-center text-2xl font-black tabular">
+          <span className="display w-10 text-center text-2xl font-black">
             {s.vpToWin}
           </span>
           <button
@@ -429,7 +434,7 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
         />
       </div>
       <Toggle
-        label="Friendly robber (spares players with ≤ 2 points)"
+        label="Friendly robber (spares players on 2 points or fewer)"
         checked={s.friendlyRobber}
         onChange={(friendlyRobber) => set({ friendlyRobber })}
         disabled={!host}

@@ -48,7 +48,7 @@ function CompareTable({ report, seats, category, viewer }: { report: GameReport;
     return <td key={seat} className={`px-2 py-1.5 align-middle ${isLead ? 'bg-amber/20' : ''}`}>
       <div className="flex items-center justify-end gap-1">
         {isLead && <Crown size={12} className="shrink-0 text-amber-deep" aria-label="Best" />}
-        <span className={`text-sm font-extrabold tabular ${v !== null && v < 0 ? 'text-danger' : ''} ${v === null ? 'text-ink-faint' : ''}`}>{formatStat(v, row.format)}</span>
+        <span className={`text-sm font-bold tabular ${v !== null && v < 0 ? 'text-danger' : ''} ${v === null ? 'text-ink-faint' : ''}`}>{formatStat(v, row.format)}</span>
       </div>
       {row.bar !== false && <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-ink/8">
         {v !== null && max > 0 && <div className="h-full rounded-full" style={{ width: `${Math.abs(v) / max * 100}%`, background: fill(report, seat), boxShadow: `inset 0 0 0 1px ${c.dark}` }} />}
@@ -60,7 +60,7 @@ function CompareTable({ report, seats, category, viewer }: { report: GameReport;
       <caption className="sr-only">{category.label}: players compared side by side. The best value in each row is marked.</caption>
       <thead><tr className="bg-paper-2">
         <th scope="col" className="sticky left-0 z-10 min-w-32 bg-paper-2 px-3 py-2 text-left sm:min-w-40"><span className="label">{category.label}</span></th>
-        {seats.map((seat) => <th key={seat} scope="col" className="min-w-20 max-w-36 px-2 py-2 text-right font-extrabold sm:min-w-24" style={{ boxShadow: `inset 0 -3px 0 ${fill(report, seat)}` }}>
+        {seats.map((seat) => <th key={seat} scope="col" className="min-w-20 max-w-36 px-2 py-2 text-right font-bold sm:min-w-24" style={{ boxShadow: `inset 0 -3px 0 ${fill(report, seat)}` }}>
           <span className="flex justify-end"><PlayerName report={report} seat={seat} you={seat === viewer} /></span>
         </th>)}
       </tr></thead>
@@ -101,7 +101,7 @@ function Matrix({ report, seats, matrix }: { report: GameReport; seats: number[]
         {seats.map((j) => {
           const v = matrix.cells[i][j];
           return <td key={j} className="p-0.5">{i === j ? <div className="grid h-9 min-w-12 place-items-center rounded-md bg-ink/5 text-ink-faint">·</div>
-            : <div className="grid h-9 min-w-12 place-items-center rounded-md font-extrabold tabular" style={{ background: v ? tint('#1d5a6b', 0.12 + 0.78 * v / max) : 'rgba(19,26,29,.04)', color: v / max > 0.5 ? '#f6eddb' : undefined }}>{v || ''}</div>}</td>;
+            : <div className="grid h-9 min-w-12 place-items-center rounded-md font-bold tabular" style={{ background: v ? tint('#1d5a6b', 0.12 + 0.78 * v / max) : 'rgba(19,26,29,.04)', color: v / max > 0.5 ? '#f6eddb' : undefined }}>{v || ''}</div>}</td>;
         })}
       </tr>)}</tbody>
     </table></div>
@@ -120,7 +120,7 @@ function ProductionMix({ report, seats }: { report: GameReport; seats: number[] 
       <div className="flex h-5 overflow-hidden rounded-md bg-ink/6">
         {cards.map((c) => produced[seat][c] ? <div key={c} title={`${CARD_COLORS[c].label}: ${produced[seat][c]}`} style={{ width: `${produced[seat][c] / max * 100}%`, background: CARD_COLORS[c].bg }} /> : null)}
       </div>
-      <span className="text-right font-extrabold tabular">{handTotal(produced[seat])}</span>
+      <span className="text-right font-bold tabular">{handTotal(produced[seat])}</span>
     </div>)}
     <ul className="flex flex-wrap gap-x-3 gap-y-1 pt-1 text-xs text-ink-soft">{cards.map((c) => <li key={c} className="flex items-center gap-1"><RowIcon row={{ label: c, values: [], card: c }} />{CARD_COLORS[c].label}</li>)}</ul>
   </div>;
@@ -197,7 +197,7 @@ export function GameReportView({ report, initialSeat }: { report: GameReport; in
         return <button key={seat} type="button" aria-pressed={on} onClick={() => toggle(seat)} title={on ? 'Hide from comparison' : 'Add to comparison'}
           className={`flex min-w-0 items-center gap-2 rounded-xl border-2 py-1.5 pr-3 pl-1.5 text-left text-sm transition ${on ? 'border-ink bg-paper' : 'border-ink/15 bg-transparent opacity-50'}`}>
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg font-black" style={{ background: c.hex, color: c.ink, boxShadow: `inset 0 0 0 2px ${c.dark}` }}>{seat === report.winner ? <Crown size={16} /> : `#${p.rank}`}</span>
-          <span className="min-w-0"><span className="block truncate font-extrabold">{p.name}{seat === initialSeat ? ' (you)' : ''}</span><span className="block text-xs font-bold text-ink-soft">{p.vp} VP{p.rating?.delta != null ? ` · ${p.rating.delta > 0 ? '+' : ''}${p.rating.delta}` : ''}{p.isBot ? ' · Bot' : ''}</span></span>
+          <span className="min-w-0"><span className="block truncate font-bold">{p.name}{seat === initialSeat ? ' (you)' : ''}</span><span className="block text-xs font-bold text-ink-soft">{p.vp} VP{p.rating?.delta != null ? ` · ${p.rating.delta > 0 ? '+' : ''}${p.rating.delta}` : ''}{p.isBot ? ' · Bot' : ''}</span></span>
         </button>;
       })}
       {report.players.length > 2 && <span className="self-center text-xs text-ink-faint">Tap players to narrow the comparison.</span>}

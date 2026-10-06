@@ -214,7 +214,7 @@ export function PickBanner({ view }: { view: PlayerView }) {
   }
   if (!text) return null;
   return (
-    <div className="paper animate-pop flex items-center gap-2 px-4 py-2 text-sm font-extrabold">
+    <div className="paper animate-pop flex items-center gap-2 px-4 py-2 text-sm font-bold">
       <span>{text}</span>
       {extra}
     </div>

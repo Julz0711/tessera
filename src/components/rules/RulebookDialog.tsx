@@ -87,7 +87,7 @@ export function RulebookDialog({ open, onClose, modes }: { open: boolean; onClos
         <article ref={page} className="min-w-0 md:min-h-0 md:overflow-y-auto md:pr-2 md:scroll-thin">
           <h3 className="display mb-1 text-xl font-black">{chapter.title}</h3>
           {chapter.applies !== 'all' && chapter.applies.map((m) => MODE_NAMES[m]).join(' · ') !== chapter.title && (
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.12em] text-ink-faint">{chapter.applies.map((m) => MODE_NAMES[m]).join(' · ')}</p>
+            <p className="mb-3 text-xs font-bold uppercase tracking-label text-ink-faint">{chapter.applies.map((m) => MODE_NAMES[m]).join(' · ')}</p>
           )}
           {chapter.sections.map((s) => (
             <section key={s.title} className="mb-5">

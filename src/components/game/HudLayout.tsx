@@ -61,7 +61,7 @@ export function DesktopHud({
     <div key={panel} className={`pointer-events-auto ${panel === 'side' && !editing ? 'flex min-h-0 flex-col' : 'shrink-0'} ${drag?.panel === panel ? 'opacity-40' : ''}`}>
       {editing && (
         <div
-          className="mb-1 flex cursor-grab touch-none select-none items-center gap-1.5 rounded-lg border-2 border-ink bg-amber px-2 py-1 text-xs font-black uppercase tracking-wider text-ink shadow-[0_2px_0_0_#000] active:cursor-grabbing"
+          className="mb-1 flex cursor-grab touch-none select-none items-center gap-1.5 rounded-lg border-2 border-ink bg-amber px-2 py-1 text-xs font-black uppercase tracking-caps text-ink shadow-[0_2px_0_0_#000] active:cursor-grabbing"
           onPointerDown={(e) => {
             e.preventDefault();
             e.currentTarget.setPointerCapture(e.pointerId);
@@ -98,7 +98,7 @@ export function DesktopHud({
         }`}
       >
         {/* mb-auto keeps the label on top in a bottom group too (those stack their panels at the bottom). */}
-        {editing && <span className={`pointer-events-none px-1 ${slot.endsWith('Bottom') ? 'mb-auto' : ''} text-[10px] font-black uppercase tracking-wider text-foam/60`}>{SLOT_LABEL[slot]}</span>}
+        {editing && <span className={`pointer-events-none px-1 ${slot.endsWith('Bottom') ? 'mb-auto' : ''} text-[10px] font-black uppercase tracking-caps text-foam/60`}>{SLOT_LABEL[slot]}</span>}
         {slotPanels(layout, slot)
           .filter((p) => !skip?.(p))
           .map((p) => item(p, side))}
@@ -148,7 +148,7 @@ export function DesktopHud({
       )}
       {drag && (
         <div
-          className="pointer-events-none fixed z-[70] -translate-x-1/2 -translate-y-1/2 rounded-lg border-2 border-ink bg-amber px-2 py-1 text-xs font-black uppercase tracking-wider text-ink shadow-[0_3px_0_0_#000]"
+          className="pointer-events-none fixed z-[70] -translate-x-1/2 -translate-y-1/2 rounded-lg border-2 border-ink bg-amber px-2 py-1 text-xs font-black uppercase tracking-caps text-ink shadow-[0_3px_0_0_#000]"
           style={{ left: drag.x, top: drag.y }}
         >
           {PANEL_LABEL[drag.panel]}

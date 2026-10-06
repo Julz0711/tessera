@@ -85,10 +85,10 @@ function TrackKey({ view, track, onDone }: { view: PlayerView; track: Track; onD
         cost > 0 ? (
           <CostDots cost={{ [style.commodity]: cost }} hand={p.hand} />
         ) : (
-          <span className="text-[9px] font-black uppercase leading-[10px]">Free</span>
+          <span className="text-[10px] font-black uppercase leading-none tracking-caps">Free</span>
         )
       ) : (
-        <span className="text-[9px] font-black uppercase leading-[10px]">Max</span>
+        <span className="text-[10px] font-black uppercase leading-none tracking-caps">Max</span>
       )}
       {metropolis && (
         <span className="hex-badge hex-badge-amber -right-1.5 -top-2" title="Your metropolis">

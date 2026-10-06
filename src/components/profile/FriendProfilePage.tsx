@@ -77,7 +77,7 @@ export function FriendProfilePage({ code }: { code: string }) {
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-xl border-2 border-ink bg-paper-2 px-3 py-3">
                     <dt className="label">{label}</dt>
-                    <dd className="display mt-1 text-2xl font-black tabular">{value}</dd>
+                    <dd className="display mt-1 text-2xl font-black">{value}</dd>
                   </div>
                 ))}
               </dl>
@@ -100,7 +100,7 @@ export function FriendProfilePage({ code }: { code: string }) {
                         {game.won ? <Trophy size={17} aria-label="Victory" /> : game.rank === null ? '—' : `#${game.rank}`}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-extrabold">{MODE_LABEL[ratingPoolFor(game.mode, game.map)]} <span className="font-semibold text-ink-soft">· {game.finalVp ?? '—'} VP</span></p>
+                        <p className="text-sm font-bold">{MODE_LABEL[ratingPoolFor(game.mode, game.map)]} <span className="font-semibold text-ink-soft">· {game.finalVp ?? '—'} VP</span></p>
                         <time dateTime={game.endedAt ?? game.startedAt} className="text-xs text-ink-faint">{new Date(game.endedAt ?? game.startedAt).toLocaleDateString()}</time>
                       </div>
                       <span className={`shrink-0 text-sm font-bold tabular ${game.ratingDelta !== null && game.ratingDelta > 0 ? 'text-moss' : 'text-ink-soft'}`}>

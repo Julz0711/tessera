@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'Terms of use' };
 
 export default function Page() {
   return (
-    <LegalPage title="Terms of use" icon={<ScrollText size={30} className="text-amber" />}>
+    <LegalPage title="Terms of use" icon={<ScrollText size={30} className="text-ink" />}>
       <p>
         These terms apply when you use {APP_NAME} (&quot;the game&quot;), which is run by {LEGAL_OPERATOR} (&quot;we&quot;). By
         playing, as a guest or with an account, you agree to them. Please read them together with our{' '}

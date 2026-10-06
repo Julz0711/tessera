@@ -5,7 +5,8 @@ import { useGame } from '@/client/store';
 export function Toasts() {
   const toasts = useGame((s) => s.toasts);
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-[calc(4rem+env(safe-area-inset-top,0px))] z-60 flex flex-col items-center gap-2 px-3" aria-live="polite">
+    // `toasts-layer`: hidden in a game on phones, where the top bar's status lane shows them instead.
+    <div className="toasts-layer pointer-events-none fixed inset-x-0 top-[calc(4rem+env(safe-area-inset-top,0px))] z-60 flex flex-col items-center gap-2 px-3" aria-live="polite">
       {toasts.map((t) => (
         <div
           key={t.id}

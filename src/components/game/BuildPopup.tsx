@@ -47,9 +47,9 @@ export function BuildPopup({ view, armed }: { view: PlayerView; armed: Armed }) 
           title={`Build: ${LABEL[o.what]}`}
           className="relative flex w-20 flex-col items-center gap-1 rounded-lg border-2 border-ink bg-paper px-1.5 pb-1.5 pt-1 text-ink transition hover:bg-white"
         >
-          <span className="grid min-h-5 place-items-center text-[11px]">{o.cost ? <CardList cards={o.cost} /> : <b className="font-black uppercase text-ink-soft">Free</b>}</span>
+          <span className="grid min-h-5 place-items-center text-[11px]">{o.cost ? <CardList cards={o.cost} /> : <b className="font-black uppercase tracking-caps text-ink-soft">Free</b>}</span>
           <Piece what={o.what} fill={color.hex} stroke={color.dark} />
-          <span className="flex items-center gap-1 text-[11px] font-extrabold leading-none">
+          <span className="flex items-center gap-1 text-[11px] font-bold leading-none">
             {LABEL[o.what]}
             {armed.options.length === 1 && <Kbd k="↵" />}
           </span>

@@ -133,7 +133,7 @@ export function describe(ev: GameEvent, view: PlayerView): Part[][] {
         ],
       ];
     case 'bankTrade':
-      return [[P(ev.seat), ' traded ', ...cardParts(ev.give), ' → ', ...cardParts(ev.get), ' with the bank']];
+      return [[P(ev.seat), ' traded ', ...cardParts(ev.give), ' for ', ...cardParts(ev.get), ' with the bank']];
     case 'trade':
       return [[P(ev.seat), ' gave ', ...cardParts(ev.give), ' to ', P(ev.partner), ' for ', ...cardParts(ev.get)]];
     case 'tradeOffered':
@@ -194,7 +194,7 @@ export function describe(ev: GameEvent, view: PlayerView): Part[][] {
         : [[P(ev.seat), ` removed a ${ev.ship ? 'ship' : 'road'} of `, P(ev.owner)]];
     case 'tokensSwapped': {
       const where = (hex: number, token: number) => `the ${token} (${TERRAIN_COLORS[view.board.hexes[hex].terrain].label})`;
-      const what = ev.tokens ? ` swapped ${where(ev.a, ev.tokens[0])} ↔ ${where(ev.b, ev.tokens[1])}` : ' swapped two number tokens';
+      const what = ev.tokens ? ` swapped ${where(ev.a, ev.tokens[0])} and ${where(ev.b, ev.tokens[1])}` : ' swapped two number tokens';
       return [[P(ev.seat), what, { hexes: [ev.a, ev.b] }]];
     }
   }

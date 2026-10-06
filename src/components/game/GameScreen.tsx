@@ -1,6 +1,6 @@
 'use client';
 
-import { ChartColumn, MessageSquare, ScrollText, Trophy } from 'lucide-react';
+import { ChartColumn, MessageSquare, ScrollText } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CARDS, shipsInPlay, type Card, type DevCardType, type GameEvent, type PartialHand, type ProgressCardType } from '@/engine';
 import type { PlayerView } from '@/engine/view';
@@ -95,10 +95,13 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
           const token = view.board.hexes[ev.hex]?.token;
           const robbed = events.find((e) => e.type === 'stole' && e.seat === ev.seat);
           const victim = robbed && robbed.type === 'stole' ? (robbed.victim === me ? 'you' : name(robbed.victim)) : null;
+          // The banner names the card when you're the thief or the victim, so no separate toast repeats it.
+          const stolen = (robbed?.secret as Record<string, unknown> | undefined)?.card as Card | undefined;
+          const took = victim ? (stolen ? ` and stole ${CARD_COLORS[stolen].label.toLowerCase()} from ${victim}` : ` and robbed ${victim}`) : '';
           pushBanner({
             icon: ev.pirate ? 'pirate' : 'robber',
             title: ev.pirate ? 'The pirate strikes' : 'The robber strikes',
-            text: `${who(ev.seat)} moved the ${ev.pirate ? 'pirate' : 'robber'}${!ev.pirate && token ? ` onto a ${token}` : ''}${victim ? ` and robbed ${victim}` : ''}`,
+            text: `${who(ev.seat)} moved the ${ev.pirate ? 'pirate' : 'robber'}${!ev.pirate && token ? ` onto a ${token}` : ''}${took}`,
             color: color(ev.seat),
             tone: robbed && robbed.type === 'stole' && robbed.victim === me ? 'bad' : 'info',
           });
@@ -107,13 +110,16 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
         case 'stole':
           play(ev.victim === me ? 'stolen' : 'steal');
           fly({ seat: ev.victim }, { seat: ev.seat }, [(secret?.card as Card | undefined) ?? null], me);
+          // A steal with the robber or pirate is told by their banner (card included).
+          if (events.some((e) => e.type === 'robberMoved' && e.seat === ev.seat)) break;
           if (ev.victim === me) toast(`${name(ev.seat)} stole ${secret?.card ? CARD_COLORS[secret.card as Card].label.toLowerCase() : 'a card'} from you`, 'error');
           else if (ev.seat === me && secret?.card) toast(`You stole ${CARD_COLORS[secret.card as Card].label.toLowerCase()} from ${name(ev.victim)}`, 'good');
           break;
         case 'turnStarted':
           if (ev.seat === me) {
             play('turn');
-            toast('Your turn!', 'good');
+            // Phones show "Your turn" in the status line already, in the same lane a toast would take.
+            if (!window.matchMedia('(max-width: 1023px)').matches) toast('Your turn!', 'good');
           }
           break;
         case 'trade':
@@ -446,7 +452,7 @@ export function GameScreen() {
 
       {/* top: above the bottom bar, so the menu dropdown (opened from TopBar) paints over it. */}
       <div className="game-top absolute inset-x-0 top-0 z-40" style={{ zoom }}>
-        <TopBar view={view} room={room} status={!barred} />
+        <TopBar view={view} room={room} status={!barred} onResults={view.phase === 'ended' && !showResults ? () => setShowResults(true) : undefined} />
         <div className="pointer-events-none mt-1 flex flex-col items-center gap-2">
           {myPrompt?.kind === 'freeRoads' && (
             <div className="pointer-events-auto">
@@ -468,12 +474,15 @@ export function GameScreen() {
       {/* log/chat, bank, players, dice and offers on wide screens, wherever the player put them */}
       <DesktopHud render={renderPanel} skip={unused} />
       <div className="game-players absolute inset-x-2 top-26 z-10 lg:hidden" style={{ zoom }}>
-        <PlayerStrip view={view} room={room} leading={view.mode === 'ck' && view.phase !== 'ended' ? <BarbarianMeter view={view} compact /> : undefined} />
-      </div>
-
-      {/* trade offers on smaller screens: top-left, below the players strip */}
-      <div className="game-offers absolute left-2 top-45 z-20 lg:hidden" style={{ zoom }}>
-        <OffersTray view={view} className="w-max min-w-[min(330px,calc(100vw-16px))] max-w-[calc(100vw-16px)]" />
+        {/* The players, then (Knights & Barbarians) the barbarians' voyage as its own full-width bar. */}
+        <div className="grid gap-1.5">
+          <PlayerStrip view={view} room={room} />
+          {view.mode === 'ck' && view.phase !== 'ended' && <BarbarianMeter view={view} compact />}
+        </div>
+        {/* trade offers on smaller screens: under the players, wherever that block ends */}
+        <div className="game-offers absolute left-0 top-full z-20 mt-1.5">
+          <OffersTray view={view} className="w-max min-w-[min(330px,calc(100vw-20px))] max-w-[calc(100vw-20px)]" />
+        </div>
       </div>
 
       {/* dock; on phones the log, chat and dice live in the top bar */}
@@ -533,11 +542,6 @@ export function GameScreen() {
       <LiveStatsDialog view={view} />
       {room.you.isAdmin && <AdminToolsDialog view={view} room={room} />}
       {view.phase === 'ended' && showResults && <GameOver view={view} room={room} onClose={() => setShowResults(false)} />}
-      {view.phase === 'ended' && !showResults && (
-        <button type="button" className="btn btn-primary absolute bottom-40 left-1/2 z-30 -translate-x-1/2 px-5 py-2.5" onClick={() => setShowResults(true)}>
-          <Trophy size={18} /> Results
-        </button>
-      )}
     </div>
   );
 }
@@ -552,7 +556,7 @@ function SidePanel({ view, unread }: { view: PlayerView; unread: number }) {
             key={tab}
             type="button"
             onClick={() => ui.setSide(tab, true)}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-extrabold uppercase tracking-wider ${
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold uppercase tracking-capsr ${
               ui.sideTab === tab ? 'bg-paper text-ink' : 'text-foam/60 hover:text-paper'
             }`}
           >

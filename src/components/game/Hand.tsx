@@ -106,59 +106,79 @@ export function Hand({
   // Everything in hand has to fit beside the dock without scrolling: with all eight kinds in
   // Knights & Barbarians, plus progress cards, the cards step down a size instead.
   const rules = (commodities.length && resources.length ? 1 : 0) + (held.length && special ? 1 : 0);
-  const { size, fan, step } =
-    fitRoom !== undefined ? fitTray(fitRoom, held.map((c) => count(c)), special, rules, max) : { size: fit(max, held.length + special), fan: true, step: undefined };
+  const counts = held.map((c) => count(c));
+  const oneRow = fitRoom !== undefined ? fitTray(fitRoom, counts, special, rules, max) : { size: fit(max, held.length + special), fan: true, step: undefined };
+  // Phones (no measured tray): rather than shrink everything to the tiniest cards, a hand that doesn't
+  // fit one row at full size takes two, the resources and commodities above, the development or
+  // progress cards below, each row as big as it fits.
+  const twoRows = room === undefined && fitRoom !== undefined && held.length > 0 && special > 0 && oneRow.size !== max;
+  const top = twoRows ? fitTray(fitRoom, counts, 0, commodities.length && resources.length ? 1 : 0, max) : oneRow;
+  const below = twoRows ? fitTray(fitRoom, [], special, 0, max) : oneRow;
+
+  const heldGroup = held.length > 0 && (
+    <div
+      className={`-my-1 flex items-end gap-2.5 rounded-lg px-1.5 py-1 transition-colors sm:gap-3 ${over ? 'bg-danger/25 ring-2 ring-inset ring-danger/70' : ''}`}
+      title={over ? `${total} cards, over your limit of ${limit}: a 7 would cost you ${Math.floor(total / 2)}` : undefined}
+    >
+      {held.map((c) => [
+        // Knights & Barbarians: a thin rule between the resources and the commodities.
+        c === commodities[0] && resources.length > 0 && <span key="rule" aria-hidden className={`h-12 w-px self-center ${tray ? 'bg-ink/15' : 'bg-white/20'}`} />,
+        <CardStack
+          key={c}
+          card={c}
+          size={top.size}
+          count={count(c)}
+          held={p.hand[c]}
+          warn={over}
+          fan={top.fan}
+          step={top.step}
+          tuck={tray ? TUCK : 0}
+          onClick={canTrade ? () => (trading ? draft.add('give', c) : openTrade({ [c]: 1 })) : undefined}
+        />,
+      ])}
+    </div>
+  );
+  const specials = [
+    ...dev.map(({ type, cards }) => (
+      <DevCardFace
+        key={type}
+        type={type}
+        size={below.size}
+        count={cards.length}
+        fresh={type !== 'victoryPoint' && cards.every((c) => c.boughtOn >= view.turn.n)}
+        glow={canPlayDev(view, type)}
+        onClick={() => ui.openCard({ kind: 'dev', type })}
+      />
+    )),
+    ...(ck
+      ? p.progress.map((card) => (
+          <ProgressCardFace key={card.id} card={card} size={below.size} glow={canPlayProgress(view, card)} onClick={() => ui.openCard({ kind: 'progress', id: card.id })} />
+        ))
+      : []),
+  ];
+  const row = `${tray ? 'px-2.5' : 'mx-auto px-3'} flex w-max items-end gap-2.5 sm:gap-3`;
 
   return (
     // The inner row is only as wide as its cards, so it centres when it fits and scrolls from the
     // first card when it doesn't.
     <div className="max-w-full overflow-x-auto scroll-thin" data-hand-anchor>
-      <div className={`${tray ? 'px-2.5 pb-1.5 pt-2' : 'mx-auto px-3 pb-2 pt-3'} flex w-max items-end gap-2.5 sm:gap-3`}>
-        {held.length === 0 && special === 0 && !trading && (
-          <div className={`grid place-items-center rounded-lg border-2 border-dashed px-5 text-xs font-bold ${tray ? 'border-ink/20 text-ink-faint' : 'border-white/20 text-foam/60'} ${max === 'xl' ? 'h-27.5' : 'h-18'}`}>
-            No cards in hand
-          </div>
-        )}
-        {held.length > 0 && (
-          <div
-            className={`-my-1 flex items-end gap-2.5 rounded-lg px-1.5 py-1 transition-colors sm:gap-3 ${over ? 'bg-danger/25 ring-2 ring-inset ring-danger/70' : ''}`}
-            title={over ? `${total} cards, over your limit of ${limit}: a 7 would cost you ${Math.floor(total / 2)}` : undefined}
-          >
-            {held.map((c) => [
-              // Knights & Barbarians: a thin rule between the resources and the commodities.
-              c === commodities[0] && resources.length > 0 && <span key="rule" aria-hidden className={`h-12 w-px self-center ${tray ? 'bg-ink/15' : 'bg-white/20'}`} />,
-              <CardStack
-                key={c}
-                card={c}
-                size={size}
-                count={count(c)}
-                held={p.hand[c]}
-                warn={over}
-                fan={fan}
-                step={step}
-                tuck={tray ? TUCK : 0}
-                onClick={canTrade ? () => (trading ? draft.add('give', c) : openTrade({ [c]: 1 })) : undefined}
-              />,
-            ])}
-          </div>
-        )}
-        {held.length > 0 && special > 0 && <span aria-hidden className={`h-12 w-px self-center ${tray ? 'bg-ink/15' : 'bg-white/20'}`} />}
-        {dev.map(({ type, cards }) => (
-          <DevCardFace
-            key={type}
-            type={type}
-            size={size}
-            count={cards.length}
-            fresh={type !== 'victoryPoint' && cards.every((c) => c.boughtOn >= view.turn.n)}
-            glow={canPlayDev(view, type)}
-            onClick={() => ui.openCard({ kind: 'dev', type })}
-          />
-        ))}
-        {ck &&
-          p.progress.map((card) => (
-            <ProgressCardFace key={card.id} card={card} size={size} glow={canPlayProgress(view, card)} onClick={() => ui.openCard({ kind: 'progress', id: card.id })} />
-          ))}
-      </div>
+      {twoRows ? (
+        <div className={`grid gap-2 ${tray ? 'pb-1.5 pt-2' : 'pb-2 pt-3'}`}>
+          <div className={row}>{heldGroup}</div>
+          <div className={row}>{specials}</div>
+        </div>
+      ) : (
+        <div className={`${row} ${tray ? 'pb-1.5 pt-2' : 'pb-2 pt-3'}`}>
+          {held.length === 0 && special === 0 && !trading && (
+            <div className={`grid place-items-center rounded-lg border-2 border-dashed px-5 text-xs font-bold ${tray ? 'border-ink/20 text-ink-faint' : 'border-white/20 text-foam/60'} ${max === 'xl' ? 'h-27.5' : 'h-18'}`}>
+              No cards in hand
+            </div>
+          )}
+          {heldGroup}
+          {held.length > 0 && special > 0 && <span aria-hidden className={`h-12 w-px self-center ${tray ? 'bg-ink/15' : 'bg-white/20'}`} />}
+          {specials}
+        </div>
+      )}
     </div>
   );
 }

@@ -47,7 +47,7 @@ export function BarbarianTrack({ view, theme }: { view: PlayerView; theme: Board
   const label = describeBarbarians(s);
   return (
     <div role="status" aria-label={label} title={label} className="grid justify-items-center gap-2 rounded-lg bg-sea-900/55 px-2.5 pb-3 pt-2.5 text-paper">
-      <div className="display grid grid-cols-[auto_2ch_auto_2ch] items-center gap-x-1 text-lg font-black leading-none tabular">
+      <div className="display grid grid-cols-[auto_2ch_auto_2ch] items-center gap-x-1 text-lg font-black leading-none">
         <Sailboat size={16} strokeWidth={2.6} className={s.losing ? 'text-[#ff8a73]' : ''} aria-hidden />
         <span className={s.losing ? 'text-[#ff8a73]' : ''}>{s.strength}</span>
         <Swords size={16} strokeWidth={2.6} className={`ml-1 ${s.losing ? '' : 'text-[#8fe0a8]'}`} aria-hidden />

@@ -1,4 +1,4 @@
-/** The in-game rulebook (menu → Rules): how this game's engine plays, mode by mode. Keep in step with src/engine. */
+/** The in-game rulebook (menu › Rules): how this game's engine plays, mode by mode. Keep in step with src/engine. */
 export type RuleMode = 'classic' | 'ck' | 'voyagers' | 'special' | 'duel';
 
 export interface RuleChapter {
@@ -285,7 +285,7 @@ export const RULEBOOK: RuleChapter[] = [
             'Players answer by accepting or declining. When a player accepts your offer, you confirm which accepting player you trade with.',
             'If the player on turn accepts a counter-offer, the trade happens right away.',
             'You can have up to 6 open offers at a time. Open offers disappear when your turn ends.',
-            'A player who does not have the cards you ask for can only decline (or counter). With **Auto-decline trades** on (Settings → Gameplay), such an offer declines itself after 5 seconds.',
+            'A player who does not have the cards you ask for can only decline (or counter). With **Auto-decline trades** on (Settings › Gameplay), such an offer declines itself after 5 seconds.',
           ],
         ],
       },

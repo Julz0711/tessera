@@ -21,7 +21,7 @@ export interface Banner {
   tone: 'info' | 'good' | 'bad';
 }
 
-const ICONS: Record<BannerIcon, LucideIcon> = {
+export const BANNER_ICONS: Record<BannerIcon, LucideIcon> = {
   robber: VenetianMask,
   pirate: Anchor,
   barbarians: Swords,
@@ -42,7 +42,14 @@ const useBanners = create<{ queue: Banner[]; push(b: Omit<Banner, 'id'>): void; 
 
 export const pushBanner = (b: Omit<Banner, 'id'>) => useBanners.getState().push(b);
 
-/** A big announcement across the top of the board for major events (robber, barbarians, metropolis…). */
+/** The banner showing now (phones show it as a line in the status lane instead of over the board). */
+export const useCurrentBanner = () => useBanners((s) => s.queue[0] ?? null);
+
+/**
+ * A big announcement across the top of the board for major events (robber, barbarians, metropolis…).
+ * It also paces the queue on phones, where it stays hidden: there the top bar's status lane shows the
+ * banner as one line (see TopBar), so nothing stacks over the island.
+ */
 export function EventBanner() {
   const banner = useBanners((s) => s.queue[0] ?? null);
   const shift = useBanners((s) => s.shift);
@@ -60,10 +67,10 @@ export function EventBanner() {
   }, [banner, shift]);
 
   if (!banner) return null;
-  const Icon = ICONS[banner.icon];
+  const Icon = BANNER_ICONS[banner.icon];
   const ring = banner.tone === 'bad' ? 'ring-danger/60' : banner.tone === 'good' ? 'ring-moss/60' : 'ring-amber/60';
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-[18%] z-40 flex justify-center px-4" role="status" aria-live="polite">
+    <div className="pointer-events-none absolute inset-x-0 top-[18%] z-40 flex justify-center px-4 max-lg:hidden" role="status" aria-live="polite">
       <div
         key={banner.id}
         className={`paper animate-rise flex max-w-lg items-center gap-4 border-l-8 px-5 py-3.5 ring-4 transition-opacity ${ring} ${leaving ? 'opacity-0' : 'opacity-100'}`}

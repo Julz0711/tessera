@@ -263,7 +263,7 @@ export function TitleTag({ title, className = '' }: { title: TitleId | null | un
   const c = TIER_COLOR[t.tier];
   return (
     <span
-      className={`inline-flex items-center rounded-md px-1.5 text-[10px] font-black uppercase leading-4 tracking-wider ${className}`}
+      className={`inline-flex items-center rounded-md px-1.5 text-[10px] font-black uppercase leading-4 tracking-capsr ${className}`}
       style={{ color: c, background: `${c}1f`, boxShadow: `inset 0 0 0 1px ${c}55` }}
     >
       {t.name}
@@ -351,7 +351,7 @@ export function CosmeticsPicker({
                   {(s) => <KnightBadge knight={knight} color={color} size={s} />}
                 </Framed>
               </span>
-              <span className="text-xs font-extrabold leading-tight" style={{ color: open && !on ? TIER_COLOR[f.tier] : undefined }}>
+              <span className="text-xs font-bold leading-tight" style={{ color: open && !on ? TIER_COLOR[f.tier] : undefined }}>
                 {f.name}
               </span>
               {!open && <Progress req={f.req} stats={stats} />}
@@ -379,7 +379,7 @@ export function CosmeticsPicker({
               onClick={() => onChange({ ...value, title: t.id })}
               aria-pressed={on}
               title={open ? t.name : `${requirementText(t.req)}${p && t.req.kind !== 'rating' ? ` (${p.have}/${p.need})` : ''}`}
-              className={`flex items-center gap-1 rounded-md border-2 px-2 py-1 text-xs font-black uppercase tracking-wider transition ${
+              className={`flex items-center gap-1 rounded-md border-2 px-2 py-1 text-xs font-black uppercase tracking-capsr transition ${
                 on ? 'border-ink' : open ? 'border-ink hover:brightness-95' : 'cursor-not-allowed border-ink opacity-50'
               }`}
               style={

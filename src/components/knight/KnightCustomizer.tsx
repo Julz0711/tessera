@@ -193,32 +193,28 @@ export function KnightCustomizer({
     // row below — a flex-wrap row that never shrinks past its children's natural width — pushes
     // that whole grid track (and so the page) wider than the viewport instead of wrapping.
     <div className="grid min-w-0 gap-3">
-      {/* knight 1, 2, 3 */}
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Knights">
-        {KNIGHT_SLOTS.map((n) => {
-          const on = n === slot;
-          return (
-            <button
-              key={n}
-              type="button"
-              role="tab"
-              aria-selected={on}
-              onClick={() => choose(n)}
-              className={`flex items-center gap-2 rounded-lg border-2 py-1 pl-1 pr-3 text-left transition ${
-                on ? 'border-ink bg-pick' : 'border-ink bg-white hover:bg-paper-2'
-              }`}
-            >
-              <KnightBadge knight={knightLook(value, n)} color={color} size={44} />
-              <span className="grid leading-tight">
-                <span className="text-sm font-black">Knight {n}</span>
-                <span className={`text-[11px] font-bold ${on ? 'text-ink-soft' : 'text-ink-faint'}`}>
-                  {KNIGHT_SLOT_NAMES[n]}
-                  {!hasOwnLook(value, n) && ' · same look as knight 1'}
-                </span>
-              </span>
-            </button>
-          );
-        })}
+      {/* knight 1, 2, 3: the same segmented track as the other tab rows (profile sections, seats).
+          Whether a knight shares knight 1's look is said in the panel below. */}
+      <div className="seg flex w-full" role="radiogroup" aria-label="Knights">
+        {KNIGHT_SLOTS.map((n) => (
+          <button
+            key={n}
+            type="button"
+            role="radio"
+            aria-checked={n === slot}
+            onClick={() => choose(n)}
+            className="seg-opt min-w-0 flex-1 gap-2 px-2 py-1.5 text-center sm:justify-start sm:py-1 sm:pl-1 sm:text-left"
+          >
+            {/* On phones the three names need the width; the preview below shows the picked knight. */}
+            <span className="hidden shrink-0 sm:block">
+              <KnightBadge knight={knightLook(value, n)} color={color} size={34} />
+            </span>
+            <span className="grid min-w-0 leading-tight">
+              <span className="truncate">Knight {n}</span>
+              <span className="truncate text-[11px] font-semibold opacity-75">{KNIGHT_SLOT_NAMES[n]}</span>
+            </span>
+          </button>
+        ))}
       </div>
 
       {/* the selected knight */}

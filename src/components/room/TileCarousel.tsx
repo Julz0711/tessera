@@ -150,8 +150,8 @@ export function TileCarousel<T extends string>({
               aria-checked={on}
               disabled={disabled}
               onClick={() => onChange(t.value)}
-              // A key like every other: white with the shaded corner, pale blue once picked.
-              className={`btn w-26 shrink-0 snap-start flex-col gap-1.5 px-1.5 pb-2 pt-2.5 text-center text-[13px] font-extrabold leading-tight disabled:cursor-default ${
+              // A choice key: white with the shaded corner and a faded line, ink-lined and pale blue once picked.
+              className={`btn btn-choice w-26 shrink-0 snap-start flex-col gap-1.5 px-1.5 pb-2 pt-2.5 text-center text-[13px] font-bold leading-tight disabled:cursor-default ${
                 on ? "btn-on" : ""
               }`}
             >

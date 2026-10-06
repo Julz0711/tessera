@@ -90,12 +90,12 @@ export function BuildCostsCard({ ck, ships, onClose }: { ck: boolean; ships: boo
           <X size={16} />
         </button>
       )}
-      <h2 className="display mb-2 text-center text-base font-black uppercase tracking-wide">Building costs</h2>
+      <h2 className="display mb-2 text-center text-base font-black uppercase tracking-caps">Building costs</h2>
       <ul className="divide-y divide-ink/15">
         {rows.map((r) => (
           <li key={r.label} className="flex items-center gap-2 py-1.5">
             <span className="grid w-5 shrink-0 place-items-center">{r.icon}</span>
-            <span className="min-w-0 flex-1 text-sm font-extrabold leading-tight">{r.label}</span>
+            <span className="min-w-0 flex-1 text-sm font-bold leading-tight">{r.label}</span>
             <CostPips cost={r.cost} />
             {r.vp !== undefined && <span className="w-9 shrink-0 text-right text-[11px] font-black text-ink/60">{r.vp}</span>}
           </li>

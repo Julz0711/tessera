@@ -56,7 +56,7 @@ function ResumeTables({ rooms, onAbandon }: { rooms: ActiveRoom[]; onAbandon: (r
             aria-label={`Rejoin ${MODE_LABEL[ratingPoolFor(r.mode, r.map)]} table ${r.code}: ${roomStatus(r)}`}
           >
             <div className="min-w-0 flex-1">
-              <p className="truncate font-extrabold text-ink">
+              <p className="truncate font-bold text-ink">
                 {MODE_LABEL[ratingPoolFor(r.mode, r.map)]}
                 {r.map !== "standard" && <span className="font-semibold text-ink-soft"> · {MAPS[r.map]?.name ?? r.map}</span>}
               </p>
@@ -64,7 +64,7 @@ function ResumeTables({ rooms, onAbandon }: { rooms: ActiveRoom[]; onAbandon: (r
                 {r.yourTurn && <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-terracotta" aria-hidden />}
                 {r.autopilot && <Bot size={14} className="shrink-0" aria-hidden />}
                 <span className="truncate">{roomStatus(r)}</span>
-                <span className="ml-auto shrink-0 pl-1 font-mono text-xs font-bold tracking-wider text-ink-faint">
+                <span className="ml-auto shrink-0 pl-1 text-xs font-bold tabular tracking-label text-ink-faint">
                   {r.code.slice(0, 4)}-{r.code.slice(4)}
                 </span>
               </p>
@@ -277,7 +277,7 @@ export function Landing() {
                 enterKeyHint="go"
                 aria-invalid={!!codeError}
                 aria-describedby={codeError ? 'room-code-error' : undefined}
-                className="min-w-0 w-36 flex-1 bg-transparent font-mono text-lg font-bold uppercase tracking-widest text-ink outline-none placeholder:text-ink/30"
+                className="min-w-0 w-36 flex-1 bg-transparent text-lg font-bold uppercase tabular tracking-label text-ink outline-none placeholder:text-ink/30"
               />
               <button type="submit" className="btn btn-dark px-4 py-2">
                 Join

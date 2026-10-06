@@ -24,7 +24,7 @@ export function DiceHistogram({ dice, compact = false, expectedCounts }: { dice:
                 {expectedCounts !== null && <span
                   className="absolute inset-x-0.5 border-t-2 border-dashed border-terracotta/70"
                   style={{ bottom: `${Math.min(100, (expected / maxCount) * 100)}%` }}
-                  title={`Expected ≈ ${expected.toFixed(1)} rolls of ${t}`}
+                  title={`Expected: about ${expected.toFixed(1)} rolls of ${t}`}
                 />}
                 <div className="w-full rounded-t-sm bg-sea-600" style={{ height: `${(count / maxCount) * 100}%` }} />
               </div>

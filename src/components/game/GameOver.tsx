@@ -97,10 +97,10 @@ export function GameOver({ view, room, onClose }: { view: PlayerView; room: Room
                       <span className="display w-5 text-center text-lg font-black text-ink-faint">{report.players[seat].rank}</span>
                       <PlayerBadge seat={seat} view={view} room={room} size={34} />
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-extrabold">{p.name}{seat === view.viewer && <span className="ml-1 text-xs font-bold text-ink-soft">(you)</span>}</div>
+                        <div className="truncate text-sm font-bold">{p.name}{seat === view.viewer && <span className="ml-1 text-xs font-bold text-ink-soft">(you)</span>}</div>
                         <PointIcons points={report.players[seat].points} color={p.color} />
                       </div>
-                      <div className="text-right"><span className="display text-2xl font-black tabular">{p.vp}</span>{report.players[seat].rating?.delta != null && <p className="text-[11px] font-bold">{report.players[seat].rating!.delta! > 0 ? '+' : ''}{report.players[seat].rating!.delta} Elo</p>}</div>
+                      <div className="text-right"><span className="display text-2xl font-black">{p.vp}</span>{report.players[seat].rating?.delta != null && <p className="text-[11px] font-bold">{report.players[seat].rating!.delta! > 0 ? '+' : ''}{report.players[seat].rating!.delta} Elo</p>}</div>
                     </li>
                   );
                 })}

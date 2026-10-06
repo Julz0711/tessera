@@ -1,3 +1,4 @@
+import { CornerDownLeft } from 'lucide-react';
 /** A keycap for a button's keyboard shortcut. Hidden on touch screens (see .kbd in globals.css). */
 /** A status line with its "(press R)" hint drawn as a keycap; the hint drops on touch screens. */
 export function WithKeys({ text }: { text: string }) {
@@ -19,7 +20,8 @@ export function WithKeys({ text }: { text: string }) {
 export function Kbd({ k, className = '' }: { k: string; className?: string }) {
   return (
     <kbd aria-hidden className={`kbd ${className}`}>
-      {k}
+      {/* ↵ isn't in the UI font, so the Enter key is drawn as an icon. */}
+      {k === '↵' ? <CornerDownLeft size="1em" strokeWidth={2.75} /> : k}
     </kbd>
   );
 }

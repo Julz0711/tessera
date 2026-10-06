@@ -51,13 +51,13 @@ export function ChatPanel({ className = '', dark = false, autoFocus = false }: {
         {chat.length === 0 && <p className={`text-sm ${dark ? 'text-foam/40' : 'text-ink-faint'}`}>Say hi to the table 👋</p>}
         {chat.map((m) =>
           m.system ? (
-            <p key={m.id} className={`text-xs italic ${dark ? 'text-foam/50' : 'text-ink-faint'}`}>
+            <p key={m.id} className={`text-xs ${dark ? 'text-foam/50' : 'text-ink-faint'}`}>
               {m.text}
             </p>
           ) : (
             <p key={m.id} className={`break-words text-sm leading-snug ${dark ? 'text-paper' : 'text-ink'}`}>
               <span
-                className="mr-1.5 rounded-md px-1.5 py-px text-xs font-extrabold"
+                className="mr-1.5 rounded-md px-1.5 py-px text-xs font-bold"
                 style={m.color ? { background: PLAYER_COLORS[m.color].hex, color: PLAYER_COLORS[m.color].ink } : undefined}
               >
                 {m.name}

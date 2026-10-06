@@ -10,6 +10,7 @@ import {
   Menu,
   Music,
   Settings,
+  Trophy,
   ShieldCheck,
   Volume2,
   VolumeX,
@@ -22,12 +23,13 @@ import { usePrefs } from "@/client/prefs";
 import { useSettingsUI } from "@/client/settingsUI";
 import { setVolume, setSfxVolumes } from "@/client/sound";
 import { api, toast, useGame } from "@/client/store";
+import { useWide } from "@/client/hud";
 import { useGameDialog } from "@/client/ui";
 import type { PlayerView } from "@/engine/view";
 import type { RoomDTO } from "@/shared/protocol";
 import { formatCode } from "@/components/room/Lobby";
 import { WithKeys } from "@/components/ui/Kbd";
-import { DiceBox } from "./DiceBox";
+import { BANNER_ICONS, useCurrentBanner } from "./EventBanner";
 import { LeaveDialog } from "./LeaveDialog";
 import { MobileSide } from "./MobileSide";
 import { ReactionPicker } from "./Reactions";
@@ -36,7 +38,18 @@ import { gameTypeOf } from "@/engine/maps";
 import type { RuleMode } from "@/config/rulebook";
 
 /** `status: false` leaves the turn pill out (wide screens show it above the dock, see TurnBar). */
-export function TopBar({ view, room, status: showStatus = true }: { view: PlayerView; room: RoomDTO; status?: boolean }) {
+export function TopBar({
+  view,
+  room,
+  status: showStatus = true,
+  onResults,
+}: {
+  view: PlayerView;
+  room: RoomDTO;
+  status?: boolean;
+  /** The game is over and its results are closed: a key in the top-right corner opens them again. */
+  onResults?: () => void;
+}) {
   const router = useRouter();
   const conn = useGame((s) => s.conn);
   const prefs = usePrefs();
@@ -50,7 +63,9 @@ export function TopBar({ view, room, status: showStatus = true }: { view: Player
       view.mode,
     ]),
   ];
-  const status = statusLine(view);
+  // Phones show the status line down above the hand, beside the dice (see Dock); the top bar keeps it
+  // on wider screens.
+  const phone = !useWide(1024);
 
   useEffect(() => setVolume(prefs.volume), [prefs.volume]);
   useEffect(() => setSfxVolumes(prefs.sfxVolume), [prefs.sfxVolume]);
@@ -218,7 +233,7 @@ export function TopBar({ view, room, status: showStatus = true }: { view: Player
           className="game-code btn btn-dark hidden h-10 px-3 lg:inline-flex"
           title="Copy invite link"
         >
-          <span className="font-mono text-sm font-black tracking-[0.18em]">
+          <span className="text-sm font-black tabular tracking-label">
             {formatCode(room.code)}
           </span>
         </button>
@@ -239,20 +254,73 @@ export function TopBar({ view, room, status: showStatus = true }: { view: Player
         </div>
       </div>
 
-      {showStatus && (<div
-        className={`game-status pointer-events-auto max-w-[min(560px,55vw)] rounded-lg border-2 border-ink px-3 py-2 text-center text-sm font-extrabold sm:px-4 sm:text-base ${
-          status.mine ? "attention bg-amber text-ink" : "bg-sea-800 text-paper"
-        }`}
-        aria-live="polite"
-      >
-        <WithKeys text={status.text} />
-      </div>)}
+      {!phone && showStatus && <StatusLane view={view} />}
 
-      <div className="pointer-events-auto flex items-center gap-2">
-        <div className="lg:hidden">
-          <DiceBox view={view} size={28} compact />
-        </div>
+      {/* The right-hand end of the bar: it balances the buttons on the left so the status pill stays
+          centred, and holds the Results key once the game is over. (The phones' dice sit above the hand.) */}
+      <div className="pointer-events-auto flex justify-end">
+        {onResults && (
+          <button type="button" className="btn btn-primary h-10 gap-1.5 px-3 text-sm" onClick={onResults}>
+            <Trophy size={16} /> Results
+          </button>
+        )}
       </div>
+
+    </div>
+  );
+}
+
+/**
+ * The status line: whose move it is and what to do. On phones it is also the one message lane (see
+ * `lane`): an event banner first (robber, barbarians…) as one line, then the latest toast, otherwise
+ * the status, so nothing stacks over the island. Phones show it above the hand, beside the dice.
+ */
+export function StatusLane({ view, lane: asLane = false }: { view: PlayerView; lane?: boolean }) {
+  const status = statusLine(view);
+  const banner = useCurrentBanner();
+  const lastToast = useGame((s) => s.toasts[s.toasts.length - 1] ?? null);
+  const lane = !asLane ? null : banner ? "banner" : lastToast ? "toast" : null;
+  const BannerIcon = banner ? BANNER_ICONS[banner.icon] : null;
+
+  if (lane === "banner" && banner) {
+    // A big event (robber, barbarians…) for its few seconds, as one line.
+    return (
+      <div
+        className="game-status pointer-events-auto flex items-center gap-2.5 rounded-lg border-2 border-l-8 border-ink bg-paper px-2.5 py-1.5 text-left text-ink"
+        style={{ borderLeftColor: banner.color }}
+        role="status"
+      >
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-ink text-paper" style={{ background: banner.color }}>
+          {BannerIcon && <BannerIcon size={15} strokeWidth={2.5} />}
+        </span>
+        <span className="min-w-0">
+          <b className="font-black">{banner.title}</b>
+          <span className="font-semibold text-ink-soft"> · {banner.text}</span>
+        </span>
+      </div>
+    );
+  }
+  if (lane === "toast" && lastToast) {
+    // A toast takes the lane next, rather than floating over the screen.
+    return (
+      <div
+        className={`game-status pointer-events-auto rounded-lg border-2 border-ink px-3 py-2 text-center font-bold ${
+          lastToast.tone === "error" ? "bg-terracotta text-white" : lastToast.tone === "good" ? "bg-moss text-white" : "bg-paper text-ink"
+        }`}
+        role="status"
+      >
+        {lastToast.text}
+      </div>
+    );
+  }
+  return (
+    <div
+      className={`game-status pointer-events-auto max-w-[min(560px,55vw)] rounded-lg border-2 border-ink px-3 py-2 text-center text-sm font-bold sm:px-4 sm:text-base ${
+        status.mine ? "attention bg-amber text-ink" : "bg-sea-800 text-paper"
+      }`}
+      aria-live="polite"
+    >
+      <WithKeys text={status.text} />
     </div>
   );
 }

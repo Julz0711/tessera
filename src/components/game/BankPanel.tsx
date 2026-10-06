@@ -1,6 +1,6 @@
 'use client';
 
-import { Landmark } from 'lucide-react';
+import { ArrowRight, Landmark } from 'lucide-react';
 import { useState } from 'react';
 import { CARDS, RESOURCES, bankRatio, type Card } from '@/engine';
 import type { PlayerView } from '@/engine/view';
@@ -74,7 +74,7 @@ export function BankPanel({ view }: { view: PlayerView }) {
               <span className="text-sm font-bold">
                 {give && get ? (
                   <>
-                    {ratio * count} <span style={{ color: CARD_COLORS[give].bg }}>■</span> {CARD_COLORS[give].label} → {count} {CARD_COLORS[get].label}
+                    {ratio * count} <span aria-hidden className="inline-block h-2.5 w-2.5 rounded-xs border border-ink align-[-1px]" style={{ background: CARD_COLORS[give].bg }} /> {CARD_COLORS[give].label} <ArrowRight size={14} strokeWidth={2.5} className="inline align-[-2px]" aria-hidden /><span className="sr-only">for</span> {count} {CARD_COLORS[get].label}
                   </>
                 ) : (
                   'Pick what to give and receive'

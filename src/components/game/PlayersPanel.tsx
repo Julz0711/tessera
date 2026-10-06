@@ -189,7 +189,7 @@ export function PlayersPanel({
         const nameRow = (
           <div className="flex min-w-0 items-center gap-1 pr-0.5">
             <span
-              className="min-w-0 truncate text-sm font-extrabold leading-tight"
+              className="min-w-0 truncate text-sm font-bold leading-tight"
               title={seatInfo?.cosmetics.title ? titleInfo(seatInfo.cosmetics.title).name : undefined}
             >
               {p.name}
@@ -343,7 +343,7 @@ export function PlayersPanel({
             {clickable && open === seat && (
               <button
                 type="button"
-                className="mt-0.5 inline-flex items-center gap-1 self-start whitespace-nowrap rounded-md border border-danger/50 bg-danger/10 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-danger transition hover:bg-danger hover:text-white"
+                className="mt-0.5 inline-flex items-center gap-1 self-start whitespace-nowrap rounded-md border border-danger/50 bg-danger/10 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-caps text-danger transition hover:bg-danger hover:text-white"
                 title={embargoed ? `Accept trade offers from ${p.name} again` : `Decline every trade offer from ${p.name}`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -373,9 +373,10 @@ export function PlayerStrip({ view, room, leading }: { view: PlayerView; room: R
   );
   const ck = view.mode === 'ck';
   const me = view.viewer;
+  const strength = (seat: number) => view.knights.reduce((n, k) => n + (k && k.owner === seat && k.active ? k.level : 0), 0);
   return (
     <>
-      <ol className="scroll-thin flex gap-1 overflow-x-auto p-1" aria-label="Players and scores">
+      <ol className="scroll-thin flex gap-1 overflow-x-auto py-1" aria-label="Players and scores">
         {leading && <li className="flex shrink-0">{leading}</li>}
         {view.players.map((p, seat) => {
           const acting = actors.has(seat) && view.phase !== 'ended';
@@ -395,12 +396,12 @@ export function PlayerStrip({ view, room, leading }: { view: PlayerView; room: R
                 type="button"
                 onClick={() => setDetails(true)}
                 aria-haspopup="dialog"
-                aria-label={`${p.name}${seat === me ? ' (you)' : ''}: ${vp} points, ${p.handCount} cards${awards.length ? `, ${awards.join(', ')}` : ''}${acting ? ', to play' : ''}`}
+                aria-label={`${p.name}${seat === me ? ' (you)' : ''}: ${vp} points, ${p.handCount} cards${ck ? `, knight strength ${strength(seat)}` : ''}${awards.length ? `, ${awards.join(', ')}` : ''}${acting ? ', to play' : ''}`}
                 className={`paper-flat relative grid w-full gap-0.5 py-1 pl-2 pr-1 text-left transition-colors ${acting ? 'bg-amber' : ''}`}
                 style={{ boxShadow: `inset 4px 0 0 ${PLAYER_COLORS[p.color].hex}` }}
               >
                 <span className="flex min-w-0 items-center gap-1">
-                  <span className="min-w-0 flex-1 truncate text-xs font-extrabold leading-tight">{seat === me ? 'You' : p.name}</span>
+                  <span className="min-w-0 flex-1 truncate text-xs font-bold leading-tight">{seat === me ? 'You' : p.name}</span>
                   {room?.seats[seat] && !room.seats[seat].isBot && !room.seats[seat].connected && <WifiOff size={11} className="shrink-0 text-terracotta" />}
                   {view.longestRoad === seat && <Route size={12} className="shrink-0 rounded-xs bg-amber text-ink" />}
                   {!ck && view.largestArmy === seat && <Swords size={12} className="shrink-0 rounded-xs bg-terracotta text-white" />}
@@ -421,6 +422,13 @@ export function PlayerStrip({ view, room, leading }: { view: PlayerView; room: R
                     <CardBack bg={ck ? '#7c6a9e' : DEV_BG} />
                     {special}
                   </span>
+                  {/* Knights & Barbarians: the active knights' strength, gold when it counts, as in the players panel. */}
+                  {ck && (
+                    <span className={`flex items-center gap-px ${strength(seat) ? 'text-ink' : 'opacity-40'}`} title={strength(seat) ? `Active knight strength: ${strength(seat)}` : 'No active knights'}>
+                      <Swords size={11} strokeWidth={strength(seat) ? 2.8 : 2} className={strength(seat) ? 'text-amber-deep' : ''} />
+                      {strength(seat)}
+                    </span>
+                  )}
                 </span>
               </button>
             </li>

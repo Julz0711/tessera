@@ -19,16 +19,39 @@ export function describeBarbarians(s: ReturnType<typeof barbarianStatus>): strin
 }
 
 /**
+ * The voyage: passed steps, the ship's step, steps still ahead, and last the attack step, in the board
+ * track's orange so it reads as one more step, not as the step before it.
+ */
+function Voyage({ s, small = false }: { s: ReturnType<typeof barbarianStatus>; small?: boolean }) {
+  const mark = small ? 'h-[18px] w-[18px]' : 'h-5 w-5';
+  return (
+    <span className="flex min-w-0 flex-1 items-center gap-[3px]" aria-hidden>
+      {Array.from({ length: BARBARIAN_DISTANCE }, (_, i) =>
+        i === s.position ? (
+          <span key={i} className={`grid ${mark} shrink-0 place-items-center rounded-md ${s.danger ? 'bg-danger' : 'bg-paper text-ink'}`}>
+            <Sailboat size={small ? 12 : 13} strokeWidth={2.6} />
+          </span>
+        ) : (
+          <span key={i} className={`h-2.5 min-w-1.5 flex-1 rounded-[3px] ${i < s.position ? 'bg-paper/35' : 'border-2 border-paper/40'}`} />
+        ),
+      )}
+      <span className={`grid ${mark} shrink-0 place-items-center rounded-md bg-[#f2994a] text-ink`} title="The attack">
+        <Castle size={small ? 11 : 12} strokeWidth={2.6} />
+      </span>
+    </span>
+  );
+}
+
+/**
  * Barbarian progress at a glance (Knights & Barbarians), so it stays in view however the board is
  * zoomed or turned: the voyage as a row of steps with the ship on its current one and the attack as the
  * last, orange step (as on the board), and the barbarians' strength against the knights' defense. On wide screens it's a HUD panel
- * (under the log unless moved); `compact` is the tile leading the players strip on phones.
+ * (under the log unless moved); `compact` is the full-width bar under the players strip on phones.
  */
 export function BarbarianMeter({ view, compact = false }: { view: PlayerView; compact?: boolean }) {
   if (view.mode !== 'ck') return null;
   const s = barbarianStatus(view);
   const label = describeBarbarians(s);
-  const warn = s.danger ? 'text-[#ff8a73]' : '';
   const versus = (
     <span className="flex items-center gap-1 font-black tabular">
       <span className={`flex items-center gap-0.5 ${s.losing ? 'text-[#ff8a73]' : ''}`} title="Barbarian strength: cities on the board">
@@ -45,26 +68,19 @@ export function BarbarianMeter({ view, compact = false }: { view: PlayerView; co
   const toGo = s.left === 1 ? 'Attack next!' : `${s.left} to go`;
 
   if (compact) {
-    // Narrow, so the whole table fits beside it on a phone: steps to go on top, ships against knights below.
+    // Phones: a full-width bar under the players: how far to go, every step of the voyage, then ships
+    // against knights.
     return (
       <div
         role="status"
         aria-label={label}
         title={label}
-        className={`glass grid content-center justify-items-center gap-0.5 px-1.5 py-1 text-[11px] text-paper ${s.danger ? 'border-danger! shadow-[inset_0_0_0_2px_var(--color-danger)]' : ''}`}
+        className={`glass flex items-center gap-2.5 px-2.5 py-1.5 text-[12px] text-paper ${s.danger ? 'border-danger! shadow-[inset_0_0_0_2px_var(--color-danger)]' : ''}`}
       >
-        <span className={`flex items-center gap-1 text-[15px] font-black leading-none tabular ${warn}`}>
-          <Sailboat size={13} strokeWidth={2.5} />
-          {s.left === 1 ? '!' : s.left}
-        </span>
-        <span className="flex items-center gap-1 font-black leading-none tabular">
-          <span className={s.losing ? 'text-[#ff8a73]' : ''}>{s.strength}</span>
-          <span className="text-[9px] font-bold opacity-60">vs</span>
-          <span className={`flex items-center gap-px ${s.losing ? '' : 'text-[#8fe0a8]'}`}>
-            <Swords size={10} strokeWidth={2.6} />
-            {s.defense}
-          </span>
-        </span>
+        <span className={`shrink-0 font-black leading-none ${s.danger ? 'text-[#ff8a73]' : 'text-foam/85'}`}>{toGo}</span>
+        <Voyage s={s} small />
+        <span className="h-4 w-px shrink-0 bg-white/15" />
+        {versus}
       </div>
     );
   }
@@ -75,25 +91,10 @@ export function BarbarianMeter({ view, compact = false }: { view: PlayerView; co
         <span className="label-light flex items-center gap-1.5">
           <Sailboat size={13} strokeWidth={2.5} /> Barbarians
         </span>
-        <span className={`text-xs font-extrabold ${s.danger ? 'text-[#ff8a73]' : 'text-foam/80'}`}>{toGo}</span>
+        <span className={`text-xs font-bold ${s.danger ? 'text-[#ff8a73]' : 'text-foam/80'}`}>{toGo}</span>
       </div>
       <div className="flex items-center gap-3">
-        {/* the voyage: passed steps, the ship's step, steps still ahead, and last the attack step, in
-            the board track's orange so it reads as one more step, not as the step before it */}
-        <span className="flex min-w-0 flex-1 items-center gap-[3px]" aria-hidden>
-          {Array.from({ length: BARBARIAN_DISTANCE }, (_, i) =>
-            i === s.position ? (
-              <span key={i} className={`grid h-5 w-5 shrink-0 place-items-center rounded-md ${s.danger ? 'bg-danger' : 'bg-paper text-ink'}`}>
-                <Sailboat size={13} strokeWidth={2.6} />
-              </span>
-            ) : (
-              <span key={i} className={`h-2.5 min-w-1.5 flex-1 rounded-[3px] ${i < s.position ? 'bg-paper/35' : 'border-2 border-paper/40'}`} />
-            ),
-          )}
-          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-[#f2994a] text-ink" title="The attack">
-            <Castle size={12} strokeWidth={2.6} />
-          </span>
-        </span>
+        <Voyage s={s} />
         <span className="h-5 w-px shrink-0 bg-white/15" />
         {versus}
       </div>

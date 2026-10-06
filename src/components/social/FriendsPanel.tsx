@@ -20,7 +20,7 @@ function Person({ card, sub, children, profile = false }: { card: PlayerCard; su
     <li className="flex items-center gap-2.5 rounded-xl border-2 border-ink bg-paper-2/70 p-1.5 pr-2">
       <PlayerPortrait knight={card.knight} color={card.color} avatarUrl={card.avatarUrl} frame={card.cosmetics.frame} size={40} />
       <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-1.5 truncate text-sm font-extrabold leading-tight">
+        <p className="flex items-center gap-1.5 truncate text-sm font-bold leading-tight">
           {profile ? (
             <Link href={`/profile/${card.code}`} className="truncate underline decoration-ink/25 underline-offset-2 hover:decoration-ink focus-visible:outline-2" aria-label={`View ${card.name}'s profile`}>
               {card.name}
@@ -115,7 +115,7 @@ export function FriendsPanel({ mode = 'full', roomCode }: { mode?: 'full' | 'inv
       <div className="flex flex-wrap items-center gap-3">
         <div>
           <span className="label">Your friend code</span>
-          <button type="button" onClick={copy} className="mt-0.5 flex items-center gap-2 font-mono text-xl font-black tracking-widest" title="Copy">
+          <button type="button" onClick={copy} className="mt-0.5 flex items-center gap-2 text-xl font-black tabular tracking-label" title="Copy">
             {formatFriendCode(data.myCode ?? '')} <Copy size={16} className="text-ink-faint" />
           </button>
         </div>
@@ -126,7 +126,7 @@ export function FriendsPanel({ mode = 'full', roomCode }: { mode?: 'full' | 'inv
             if (code.trim()) void run('request', code, 'Friend request sent');
           }}
         >
-          <input className="input w-40 py-2 font-mono uppercase" placeholder="ABCD-2345" value={code} onChange={(e) => setCode(e.target.value)} aria-label="Friend code" maxLength={9} />
+          <input className="input w-40 py-2 uppercase tabular tracking-label" placeholder="ABCD-2345" value={code} onChange={(e) => setCode(e.target.value)} aria-label="Friend code" maxLength={9} />
           <button type="submit" className="btn btn-primary px-3" disabled={busy || !code.trim()}>
             {busy ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />} Add
           </button>

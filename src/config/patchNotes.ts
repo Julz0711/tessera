@@ -50,7 +50,7 @@ export const PATCH_NOTES: PatchNote[] = [
           "Keys: Trade, Improve (Knights & Barbarians) or Progress (Classic), Build, End turn. Build opens a menu with a price on every piece, and a badge shows how many things you can afford.",
           "Keyboard shortcuts, shown on the keys: R road (and roll), S ship, A settlement, C city, Q knight, W wall, T trade, X improve, D build, E end turn, V progress card, Y emote.",
           "Your hand fits all eight card types, and the trade panel opens directly above your cards.",
-          "Barbarians: the progress panel is see-through and sits at the left edge. Choose the tall track or a small panel under Settings → Barbarian track.",
+          "Barbarians: the progress panel is see-through and sits at the left edge. Choose the tall track or a small panel under Settings › Barbarian track.",
         ],
       },
       {
@@ -65,7 +65,7 @@ export const PATCH_NOTES: PatchNote[] = [
         title: "On a phone",
         icon: "players",
         items: [
-          "Wide maps turn a quarter turn when you hold your phone upright, so the island fills the screen. Switch it off under Settings → Turn wide maps.",
+          "Wide maps turn a quarter turn when you hold your phone upright, so the island fills the screen. Switch it off under Settings › Turn wide maps.",
           "Your hand sits on a white tray, Build and Improve open as big panels across the screen, and all players fit in the strip without scrolling.",
           "Settings tabs fit on the screen.",
         ],
@@ -76,7 +76,7 @@ export const PATCH_NOTES: PatchNote[] = [
         items: [
           "Reactions live in the top bar next to the room code, and your emoji briefly replaces your profile picture.",
           "Leaderboard and game history filters are quick toggles instead of drop-down lists.",
-          "Zoom buttons are off by default; turn them on under Settings → Accessibility.",
+          "Zoom buttons are off by default; turn them on under Settings › Accessibility.",
         ],
       },
       {
@@ -104,8 +104,8 @@ export const PATCH_NOTES: PatchNote[] = [
         title: "During the game",
         icon: "log",
         items: [
-          "Live stats: open Menu → Live stats (or Full stats under the dice) for the whole match report while you play. It updates as the game goes on and shows only what everyone can see.",
-          "Background music: calm music with a different mood for each board theme. It's off by default: turn it on under Settings → Audio, or from the in-game menu.",
+          "Live stats: open Menu › Live stats (or Full stats under the dice) for the whole match report while you play. It updates as the game goes on and shows only what everyone can see.",
+          "Background music: calm music with a different mood for each board theme. It's off by default: turn it on under Settings › Audio, or from the in-game menu.",
           "Knights & Barbarians: the barbarian ship's progress now has its own panel under the game log, so it stays in view however far you zoom in. Move it like the other panels; on phones it leads the players strip.",
           "The game is in beta, and now says so: look for the tag next to the name.",
         ],
@@ -115,7 +115,7 @@ export const PATCH_NOTES: PatchNote[] = [
         icon: "trade",
         items: [
           "Offers asking for cards you don't have no longer disappear on their own straight away.",
-          "New setting, Auto-decline trades (Settings → Gameplay): such an offer declines itself after 5 seconds, with a bar counting down. Turn it off to answer every offer yourself.",
+          "New setting, Auto-decline trades (Settings › Gameplay): such an offer declines itself after 5 seconds, with a bar counting down. Turn it off to answer every offer yourself.",
         ],
       },
       {

@@ -14,6 +14,7 @@ export function Modal({
   dismissable = true,
   dim = true,
   top = false,
+  clearHand = !dismissable,
 }: {
   open: boolean;
   onClose?: () => void;
@@ -29,6 +30,12 @@ export function Modal({
    * charts) grows downwards and the controls at the top stay put. Phones keep their bottom sheet.
    */
   top?: boolean;
+  /**
+   * Phones: open at the top instead of as a bottom sheet, so the hand stays in view. On by default
+   * for the game's choices that can't be dismissed (Aqueduct, gold, a discard…), which are about
+   * the cards you hold.
+   */
+  clearHand?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -56,7 +63,7 @@ export function Modal({
       ref={ref}
       aria-labelledby={title ? titleId : undefined}
       aria-label={title ? undefined : 'Game dialog'}
-      className={`app-dialog fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none bg-transparent p-3 open:grid open:place-items-center ${dim ? 'backdrop:bg-sea-950/60 backdrop:backdrop-blur-[2px]' : 'backdrop:bg-transparent'}`}
+      className={`app-dialog ${clearHand ? 'dialog-clear-hand' : ''} fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none bg-transparent p-3 open:grid open:place-items-center ${dim ? 'backdrop:bg-sea-950/60 backdrop:backdrop-blur-[2px]' : 'backdrop:bg-transparent'}`}
       onCancel={(e) => {
         e.preventDefault();
         e.stopPropagation();

@@ -1,6 +1,6 @@
 'use client';
 
-import { Crown, Hammer } from 'lucide-react';
+import { Crown, Hammer, Star } from 'lucide-react';
 import { TRACKS, improvementBlocker, improvementCost, type Track } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { TRACK_STYLE } from '@/client/progressText';
@@ -39,7 +39,7 @@ function TrackColumn({ view, track }: { view: PlayerView; track: Track }) {
             {/* every level shows its full price: level n costs n (a Crane takes 1 off, shown on the button) */}
             <span>
               {n} {style.commodity}
-              {n === 3 ? ' · ★ ability' : n >= 4 ? ' · metropolis' : ''}
+              {n === 3 ? <> · <Star size={10} strokeWidth={3} className="inline align-[-1px]" aria-hidden /> ability</> : n >= 4 ? ' · metropolis' : ''}
             </span>
           </li>
         ))}
@@ -71,7 +71,7 @@ function TrackColumn({ view, track }: { view: PlayerView; track: Track }) {
             {cost > 0 && <MiniArt card={style.commodity} size={14} />}
           </span>
           {discounted && (
-            <span className="absolute -right-2 -top-2.5 rounded-full border-2 border-ink bg-moss px-1.5 text-[10px] font-black uppercase leading-4 text-paper">
+            <span className="absolute -right-2 -top-2.5 rounded-full border-2 border-ink bg-moss px-1.5 text-[10px] font-black uppercase leading-4 tracking-caps text-paper">
               Crane −1
             </span>
           )}

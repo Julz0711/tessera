@@ -26,6 +26,9 @@ import { Kbd } from '@/components/ui/Kbd';
 import { CostDots } from './BuildCostsCard';
 import { Hand } from './Hand';
 import { TradePanel } from './TradePanel';
+import { DiceBox } from './DiceBox';
+import { StatusLane } from './TopBar';
+import { useWide } from '@/client/hud';
 import { ImproveOptions, ProgressGrid, improvableCount } from './ck/ImproveMenu';
 
 /** Seconds left until `deadline`, ticking every 250ms; null once there's no active deadline. */
@@ -146,6 +149,8 @@ const PHONE_SHEET = 'max-sm:inset-x-0 max-sm:rounded-[6px] max-sm:border-2 max-s
  */
 export function Dock({ view, room, hand = true, timer = true }: { view: PlayerView; room: RoomDTO; hand?: boolean; timer?: boolean }) {
   const ui = useUi();
+  // Phones show the status line beside the dice; wider screens keep it in the top bar.
+  const phone = !useWide(1024);
   const me = view.viewer;
   const seconds = useCountdown(room.deadline);
   const lowTime = seconds !== null && seconds <= 10;
@@ -240,11 +245,24 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
   ].filter(Boolean).length;
   return (
     <div className={`game-dock flex w-full min-w-0 flex-col items-center gap-2 sm:w-auto ${hand ? '' : 'h-full'}`}>
-      {hand && ui.panel === 'trade' && <TradePanel view={view} />}
-      {/* The hand on a white tray, as in the wide screens' bottom bar. */}
+      {hand && ui.panel === 'trade' && (
+        <div className="relative z-20 w-full sm:w-auto">
+          <TradePanel view={view} />
+        </div>
+      )}
+      {/* The hand on a white tray, as in the wide screens' bottom bar. The dice (the Roll key on your
+          turn, the last roll otherwise) float just above it on the right, under the thumb, as the dice
+          sit above the dock on wide screens; the trade panel and the dock's menus open over them. */}
       {hand && (
-        <div className="paper w-full p-0 sm:w-auto">
-          <Hand view={view} tray />
+        <div className="relative w-full sm:w-auto">
+          {/* Phones: the status line (and its messages) beside the dice, both just above the hand. */}
+          <div className="dock-dice absolute inset-x-0 bottom-full z-10 mb-2 flex items-end gap-2">
+            <div className="min-w-0 flex-1 pl-[3px]">{phone && <StatusLane view={view} lane />}</div>
+            <DiceBox view={view} size={40} compact bare className="shrink-0" />
+          </div>
+          <div className="paper w-full p-0">
+            <Hand view={view} tray />
+          </div>
         </div>
       )}
 
@@ -386,7 +404,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
         />
         <ActionButton
           label="End turn"
-          icon={timer && seconds !== null ? <span className="font-mono text-base font-black leading-none tabular">{seconds}s</span> : <Hourglass size={24} />}
+          icon={timer && seconds !== null ? <span className="text-base font-black leading-none tabular">{seconds}s</span> : <Hourglass size={24} />}
           onClick={() => {
             ui.reset();
             void api.act({ type: 'endTurn' });

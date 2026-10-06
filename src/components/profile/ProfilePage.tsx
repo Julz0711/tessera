@@ -29,10 +29,12 @@ export async function fetchProfile(): Promise<ProfileData | null> {
 }
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
+  // Figures stand in the display face; a word (a mode's name) in the UI face, so it doesn't outweigh them.
+  const word = typeof value === 'string' && /[a-z]{2}/i.test(value);
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-ink/10 py-2 last:border-0">
       <span className="text-sm font-bold text-ink-soft">{label}</span>
-      <span className="display min-w-0 text-right text-2xl font-black tabular">{value}</span>
+      <span className={`min-w-0 text-right ${word ? 'text-base font-black' : 'display text-2xl font-black'}`}>{value}</span>
     </div>
   );
 }

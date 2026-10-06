@@ -14,10 +14,10 @@ function Row({ entry: e }: { entry: LeaderboardEntry }) {
   return <li className={`grid grid-cols-[2rem_1fr_auto] items-center gap-3 rounded-xl p-3 ${e.isYou ? 'bg-amber/20 ring-1 ring-amber' : 'odd:bg-paper-2/70'}`}>
     <span className="font-black tabular text-ink-soft">#{e.place}</span>
     <div className="flex min-w-0 items-center gap-2"><div className="shrink-0"><PlayerPortrait knight={e.knight} color={e.color} avatarUrl={e.avatarUrl} frame={e.cosmetics.frame} size={36} /></div><div className="min-w-0">
-      <p className="truncate text-sm font-extrabold">{e.isFriend || e.isYou ? <Link className="hover:underline" href={e.isYou ? '/profile' : `/profile/${e.code}`}>{e.name}</Link> : e.name}{e.isYou ? ' (you)' : e.isFriend ? ' · Friend' : ''}</p>
+      <p className="truncate text-sm font-bold">{e.isFriend || e.isYou ? <Link className="hover:underline" href={e.isYou ? '/profile' : `/profile/${e.code}`}>{e.name}</Link> : e.name}{e.isYou ? ' (you)' : e.isFriend ? ' · Friend' : ''}</p>
       <p className="text-xs text-ink-faint">{e.ratedGames} games · {e.gamesWon} wins · {Math.round(e.gamesWon / e.ratedGames * 100)}%</p>
     </div></div>
-    <div className="text-right"><p className="display text-2xl font-black tabular">{e.rating}</p><p className="text-[10px] font-bold text-ink-faint">{e.ratedGames < 10 ? 'Provisional' : 'Elo'}</p></div>
+    <div className="text-right"><p className="display text-2xl font-black">{e.rating}</p><p className="text-[10px] font-bold text-ink-faint">{e.ratedGames < 10 ? 'Provisional' : 'Elo'}</p></div>
   </li>;
 }
 export function LeaderboardPage() {

@@ -43,9 +43,12 @@ export function DiceBox({
     void api.act({ type: 'rollDice' });
   };
 
+  // Compact and bare (phones, above the hand): the Roll key on your turn, otherwise just the dice
+  // standing on the sea, with no panel around them.
+  const keySized = compact && (canRoll || !bare);
   return (
     // Your turn and the dice still to roll: the box pulses like the "Your turn" pill up top.
-    <div className={`flex items-center ${bare ? '' : 'glass'} ${className} ${compact ? 'h-11 w-28 justify-center gap-1.5 p-1' : bare ? 'gap-2 rounded-lg' : 'gap-3 p-2.5'} ${canRoll ? (bare ? 'animate-dice-call' : 'attention') : ''}`}>
+    <div className={`flex items-center ${bare ? '' : 'glass'} ${className} ${keySized ? `h-11 w-28 justify-center gap-1.5 ${bare ? 'rounded-[4px]' : 'p-1'}` : bare ? 'gap-2 rounded-lg' : 'gap-3 p-2.5'} ${canRoll ? (bare && !compact ? 'animate-dice-call' : 'attention') : ''}`}>
       {/* Compact and about to roll: the Roll button alone, the old roll is stale. */}
       {!(compact && canRoll) && (
         // Wide screens have no Roll button: the dice themselves roll (and R, as the turn pill says).

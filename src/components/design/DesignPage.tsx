@@ -64,7 +64,7 @@ export function DesignPage() {
 
           <Block title="Type">
             <p className="display text-4xl font-black">Display, for titles</p>
-            <p className="font-extrabold">Bold body, for names and headings</p>
+            <p className="font-bold">Bold body, for names and headings</p>
             <p className="text-sm text-ink-soft">Soft body, for explanations.</p>
             <span className="label">Label, for sections</span>
           </Block>
@@ -138,8 +138,8 @@ export function DesignPage() {
               <span className="relative inline-grid h-10 w-10 place-items-center rounded-md border-2 border-ink bg-paper">
                 <span className="hex-badge -right-2 -top-2.5 w-6 text-[11px]">4</span>
               </span>
-              <span className="rounded-[4px] border-2 border-ink bg-white px-1.5 py-px text-[11px] font-black uppercase tracking-wide">Voyagers</span>
-              <span className="rounded-[4px] bg-amber px-1.5 py-0.5 text-xs font-black uppercase tracking-wider">Latest</span>
+              <span className="rounded-[4px] border-2 border-ink bg-white px-1.5 py-px text-[11px] font-black uppercase tracking-caps">Voyagers</span>
+              <span className="rounded-[4px] bg-amber px-1.5 py-0.5 text-xs font-black uppercase tracking-caps">Latest</span>
             </div>
           </Block>
 

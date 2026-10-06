@@ -35,7 +35,7 @@ const Line = memo(function Line({ parts, who }: { parts: Part[]; who: Who }) {
           if (!color) return null;
           const c = PLAYER_COLORS[color];
           return (
-            <span key={i} className="rounded-md px-1 font-extrabold" style={{ background: c.hex, color: c.ink }}>
+            <span key={i} className="rounded-md px-1 font-bold" style={{ background: c.hex, color: c.ink }}>
               {who.names[p.player]}
             </span>
           );

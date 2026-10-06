@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'Privacy policy' };
 
 export default function Page() {
   return (
-    <LegalPage title="Privacy policy" icon={<ShieldCheck size={30} className="text-amber" />}>
+    <LegalPage title="Privacy policy" icon={<ShieldCheck size={30} className="text-ink" />}>
       <p>
         {APP_NAME} is a free hobby project for playing a board game with friends in the browser. We collect as little as
         we can: no ads, no analytics, no tracking. This page explains what the game does store and why.

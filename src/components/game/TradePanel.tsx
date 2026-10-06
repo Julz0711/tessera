@@ -268,7 +268,7 @@ function OfferCard({ view, offer }: { view: PlayerView; offer: TradeOffer }) {
               <Avatar key={s} view={view} seat={s} size={24} answer={answerOf(offer, s)} />
             ))}
             {countdown !== undefined && (
-              <span className="flex items-center gap-1 pl-0.5 text-[11px] font-bold text-danger" title="You don't have the cards: it declines itself (Settings → Gameplay)">
+              <span className="flex items-center gap-1 pl-0.5 text-[11px] font-bold text-danger" title="You don't have the cards: it declines itself (Settings › Gameplay)">
                 <Hourglass size={12} /> Declining…
               </span>
             )}

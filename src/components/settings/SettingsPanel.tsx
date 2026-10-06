@@ -1,8 +1,8 @@
 'use client';
 
-import { Accessibility, Box, Gamepad2, Grid2x2, LayoutGrid, Languages, Music, Palette, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { Accessibility, Box, Check, Gamepad2, Grid2x2, LayoutGrid, Languages, Music, Palette, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePrefs } from '@/client/prefs';
 import { BOARD_THEMES } from '@/client/themes';
 import { DEFAULT_HUD_LAYOUT, HUD_SCALE, useHud, type HudScale } from '@/client/hud';
@@ -54,18 +54,55 @@ export function SettingsPanel() {
   const inGame = pathname?.startsWith('/r/') ?? false;
   const wide = useIsWide();
   const { installed } = useAppInstall();
+  // Phones: the categories are one row you swipe; keep the open one in view.
+  const nav = useRef<HTMLDivElement>(null);
+  // Which ends of that row hide more categories: that edge fades out, hinting the row scrolls.
+  const [more, setMore] = useState({ left: false, right: false });
+  const measureNav = () => {
+    const row = nav.current;
+    if (!row) return;
+    setMore({ left: row.scrollLeft > 1, right: row.scrollLeft + row.clientWidth < row.scrollWidth - 1 });
+  };
+  useEffect(() => {
+    const row = nav.current;
+    if (!row) return;
+    measureNav();
+    const ro = new ResizeObserver(measureNav);
+    ro.observe(row);
+    return () => ro.disconnect();
+  }, []);
+  useEffect(() => {
+    const row = nav.current;
+    const el = row?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!row || !el || row.scrollWidth <= row.clientWidth) return;
+    row.scrollTo({ left: el.offsetLeft - (row.clientWidth - el.offsetWidth) / 2, behavior: 'smooth' });
+  }, [tab]);
 
   return (
     <div className="settings-panel grid h-full min-h-0 min-w-0 gap-4 sm:grid-cols-[9rem_1fr] sm:gap-6">
-      {/* Phones: all six categories at once, three a row, icon over label; wider: a column of keys. */}
-      <div className="grid min-w-0 grid-cols-3 gap-1.5 sm:flex sm:flex-col" aria-label="Settings categories">
+      {/* The categories as one segmented track, like the settings' own choices: plain rows, the open one
+          a key. Phones: a single row you swipe, so the settings start right below; wider: a column. */}
+      <div
+        ref={nav}
+        role="tablist"
+        aria-label="Settings categories"
+        onScroll={measureNav}
+        style={{
+          maskImage:
+            more.left || more.right
+              ? `linear-gradient(to right, ${more.left ? 'transparent, #000 2.5rem' : '#000'}, ${more.right ? '#000 calc(100% - 2.5rem), transparent' : '#000'})`
+              : undefined,
+        }}
+        className="seg relative flex w-full min-w-0 self-start overflow-x-auto [scrollbar-width:none] sm:flex-col sm:overflow-visible [&::-webkit-scrollbar]:hidden"
+      >
         {TABS.map((t) => (
           <button
             key={t.id}
             type="button"
-            className={`btn min-w-0 flex-col gap-1 px-1 py-2 text-xs sm:flex-row sm:justify-start sm:gap-2 sm:px-3 sm:text-sm ${tab === t.id ? 'btn-on' : ''}`}
+            role="tab"
+            aria-selected={tab === t.id}
+            className="seg-opt shrink-0 gap-1.5 px-3 py-1.5 sm:min-w-0 sm:justify-start sm:gap-2 sm:px-2.5"
             onClick={() => setTab(t.id)}
-            aria-pressed={tab === t.id}
           >
             <t.icon size={16} /> {t.label}
           </button>
@@ -100,21 +137,37 @@ export function SettingsPanel() {
               </div>
             </Section>
             <Section title="Board theme" hint="How the island looks, on the 3D and the 2D board. Only your screen changes; you can switch any time during a game.">
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {BOARD_THEMES.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    className={`btn justify-start gap-3 px-3 py-2 text-left ${prefs.boardTheme === t.id ? 'btn-on' : ''}`}
-                    onClick={() => prefs.set({ boardTheme: t.id })}
-                  >
-                    <ThemeSwatch theme={t.id} size={44} />
-                    <span className="grid min-w-0">
-                      <span className="whitespace-nowrap font-extrabold">{t.name}</span>
-                      <span className="text-xs font-semibold opacity-75">{t.blurb}</span>
-                    </span>
-                  </button>
-                ))}
+              {/* Two a row even on phones (name only there), so the ten themes fit in a screen. */}
+              <div className="grid grid-cols-2 gap-2 lg:grid-cols-3" role="radiogroup" aria-label="Board theme">
+                {BOARD_THEMES.map((t) => {
+                  const on = prefs.boardTheme === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      className={`btn btn-choice min-w-0 justify-start gap-2 px-2 py-2 text-left sm:gap-3 sm:px-3 ${on ? 'btn-on' : ''}`}
+                      onClick={() => prefs.set({ boardTheme: t.id })}
+                      title={t.blurb}
+                    >
+                      <span className="shrink-0 [&>svg]:h-auto [&>svg]:w-9 sm:[&>svg]:w-11">
+                        <ThemeSwatch theme={t.id} size={44} />
+                      </span>
+                      <span className="grid min-w-0 flex-1">
+                        <span className="truncate font-bold">{t.name}</span>
+                        <span className="hidden text-xs font-semibold opacity-75 sm:block">{t.blurb}</span>
+                      </span>
+                      {/* The theme in use carries a check, like the picked colour: the pale blue alone is
+                          too close to the white keys on the paper panel. */}
+                      {on && (
+                        <span className="grid h-5 w-5 shrink-0 place-items-center self-center rounded-full bg-ink text-paper sm:h-6 sm:w-6" aria-hidden>
+                          <Check size={13} strokeWidth={3.5} />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </Section>
             <Section title="Weather" hint="Rain, blossom, snow, fireflies and more over the 3D board, to suit the theme. Stays off while animations are reduced.">

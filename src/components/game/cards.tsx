@@ -88,7 +88,7 @@ const CARD_BOX: Record<CardSize, string> = {
 function CountBadge({ n, small, warn }: { n: number; small?: boolean; warn?: boolean }) {
   return (
     <span
-      className={`hex-badge z-10 tabular ${warn ? 'hex-badge-warn' : ''} ${small ? 'right-px top-px w-4 text-[9px]' : 'right-0.5 top-0.5 w-5 text-[10px]'}`}
+      className={`hex-badge z-10 tabular ${warn ? 'hex-badge-warn' : ''} ${small ? 'right-px top-px w-4 text-[10px]' : 'right-0.5 top-0.5 w-5 text-[10px]'}`}
     >
       {n}
     </span>
@@ -178,7 +178,9 @@ export function ResourceCard({
   onClick,
   selected,
   dim,
-  label = size !== 'xs' && size !== 'sm',
+  // The name is drawn at an eighth of the card's width: on the phone sizes (xs to md) that's under
+  // 7px, so those cards go by colour and art alone, like the development cards' ribbon.
+  label = size === 'lg' || size === 'xl',
   warn,
 }: {
   card: Card;
@@ -288,12 +290,23 @@ export function CardStack({
   );
 }
 
-/** Name ribbon for development and progress cards (their names can take two lines). */
+/**
+ * Name ribbon for development and progress cards (their names can take two lines). On the phone's
+ * hand card (md) it runs edge to edge in 9px bold, the smallest that still reads, breaking a long
+ * word with a hyphen ("Consti-tution"). The two tinier sizes, only used for a crowded hand, leave it
+ * off; tapping any card opens it at full size with its name.
+ */
 function Ribbon({ color, size, children }: { color: string; size: CardSize; children: React.ReactNode }) {
+  if (size === 'xs' || size === 'sm') return null;
   return (
     <span
-      className={`pointer-events-none absolute inset-x-[5%] bottom-[5%] grid place-items-center text-center font-black leading-[1.08] ${
-        size === 'lg' ? 'min-h-8 px-[11%] py-1 text-[11px]' : size === 'xl' ? 'min-h-[17%] px-[9%] py-[3px] text-[9.5px]' : 'min-h-[17%] px-[9%] py-[3px] text-[7px] sm:text-[7.5px]'
+      lang="en"
+      className={`pointer-events-none absolute grid place-items-center text-center leading-[1.08] ${
+        size === 'lg'
+          ? 'inset-x-[5%] bottom-[5%] min-h-8 px-[11%] py-1 text-[11px] font-black'
+          : size === 'xl'
+            ? 'inset-x-[5%] bottom-[5%] min-h-[17%] px-[7%] py-[3px] text-[10px] font-black'
+            : 'inset-x-px bottom-[4%] min-h-[17%] px-[5%] py-[2px] text-[9px] font-bold tracking-[-0.01em] hyphens-auto [overflow-wrap:anywhere]'
       }`}
       style={{
         background: mix(color, '#000000', 0.45),
@@ -340,7 +353,7 @@ export function DevCardFace({
         {DEV_NAMES[type]}
       </Ribbon>
       {fresh && (
-        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-md border-2 border-ink bg-paper px-1 text-[8px] font-black uppercase leading-3 text-ink">
+        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-md border-2 border-ink bg-paper px-1 text-[10px] font-black uppercase leading-3 tracking-caps text-ink">
           New
         </span>
       )}

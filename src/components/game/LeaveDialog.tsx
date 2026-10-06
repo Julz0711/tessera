@@ -52,7 +52,7 @@ export function LeaveDialog({ view, room, onStay, onLeave }: { view: PlayerView;
           <li className="flex gap-2.5">
             <Undo2 size={18} className="mt-0.5 shrink-0 text-ink-soft" />
             <span>
-              Changed your mind? Open the invite link again (room <b className="font-mono tracking-wider">{formatCode(room.code)}</b>) to take your seat back.
+              Changed your mind? Open the invite link again (room <b className="tabular tracking-label">{formatCode(room.code)}</b>) to take your seat back.
             </span>
           </li>
         </ul>
