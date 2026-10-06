@@ -96,8 +96,9 @@ export function Hand({
     ? []
     : DEV_ORDER.map((type) => ({ type, cards: p.devCards.filter((c) => c.type === type) })).filter((g) => g.cards.length > 0);
   const special = ck ? p.progress.length : dev.length;
-  // Clicking a card starts a trade with it (or, while trading, puts it up), whenever the Trade button would work.
-  const canTrade = view.phase === 'play' && view.turn.rolled && view.pending.length === 0;
+  // Clicking a card starts a trade with it on your turn (as the Trade key would), or puts it up
+  // while a trade is open, a counter-offer to someone else's included.
+  const canTrade = view.phase === 'play' && view.turn.rolled && view.pending.length === 0 && (view.turn.seat === view.viewer || trading);
   // Over the hand limit: a 7 now would cost half the hand, so the stacks warn in red.
   const total = handTotal(p.hand);
   const limit = handLimit(view, view.viewer!);

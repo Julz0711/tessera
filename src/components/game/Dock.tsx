@@ -327,7 +327,8 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
             ui.setPanel(ui.panel === 'trade' ? null : 'trade');
           }}
           active={ui.panel === 'trade'}
-          disabled={view.phase !== 'play' || !view.turn.rolled || !free}
+          // Only on your turn: the others answer incoming offers (accept or counter) from the offer itself.
+          disabled={!myTurn || !view.turn.rolled || !free}
           hint="Trade with the players or the bank"
           bankAnchor
         />
