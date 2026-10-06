@@ -1,5 +1,13 @@
 @import 'tailwindcss';
 
+/* A key's shaded corner colour, registered so hover can fade it. It must sit outside any @layer (browsers
+   ignore @property there) and start from an absolute colour. */
+@property --btn-corner {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: #e3ebec;
+}
+
 /* ── Design tokens ─────────────────────────────────────────────────────────
    Night sea + warm paper game components. Terrain/resource palette is shared
    with the 3D and 2D boards (see src/client/palette.ts). */
@@ -324,25 +332,12 @@ body {
 :is(.paper, .paper-flat, .bg-paper) {
   --faded: rgb(31 26 20);
 }
-/* The key's shaded corner (its colour and size), registered so hover can animate them. Initial values
-   are absolute (px, hex): a registered property can't start from rem. */
-@property --btn-corner {
-  syntax: '<color>';
-  inherits: false;
-  initial-value: #e3ebec;
-}
-@property --facet {
-  syntax: '<length>';
-  inherits: false;
-  initial-value: 13.6px;
-}
 .btn {
   --btn-bg: #ffffff;
   --btn-shade: #e3ebec;
   --btn-fg: var(--color-ink);
   --btn-line: var(--color-ink);
   --btn-corner: var(--btn-shade);
-  --facet: 0.85rem;
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -350,23 +345,21 @@ body {
   gap: 0.5rem;
   border: 2px solid var(--btn-line);
   border-radius: 4px;
-  background: linear-gradient(135deg, var(--btn-bg) calc(100% - var(--facet)), var(--btn-corner) 0);
+  background: linear-gradient(135deg, var(--btn-bg) calc(100% - 0.85rem), var(--btn-corner) 0);
   color: var(--btn-fg);
   font-weight: 700;
   letter-spacing: 0.01em;
   transition:
-    --btn-corner 0.18s ease,
-    --facet 0.18s ease,
-    filter 0.18s ease,
+    --btn-corner 0.2s ease,
+    filter 0.2s ease,
     scale 0.12s ease;
   user-select: none;
 }
-/* Hover: the shaded corner grows and lights up amber ("do this"), ink on amber and red keys, and the
-   key brightens a touch. A click presses the key in for a moment. */
+/* Hover: the shaded corner fades to amber ("do this"), ink on amber and red keys, and the key brightens
+   a touch. A click presses the key in slightly for a moment. */
 @media (hover: hover) {
   .btn:hover:not(:disabled) {
     --btn-corner: var(--color-amber);
-    --facet: 1.4rem;
     filter: brightness(1.06);
   }
   .btn.btn-primary:hover:not(:disabled),
@@ -376,8 +369,8 @@ body {
   }
 }
 .btn:active:not(:disabled) {
-  scale: 0.95;
-  transition-duration: 0.05s;
+  scale: 0.97;
+  transition-duration: 0.06s;
 }
 @media (prefers-reduced-motion: reduce) {
   .btn {
