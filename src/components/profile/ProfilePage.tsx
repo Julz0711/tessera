@@ -132,8 +132,11 @@ export function ProfilePage() {
                 </p>
               )}
             </div>
-            <div className="flex min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-2xl border-2 border-ink bg-paper-2 p-3">
-              <KnightPreview3D knight={knight} color={color} size={200} />
+            <div className="flex min-w-0 flex-col items-center gap-1 overflow-hidden rounded-2xl border-2 border-ink bg-paper-2 p-3">
+              {/* The knight stands in the middle of the card; its caption sits on the bottom edge. */}
+              <div className="grid flex-1 place-items-center">
+                <KnightPreview3D knight={knight} color={color} size={200} />
+              </div>
               <span className="label">Your knight</span>
             </div>
           </section>

@@ -329,6 +329,9 @@ body {
   --btn-shade: #e3ebec;
   --btn-fg: var(--color-ink);
   --btn-line: var(--color-ink);
+  /* The shaded corner follows the key's text size: about 13px on small keys (text-sm), 1.2rem on
+     big ones (text-lg), so it never swallows half a short key. */
+  --btn-notch: clamp(0.75rem, 1.55em - 0.55rem, 1.2rem);
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -341,7 +344,7 @@ body {
      corner diagonal (not a fixed angle) keeps the triangle whole on wide keys while it grows.
      Background size animates natively, so the fill is smooth in every browser. */
   background:
-    linear-gradient(to top left, var(--btn-shade) 50%, transparent 50%) right bottom / 1.2rem 1.2rem no-repeat,
+    linear-gradient(to top left, var(--btn-shade) 50%, transparent 50%) right bottom / var(--btn-notch) var(--btn-notch) no-repeat,
     var(--btn-bg);
   color: var(--btn-fg);
   font-weight: 700;
@@ -364,7 +367,7 @@ body {
 /* Out of reach: greyed out like an inactive player's card. A pale key inside the same ink outline,
    its contents faded; icons fade as one layer, so crossing strokes don't darken. */
 .btn:disabled {
-  background: linear-gradient(135deg, var(--color-paper-2) calc(100% - 0.85rem), var(--color-paper-3) 0);
+  background: linear-gradient(135deg, var(--color-paper-2) calc(100% - var(--btn-notch) * 0.7), var(--color-paper-3) 0);
   border-color: var(--color-ink);
   box-shadow: none;
   color: rgb(19 26 29 / 0.45);
@@ -372,7 +375,7 @@ body {
 }
 /* A picked option others can't change (the lobby for guests) still reads as picked. */
 .btn.btn-on:disabled {
-  background: linear-gradient(to top left, var(--btn-shade) 50%, transparent 50%) right bottom / 1.2rem 1.2rem no-repeat, var(--btn-bg);
+  background: linear-gradient(to top left, var(--btn-shade) 50%, transparent 50%) right bottom / var(--btn-notch) var(--btn-notch) no-repeat, var(--btn-bg);
   color: var(--color-ink);
   cursor: default;
 }

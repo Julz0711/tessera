@@ -12,9 +12,9 @@ export interface CarouselTile<T> {
 }
 
 /**
- * One row of picture tiles with an arrow key at each end (as on colonist): the row scrolls a
- * page at a time, an arrow fades once there's nothing more that way, and the picked tile is
- * scrolled into view whenever it changes.
+ * One row of picture tiles with an arrow key at each end (as on colonist): an arrow steps one
+ * tile and hides once there's nothing more that way, a mouse can drag the row, and the picked
+ * tile is scrolled into view whenever it changes.
  */
 export function TileCarousel<T extends string>({
   label,
@@ -58,9 +58,54 @@ export function TileCarousel<T extends string>({
     }
   }, [value]);
 
-  const page = (dir: 1 | -1) => {
+  // An arrow steps one tile (its width plus the gap), so the snap lands on the next tile.
+  const step = (dir: 1 | -1) => {
     const r = row.current;
-    if (r) r.scrollBy({ left: dir * Math.max(120, r.clientWidth - 80), behavior: "smooth" });
+    const [a, b] = r ? Array.from(r.children as HTMLCollectionOf<HTMLElement>) : [];
+    if (r && a) r.scrollBy({ left: dir * (b ? b.offsetLeft - a.offsetLeft : a.offsetWidth), behavior: "smooth" });
+  };
+
+  // A mouse can drag the row sideways (touch already swipes it natively). Snapping and smooth
+  // scrolling are off while dragging so the row follows the pointer; a drag swallows the click
+  // that ends it, so letting go over a tile doesn't pick it.
+  const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null);
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "mouse" || e.button !== 0 || !row.current) return;
+    drag.current = { x: e.clientX, left: row.current.scrollLeft, moved: false };
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    const r = row.current;
+    if (!d || !r) return;
+    const dx = e.clientX - d.x;
+    if (!d.moved) {
+      if (Math.abs(dx) < 5) return;
+      d.moved = true;
+      r.setPointerCapture(e.pointerId);
+      r.style.scrollSnapType = "none";
+      r.style.scrollBehavior = "auto";
+      r.style.cursor = "grabbing";
+    }
+    r.scrollLeft = d.left - dx;
+  };
+  const endDrag = () => {
+    const d = drag.current;
+    const r = row.current;
+    drag.current = null;
+    if (!d?.moved || !r) return;
+    r.style.cursor = "";
+    r.style.scrollBehavior = "";
+    // Glide to the nearest tile, then hand snapping back.
+    const [a, b] = Array.from(r.children as HTMLCollectionOf<HTMLElement>);
+    const unit = a && b ? b.offsetLeft - a.offsetLeft : 0;
+    if (unit) r.scrollTo({ left: Math.round(r.scrollLeft / unit) * unit, behavior: "smooth" });
+    window.setTimeout(() => (r.style.scrollSnapType = ""), 350);
+    const swallow = (ev: MouseEvent) => {
+      ev.stopPropagation();
+      ev.preventDefault();
+    };
+    r.addEventListener("click", swallow, { capture: true, once: true });
+    window.setTimeout(() => r.removeEventListener("click", swallow, { capture: true }), 0);
   };
 
   // An arrow only shows while there's more that way, so the row starts flush with the panel.
@@ -71,7 +116,7 @@ export function TileCarousel<T extends string>({
         type="button"
         // A small round key floating over the row's edge, as on colonist.
         className={`btn btn-dark absolute top-1/2 z-10 h-9 min-h-9 w-9 min-w-9 -translate-y-1/2 rounded-full! p-0 ${dir < 0 ? "-left-2" : "-right-2"}`}
-        onClick={() => page(dir)}
+        onClick={() => step(dir)}
         aria-label={`${dir < 0 ? "Previous" : "More"} ${label.toLowerCase()}s`}
       >
         {dir < 0 ? <ChevronLeft size={18} strokeWidth={3} /> : <ChevronRight size={18} strokeWidth={3} />}
@@ -87,7 +132,13 @@ export function TileCarousel<T extends string>({
         role="radiogroup"
         aria-label={label}
         onScroll={measure}
-        className="relative flex min-w-0 snap-x snap-mandatory gap-1.5 overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        // A scroll box clips at its edge, which shaved the end tile's border (and focus rings):
+        // the padding gives them room, the negative margin keeps the row flush with the panel.
+        className="relative -m-1.5 flex min-w-0 snap-x snap-mandatory scroll-px-1.5 gap-1.5 overflow-x-auto scroll-smooth p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {tiles.map((t) => {
           const on = t.value === value;

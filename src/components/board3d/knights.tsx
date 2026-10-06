@@ -44,6 +44,8 @@ const G = {
   boss: new THREE.IcosahedronGeometry(0.022, 0),
   blade: new THREE.BoxGeometry(0.022, 0.26, 0.01),
   guard: new THREE.BoxGeometry(0.08, 0.018, 0.02),
+  grip: new THREE.BoxGeometry(0.018, 0.06, 0.018),
+  pommel: new THREE.IcosahedronGeometry(0.016, 0),
 };
 
 /**
@@ -61,7 +63,9 @@ function framedFaceGeometry(frame: { x: number; y: number; zoom: number }): THRE
   // (zoomed) window rather than the full image — dragging feels the same speed at any zoom level.
   // Y is negated relative to X: the geometry's V axis runs opposite to the SVG/CSS Y used to define
   // faceY (see KnightBadge and KnightCustomizer), so this keeps a "drag down" feel consistent.
-  const offsetX = -frame.x / frame.zoom;
+  // faceX is in units of the customizer's window *width*, and that window is 32:37 (narrower than
+  // the square photo it crops), so a sideways pan covers 32/37 as much of the photo as a vertical one.
+  const offsetX = (-frame.x * (32 / 37)) / frame.zoom;
   const offsetY = frame.y / frame.zoom;
   for (let i = 0; i < arr.length; i += 2) {
     arr[i] = repeat * (arr[i] - 0.5) + 0.5 + offsetX;
@@ -107,7 +111,8 @@ function KnightFigure({ metal, trim, cloth, faceMat, faceGeo, shadows, headY }: 
       <mesh geometry={G.tabard} material={cloth} position={[0, 0.225, 0.078]} />
       <mesh geometry={G.cape} material={cloth} position={[0, 0.22, -0.085]} rotation={[0.18, 0, 0]} castShadow={s} />
       <mesh geometry={G.arm} material={metal} position={[-0.11, 0.25, 0.01]} rotation={[0, 0, 0.25]} castShadow={s} />
-      <mesh geometry={G.arm} material={metal} position={[0.11, 0.25, 0.02]} rotation={[0.5, 0, -0.2]} castShadow={s} />
+      {/* sword arm: reaches forward so the hand closes on the grip */}
+      <mesh geometry={G.arm} material={metal} position={[0.11, 0.25, 0.02]} rotation={[-0.5, 0, -0.2]} castShadow={s} />
       {/* helmet with a face opening */}
       <mesh geometry={G.helmet} material={metal} position={[0, headY - 0.05, 0]} castShadow={s} />
       <mesh geometry={G.dome} material={metal} position={[0, headY + 0.015, 0]} castShadow={s} />
@@ -126,9 +131,12 @@ function KnightFigure({ metal, trim, cloth, faceMat, faceGeo, shadows, headY }: 
         <mesh geometry={G.shield} material={cloth} castShadow={s} />
         <mesh geometry={G.boss} material={trim} position={[0, -0.015, 0]} />
       </group>
-      <group position={[0.14, 0.2, 0.07]}>
-        <mesh geometry={G.blade} material={mat('#dfe5ea', { rough: 0.35, metal: 0.6 })} position={[0, 0.15, 0]} castShadow={s} />
-        <mesh geometry={G.guard} material={mat('#8a6139')} position={[0, 0.02, 0]} />
+      {/* held upright: pommel, grip in the hand, crossguard, then the blade */}
+      <group position={[0.1, 0.19, 0.055]}>
+        <mesh geometry={G.pommel} material={mat('#f2c14e', { metal: 0.6, rough: 0.3 })} position={[0, -0.036, 0]} />
+        <mesh geometry={G.grip} material={mat('#6b4426')} />
+        <mesh geometry={G.guard} material={mat('#8a6139')} position={[0, 0.036, 0]} />
+        <mesh geometry={G.blade} material={mat('#dfe5ea', { rough: 0.35, metal: 0.6 })} position={[0, 0.175, 0]} castShadow={s} />
       </group>
     </>
   );

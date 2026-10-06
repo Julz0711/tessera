@@ -22,9 +22,10 @@ export function KnightBadge({
   const clip = useId().replace(/:/g, '');
   const steel = KNIGHT_STEEL;
   const frame = faceFrame(knight);
-  // The face box is centred at (50,46) — same centre as the clip ellipse below. Panning/zooming is
-  // a translate-after-scale around that centre, so a drag feels the same size on screen at any zoom.
-  const faceTransform = `translate(${frame.x * 34 + 50} ${frame.y * 40 + 46}) scale(${frame.zoom}) translate(-50 -46)`;
+  // The face box is exactly the clip ellipse's box (32×37, centred at 50,46), like the customizer's
+  // photo window, so the helmet shows just what the player framed there. Panning/zooming is a
+  // translate-after-scale around that centre, so a drag feels the same size on screen at any zoom.
+  const faceTransform = `translate(${frame.x * 32 + 50} ${frame.y * 37 + 46}) scale(${frame.zoom}) translate(-50 -46)`;
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" role="img" aria-label="Knight">
       <defs>
@@ -49,16 +50,19 @@ export function KnightBadge({
         <path d="M27 67V43c0-17 10-28 23-31 13 3 23 14 23 31v24Z" fill={steel.base} stroke={steel.trim} strokeWidth="3" strokeLinejoin="round" />
         <ellipse cx="50" cy="46" rx="17.5" ry="20" fill={steel.trim} />
         {knight.face ? (
-          <image
-            href={faceUrl(knight.face)}
-            x="33"
-            y="26"
-            width="34"
-            height="40"
-            preserveAspectRatio="xMidYMid slice"
-            clipPath={`url(#face-${clip})`}
-            transform={faceTransform}
-          />
+          // The clip sits on a wrapper: on the image itself it would be scaled and panned along with
+          // the photo, so a zoomed face spilled out of the helmet.
+          <g clipPath={`url(#face-${clip})`}>
+            <image
+              href={faceUrl(knight.face)}
+              x="34"
+              y="27.5"
+              width="32"
+              height="37"
+              preserveAspectRatio="xMidYMid slice"
+              transform={faceTransform}
+            />
+          </g>
         ) : (
           <g>
             <ellipse cx="50" cy="46" rx="16" ry="18.5" fill={steel.visor} />
