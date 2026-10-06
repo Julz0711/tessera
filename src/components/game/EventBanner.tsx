@@ -66,7 +66,7 @@ export function EventBanner() {
     <div className="pointer-events-none absolute inset-x-0 top-[18%] z-40 flex justify-center px-4" role="status" aria-live="polite">
       <div
         key={banner.id}
-        className={`paper animate-rise flex max-w-lg items-center gap-4 border-l-8 px-5 py-3.5 shadow-2xl ring-4 transition-opacity ${ring} ${leaving ? 'opacity-0' : 'opacity-100'}`}
+        className={`paper animate-rise flex max-w-lg items-center gap-4 border-l-8 px-5 py-3.5 ring-4 transition-opacity ${ring} ${leaving ? 'opacity-0' : 'opacity-100'}`}
         style={{ borderLeftColor: banner.color, transitionDuration: `${FADE_MS}ms` }}
       >
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full border-2 border-ink text-paper" style={{ background: banner.color }}>

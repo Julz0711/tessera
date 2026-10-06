@@ -1,5 +1,7 @@
 'use client';
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Logomark } from '@/components/ui/Logomark';
 import { useCallback, useEffect, useState } from 'react';
 import type { Mode } from '@/engine';
 import { MODE_LABEL, ratingPoolFor } from '@/shared/ratings';
@@ -15,7 +17,7 @@ interface GuestRow { id: string; displayName: string | null; gamesPlayed: number
   migratedToUserId: string | null; liveRoom: string | null }
 
 const date = (iso: string | null) => (iso ? new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '—');
-const input = 'min-w-0 rounded-lg border border-ink/20 bg-paper p-2 text-sm';
+const input = 'min-w-0 input text-sm';
 
 async function api<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, body === undefined ? { cache: 'no-store' } : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
@@ -125,7 +127,12 @@ export function AdminPage() {
   }
 
   return <main className="page-safe-top min-h-dvh bg-[radial-gradient(ellipse_at_top,_#0f2f3b_0%,_#061419_60%)] px-4 py-8">
-    <div className="mx-auto grid max-w-5xl gap-5"><Link className="text-sm font-bold text-foam/70 hover:text-paper" href="/">← Home</Link>
+    <div className="mx-auto grid max-w-5xl gap-5"><div className="flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 text-sm font-bold text-foam/70 hover:text-paper">
+            <ArrowLeft size={16} /> Home
+          </Link>
+          <Logomark size={28} />
+        </div>
       <section className="paper grid gap-5 p-5 sm:p-7">
         <div><h1 className="display text-4xl font-black">Admin</h1>
           <p className="mt-2 text-sm text-ink-soft">Changes apply to the live database straight away. For a formal personal-data erasure request, use <code>npm run privacy:delete</code> instead.</p></div>

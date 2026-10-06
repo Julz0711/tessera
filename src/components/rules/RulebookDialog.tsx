@@ -52,14 +52,14 @@ export function RulebookDialog({ open, onClose, modes }: { open: boolean; onClos
       {modes && (
         <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
           <span className="text-ink-soft">Showing</span>
-          <div className="flex rounded-lg border-2 border-ink/25 p-0.5" role="radiogroup" aria-label="Which rules to show">
+          <div className="seg" role="radiogroup" aria-label="Which rules to show">
             {[false, true].map((all) => (
               <button
                 key={String(all)}
                 type="button"
                 role="radio"
                 aria-checked={everything === all}
-                className={`rounded-lg px-3 py-1 font-bold ${everything === all ? 'bg-ink text-paper' : 'text-ink-soft'}`}
+                className="seg-opt"
                 onClick={() => setEverything(all)}
               >
                 {all ? 'All modes' : `This game (${modes.map((m) => MODE_NAMES[m]).join(', ')})`}

@@ -205,7 +205,7 @@ export function GameReportView({ report, initialSeat }: { report: GameReport; in
 
     <div role="tablist" aria-label="Stat categories" className="scroll-thin -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
       {tabs.map((t) => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
-        className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border-2 px-3.5 py-1.5 text-sm font-bold whitespace-nowrap transition ${tab === t.id ? 'border-ink bg-ink text-paper' : 'border-ink/20 hover:border-ink/60'}`}>{TAB_ICONS[t.id]}{t.label}</button>)}
+        className={`inline-flex shrink-0 items-center gap-1.5 rounded-[4px] border-2 border-ink px-3.5 py-1.5 text-sm font-bold whitespace-nowrap transition ${tab === t.id ? 'bg-pick' : 'bg-white hover:bg-paper-2'}`}>{TAB_ICONS[t.id]}{t.label}</button>)}
     </div>
 
     <div role="tabpanel" className="grid min-w-0 gap-4">

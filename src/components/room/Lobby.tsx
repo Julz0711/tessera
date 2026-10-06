@@ -108,7 +108,7 @@ export function RoomHeader({
           <span className="whitespace-nowrap font-mono text-lg font-black tracking-[0.2em] text-paper">
             {formatCode(room.code)}
           </span>
-          <span className={`ml-auto flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-extrabold ${copied ? "bg-moss text-white" : "bg-amber text-ink"}`}>
+          <span className={`ml-auto flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-extrabold ${copied ? "bg-moss text-white" : "bg-paper text-ink"}`}>
             {copied ? <Check size={14} /> : <Copy size={14} />}
             {copied ? "Copied" : "Copy link"}
           </span>
@@ -298,7 +298,7 @@ function MapSegmented({
           className={`flex flex-col items-center gap-1 rounded-md border-2 px-3 py-1.5 text-sm font-bold transition disabled:cursor-default ${
             value === o
               ? "border-ink bg-pick"
-              : "border-ink/20 bg-white/30 enabled:hover:border-ink/60"
+              : "border-ink bg-white enabled:hover:bg-paper-2"
           } ${disabled && value !== o ? "opacity-40" : ""}`}
         >
           <MapPreview map={o} size={64} />
@@ -415,7 +415,7 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="btn h-8 w-8 p-0"
+            className="btn h-10 w-10 p-0 text-lg"
             disabled={!host || s.vpToWin <= 3}
             onClick={() => set({ vpToWin: s.vpToWin - 1 })}
             aria-label="Fewer points"
@@ -427,7 +427,7 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
           </span>
           <button
             type="button"
-            className="btn h-8 w-8 p-0"
+            className="btn h-10 w-10 p-0 text-lg"
             disabled={!host || s.vpToWin >= 20}
             onClick={() => set({ vpToWin: s.vpToWin + 1 })}
             aria-label="More points"

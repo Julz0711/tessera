@@ -184,7 +184,7 @@ body {
 @media (min-width: 768px) { .dialog-sheet.dialog-top { align-self: start; margin-top: 3dvh; max-height: calc(100% - 3dvh); } }
 .settings-body { height: min(70dvh, 720px); min-height: 0; }
 .mobile-side-content { height: min(55dvh, 440px); min-height: 0; }
-.app-notice { position: fixed; z-index: 80; bottom: calc(1rem + var(--safe-bottom)); left: max(1rem, var(--safe-left)); right: max(1rem, var(--safe-right)); margin: auto; max-width: 560px; display: flex; align-items: center; justify-content: center; gap: .75rem; padding: .75rem 1rem; border: 2px solid #ffffff30; border-radius: 6px; background: var(--color-sea-900); box-shadow: var(--shadow-float); font-size: .875rem; }
+.app-notice { position: fixed; z-index: 80; bottom: calc(1rem + var(--safe-bottom)); left: max(1rem, var(--safe-left)); right: max(1rem, var(--safe-right)); margin: auto; max-width: 560px; display: flex; align-items: center; justify-content: center; gap: .75rem; padding: .75rem 1rem; border: 2px solid #ffffff30; border-radius: 6px; background: var(--color-sea-900); font-size: .875rem; }
 .app-notice svg { flex-shrink: 0; }
 .install-steps { display: grid; gap: .75rem; }
 .install-steps li { display: flex; align-items: center; gap: 1rem; padding: 1rem; border-radius: 6px; background: var(--color-paper-2); font-size: .875rem; }
@@ -561,7 +561,7 @@ body {
 
 .input {
   width: 100%;
-  border: 2px solid rgb(31 26 20 / 0.55);
+  border: 2px solid var(--color-ink);
   border-radius: 4px;
   background: #ffffff;
   color: var(--color-ink);

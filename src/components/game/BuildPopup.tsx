@@ -45,7 +45,7 @@ export function BuildPopup({ view, armed }: { view: PlayerView; armed: Armed }) 
           type="button"
           onClick={() => void confirmBuild(i)}
           title={`Build: ${LABEL[o.what]}`}
-          className="relative flex w-20 flex-col items-center gap-1 rounded-lg border-2 border-ink/30 bg-paper px-1.5 pb-1.5 pt-1 text-ink shadow-float transition hover:bg-white"
+          className="relative flex w-20 flex-col items-center gap-1 rounded-lg border-2 border-ink bg-paper px-1.5 pb-1.5 pt-1 text-ink transition hover:bg-white"
         >
           <span className="grid min-h-5 place-items-center text-[11px]">{o.cost ? <CardList cards={o.cost} /> : <b className="font-black uppercase text-ink-soft">Free</b>}</span>
           <Piece what={o.what} fill={color.hex} stroke={color.dark} />

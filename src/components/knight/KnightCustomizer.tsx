@@ -205,7 +205,7 @@ export function KnightCustomizer({
               aria-selected={on}
               onClick={() => choose(n)}
               className={`flex items-center gap-2 rounded-lg border-2 py-1 pl-1 pr-3 text-left transition ${
-                on ? 'border-ink bg-pick' : 'border-ink/15 hover:border-ink/40'
+                on ? 'border-ink bg-pick' : 'border-ink bg-white hover:bg-paper-2'
               }`}
             >
               <KnightBadge knight={knightLook(value, n)} color={color} size={44} />
@@ -222,7 +222,7 @@ export function KnightCustomizer({
       </div>
 
       {/* the selected knight */}
-      <div className="grid gap-4 rounded-2xl border-2 border-ink/15 bg-paper-2/60 p-4">
+      <div className="grid gap-4 rounded-2xl border-2 border-ink bg-paper-2 p-4">
         {look.face && adjusting ? (
           <>
             <div className="flex flex-wrap items-center gap-5">
@@ -258,7 +258,7 @@ export function KnightCustomizer({
                     : `Knight ${slot} looks like knight 1 until you give it its own face.`}
               </p>
               <div className="flex flex-wrap gap-2">
-                <button type="button" className="btn btn-primary h-9 px-3 text-sm" onClick={() => input.current?.click()} disabled={busy}>
+                <button type="button" className="btn h-9 px-3 text-sm" onClick={() => input.current?.click()} disabled={busy}>
                   {busy ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />}
                   {look.face && own ? 'New photo' : 'Upload a photo'}
                 </button>

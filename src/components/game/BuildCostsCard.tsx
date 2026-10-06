@@ -84,7 +84,7 @@ export function BuildCostsCard({ ck, ships, onClose }: { ck: boolean; ships: boo
       : [{ label: 'Development card', icon: <Sparkles size={18} />, cost: COSTS.devCard, vp: '? VP' }]),
   ];
   return (
-    <div className="relative w-full max-w-sm rounded-xl border-2 border-ink bg-paper p-3 text-ink shadow-lg" role={onClose ? 'dialog' : undefined} aria-label="Building costs">
+    <div className="relative w-full max-w-sm rounded-xl border-2 border-ink bg-paper p-3 text-ink" role={onClose ? 'dialog' : undefined} aria-label="Building costs">
       {onClose && (
         <button type="button" className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full hover:bg-ink/10" onClick={onClose} aria-label="Close">
           <X size={16} />

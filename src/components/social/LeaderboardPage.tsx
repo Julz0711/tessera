@@ -1,5 +1,7 @@
 'use client';
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Logomark } from '@/components/ui/Logomark';
 import { useEffect, useState } from 'react';
 import { useUrlFilters } from '@/client/urlFilters';
 import type { LeaderboardData, LeaderboardEntry } from '@/shared/protocol';
@@ -35,12 +37,17 @@ export function LeaderboardPage() {
     return () => { clearTimeout(timer); controller.abort(); };
   }, [query, ready, attempt]);
   return <main className="page-safe-top min-h-dvh bg-[radial-gradient(ellipse_at_top,_#0f2f3b_0%,_#061419_60%)] px-4 py-8">
-    <div className="mx-auto grid max-w-3xl gap-5"><Link className="text-sm font-bold text-foam/70 hover:text-paper" href="/">← Home</Link>
+    <div className="mx-auto grid max-w-3xl gap-5"><div className="flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 text-sm font-bold text-foam/70 hover:text-paper">
+            <ArrowLeft size={16} /> Home
+          </Link>
+          <Logomark size={28} />
+        </div>
       <section className="paper grid gap-5 p-5 sm:p-7">
         <div><h1 className="display text-4xl font-black">Leaderboards</h1><p className="mt-2 text-sm text-ink-soft">Four modes. Four ladders. Compete with friends or everyone on this server.</p></div>
-        <div className="grid grid-cols-2 gap-3"><label className="grid gap-1 text-xs font-bold">Mode<select className="w-full min-w-0 rounded-lg border border-ink/20 bg-paper p-2 text-sm" value={get('mode')} onChange={(e) => change({ mode: e.target.value, page: '1', around: '' })}>{Object.entries(MODE_LABEL).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
-          <label className="grid gap-1 text-xs font-bold">Compare with<select className="w-full min-w-0 rounded-lg border border-ink/20 bg-paper p-2 text-sm" value={get('scope')} onChange={(e) => change({ scope: e.target.value, page: '1', around: '' })}><option value="world">World</option><option value="friends">Friends</option></select></label></div>
-        <div className="flex flex-wrap gap-2"><input aria-label="Search players by name or friend code" placeholder="Search name or friend code" className="min-w-0 flex-1 rounded-lg border border-ink/20 bg-paper p-2 text-sm" value={get('q')} onChange={(e) => change({ q: e.target.value, page: '1', around: '' })} /><button className="btn px-3 py-2 text-sm" onClick={() => change({ around: 'me', q: '', page: '1' })}>Around me</button></div>
+        <div className="grid grid-cols-2 gap-3"><label className="grid gap-1 text-xs font-bold">Mode<select className="w-full min-w-0 input text-sm" value={get('mode')} onChange={(e) => change({ mode: e.target.value, page: '1', around: '' })}>{Object.entries(MODE_LABEL).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+          <label className="grid gap-1 text-xs font-bold">Compare with<select className="w-full min-w-0 input text-sm" value={get('scope')} onChange={(e) => change({ scope: e.target.value, page: '1', around: '' })}><option value="world">World</option><option value="friends">Friends</option></select></label></div>
+        <div className="flex flex-wrap gap-2"><input aria-label="Search players by name or friend code" placeholder="Search name or friend code" className="min-w-0 flex-1 input text-sm" value={get('q')} onChange={(e) => change({ q: e.target.value, page: '1', around: '' })} /><button className="btn px-3 py-2 text-sm" onClick={() => change({ around: 'me', q: '', page: '1' })}>Around me</button></div>
         <p className="text-xs text-ink-faint">At least two signed-in players are needed for a rated game. Bots and guests are excluded from Elo comparisons. Maps share their mode’s ladder. Equal ratings share a rank.</p>
         {error && <div role="alert">Couldn&apos;t load the leaderboard. <button className="font-bold underline" onClick={() => setAttempt((n) => n + 1)}>Try again</button></div>}
         {!data && !error && <p role="status" className="text-sm text-ink-faint">Loading rankings…</p>}
