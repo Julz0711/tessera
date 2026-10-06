@@ -320,6 +320,8 @@ export interface TradeOffer {
   give: PartialHand;
   /** What `from` receives. */
   want: PartialHand;
+  /** Asks "?" instead of naming `want` (empty): answered only by counter-offers. */
+  open?: boolean;
   accepted: number[];
   declined: number[];
   /**
@@ -541,7 +543,7 @@ export type Action =
   | { type: 'bankTrade'; give: Card; get: Card; count: number }
   /** Several bank trades in one: each kind given in multiples of its rate, as many cards back as that buys. */
   | { type: 'bankExchange'; give: PartialHand; get: PartialHand }
-  | { type: 'offerTrade'; give: PartialHand; want: PartialHand; to: number[] }
+  | { type: 'offerTrade'; give: PartialHand; want: PartialHand; to: number[]; open?: boolean }
   | { type: 'respondTrade'; id: number; accept: boolean }
   | { type: 'confirmTrade'; id: number; partner: number }
   | { type: 'cancelTrade'; id: number }

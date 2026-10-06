@@ -64,7 +64,8 @@ export function classicBotAction(view: PlayerView, seat: number, opts: BotOption
   const awaiting = tradesAwaiting(view, seat);
   if (awaiting.length) {
     const offer = view.trades.find((t) => t.id === awaiting[0])!;
-    return { type: 'respondTrade', id: offer.id, accept: shouldAcceptTrade(view, seat, offer) };
+    // An open ("?") offer can't be accepted; the bot passes rather than haggling.
+    return { type: 'respondTrade', id: offer.id, accept: !offer.open && shouldAcceptTrade(view, seat, offer) };
   }
 
   if (view.phase === 'setup') {

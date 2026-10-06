@@ -116,7 +116,7 @@ function dispatch(ctx: Ctx, action: Action): void {
     case 'bankExchange':
       return bankExchange(ctx, action.give, action.get);
     case 'offerTrade':
-      return offerTrade(ctx, action.give, action.want, action.to);
+      return offerTrade(ctx, action.give, action.want, action.to, action.open);
     case 'respondTrade':
       return respondTrade(ctx, action.id, action.accept);
     case 'confirmTrade':

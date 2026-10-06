@@ -15,6 +15,9 @@ export type TradeSide = 'give' | 'want';
 interface TradeDraft {
   give: PartialHand;
   want: PartialHand;
+  /** Asking "?" (the active player only): no want, the others answer with counter-offers. */
+  open: boolean;
+  setOpen(open: boolean): void;
   add(side: TradeSide, card: Card): void;
   remove(side: TradeSide, card: Card): void;
   clear(): void;
@@ -27,14 +30,17 @@ function bump(h: PartialHand, card: Card, by: number): PartialHand {
 export const useTradeDraft = create<TradeDraft>((set) => ({
   give: {},
   want: {},
-  add: (side, card) => set((s) => (side === 'give' ? { give: bump(s.give, card, 1) } : { want: bump(s.want, card, 1) })),
+  open: false,
+  // "?" and named cards exclude each other.
+  setOpen: (open) => set(open ? { open, want: {} } : { open }),
+  add: (side, card) => set((s) => (side === 'give' ? { give: bump(s.give, card, 1) } : { want: bump(s.want, card, 1), open: false })),
   remove: (side, card) => set((s) => (side === 'give' ? { give: bump(s.give, card, -1) } : { want: bump(s.want, card, -1) })),
-  clear: () => set({ give: {}, want: {} }),
+  clear: () => set({ give: {}, want: {}, open: false }),
 }));
 
 /** Opens the trade panel with this deal already on the table (a card clicked in the hand, a counter-offer). */
 export function openTrade(give: PartialHand, want: PartialHand = {}): void {
-  useTradeDraft.setState({ give: { ...give }, want: { ...want } });
+  useTradeDraft.setState({ give: { ...give }, want: { ...want }, open: false });
   if (useUi.getState().panel !== 'trade') useUi.getState().setPanel('trade');
 }
 

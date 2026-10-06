@@ -62,15 +62,18 @@ function execute(ctx: Ctx, offer: TradeOffer, partner: number): void {
 
 /**
  * The active player offers to everyone (or chosen players); anyone else may only send a
- * counter-offer to the active player. No gifts and no like-for-like swaps.
+ * counter-offer to the active player. No gifts and no like-for-like swaps. An `open` offer (the
+ * active player's only) asks "?" in return: nobody can accept it, they answer with a counter-offer.
  */
-export function offerTrade(ctx: Ctx, giveIn: PartialHand, wantIn: PartialHand, toIn: number[]): void {
+export function offerTrade(ctx: Ctx, giveIn: PartialHand, wantIn: PartialHand, toIn: number[], openIn?: unknown): void {
   const s = ctx.s;
   assertRule(s.phase === 'play', 'The game is not in progress');
   assertRule(s.turn.rolled, 'Trading starts after the roll');
+  const open = openIn === true;
+  assertRule(!open || ctx.seat === s.turn.seat, 'Only the player on turn can ask what others offer');
   const give = parseHand(giveIn, 20);
-  const want = parseHand(wantIn, 20);
-  assertRule(handTotal(give) > 0 && handTotal(want) > 0, 'A trade needs cards on both sides');
+  const want = open ? {} : parseHand(wantIn, 20);
+  assertRule(handTotal(give) > 0 && (open || handTotal(want) > 0), 'A trade needs cards on both sides');
   assertRule(!sameCardTypes(give, want), "You can't trade a card for the same card");
   if (s.mode === 'classic') assertRule(commodityTotal(give) + commodityTotal(want) === 0, 'Unknown card');
   assertRule(hasCards(s.players[ctx.seat].hand, give), "You don't have those cards");
@@ -84,7 +87,7 @@ export function offerTrade(ctx: Ctx, giveIn: PartialHand, wantIn: PartialHand, t
   } else {
     to = [s.turn.seat];
   }
-  const offer: TradeOffer = { id: nextId(s), from: ctx.seat, to, give, want, accepted: [], declined: [] };
+  const offer: TradeOffer = { id: nextId(s), from: ctx.seat, to, give, want, accepted: [], declined: [], ...(open ? { open: true } : {}) };
   s.trades.push(offer);
   emit(ctx, { type: 'tradeOffered', seat: ctx.seat, id: offer.id });
 }
@@ -101,6 +104,7 @@ export function respondTrade(ctx: Ctx, id: number, accept: boolean): void {
     else offer.declined.push(ctx.seat);
     return;
   }
+  assertRule(!offer.open, "Say what you'd give: send a counter-offer");
   assertRule(hasCards(s.players[ctx.seat].hand, offer.want), "You don't have the cards they want");
   // A counter-offer accepted by the active player executes immediately.
   if (ctx.seat === s.turn.seat) execute(ctx, offer, ctx.seat);

@@ -349,6 +349,21 @@ describe('trading', () => {
     expect(reject(s, 0, { type: 'bankExchange', give: { [dear]: 8 }, get: { [want1]: 2 } })).toMatch(/don't have/);
   });
 
+  it('lets the active player ask "?" and take a counter-offer instead', () => {
+    let s = playing();
+    setHand(s, 0, { brick: 2 });
+    setHand(s, 1, { ore: 1 });
+    expect(reject(s, 1, { type: 'offerTrade', give: { ore: 1 }, want: {}, to: [0], open: true })).toMatch(/player on turn/);
+    s = act(s, 0, { type: 'offerTrade', give: { brick: 1 }, want: { ore: 1 }, to: [], open: true });
+    const offer = s.trades[0];
+    expect(offer.open).toBe(true);
+    expect(offer.want).toEqual({});
+    expect(reject(s, 1, { type: 'respondTrade', id: offer.id, accept: true })).toMatch(/counter-offer/);
+    s = act(s, 1, { type: 'offerTrade', give: { ore: 1 }, want: { brick: 1 }, to: [] });
+    s = act(s, 0, { type: 'respondTrade', id: s.trades.at(-1)!.id, accept: true });
+    expect(s.players[0].hand).toMatchObject({ brick: 1, ore: 1 });
+  });
+
   it('runs offer → accept → confirm, and supports counter-offers', () => {
     let s = playing();
     setHand(s, 0, { brick: 2 });

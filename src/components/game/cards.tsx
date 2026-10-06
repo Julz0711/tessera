@@ -209,6 +209,17 @@ export function ResourceCard({
   );
 }
 
+/** The "?" card: an open trade offer asks the others what they'd give instead of naming it. */
+export function AskCard({ size = 'md', onClick, selected }: { size?: CardSize; onClick?: () => void; selected?: boolean }) {
+  return (
+    <CardShell bg="#ffffff" ink="#1f1a14" size={size} title="Anything: ask what they'd give" onClick={onClick} selected={selected}>
+      <span aria-hidden className={`font-black leading-none ${size === 'xs' ? 'text-lg' : size === 'sm' ? 'text-2xl' : 'text-4xl'}`}>
+        ?
+      </span>
+    </CardShell>
+  );
+}
+
 /** The most extra cards a stack shows behind its top card. */
 export const MAX_SLIVERS = 3;
 

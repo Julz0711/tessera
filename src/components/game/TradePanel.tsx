@@ -10,7 +10,7 @@ import { AUTO_DECLINE_MS, autoDeclineLeft, openTrade, unaffordableOffer, useTrad
 import { useUi } from '@/client/ui';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
-import { CardStack, ResourceCard, type CardSize } from './cards';
+import { AskCard, CardStack, ResourceCard, type CardSize } from './cards';
 
 type Answer = 'yes' | 'no' | 'wait';
 
@@ -49,6 +49,8 @@ function DealRow({
   onCard,
   hint,
   size = 'xs',
+  ask,
+  onAsk,
 }: {
   side: TradeSide;
   /** Card size: hand-sized in the wide screens' trade panel. */
@@ -59,6 +61,9 @@ function DealRow({
   onCard?: (c: Card) => void;
   /** Shown while the row is empty. */
   hint?: string;
+  /** An open offer's "?" in place of cards; `onAsk` takes it back in the draft. */
+  ask?: boolean;
+  onAsk?: () => void;
 }) {
   const held = CARDS.filter((c) => (cards[c] ?? 0) > 0);
   return (
@@ -76,7 +81,12 @@ function DealRow({
             <CardStack card={c} count={cards[c]!} size={size} onClick={onCard ? () => onCard(c) : undefined} />
           </span>
         ))}
-        {!held.length && hint && <span className="text-xs font-bold text-ink-faint">{hint}</span>}
+        {ask && (
+          <span className="animate-slide-down">
+            <AskCard size={size} onClick={onAsk} />
+          </span>
+        )}
+        {!held.length && !ask && hint && <span className="text-xs font-bold text-ink-faint">{hint}</span>}
       </div>
     </div>
   );
@@ -237,7 +247,7 @@ function OfferCard({ view, offer }: { view: PlayerView; offer: TradeOffer }) {
           </>
         }
       >
-        <DealRow side="want" who={<Users size={22} className="text-ink-soft" />} cards={offer.want} />
+        <DealRow side="want" who={<Users size={22} className="text-ink-soft" />} cards={offer.want} ask={offer.open} />
         <DealRow side="give" who={<Avatar view={view} seat={me} size={26} />} cards={offer.give} />
       </DealCard>
     );
@@ -263,7 +273,12 @@ function OfferCard({ view, offer }: { view: PlayerView; offer: TradeOffer }) {
               </span>
             )}
           </span>
-          <DealButton label="Counter-offer" icon={<Pencil size={14} />} onClick={() => openTrade(offer.want, offer.give)} />
+          <DealButton
+            label={offer.open ? "Counter-offer: say what you'd give" : 'Counter-offer'}
+            icon={<Pencil size={14} />}
+            primary={offer.open}
+            onClick={() => openTrade(offer.want, offer.give)}
+          />
           <DealButton
             label={countdown !== undefined ? "Decline (it declines itself in a moment: you don't have the cards)" : 'Decline'}
             danger
@@ -271,19 +286,22 @@ function OfferCard({ view, offer }: { view: PlayerView; offer: TradeOffer }) {
             disabled={myAnswer === 'no'}
             onClick={() => api.act({ type: 'respondTrade', id: offer.id, accept: false })}
           />
-          <DealButton
-            label={canAfford ? (myAnswer === 'yes' ? 'Accepted' : 'Accept') : "You don't have those cards"}
-            icon={<Check size={17} strokeWidth={3} />}
-            primary
-            ok={myAnswer === 'yes'}
-            disabled={!canAfford || myAnswer === 'yes'}
-            onClick={() => api.act({ type: 'respondTrade', id: offer.id, accept: true })}
-          />
+          {/* an open ("?") offer is answered with a counter-offer, not accepted */}
+          {!offer.open && (
+            <DealButton
+              label={canAfford ? (myAnswer === 'yes' ? 'Accepted' : 'Accept') : "You don't have those cards"}
+              icon={<Check size={17} strokeWidth={3} />}
+              primary
+              ok={myAnswer === 'yes'}
+              disabled={!canAfford || myAnswer === 'yes'}
+              onClick={() => api.act({ type: 'respondTrade', id: offer.id, accept: true })}
+            />
+          )}
         </>
       }
     >
       <DealRow side="want" who={<Avatar view={view} seat={offer.from} size={26} />} cards={offer.give} />
-      <DealRow side="give" who={<Avatar view={view} seat={me} size={26} />} cards={offer.want} />
+      <DealRow side="give" who={<Avatar view={view} seat={me} size={26} />} cards={offer.want} ask={offer.open} />
     </DealCard>
   );
 }
@@ -322,17 +340,19 @@ export function TradePanel({ view, big = false }: { view: PlayerView; big?: bool
     const n = Math.min(draft.give[c] ?? 0, p.hand[c]);
     if (n > 0) give[c] = n;
   }
-  const want = draft.want;
+  // "?": only the player on turn may ask the others what they'd give.
+  const ask = isActive && draft.open;
+  const want = ask ? {} : draft.want;
   const others = view.players.map((_, i) => i).filter((i) => i !== me);
   // Players with an embargo on you would only decline, so they start deselected.
   const blocksMe = (seat: number) => view.players[seat].embargo?.includes(me) ?? false;
   const [targets, setTargets] = useState<number[]>(() => others.filter((s) => !blocksMe(s)));
 
-  const ready = handTotal(give) > 0 && handTotal(want) > 0 && (!isActive || targets.length > 0);
+  const ready = handTotal(give) > 0 && (ask || handTotal(want) > 0) && (!isActive || targets.length > 0);
   const exchange = isActive && view.turn.rolled && view.pending.length === 0 ? asBankExchange(view, me, give, want) : null;
   const send = async () => {
     // The offer then waits in the offers list, where the answers come in.
-    const r = await api.act({ type: 'offerTrade', give, want, to: isActive ? targets : [view.turn.seat] });
+    const r = await api.act({ type: 'offerTrade', give, want, to: isActive ? targets : [view.turn.seat], ...(ask ? { open: true } : {}) });
     if (r.ok) ui.setPanel(null);
   };
   const tradeBank = async () => {
@@ -351,6 +371,7 @@ export function TradePanel({ view, big = false }: { view: PlayerView; big?: bool
           {cards.map((c) => (
             <ResourceCard key={c} card={c} count={0} size={big ? 'md' : 'sm'} onClick={() => draft.add('want', c)} />
           ))}
+          {isActive && <AskCard size={big ? 'md' : 'sm'} selected={ask} onClick={() => draft.setOpen(!draft.open)} />}
           <span className="ml-auto flex items-center gap-1 pl-2">
             {(isActive ? others : [view.turn.seat]).map((seat) => {
               const on = !isActive || targets.includes(seat);
@@ -371,7 +392,7 @@ export function TradePanel({ view, big = false }: { view: PlayerView; big?: bool
           </span>
         </div>
         <div className="grid divide-y divide-ink/10 px-2">
-          <DealRow side="want" who={<Users size={22} className="text-ink-soft" />} cards={want} onCard={(c) => draft.remove('want', c)} hint="Tap a card above to add it" size={big ? 'md' : 'xs'} />
+          <DealRow side="want" who={<Users size={22} className="text-ink-soft" />} cards={want} onCard={(c) => draft.remove('want', c)} ask={ask} onAsk={() => draft.setOpen(false)} hint={isActive ? 'Tap a card above, or ? to ask what they offer' : 'Tap a card above to add it'} size={big ? 'md' : 'xs'} />
           <DealRow side="give" who={<Avatar view={view} seat={me} size={26} />} cards={give} onCard={(c) => draft.remove('give', c)} hint="Tap a card in your hand to add it" size={big ? 'md' : 'xs'} />
         </div>
       </div>
