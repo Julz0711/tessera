@@ -57,7 +57,7 @@ function TrackKey({ view, track, onDone }: { view: PlayerView; track: Track; onD
       role="menuitem"
       disabled={off}
       title={hint}
-      className="btn relative size-20 flex-col gap-1 px-1 py-1 text-[11px]"
+      className="btn relative h-20 w-full flex-col sm:w-20 gap-1 px-1 py-1 text-[11px]"
       onClick={() => {
         play('click');
         void api.act({ type: 'improveCity', track });

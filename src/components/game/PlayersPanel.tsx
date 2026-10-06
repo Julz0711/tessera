@@ -375,7 +375,7 @@ export function PlayerStrip({ view, room, leading }: { view: PlayerView; room: R
   const me = view.viewer;
   return (
     <>
-      <ol className="scroll-thin flex gap-1.5 overflow-x-auto p-1" aria-label="Players and scores">
+      <ol className="scroll-thin flex gap-1 overflow-x-auto p-1" aria-label="Players and scores">
         {leading && <li className="flex shrink-0">{leading}</li>}
         {view.players.map((p, seat) => {
           const acting = actors.has(seat) && view.phase !== 'ended';
@@ -390,7 +390,7 @@ export function PlayerStrip({ view, room, leading }: { view: PlayerView; room: R
             p.defender > 0 && 'Defender',
           ].filter(Boolean);
           return (
-            <li key={p.id} className="min-w-19 flex-1">
+            <li key={p.id} className="min-w-16 flex-1 basis-0">
               <button
                 type="button"
                 onClick={() => setDetails(true)}

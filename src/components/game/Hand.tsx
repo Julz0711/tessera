@@ -73,16 +73,16 @@ export function Hand({
   room?: number;
 }) {
   const ui = useUi();
-  // Off the tray the hand spans the screen above the dock, so the viewport is its room.
+  // Without a measured room the hand spans the screen above the dock, so the viewport is its room.
   const [screen, setScreen] = useState<number>();
   useEffect(() => {
-    if (tray) return;
-    const update = () => setScreen(window.innerWidth - 24);
+    if (room !== undefined) return;
+    const update = () => setScreen(window.innerWidth - (tray ? 16 : 24));
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
-  }, [tray]);
-  const fitRoom = tray ? room : screen;
+  }, [tray, room]);
+  const fitRoom = room ?? screen;
   const draft = useTradeDraft();
   const p = view.players[view.viewer!];
   const ck = view.mode === 'ck';

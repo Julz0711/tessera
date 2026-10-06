@@ -45,18 +45,26 @@ export function BarbarianMeter({ view, compact = false }: { view: PlayerView; co
   const toGo = s.left === 1 ? 'Attack next!' : `${s.left} to go`;
 
   if (compact) {
+    // Narrow, so the whole table fits beside it on a phone: steps to go on top, ships against knights below.
     return (
       <div
         role="status"
         aria-label={label}
         title={label}
-        className={`glass grid min-w-19 content-center gap-0.5 px-2 py-1 text-[11px] text-paper ${s.danger ? 'border-danger! shadow-[inset_0_0_0_2px_var(--color-danger)]' : ''}`}
+        className={`glass grid content-center justify-items-center gap-0.5 px-1.5 py-1 text-[11px] text-paper ${s.danger ? 'border-danger! shadow-[inset_0_0_0_2px_var(--color-danger)]' : ''}`}
       >
-        <span className="flex items-center gap-1 font-extrabold">
-          <Sailboat size={12} strokeWidth={2.5} className={warn} />
-          {s.left === 1 ? 'Next!' : toGo}
+        <span className={`flex items-center gap-1 text-[15px] font-black leading-none tabular ${warn}`}>
+          <Sailboat size={13} strokeWidth={2.5} />
+          {s.left === 1 ? '!' : s.left}
         </span>
-        {versus}
+        <span className="flex items-center gap-1 font-black leading-none tabular">
+          <span className={s.losing ? 'text-[#ff8a73]' : ''}>{s.strength}</span>
+          <span className="text-[9px] font-bold opacity-60">vs</span>
+          <span className={`flex items-center gap-px ${s.losing ? '' : 'text-[#8fe0a8]'}`}>
+            <Swords size={10} strokeWidth={2.6} />
+            {s.defense}
+          </span>
+        </span>
       </div>
     );
   }

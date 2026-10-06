@@ -45,6 +45,46 @@ const MERCHANT_DY = 20;
  * Whether tiles are lit up right now: after a roll, or the Inventor's swap. A roll nothing pays out
  * on (a 7) lights nothing, so it leaves the board as it is instead of dimming all of it.
  */
+/** The board a quarter turn clockwise: every position turned about the origin, so tokens and pieces stay upright. */
+const turnedCache = new WeakMap<Topology, Topology>();
+function turned(topo: Topology): Topology {
+  let t = turnedCache.get(topo);
+  if (!t) {
+    t = {
+      ...topo,
+      hexes: topo.hexes.map((h) => ({ ...h, x: -h.y, y: h.x })),
+      vertices: topo.vertices.map((v) => ({ ...v, x: -v.y, y: v.x })),
+      edges: topo.edges.map((e) => ({ ...e, x: -e.y, y: e.x, angle: e.angle + Math.PI / 2 })),
+    };
+    turnedCache.set(topo, t);
+  }
+  return t;
+}
+
+/** Whether the land (and fog) spans clearly wider than it is tall. */
+function landIsWide(topo: Topology, hexes: readonly Hex[]): boolean {
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  hexes.forEach((h, i) => {
+    if (h.terrain === "sea" && !h.fog) return;
+    const t = topo.hexes[i];
+    minX = Math.min(minX, t.x); maxX = Math.max(maxX, t.x);
+    minY = Math.min(minY, t.y); maxY = Math.max(maxY, t.y);
+  });
+  return maxX - minX > (maxY - minY) * 1.25;
+}
+
+/** A screen held upright (clearly taller than wide). */
+function usePortrait(): boolean {
+  const [portrait, setPortrait] = useState(false);
+  useEffect(() => {
+    const update = () => setPortrait(window.innerHeight > window.innerWidth * 1.3);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return portrait;
+}
+
 function lighting(scene: BoardScene): boolean {
   if (scene.highlightHexes) return true;
   const n = scene.highlightToken;
@@ -447,7 +487,7 @@ function ShipPiece({
   let deg = (e.angle * 180) / Math.PI;
   if (deg > 90) deg -= 180;
   if (deg <= -90) deg += 180;
-  if (Math.abs(deg) > 60) deg = 0;
+  if (Math.abs(deg) > 45) deg = 0;
   return (
     <g pointerEvents="none" opacity={ghost ? 0.7 : 1} transform={`translate(${e.x * S} ${e.y * S}) rotate(${deg.toFixed(1)}) scale(${k * 0.85})`}>
       {selected && <ellipse rx="40" ry="20" fill="none" stroke="#f2b33d" strokeWidth="5" strokeDasharray="8 5" />}
@@ -620,14 +660,29 @@ export default function Board2D({
   const TOKEN = palette.token;
   // Pieces stand a touch larger than the tokens and harbours they sit beside.
   const ps = pieceScale * 1.12;
-  const topo = getTopology(scene.board.hexes);
+  const wideHud = useWide();
+  const portrait = usePortrait();
+  const turnPref = usePrefs((s) => s.turnBoard);
+  const flat = getTopology(scene.board.hexes);
+  // A phone held upright turns a wide map a quarter turn, so it runs down the tall screen.
+  const turn = !!interactive && !wideHud && portrait && turnPref && landIsWide(flat, scene.board.hexes);
+  const topo = turn ? turned(flat) : flat;
   const harborEdges = scene.board.harbors.map((h) => h.edge);
   const pirate = scene.pirate != null ? pirateSpot(topo, scene.board.hexes, scene.pirate, harborEdges) : null;
   const [hover, setHover] = useState<string | null>(null);
+  // Phones frame the land (and fog), not the open sea round it, so the island gets every pixel the
+  // narrow screen has; the sea is still there to pan to.
+  const tight = !!interactive && !wideHud;
+  // Which hexes are land, as a key: the frame only moves when that does, not on every new scene.
+  const landKey = tight ? scene.board.hexes.map((h) => (h.terrain !== "sea" || h.fog ? 1 : 0)).join("") : "";
   const bounds = useMemo(() => {
-    const xs = topo.vertices.map((v) => v.x * S);
-    const ys = topo.vertices.map((v) => v.y * S);
-    const pad = fitPad;
+    const ids = landKey
+      ? [...new Set(topo.hexes.flatMap((h, i) => (landKey[i] === "1" ? h.vertices : [])))]
+      : null;
+    const verts = ids?.length ? ids.map((id) => topo.vertices[id]) : topo.vertices;
+    const xs = verts.map((v) => v.x * S);
+    const ys = verts.map((v) => v.y * S);
+    const pad = tight ? Math.min(fitPad, 75) : fitPad;
     const minX = Math.min(...xs) - pad;
     const minY = Math.min(...ys) - pad;
     return {
@@ -636,7 +691,7 @@ export default function Board2D({
       w: Math.max(...xs) + pad - minX,
       h: Math.max(...ys) + pad - minY,
     };
-  }, [topo, fitPad]);
+  }, [topo, fitPad, tight, landKey]);
   const hexTargets = new Set(targets.hexes);
   const land = scene.board.hexes.filter((h) => h.terrain !== "sea" || h.fog);
   const myColor = scene.myColor;
@@ -652,7 +707,6 @@ export default function Board2D({
     reset,
     svgHandlers,
   } = useZoomPan(bounds, !!interactive);
-  const wideHud = useWide();
   const hostEl = useZoomHost((s) => s.el);
   const zoomHost = wideHud ? hostEl : null;
   // Wide screens zoom with the wheel and drag; their buttons are an accessibility setting.

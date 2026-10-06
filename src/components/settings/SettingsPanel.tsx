@@ -202,6 +202,16 @@ export function SettingsPanel() {
                 ]}
               />
             </Section>
+            <Section title="Turn wide maps" hint="On a phone held upright, the 2D board turns a wide map a quarter turn so the island runs down the screen and gets bigger.">
+              <Segmented
+                value={prefs.turnBoard}
+                onChange={(turnBoard) => prefs.set({ turnBoard })}
+                options={[
+                  { value: true, label: 'On' },
+                  { value: false, label: 'Off' },
+                ]}
+              />
+            </Section>
             <Section title="Zoom buttons" hint="Zoom in, out and back on the 2D board with buttons. Without them, scroll, pinch or drag the board.">
               <Segmented
                 value={prefs.zoomButtons}

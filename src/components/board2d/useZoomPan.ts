@@ -84,6 +84,15 @@ export function useZoomPan(bounds: ZoomBounds, enabled: boolean) {
     setViewStateRaw(next);
   }
 
+  // A new frame (the board turned, or the screen crossed into the phone layout) starts from its full view.
+  const frame = `${bounds.minX}|${bounds.minY}|${bounds.w}|${bounds.h}`;
+  const lastFrame = useRef(frame);
+  useLayoutEffect(() => {
+    if (lastFrame.current === frame) return;
+    lastFrame.current = frame;
+    commit(initial());
+  }, [frame]);
+
   /**
    * Mid-gesture (drag, pinch, wheel): moves the picture already drawn with a CSS transform instead of
    * redrawing the board at a new viewBox for every pointer event. The browser only shifts and scales

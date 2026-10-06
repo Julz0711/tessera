@@ -137,6 +137,9 @@ function ActionButton({
   );
 }
 
+/** On phones a key's menu is a sheet over the hand, the width of the dock. */
+const PHONE_SHEET = 'max-sm:inset-x-0 max-sm:rounded-[6px] max-sm:border-2 max-sm:border-ink max-sm:bg-sea-800 max-sm:p-1.5';
+
 /**
  * `hand: false` leaves the hand and the trade panel out (wide screens give them their own corner, see
  * GameScreen); `timer: false` leaves the countdown off End turn (it sits above it instead, see TurnBar).
@@ -226,6 +229,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
     fn();
     setBuildOpen(false);
   };
+  const buildKeys = 3 + (voyage ? 1 : 0) + (ck ? 2 : 0);
   const builds = [
     roadOk,
     voyage && shipOk,
@@ -237,14 +241,21 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
   return (
     <div className={`game-dock flex w-full min-w-0 flex-col items-center gap-2 sm:w-auto ${hand ? '' : 'h-full'}`}>
       {hand && ui.panel === 'trade' && <TradePanel view={view} />}
-      {hand && <Hand view={view} />}
+      {/* The hand on a white tray, as in the wide screens' bottom bar. */}
+      {hand && (
+        <div className="paper w-full p-0 sm:w-auto">
+          <Hand view={view} tray />
+        </div>
+      )}
 
       <div role="group" aria-label="Game actions" className={`game-actions relative grid w-full ${hand ? '' : 'h-full'} auto-cols-fr grid-flow-col gap-1.5 sm:w-auto sm:gap-2`}>
         <div
           ref={menuRef}
           role="menu"
           aria-label="Build"
-          className={`${buildOpen ? 'grid' : 'hidden'} animate-rise absolute bottom-full right-0 z-30 mb-2 w-max max-w-[calc(100vw-16px)] grid-flow-col gap-1.5 max-sm:grid-flow-row max-sm:grid-cols-4 sm:gap-2`}
+          // Phones: one sheet across the screen, covering the hand, in as few even rows as the builds allow.
+          style={{ '--cols': buildKeys === 6 ? 3 : buildKeys } as React.CSSProperties}
+          className={`${buildOpen ? 'grid' : 'hidden'} animate-rise absolute bottom-full z-30 mb-2 gap-1.5 ${PHONE_SHEET} max-sm:grid-cols-[repeat(var(--cols),minmax(0,1fr))] sm:right-0 sm:w-max sm:grid-flow-col sm:gap-2`}
         >
           <ActionButton
             label="Road"
@@ -338,12 +349,13 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
         )}
         {ck && (
           // The key and its menu together, so the menu rises centred over the key.
-          <div className="relative grid">
+          // (Phones: the menu spans the dock instead, so it's placed against that.)
+          <div className="grid sm:relative">
             <div
               ref={improveRef}
               role="menu"
               aria-label="Improve"
-              className={`${open === 'improve' ? 'flex' : 'hidden'} animate-rise absolute bottom-full left-1/2 z-30 mb-2 w-max -translate-x-1/2 gap-1.5 sm:gap-2`}
+              className={`${open === 'improve' ? 'flex max-sm:grid' : 'hidden'} animate-rise absolute bottom-full z-30 mb-2 gap-1.5 ${PHONE_SHEET} max-sm:grid-cols-3 sm:left-1/2 sm:w-max sm:-translate-x-1/2 sm:gap-2`}
             >
               <ImproveOptions view={view} onDone={() => setOpen(null)} />
             </div>
