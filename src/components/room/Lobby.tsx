@@ -52,6 +52,7 @@ import {
 import { ChatPanel } from "./ChatPanel";
 import { FriendsPanel } from "@/components/social/FriendsPanel";
 import { MapPreview } from "./MapPreview";
+import { ModeArt, TileCarousel } from "./TileCarousel";
 
 export function formatCode(code: string): string {
   return `${code.slice(0, 4)}-${code.slice(4)}`;
@@ -276,40 +277,6 @@ function MapInfo({ map }: { map: MapId }) {
   );
 }
 
-function MapSegmented({
-  type,
-  value,
-  onChange,
-  disabled,
-}: {
-  type: GameType;
-  value: MapId;
-  onChange: (v: MapId) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {mapsForType(type).map(({ id: o }) => (
-        <button
-          key={o}
-          type="button"
-          disabled={disabled}
-          onClick={() => onChange(o)}
-          aria-pressed={value === o}
-          className={`flex flex-col items-center gap-1 rounded-md border-2 px-3 py-1.5 text-sm font-bold transition disabled:cursor-default ${
-            value === o
-              ? "border-ink bg-pick"
-              : "border-ink bg-white enabled:hover:bg-paper-2"
-          } ${disabled && value !== o ? "opacity-40" : ""}`}
-        >
-          <MapPreview map={o} size={64} />
-          {MAPS[o].name}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function Toggle({
   checked,
   onChange,
@@ -353,24 +320,25 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
     <div className="grid gap-4">
       <div className="grid gap-1.5">
         <span className="label">Mode</span>
-        <Segmented
+        <TileCarousel
+          label="Mode"
           value={type}
-          options={GAME_TYPES.map((t) => t.id).filter(
+          tiles={GAME_TYPES.filter(
             (t) =>
               FEATURES.citiesAndKnights ||
-              (t !== "ck" &&
-                mapsForType(t).some((m) => m.modes.includes("classic"))),
-          )}
-          format={(t) => GAME_TYPES.find((g) => g.id === t)!.label}
+              (t.id !== "ck" &&
+                mapsForType(t.id).some((m) => m.modes.includes("classic"))),
+          ).map((t) => ({ value: t.id, label: t.label, art: <ModeArt type={t.id} /> }))}
           onChange={(t) => set(gameTypeSettings(t, { map, mode: s.mode }))}
           disabled={!host}
         />
       </div>
       <div className="grid gap-1.5">
         <span className="label">Map</span>
-        <MapSegmented
-          type={type}
+        <TileCarousel
+          label="Map"
           value={map}
+          tiles={mapsForType(type).map((m) => ({ value: m.id, label: m.name, art: <MapPreview map={m.id} size={64} /> }))}
           onChange={(next) => set({ map: next })}
           disabled={!host}
         />
