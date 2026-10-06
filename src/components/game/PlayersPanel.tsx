@@ -73,7 +73,7 @@ function CardIcon({
 const HAND_BG = 'repeating-linear-gradient(135deg, #ecdfc4 0 3px, #dccaa6 3px 6px)';
 /** A hand over the limit: a 7 now would cost that player half their cards. */
 const WARN_BG = 'repeating-linear-gradient(135deg, #f3b1a8 0 3px, #e5897d 3px 6px)';
-const DEV_BG = '#1d5a6b';
+const DEV_BG = '#0f2f3b';
 
 /** Progress cards per track, the way their coloured backs show at the table (what a Spy would find). */
 export function ProgressCounts({ tracks }: { tracks: Record<Track, number> }) {

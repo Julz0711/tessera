@@ -307,7 +307,7 @@ function Ribbon({ color, size, children }: { color: string; size: CardSize; chil
 }
 
 /** Development cards share the sea-teal face; each has its own low-poly art. */
-const DEV_BG = '#1d5a6b';
+const DEV_BG = '#0f2f3b';
 
 /** A development card (classic), grouped by type with a count. */
 export function DevCardFace({

@@ -4,7 +4,7 @@ import { ArrowLeft, Check, Hammer, Hourglass, Landmark, Settings, Trash2, X } fr
 import Link from 'next/link';
 import { useState } from 'react';
 import type { PlayerColor } from '@/engine';
-import { AskCard, ResourceCard } from '@/components/game/cards';
+import { AskCard, DevCardFace, ResourceCard } from '@/components/game/cards';
 import { ColorPicker } from '@/components/ui/ColorPicker';
 import { RoadGlyph, SettlementGlyph } from '@/components/ui/Glyphs';
 import { Kbd } from '@/components/ui/Kbd';
@@ -133,6 +133,8 @@ export function DesignPage() {
               <ResourceCard card="brick" count={3} size="md" />
               <ResourceCard card="grain" count={0} size="md" />
               <AskCard size="md" />
+              <DevCardFace type="knight" size="md" />
+              <DevCardFace type="monopoly" size="md" />
               <span className="relative inline-grid h-10 w-10 place-items-center rounded-md border-2 border-ink bg-paper">
                 <span className="hex-badge -right-2 -top-2.5 w-6 text-[11px]">4</span>
               </span>
