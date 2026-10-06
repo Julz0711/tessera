@@ -158,7 +158,76 @@ function FogGlyphs({
   );
 }
 
-/** Build-hint marker: a cream ring with thin dark edges, legible on every terrain. */
+/**
+ * Sticker outline for a piece you can pick: an amber band with an ink edge traced round its
+ * silhouette, the board's take on the app's ink-outlined, amber "do this" keys.
+ */
+function HaloFilter() {
+  return (
+    <defs>
+      <filter id="piece-halo" x="-60%" y="-60%" width="220%" height="220%">
+        <feMorphology in="SourceAlpha" operator="dilate" radius="3.5" result="band" />
+        <feMorphology in="SourceAlpha" operator="dilate" radius="5.5" result="edge" />
+        <feFlood floodColor="#1f1a14" />
+        <feComposite in2="edge" operator="in" result="ink" />
+        <feFlood floodColor="#f2b33d" />
+        <feComposite in2="band" operator="in" result="amber" />
+        <feMerge>
+          <feMergeNode in="ink" />
+          <feMergeNode in="amber" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+    </defs>
+  );
+}
+
+/**
+ * A building redrawn with the halo on top of itself. Idle it breathes (a target to click);
+ * hovered it holds and grows a touch. `preview` swaps in a city, for a settlement you'd upgrade.
+ */
+function PieceHalo({
+  x,
+  y,
+  b,
+  color,
+  theme,
+  k,
+  hover,
+  preview,
+}: {
+  x: number;
+  y: number;
+  b: { city?: boolean; metropolis?: Track | null };
+  color: PlayerColor;
+  theme: BoardThemeId;
+  k: number;
+  hover: boolean;
+  preview?: "city";
+}) {
+  const piece =
+    preview === "city" ? (
+      <CityPath x={x} y={y} color={color} theme={theme} />
+    ) : b.metropolis ? (
+      <MetropolisPath x={x} y={y} color={color} track={b.metropolis} theme={theme} />
+    ) : b.city ? (
+      <CityPath x={x} y={y} color={color} theme={theme} />
+    ) : (
+      <HousePath x={x} y={y} color={color} theme={theme} />
+    );
+  return (
+    <g pointerEvents="none" transform={grow(x, y, k * (hover ? 1.08 : 1))}>
+      <g filter="url(#piece-halo)" opacity={hover ? 1 : undefined}>
+        {piece}
+        {!hover && (
+          <animate attributeName="opacity" values="0.25;1;0.25" dur="1.6s" repeatCount="indefinite" />
+        )}
+      </g>
+    </g>
+  );
+}
+
+/** Build-hint marker: an amber ring with ink edges, matching the piece halo. */
 function HintRing({
   x,
   y,
@@ -180,16 +249,15 @@ function HintRing({
         r={r}
         fill="none"
         stroke="#1f1a14"
-        strokeOpacity="0.55"
-        strokeWidth="5.5"
+        strokeWidth="7"
       />
       <circle
         cx={x}
         cy={y}
         r={r}
-        fill={filled ? "rgba(246,237,219,0.6)" : "none"}
-        stroke={hover ? "#fff3cf" : "#f6eddb"}
-        strokeWidth="2.75"
+        fill={filled ? "rgba(242,179,61,0.35)" : "none"}
+        stroke="#f2b33d"
+        strokeWidth="3.5"
       />
     </g>
   );
@@ -1213,12 +1281,14 @@ export default function Board2D({
                 </g>
               );
             })}
+          <HaloFilter />
           {onVertex &&
             targets.vertices.map((vid) => {
               const p = topo.vertices[vid];
               const key = `v${vid}`;
               const isHover = hover === key;
               const kind = targets.vertexKinds?.[vid] ?? targets.kind;
+              const own = scene.buildings[vid];
               return (
                 <g
                   key={key}
@@ -1241,7 +1311,7 @@ export default function Board2D({
                       theme={theme}
                     />
                   )}
-                  {isHover && myColor && kind === "city" && (
+                  {isHover && myColor && kind === "city" && !own && (
                     <CityPath
                       x={p.x * S}
                       y={p.y * S}
@@ -1251,8 +1321,22 @@ export default function Board2D({
                       theme={theme}
                     />
                   )}
-                  {kind === "cityImprove" ? (
-                    // Your city (C&K): no marker until hovered, then a ring round it, like a wall hint.
+                  {own && (kind === "city" || kind === "cityImprove" || kind === "wall" || !targets.hint) && kind !== "knightAction" ? (
+                    // A building of yours: traced with the halo. A settlement to upgrade previews its city;
+                    // your cities (C&K improvements) and build hints stay unmarked until hovered.
+                    (isHover || (!targets.hint && kind !== "cityImprove")) && (
+                      <PieceHalo
+                        x={p.x * S}
+                        y={p.y * S}
+                        b={own}
+                        color={scene.colors[own.owner]}
+                        theme={theme}
+                        k={ps}
+                        hover={isHover}
+                        preview={kind === "city" && isHover ? "city" : undefined}
+                      />
+                    )
+                  ) : kind === "cityImprove" ? (
                     isHover && <HintRing x={p.x * S} y={p.y * S} r={30} filled={false} hover />
                   ) : kind === "knightAction" ? (
                     <circle
@@ -1364,6 +1448,17 @@ export default function Board2D({
                       ghost
                       k={ps}
                       theme={theme}
+                    />
+                  ) : armed.what === "city" && scene.buildings[armed.at] ? (
+                    <PieceHalo
+                      x={p.x * S}
+                      y={p.y * S}
+                      b={scene.buildings[armed.at]!}
+                      color={myColor}
+                      theme={theme}
+                      k={ps}
+                      hover
+                      preview="city"
                     />
                   ) : armed.what === "city" ? (
                     <CityPath
