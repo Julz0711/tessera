@@ -27,6 +27,70 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: "1.9",
+    date: "2026-10-06",
+    summary: "A new look for the whole game, a bottom bar like the big Catan sites, \"?\" trade offers and a proper phone layout.",
+    sections: [
+      {
+        title: "A new look",
+        icon: "board",
+        items: [
+          "Every screen shares one style: clear dark outlines, white keys, amber for the next thing to do, pale blue for what you picked and red for ending or leaving.",
+          "Pieces are a little bigger. Every theme has its own metropolis, and knights are now a simple shield in every theme, so they read at a glance.",
+          "In 3D, pieces sit on the board instead of floating above it.",
+          "Dice are white, and while it's your turn they gently pulse: click them (or press R) to roll. There is no Roll button any more.",
+          "Where you can build, a gold halo marks the spot, and a city shows up as a preview when you point at a settlement.",
+        ],
+      },
+      {
+        title: "The bottom bar",
+        icon: "hand",
+        items: [
+          "Your cards, your keys and your own player card now sit in one bar along the bottom. The other players' cards stack right above yours, in the order they play after you.",
+          "Keys: Trade, Improve (Knights & Barbarians) or Progress (Classic), Build, End turn. Build opens a menu with a price on every piece, and a badge shows how many things you can afford.",
+          "Keyboard shortcuts, shown on the keys: R road (and roll), S ship, A settlement, C city, Q knight, W wall, T trade, X improve, D build, E end turn, V progress card, Y emote.",
+          "Your hand fits all eight card types, and the trade panel opens directly above your cards.",
+          "Barbarians: the progress panel is see-through and sits at the left edge. Choose the tall track or a small panel under Settings → Barbarian track.",
+        ],
+      },
+      {
+        title: "Trading",
+        icon: "trade",
+        items: [
+          "New \"?\" card: put it in the offer to ask what the others would give you. They answer with counter-offers.",
+          "Trade is only available on your turn. When it isn't, answer incoming offers with Accept or Counter-offer.",
+        ],
+      },
+      {
+        title: "On a phone",
+        icon: "players",
+        items: [
+          "Wide maps turn a quarter turn when you hold your phone upright, so the island fills the screen. Switch it off under Settings → Turn wide maps.",
+          "Your hand sits on a white tray, Build and Improve open as big panels across the screen, and all players fit in the strip without scrolling.",
+          "Settings tabs fit on the screen.",
+        ],
+      },
+      {
+        title: "Around the game",
+        icon: "log",
+        items: [
+          "Reactions live in the top bar next to the room code, and your emoji briefly replaces your profile picture.",
+          "Leaderboard and game history filters are quick toggles instead of drop-down lists.",
+          "Zoom buttons are off by default; turn them on under Settings → Accessibility.",
+        ],
+      },
+      {
+        title: "Maps",
+        icon: "map",
+        items: [
+          "Veiled Isles: the fog now hides a fixed mix, two sea, two gold, one desert and two of each resource.",
+          "Vulcan: no 2s or 12s in the fog.",
+        ],
+        maps: ["veiledIsles", "vulcan"],
+      },
+    ],
+  },
+  {
     version: "1.8",
     date: "2026-10-03",
     summary: "Live stats, background music, the barbarians always in view, and fairer trading.",
@@ -37,7 +101,7 @@ export const PATCH_NOTES: PatchNote[] = [
         items: [
           "Live stats: open Menu → Live stats (or Full stats under the dice) for the whole match report while you play. It updates as the game goes on and shows only what everyone can see.",
           "Background music: calm music with a different mood for each board theme. It's off by default: turn it on under Settings → Audio, or from the in-game menu.",
-          "Knights & Barbarians: the barbarian ship's progress now has its own panel under the game log, so it stays in view however far you zoom in. Move it like the other panels; on phones it leads the players strip. An arrow on the board shows the ship's course.",
+          "Knights & Barbarians: the barbarian ship's progress now has its own panel under the game log, so it stays in view however far you zoom in. Move it like the other panels; on phones it leads the players strip.",
           "The game is in beta, and now says so: look for the tag next to the name.",
         ],
       },
@@ -50,20 +114,11 @@ export const PATCH_NOTES: PatchNote[] = [
         ],
       },
       {
-        title: "Rule fixes",
+        title: "Rules",
         icon: "hand",
         items: [
-          "Deserter: the knight you place keeps the deserter's status, so an active knight stays active.",
-          "Master Merchant: you can only pick a player with more points than you; a tie isn't enough.",
           "City improvements show the full price of every level, and the Crane's discount right on the button.",
-          "Treasure chests are collected by roads too, not just ships.",
         ],
-      },
-      {
-        title: "Maps",
-        icon: "map",
-        items: ["Veiled Isles: the fog always hides exactly two sea tiles."],
-        maps: ["veiledIsles"],
       },
     ],
   },
@@ -78,7 +133,6 @@ export const PATCH_NOTES: PatchNote[] = [
         items: [
           "New rulebook: open Rules from the menu, in a game or on the home screen. It opens on the rules of the game you're playing, with every mode one tap away.",
           "Every build button now shows what it costs. Cards you already have light up, missing ones are greyed out, so you see at a glance what you still need.",
-          "The bank tells you why you can't trade yet, and the trade panel labels which row you give and which you get.",
         ],
       },
       {
@@ -94,10 +148,9 @@ export const PATCH_NOTES: PatchNote[] = [
         title: "Board",
         icon: "board",
         items: [
-          "Night, Cyberpunk and Orbital are much easier to read in 2D and 3D: every terrain and every player's pieces stand out, and the lanterns no longer look like build spots.",
+          "Night, Cyberpunk and Orbital are much easier to read in 2D and 3D: every terrain and every player's pieces stand out.",
           "Sakura settlements are now tea houses, and the Nile barbarians sail a proper reed boat.",
-          "Roads stop at city walls instead of running through them, and the Nile wall is solid.",
-          "The robber stands beside the number instead of hiding it, metropolis towers no longer clip into themed cities, and harbor signs and the pirate keep out of each other's way.",
+          "The robber stands beside the number instead of hiding it.",
         ],
       },
     ],
