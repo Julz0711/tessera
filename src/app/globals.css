@@ -1,13 +1,5 @@
 @import 'tailwindcss';
 
-/* A key's shaded corner colour, registered so hover can fade it. It must sit outside any @layer (browsers
-   ignore @property there) and start from an absolute colour. */
-@property --btn-corner {
-  syntax: '<color>';
-  inherits: false;
-  initial-value: #e3ebec;
-}
-
 /* ── Design tokens ─────────────────────────────────────────────────────────
    Night sea + warm paper game components. Terrain/resource palette is shared
    with the 3D and 2D boards (see src/client/palette.ts). */
@@ -337,7 +329,6 @@ body {
   --btn-shade: #e3ebec;
   --btn-fg: var(--color-ink);
   --btn-line: var(--color-ink);
-  --btn-corner: var(--btn-shade);
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -345,27 +336,24 @@ body {
   gap: 0.5rem;
   border: 2px solid var(--btn-line);
   border-radius: 4px;
-  background: linear-gradient(135deg, var(--btn-bg) calc(100% - 0.85rem), var(--btn-corner) 0);
+  /* The shaded corner is a triangle tile pinned bottom right; hover grows the tile until its
+     diagonal sweeps past the far corner, flooding the key with the shade. Background size
+     animates natively, so the fill is smooth in every browser. */
+  background:
+    linear-gradient(135deg, transparent 50%, var(--btn-shade) 50%) right bottom / 1.2rem 1.2rem no-repeat,
+    var(--btn-bg);
   color: var(--btn-fg);
   font-weight: 700;
   letter-spacing: 0.01em;
   transition:
-    --btn-corner 0.2s ease,
-    filter 0.2s ease,
+    background-size 0.45s cubic-bezier(0.4, 0, 0.2, 1),
     scale 0.12s ease;
   user-select: none;
 }
-/* Hover: the shaded corner fades to amber ("do this"), ink on amber and red keys, and the key brightens
-   a touch. A click presses the key in slightly for a moment. */
+/* Hover: the shaded corner grows until it fills the key. A click presses the key in slightly. */
 @media (hover: hover) {
   .btn:hover:not(:disabled) {
-    --btn-corner: var(--color-amber);
-    filter: brightness(1.06);
-  }
-  .btn.btn-primary:hover:not(:disabled),
-  .btn.btn-danger:hover:not(:disabled),
-  .game-actions .btn.btn-on:hover:not(:disabled) {
-    --btn-corner: var(--color-ink);
+    background-size: 210% 210%, auto;
   }
 }
 .btn:active:not(:disabled) {
@@ -420,7 +408,8 @@ body {
 /* A control standing straight on the board: deep sea with the ink line, like the HUD panels. */
 .btn.btn-dark {
   --btn-bg: var(--color-sea-800);
-  --btn-shade: #0b2630;
+  /* darker would vanish on deep sea, so a dark key's corner (and its hover fill) is a step lighter */
+  --btn-shade: #194b5a;
   --btn-fg: #ffffff;
 }
 .btn.btn-danger {
