@@ -48,7 +48,7 @@ const Face = memo(function Face({ value, pip, bg, transform }: { value: number; 
 });
 
 /** A CSS 3D die that tumbles to `value` whenever `rollKey` changes. */
-export function Die({ value, rollKey, size = 44, bg = '#f6eddb', pip = '#1f1a14' }: { value: number; rollKey: number; size?: number; bg?: string; pip?: string }) {
+export function Die({ value, rollKey, size = 44, bg = '#ffffff', pip = '#1f1a14' }: { value: number; rollKey: number; size?: number; bg?: string; pip?: string }) {
   // Alternate the extra spin so every new roll animates, even to the same face.
   const spin = rollKey % 2 === 0 ? 'rotateX(720deg) rotateY(1080deg)' : 'rotateX(-720deg) rotateY(-1080deg)';
   return (
@@ -96,7 +96,7 @@ export function EventDie({ face, size = 44 }: { face: EventFace; size?: number }
  * A small flat die showing `value` (log lines). Drawn as SVG: at this size a CSS grid of pips
  * collapsed and every die read as a 1.
  */
-export const FlatDie = memo(function FlatDie({ value, size = 16, bg = '#f6eddb', pip = '#1f1a14' }: { value: number; size?: number; bg?: string; pip?: string }) {
+export const FlatDie = memo(function FlatDie({ value, size = 16, bg = '#ffffff', pip = '#1f1a14' }: { value: number; size?: number; bg?: string; pip?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 30 30" className="inline-block shrink-0 align-middle" role="img" aria-label={String(value)}>
       <rect x="1" y="1" width="28" height="28" rx="6.5" fill={bg} stroke="#1f1a14" strokeWidth="2" />
