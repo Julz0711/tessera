@@ -370,6 +370,12 @@ body {
   color: rgb(19 26 29 / 0.45);
   cursor: not-allowed;
 }
+/* A picked option others can't change (the lobby for guests) still reads as picked. */
+.btn.btn-on:disabled {
+  background: linear-gradient(to top left, var(--btn-shade) 50%, transparent 50%) right bottom / 1.2rem 1.2rem no-repeat, var(--btn-bg);
+  color: var(--color-ink);
+  cursor: default;
+}
 .btn:disabled svg,
 .btn:disabled .dim-group {
   color: var(--color-ink);

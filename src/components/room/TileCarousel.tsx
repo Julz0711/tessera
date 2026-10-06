@@ -63,18 +63,15 @@ export function TileCarousel<T extends string>({
     if (r) r.scrollBy({ left: dir * Math.max(120, r.clientWidth - 80), behavior: "smooth" });
   };
 
-  // Everything fits: no arrows at all, so the row lines up with the rest of the panel.
-  const fits = ends.start && ends.end;
+  // An arrow only shows while there's more that way, so the row starts flush with the panel.
   const arrow = (dir: 1 | -1) => {
-    if (fits) return null;
-    const off = dir < 0 ? ends.start : ends.end;
+    if (dir < 0 ? ends.start : ends.end) return null;
     return (
       <button
         type="button"
-        className={`btn h-auto w-8 shrink-0 self-stretch p-0 sm:w-9 ${off ? "invisible" : ""}`}
+        className="btn h-auto w-8 shrink-0 self-stretch p-0 sm:w-9"
         onClick={() => page(dir)}
         aria-label={`${dir < 0 ? "Previous" : "More"} ${label.toLowerCase()}s`}
-        tabIndex={off ? -1 : 0}
       >
         {dir < 0 ? <ChevronLeft size={18} strokeWidth={3} /> : <ChevronRight size={18} strokeWidth={3} />}
       </button>
@@ -101,9 +98,10 @@ export function TileCarousel<T extends string>({
               aria-checked={on}
               disabled={disabled}
               onClick={() => onChange(t.value)}
-              className={`flex w-26 shrink-0 snap-start flex-col items-center justify-center gap-1.5 rounded-md border-2 border-ink px-1.5 pb-2 pt-2.5 text-center text-[13px] font-extrabold leading-tight transition disabled:cursor-default ${
-                on ? "bg-pick" : "bg-white enabled:hover:bg-paper-2"
-              } ${disabled && !on ? "opacity-45" : ""}`}
+              // A key like every other: white with the shaded corner, pale blue once picked.
+              className={`btn w-26 shrink-0 snap-start flex-col gap-1.5 px-1.5 pb-2 pt-2.5 text-center text-[13px] font-extrabold leading-tight disabled:cursor-default ${
+                on ? "btn-on" : ""
+              }`}
             >
               <span className="grid h-16 place-items-center">{t.art}</span>
               <span className="flex min-h-[2lh] items-center">{t.label}</span>
