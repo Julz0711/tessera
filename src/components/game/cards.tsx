@@ -398,7 +398,7 @@ export function ProgressCardFace({ card, size = 'md', glow, onClick }: { card: P
           <Medallion cx={50} cy={50} r={31} />
         </svg>
       </span>
-      <span className="pointer-events-none absolute left-1/2 top-[35.7%] -translate-x-1/2 -translate-y-1/2" style={{ color: mix(style.color, '#1f1a14', 0.55) }}>
+      <span className="pointer-events-none absolute left-1/2 top-[35.7%] -translate-x-1/2 -translate-y-1/2" style={{ color: mix(style.color, '#131a1d', 0.55) }}>
         <Icon size={size === 'lg' ? 40 : size === 'xl' ? 28 : 20} strokeWidth={2.4} />
       </span>
       <Ribbon color={style.color} size={size}>

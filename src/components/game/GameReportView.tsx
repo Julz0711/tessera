@@ -101,7 +101,7 @@ function Matrix({ report, seats, matrix }: { report: GameReport; seats: number[]
         {seats.map((j) => {
           const v = matrix.cells[i][j];
           return <td key={j} className="p-0.5">{i === j ? <div className="grid h-9 min-w-12 place-items-center rounded-md bg-ink/5 text-ink-faint">·</div>
-            : <div className="grid h-9 min-w-12 place-items-center rounded-md font-extrabold tabular" style={{ background: v ? tint('#1d5a6b', 0.12 + 0.78 * v / max) : 'rgba(31,26,20,.04)', color: v / max > 0.5 ? '#f6eddb' : undefined }}>{v || ''}</div>}</td>;
+            : <div className="grid h-9 min-w-12 place-items-center rounded-md font-extrabold tabular" style={{ background: v ? tint('#1d5a6b', 0.12 + 0.78 * v / max) : 'rgba(19,26,29,.04)', color: v / max > 0.5 ? '#f6eddb' : undefined }}>{v || ''}</div>}</td>;
         })}
       </tr>)}</tbody>
     </table></div>

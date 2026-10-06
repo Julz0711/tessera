@@ -51,11 +51,11 @@ function CardIcon({
   const label = `${title}: ${n}${warn ? ` (${warn})` : ''}`;
   return (
     <span
-      className={`relative grid shrink-0 place-items-center rounded-md border-2 border-ink font-black shadow-[0_2px_0_0_#1f1a14] ${small ? 'h-7.5 w-5 text-[11px]' : 'h-9 w-6.5 text-sm'}`}
+      className={`relative grid shrink-0 place-items-center rounded-md border-2 border-ink font-black shadow-[0_2px_0_0_#131a1d] ${small ? 'h-7.5 w-5 text-[11px]' : 'h-9 w-6.5 text-sm'}`}
       // None held: the outline stays ink, the face pales (fading the whole icon greyed its outline).
       style={{
         background: warn ? WARN_BG : n ? bg : bg.startsWith('#') ? `color-mix(in srgb, ${bg} 30%, #fbfcfc)` : '#efe9dc',
-        color: warn ? '#5a1510' : n ? ink : 'rgb(31 26 20 / 0.35)',
+        color: warn ? '#5a1510' : n ? ink : 'rgb(19 26 29 / 0.35)',
       }}
       title={label}
       aria-label={label}
@@ -243,7 +243,7 @@ export function PlayersPanel({
             <div className={`flex items-center ${compact ? 'gap-2.5' : 'gap-3 pt-1'}`}>
               <CardIcon
                 bg={HAND_BG}
-                ink="#1f1a14"
+                ink="#131a1d"
                 n={p.handCount}
                 title="Cards in hand"
                 small={compact || ck}

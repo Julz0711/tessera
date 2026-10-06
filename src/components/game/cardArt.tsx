@@ -24,7 +24,7 @@ interface Art {
   shadow: { cx: number; cy: number; rx: number; ry: number };
 }
 
-const INK = '#1f1a14';
+const INK = '#131a1d';
 
 // ── colour ───────────────────────────────────────────────────────────────────
 

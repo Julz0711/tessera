@@ -16,7 +16,7 @@ function House({ color, city, size }: { color: PlayerColor; city?: boolean; size
         d={city ? 'M-26 17v-18l12-9 12 9v-18h9v-8h8v8h9v36Z' : 'M-17 14v-17l17-14 17 14v17Z'}
         fill={c.hex}
         // On paper a white piece's pale trim disappears: it gets the ink outline instead.
-        stroke={color === 'white' ? '#1f1a14' : c.dark}
+        stroke={color === 'white' ? '#131a1d' : c.dark}
         strokeWidth={OUTLINE}
         strokeLinejoin="round"
       />

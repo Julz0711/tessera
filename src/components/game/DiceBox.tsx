@@ -63,7 +63,7 @@ export function DiceBox({
           {roll?.dice.event && <EventDie face={roll.dice.event} size={Math.round(size * 0.62)} />}
           {/* No roll yet this game: the dice wait face up, dimmed. */}
           <span className={`flex items-center gap-1.5 ${roll ? '' : 'opacity-60'}`}>
-            <Die size={size} value={roll?.dice.red ?? 1} rollKey={roll?.key ?? 0} bg={ck ? '#d9483b' : '#ffffff'} pip={ck ? '#fff7f0' : '#1f1a14'} />
+            <Die size={size} value={roll?.dice.red ?? 1} rollKey={roll?.key ?? 0} bg={ck ? '#d9483b' : '#ffffff'} pip={ck ? '#fff7f0' : '#131a1d'} />
             <Die size={size} value={roll?.dice.yellow ?? 1} rollKey={(roll?.key ?? 0) + 1} bg={ck ? '#f2c14e' : '#ffffff'} />
           </span>
         </div>
