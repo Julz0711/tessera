@@ -212,7 +212,7 @@ export function ResourceCard({
 /** The "?" card: an open trade offer asks the others what they'd give instead of naming it. */
 export function AskCard({ size = 'md', onClick, selected }: { size?: CardSize; onClick?: () => void; selected?: boolean }) {
   return (
-    <CardShell bg="#ffffff" ink="#1f1a14" size={size} title="Anything: ask what they'd give" onClick={onClick} selected={selected}>
+    <CardShell bg="#0f2f3b" ink="#ffffff" size={size} title="Anything: ask what they'd give" onClick={onClick} selected={selected}>
       <span aria-hidden className={`font-black leading-none ${size === 'xs' ? 'text-lg' : size === 'sm' ? 'text-2xl' : 'text-4xl'}`}>
         ?
       </span>
