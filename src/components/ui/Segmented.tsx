@@ -2,7 +2,7 @@
 
 /**
  * A row of mutually exclusive options in one track (S · M · L, On · Off): the chosen one is
- * printed as a raised cream key, the rest sit flat in the track.
+ * printed as a pale blue key in the ink line, the rest sit flat in the track.
  */
 export function Segmented<T extends string | boolean>({
   value,

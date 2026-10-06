@@ -6,6 +6,7 @@ import { useUrlFilters } from '@/client/urlFilters';
 import { MAPS } from '@/engine/maps';
 import type { FriendInfo, GameSummary, HistoryData } from '@/shared/protocol';
 import { MODE_LABEL, ratingPoolFor, isRatingPool } from '@/shared/ratings';
+import { Segmented } from '@/components/ui/Segmented';
 
 const DEFAULTS = { mode: 'all', map: 'all', result: 'all', rating: 'all', from: '', to: '', friend: '' };
 function GameRow({ game: g }: { game: GameSummary }) {
@@ -57,14 +58,18 @@ export function GameHistory() {
   const filters = [
     ['mode', 'Mode', [['all', 'All modes'], ...Object.entries(MODE_LABEL)]],
     ['map', 'Map', [['all', 'All maps'], ...Object.values(MAPS).map((m) => [m.id, m.name])]],
-    ['result', 'Result', [['all', 'All results'], ['win', 'Wins'], ['other', 'Other results']]],
-    ['rating', 'Rating', [['all', 'All games'], ['rated', 'Rated'], ['unrated', 'Unrated']]],
     ['friend', 'Played with', [['', 'Anyone'], ...friends.map((f) => [f.code, f.name])]],
   ] as const;
+  // Short choices are segmented controls, as everywhere else; long lists stay dropdowns.
+  const toggles = [
+    ['result', 'Result', [['all', 'All'], ['win', 'Wins'], ['other', 'Other']]],
+    ['rating', 'Rating', [['all', 'All'], ['rated', 'Rated'], ['unrated', 'Unrated']]],
+  ] as const;
   return <section className="grid gap-4">
-    <div><h1 className="display text-3xl font-black text-paper">Game history</h1><p className="mt-1 text-sm text-foam/70">Find a match, then open its report.</p></div>
-    <div className="paper grid gap-4 p-4">
+    <div className="paper grid gap-4 p-5 sm:p-7">
+      <div><h1 className="display text-4xl font-black">Game history</h1><p className="mt-2 text-sm text-ink-soft">Find a match, then open its report.</p></div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{filters.map(([key, label, options]) => <label key={key} className="grid gap-1.5"><span className="label">{label}</span><select className="w-full min-w-0 input text-sm" value={get(key)} onChange={(e) => change({ [key]: e.target.value })}>{options.map(([v, name]) => <option key={v} value={v}>{name}</option>)}</select></label>)}
+        {toggles.map(([key, label, options]) => <div key={key} className="grid content-start gap-1.5"><span className="label">{label}</span><Segmented label={label} value={get(key)} options={options.map(([v, name]) => ({ value: v as string, label: name }))} onChange={(v) => change({ [key]: v })} /></div>)}
         {(['from', 'to'] as const).map((key) => <label key={key} className="grid gap-1.5"><span className="label">{key === 'from' ? 'From (UTC)' : 'Through (UTC)'}</span><input type="date" className="min-w-0 input text-sm" value={get(key)} onChange={(e) => change({ [key]: e.target.value })} /></label>)}
       </div>
       <button type="button" className="justify-self-start text-xs font-bold underline" onClick={() => change(Object.fromEntries(Object.keys(DEFAULTS).map((key) => [key, null])))}>Clear filters</button>

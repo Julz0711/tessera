@@ -258,7 +258,7 @@ function MapInfo({ map }: { map: MapId }) {
       {needs.map((tag) => (
         <span
           key={tag}
-          className="rounded-full bg-ink/10 px-2 py-0.5 font-black uppercase tracking-wide"
+          className="rounded-[4px] border-2 border-ink bg-white px-1.5 py-px text-[11px] font-black uppercase tracking-wide text-ink"
         >
           {tag === "seafarers" ? "Voyagers" : tag}
         </span>
@@ -266,7 +266,7 @@ function MapInfo({ map }: { map: MapId }) {
       {onlyModes.map((mode) => (
         <span
           key={mode}
-          className="rounded-full bg-amber/25 px-2 py-0.5 font-black uppercase tracking-wide"
+          className="rounded-[4px] border-2 border-ink bg-white px-1.5 py-px text-[11px] font-black uppercase tracking-wide text-ink"
         >
           {mode === "ck" ? "K&B" : "Classic only"}
         </span>
@@ -585,7 +585,7 @@ export function Lobby({ room }: { room: RoomDTO }) {
             )}
           </div>
           <SettingsPanel room={room} />
-          <p className="rounded-xl bg-paper-2 p-3 text-xs font-semibold text-ink-soft">
+          <p className="rounded-xl border-2 border-ink bg-paper-2 p-3 text-xs font-semibold text-ink-soft">
             {room.seats.filter((s) => !s.isBot && !s.isGuest).length >= 2
               ? `Rated for signed-in players · ${MODE_LABEL[ratingPoolFor(room.settings.mode, room.settings.map)]} Elo. Maps share this mode’s ladder.`
               : 'Unrated · Add at least two signed-in players for mode Elo. Bots and guests do not receive ratings.'}
@@ -601,7 +601,7 @@ export function Lobby({ room }: { room: RoomDTO }) {
               {room.seats.length < 2 ? "Add a player or bot" : "Start game"}
             </button>
           ) : (
-            <p className="rounded-xl bg-paper-2 px-4 py-3 text-center text-sm font-bold text-ink-soft">
+            <p className="rounded-xl border-2 border-ink bg-paper-2 px-4 py-3 text-center text-sm font-bold text-ink-soft">
               Waiting for the host to start…
             </p>
           )}

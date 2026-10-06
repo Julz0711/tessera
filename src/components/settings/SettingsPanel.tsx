@@ -57,12 +57,13 @@ export function SettingsPanel() {
 
   return (
     <div className="settings-panel grid h-full min-h-0 min-w-0 gap-4 sm:grid-cols-[9rem_1fr] sm:gap-6">
-      <div className="scroll-thin flex min-w-0 gap-1.5 overflow-x-auto pb-1 sm:flex-col sm:overflow-visible sm:pb-0" aria-label="Settings categories">
+      {/* Phones: all six categories at once, three a row, icon over label; wider: a column of keys. */}
+      <div className="grid min-w-0 grid-cols-3 gap-1.5 sm:flex sm:flex-col" aria-label="Settings categories">
         {TABS.map((t) => (
           <button
             key={t.id}
             type="button"
-            className={`btn shrink-0 justify-start gap-2 px-3 py-2 text-sm ${tab === t.id ? 'btn-on' : ''}`}
+            className={`btn min-w-0 flex-col gap-1 px-1 py-2 text-xs sm:flex-row sm:justify-start sm:gap-2 sm:px-3 sm:text-sm ${tab === t.id ? 'btn-on' : ''}`}
             onClick={() => setTab(t.id)}
             aria-pressed={tab === t.id}
           >

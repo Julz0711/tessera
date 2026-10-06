@@ -85,8 +85,8 @@ export function ProfilePage() {
         {failed && <p className="paper p-5">Couldn&apos;t load your profile. Is the server running?</p>}
         {authError && <p className="paper-flat p-3 text-sm font-semibold text-terracotta">Sign-in didn&apos;t go through. Give it another try.</p>}
 
-        {data && <nav aria-label="Profile sections" className="flex gap-2">{['overview', 'history', 'friends'].map((name) => (
-          <button key={name} type="button" aria-pressed={tab === name} onClick={() => change({ tab: name })} className={`btn px-4 py-2 capitalize ${tab === name ? 'btn-on' : 'btn-dark'}`}>{name}</button>
+        {data && <nav aria-label="Profile sections" role="radiogroup" className="seg">{['overview', 'history', 'friends'].map((name) => (
+          <button key={name} type="button" role="radio" aria-checked={tab === name} onClick={() => change({ tab: name })} className="seg-opt px-4 capitalize">{name}</button>
         ))}</nav>}
         {data && tab === 'overview' && (
           <section className="paper animate-rise grid grid-cols-[minmax(0,1fr)] gap-6 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:p-7">
@@ -126,13 +126,13 @@ export function ProfilePage() {
                 )}
               </div>
               {!data.session.persistence && (
-                <p className="flex items-start gap-2 rounded-xl bg-paper-2 p-3 text-xs font-semibold text-ink-soft">
+                <p className="flex items-start gap-2 rounded-xl border-2 border-ink bg-paper-2 p-3 text-xs font-semibold text-ink-soft">
                   <Database size={14} className="mt-0.5 shrink-0" />
                   This server runs without a database, so stats and history aren&apos;t kept between visits. Everything else works.
                 </p>
               )}
             </div>
-            <div className="flex min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-2xl bg-paper-2 p-3">
+            <div className="flex min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-2xl border-2 border-ink bg-paper-2 p-3">
               <KnightPreview3D knight={knight} color={color} size={200} />
               <span className="label">Your knight</span>
             </div>

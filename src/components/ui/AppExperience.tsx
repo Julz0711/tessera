@@ -112,7 +112,7 @@ export function AppExperience({ children }: { children: React.ReactNode }) {
               <li><PlusSquare size={21} /><span>Choose <b>Add to Home Screen</b>. Scroll down if you don’t see it.</span></li>
               <li><Smartphone size={21} /><span>Keep <b>Open as Web App</b> on if shown, then tap <b>Add</b>.</span></li>
             </ol>
-          ) : <p className="rounded-xl bg-paper-2 p-4 text-sm">Open your browser’s menu and choose <b>Install app</b> or <b>Add to Home Screen</b>. On iPhone or iPad, open this page in Safari, tap Share, then Add to Home Screen.</p>}
+          ) : <p className="rounded-xl border-2 border-ink bg-paper-2 p-4 text-sm">Open your browser’s menu and choose <b>Install app</b> or <b>Add to Home Screen</b>. On iPhone or iPad, open this page in Safari, tap Share, then Add to Home Screen.</p>}
           <p className="text-xs text-ink-faint">Free, with no App Store download. An internet connection is needed to play. Install before starting a game; your browser and installed app may use separate guest profiles. Sign in to use the same profile everywhere.</p>
         </div>
       </Modal>

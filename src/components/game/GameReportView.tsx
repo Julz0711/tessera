@@ -55,7 +55,7 @@ function CompareTable({ report, seats, category, viewer }: { report: GameReport;
       </div>}
     </td>;
   };
-  return <div className="scroll-thin overflow-x-auto rounded-xl border-2 border-ink/15 bg-paper">
+  return <div className="scroll-thin overflow-x-auto rounded-xl border-2 border-ink bg-paper">
     <table className="w-full border-collapse text-sm">
       <caption className="sr-only">{category.label}: players compared side by side. The best value in each row is marked.</caption>
       <thead><tr className="bg-paper-2">

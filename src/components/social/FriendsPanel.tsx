@@ -17,7 +17,7 @@ const STATUS: Record<FriendInfo['status'], { label: string; dot: string }> = {
 
 function Person({ card, sub, children, profile = false }: { card: PlayerCard; sub?: React.ReactNode; children?: React.ReactNode; profile?: boolean }) {
   return (
-    <li className="flex items-center gap-2.5 rounded-xl bg-paper-2/70 p-1.5 pr-2">
+    <li className="flex items-center gap-2.5 rounded-xl border-2 border-ink bg-paper-2/70 p-1.5 pr-2">
       <PlayerPortrait knight={card.knight} color={card.color} avatarUrl={card.avatarUrl} frame={card.cosmetics.frame} size={40} />
       <div className="min-w-0 flex-1">
         <p className="flex items-center gap-1.5 truncate text-sm font-extrabold leading-tight">

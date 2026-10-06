@@ -131,14 +131,17 @@ export function AdminPage() {
           <Link href="/" className="flex items-center gap-2 text-sm font-bold text-foam/70 hover:text-paper">
             <ArrowLeft size={16} /> Home
           </Link>
-          <Logomark size={28} />
+          <div className="flex items-center gap-3">
+            <Link href="/design" className="btn btn-dark px-3 py-1.5 text-sm">Design language</Link>
+            <Logomark size={28} />
+          </div>
         </div>
       <section className="paper grid gap-5 p-5 sm:p-7">
         <div><h1 className="display text-4xl font-black">Admin</h1>
           <p className="mt-2 text-sm text-ink-soft">Changes apply to the live database straight away. For a formal personal-data erasure request, use <code>npm run privacy:delete</code> instead.</p></div>
         {overview && <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {([['Users', overview.users], ['Guests', overview.guests], ['Games', `${overview.games} (${overview.finished} finished)`], ['Live tables', `${overview.liveRooms} (${overview.livePlaying} playing)`]] as const)
-            .map(([k, v]) => <div key={k} className="rounded-xl bg-paper-2/70 p-3"><dt className="label">{k}</dt><dd className="text-lg font-black tabular">{v}</dd></div>)}
+            .map(([k, v]) => <div key={k} className="rounded-xl border-2 border-ink bg-paper-2/70 p-3"><dt className="label">{k}</dt><dd className="text-lg font-black tabular">{v}</dd></div>)}
         </dl>}
         <div role="tablist" aria-label="Tables" className="flex gap-1.5">
           {(['games', 'users', 'guests'] as const).map((t) => <button key={t} role="tab" aria-selected={tab === t} className={`btn px-3 py-2 text-sm capitalize ${tab === t ? 'btn-on' : ''}`} onClick={() => switchTab(t)}>{t}</button>)}

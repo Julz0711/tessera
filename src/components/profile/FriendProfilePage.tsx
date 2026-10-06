@@ -75,7 +75,7 @@ export function FriendProfilePage({ code }: { code: string }) {
                   ['Win rate', stats.gamesPlayed ? `${Math.round(stats.gamesWon / stats.gamesPlayed * 100)}%` : '—'],
                   ['Shared games', data.headToHead.games],
                 ].map(([label, value]) => (
-                  <div key={label} className="rounded-xl bg-paper-2 px-3 py-3">
+                  <div key={label} className="rounded-xl border-2 border-ink bg-paper-2 px-3 py-3">
                     <dt className="label">{label}</dt>
                     <dd className="display mt-1 text-2xl font-black tabular">{value}</dd>
                   </div>
@@ -95,7 +95,7 @@ export function FriendProfilePage({ code }: { code: string }) {
               {!data.recentGames.length ? <p className="text-sm text-ink-soft">No finished games yet.</p> : (
                 <ol className="grid gap-2">
                   {data.recentGames.map((game, index) => (
-                    <li key={`${game.startedAt}-${index}`} className="flex items-center gap-3 rounded-xl bg-paper-2 p-3">
+                    <li key={`${game.startedAt}-${index}`} className="flex items-center gap-3 rounded-xl border-2 border-ink bg-paper-2 p-3">
                       <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg font-black ${game.won ? 'bg-amber' : 'bg-ink/10'}`}>
                         {game.won ? <Trophy size={17} aria-label="Victory" /> : game.rank === null ? '—' : `#${game.rank}`}
                       </span>

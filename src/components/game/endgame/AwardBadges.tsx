@@ -41,7 +41,7 @@ export function AwardBadges({ report, detailed = false, className = 'mt-5' }: { 
           const c = PLAYER_COLORS[report.players[a.seats[0]].color];
           const names = a.seats.map((s) => report.players[s].name).join(' & ');
           return (
-            <li key={a.title} className="flex min-w-0 items-center gap-2 rounded-xl bg-ink/[0.05] py-1.5 pr-2 pl-1.5" title={`${a.stat}: ${a.value}`}>
+            <li key={a.title} className="flex min-w-0 items-center gap-2 rounded-xl border-2 border-ink bg-paper-2 py-1.5 pr-2 pl-1.5" title={`${a.stat}: ${a.value}`}>
               <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-paper text-ink" style={{ boxShadow: `inset 0 0 0 2.5px ${c.hex}` }}>
                 {ICONS[a.title] ?? <AwardIcon size={16} />}
               </span>

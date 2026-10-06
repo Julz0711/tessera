@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Logomark } from '@/components/ui/Logomark';
+import { Segmented } from '@/components/ui/Segmented';
 import { useEffect, useState } from 'react';
 import { useUrlFilters } from '@/client/urlFilters';
 import type { LeaderboardData, LeaderboardEntry } from '@/shared/protocol';
@@ -45,8 +46,10 @@ export function LeaderboardPage() {
         </div>
       <section className="paper grid gap-5 p-5 sm:p-7">
         <div><h1 className="display text-4xl font-black">Leaderboards</h1><p className="mt-2 text-sm text-ink-soft">Four modes. Four ladders. Compete with friends or everyone on this server.</p></div>
-        <div className="grid grid-cols-2 gap-3"><label className="grid gap-1.5"><span className="label">Mode</span><select className="w-full min-w-0 input text-sm" value={get('mode')} onChange={(e) => change({ mode: e.target.value, page: '1', around: '' })}>{Object.entries(MODE_LABEL).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
-          <label className="grid gap-1.5"><span className="label">Compare with</span><select className="w-full min-w-0 input text-sm" value={get('scope')} onChange={(e) => change({ scope: e.target.value, page: '1', around: '' })}><option value="world">World</option><option value="friends">Friends</option></select></label></div>
+        <div className="flex flex-wrap gap-x-5 gap-y-3">
+          <div className="grid gap-1.5"><span className="label">Mode</span><Segmented label="Mode" className="flex-wrap" value={get('mode')} options={Object.entries(MODE_LABEL).map(([key, label]) => ({ value: key, label }))} onChange={(v) => change({ mode: v, page: '1', around: '' })} /></div>
+          <div className="grid gap-1.5"><span className="label">Compare with</span><Segmented label="Compare with" value={get('scope')} options={[{ value: 'world', label: 'World' }, { value: 'friends', label: 'Friends' }]} onChange={(v) => change({ scope: v, page: '1', around: '' })} /></div>
+        </div>
         <div className="flex flex-wrap gap-2"><input aria-label="Search players by name or friend code" placeholder="Search name or friend code" className="min-w-0 flex-1 input text-sm" value={get('q')} onChange={(e) => change({ q: e.target.value, page: '1', around: '' })} /><button className="btn px-3 py-2 text-sm" onClick={() => change({ around: 'me', q: '', page: '1' })}>Around me</button></div>
         <p className="text-xs text-ink-faint">At least two signed-in players are needed for a rated game. Bots and guests are excluded from Elo comparisons. Maps share their mode’s ladder. Equal ratings share a rank.</p>
         {error && <div role="alert">Couldn&apos;t load the leaderboard. <button className="font-bold underline" onClick={() => setAttempt((n) => n + 1)}>Try again</button></div>}

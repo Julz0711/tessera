@@ -15,13 +15,15 @@ export function LegalPage({ title, icon, children }: { title: string; icon: Reac
           </Link>
           <Logomark size={28} />
         </div>
-        <h1 className="display flex items-center gap-2 text-4xl font-black text-paper">
-          {icon} {title}
-        </h1>
         <article className="paper animate-rise grid gap-5 p-5 text-[15px] leading-relaxed sm:p-7 [&_a]:font-bold [&_a]:underline [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-black [&_li]:ml-5 [&_li]:list-disc [&_section]:grid [&_section]:gap-2 [&_ul]:grid [&_ul]:gap-1">
-          <p className="text-sm font-bold text-ink-faint">
-            Last updated <time dateTime={LEGAL_UPDATED}>{updated}</time>
-          </p>
+          <header>
+            <h1 className="display flex items-center gap-2 text-4xl font-black">
+              {icon} {title}
+            </h1>
+            <p className="mt-2 text-sm font-bold text-ink-faint">
+              Last updated <time dateTime={LEGAL_UPDATED}>{updated}</time>
+            </p>
+          </header>
           {children}
         </article>
         <nav className="flex justify-center gap-4 text-sm font-bold text-foam/60">

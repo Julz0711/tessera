@@ -31,7 +31,7 @@ export function LeaveDialog({ view, room, onStay, onLeave }: { view: PlayerView;
   return createPortal(
     <Modal open onClose={onStay} title="Leave the table?">
       <div className="grid gap-4">
-        <div className="flex items-center gap-3 rounded-xl bg-paper-2 p-3">
+        <div className="flex items-center gap-3 rounded-xl border-2 border-ink bg-paper-2 p-3">
           {knight ? <KnightBadge knight={knight} color={p.color} size={56} /> : <span className="h-14 w-14 rounded-full" style={{ background: PLAYER_COLORS[p.color].hex }} />}
           <div className="grid gap-0.5">
             <span className="display text-lg font-black leading-tight">{p.name}</span>

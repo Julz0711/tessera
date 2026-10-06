@@ -41,11 +41,14 @@ export function PatchNotesPage() {
           </Link>
           <Logomark size={28} />
         </div>
-        <h1 className="display flex items-center gap-2 text-4xl font-black text-paper">
-          <ScrollText size={30} className="text-amber" /> Patch notes
-        </h1>
         {PATCH_NOTES.map((patch, i) => (
           <article key={patch.version} className="paper animate-rise p-5 sm:p-7" style={{ animationDelay: `${i * 80}ms` }}>
+            {/* the page title sits in the first card, as on every other page */}
+            {i === 0 && (
+              <h1 className="display mb-5 flex items-center gap-2 border-b-2 border-ink/10 pb-5 text-4xl font-black">
+                <ScrollText size={30} /> Patch notes
+              </h1>
+            )}
             <header className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
               <h2 className="display text-3xl font-black">
                 Patch {patch.version}
