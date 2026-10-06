@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { generateBoard } from '@/engine/board/generate';
 import { getTopology, type Topology } from '@/engine/board/topology';
 import type { MapId } from '@/engine/types';
-import { FOG, SEA, TERRAIN_COLORS } from '@/client/palette';
+import { FOG, TERRAIN_COLORS } from '@/client/palette';
 
 const S = 100; // world units → SVG units, matches Board2D's convention
 /** Previews show one fixed board per map, so they don't reshuffle on every render. */
@@ -40,7 +40,6 @@ export function MapPreview({ map, size = 64, className }: { map: MapId; size?: n
 
   return (
     <svg width={size} height={size} viewBox={`${minX} ${minY} ${w} ${h}`} preserveAspectRatio="xMidYMid meet" className={className} aria-hidden="true">
-      <rect x={minX} y={minY} width={w} height={h} rx={S * 0.15} fill={SEA.shallow} opacity={0.16} />
       {board.hexes.map((hx) => {
         const swatch = hx.fog ? FOG : TERRAIN_COLORS[hx.terrain];
         return (

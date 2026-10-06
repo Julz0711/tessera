@@ -69,7 +69,8 @@ export function TileCarousel<T extends string>({
     return (
       <button
         type="button"
-        className="btn h-auto w-8 shrink-0 self-stretch p-0 sm:w-9"
+        // A small round key floating over the row's edge, as on colonist.
+        className={`btn btn-dark absolute top-1/2 z-10 h-9 min-h-9 w-9 min-w-9 -translate-y-1/2 rounded-full! p-0 ${dir < 0 ? "-left-2" : "-right-2"}`}
         onClick={() => page(dir)}
         aria-label={`${dir < 0 ? "Previous" : "More"} ${label.toLowerCase()}s`}
       >
@@ -79,14 +80,14 @@ export function TileCarousel<T extends string>({
   };
 
   return (
-    <div className="flex min-w-0 items-stretch gap-1.5">
+    <div className="relative min-w-0">
       {arrow(-1)}
       <div
         ref={row}
         role="radiogroup"
         aria-label={label}
         onScroll={measure}
-        className="relative flex min-w-0 flex-1 snap-x snap-mandatory gap-1.5 overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="relative flex min-w-0 snap-x snap-mandatory gap-1.5 overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {tiles.map((t) => {
           const on = t.value === value;
