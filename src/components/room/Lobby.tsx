@@ -7,6 +7,7 @@ import {
   Crown,
   Eye,
   LogOut,
+  Minus,
   Pencil,
   Play,
   Plus,
@@ -415,24 +416,24 @@ function SettingsPanel({ room }: { room: RoomDTO }) {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="btn h-10 w-10 p-0 text-lg"
+            className="btn h-10 w-10 p-0"
             disabled={!host || s.vpToWin <= 3}
             onClick={() => set({ vpToWin: s.vpToWin - 1 })}
             aria-label="Fewer points"
           >
-            −
+            <Minus size={18} strokeWidth={3} />
           </button>
           <span className="display w-10 text-center text-2xl font-black tabular">
             {s.vpToWin}
           </span>
           <button
             type="button"
-            className="btn h-10 w-10 p-0 text-lg"
+            className="btn h-10 w-10 p-0"
             disabled={!host || s.vpToWin >= 20}
             onClick={() => set({ vpToWin: s.vpToWin + 1 })}
             aria-label="More points"
           >
-            +
+            <Plus size={18} strokeWidth={3} />
           </button>
         </div>
       </div>
