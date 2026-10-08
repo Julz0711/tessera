@@ -9,6 +9,7 @@ import { limits } from './rateLimit';
 import { UserError, type Room, type RoomIO } from './room';
 import { RoomManager } from './rooms';
 import { isReactionId } from '@/shared/reactions';
+import { isBoardPoint } from '@/shared/cursors';
 import { setPresenceSource } from './presence';
 import { cosmeticStateFor, seatCosmetics } from './cosmetics';
 import { NO_UNLOCKS } from '@/shared/cosmetics';
@@ -89,6 +90,9 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
   const roomIO: RoomIO = {
     send: (sid, event, ...args) => {
       io.sockets.sockets.get(sid)?.emit(event, ...args);
+    },
+    sendVolatile: (sid, event, ...args) => {
+      io.sockets.sockets.get(sid)?.volatile.emit(event, ...args);
     },
     detach: (sid) => {
       const s = io.sockets.sockets.get(sid);
@@ -293,6 +297,17 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
         currentRoom().react(socket.id, reaction);
       }),
     );
+
+    // Mouse positions are best-effort: bad or too-frequent ones are dropped without a word.
+    socket.on('room:cursor', (at) => {
+      if (at !== null && !isBoardPoint(at)) return;
+      if (!limits.cursor.take(socket.id)) return;
+      try {
+        currentRoom().cursor(socket.id, at === null ? null : { x: at.x, y: at.y });
+      } catch {
+        // not in a room
+      }
+    });
 
     socket.on('game:stats', (ack) =>
       reply(ack, () => {

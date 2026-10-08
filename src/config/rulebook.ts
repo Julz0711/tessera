@@ -697,7 +697,7 @@ export const RULEBOOK: RuleChapter[] = [
             'You start on the standard-sized island. It is surrounded by sea with 15 fogged tiles scattered around it.',
             'The fog always hides exactly 2 sea tiles, 0 or 1 gold fields, and otherwise resource tiles (never desert) with random numbers.',
             '15 treasures lie at fixed spots around the island: 5 resource, 4 Road Building, 3 three-resource and 3 card treasures, shuffled each game.',
-            'Uncovering a hidden sea tile pays a bonus treasure of a random kind.',
+            'Uncovering a hidden sea or desert tile pays a bonus treasure of a random kind.',
             'Your first settlement on each island that is not a home island is worth **1 point**.',
           ],
         ],
@@ -779,7 +779,7 @@ export const RULEBOOK: RuleChapter[] = [
           [
             '**Standard (up to 4 players):** the 19-tile island.',
             '**Large (up to 6):** 30 tiles with two deserts, 28 numbers and 11 harbors. The bank is bigger (24 of each resource) and so is the development deck (34 cards).',
-            '**Black Forest (up to 6):** you start inside a ring of forest around a desert island in a lake. 30 tiles further out lie under fog until you explore, including two gold fields on a 6 or an 8. The host can turn the gold off, and two other resources take its place.',
+            '**Black Forest (up to 6):** you start inside a ring of forest around a desert island in a lake. 30 tiles further out lie under fog until you explore, including two gold fields on a 6 or an 8. The host can turn the gold off, and two other resources take its place. The fog holds the same number of each resource (give or take one), and its numbers are shared out evenly between them.',
             '**Gold Rush (up to 6):** a ring island around seven tiles of fog, one of them a gold field on a 6 or 8. Build inward to find it. The fog only hides good numbers (4 to 10).',
             '**Vulcan (up to 4):** you start in the four far corners, which have every resource except Ore. Ore lies only around the volcano in the middle, a gold field, and 18 tiles of fog cover the area between. The fog never hides a desert.',
             '**Heartlake (up to 4):** a ring island of 18 tiles around a lake, with 17 numbers and no 12. Three 3:1 harbors line the lake shore, and six more harbors line the sea coast.',

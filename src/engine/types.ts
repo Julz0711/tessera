@@ -297,7 +297,8 @@ export type Prompt =
   | { kind: 'moveRoad'; seat: number; from: number }
   | { kind: 'spy'; seat: number; victim: number; cards: ProgressCard[] }
   | { kind: 'masterMerchant'; seat: number; victim: number; hand: Hand; count: number }
-  | { kind: 'placeMetropolis'; seat: number; track: Track }
+  /** `from`: who held this metropolis before (missing on older saves). */
+  | { kind: 'placeMetropolis'; seat: number; track: Track; from?: number | null }
   /** Gold (Black Forest): pick `count` resources of your choice. */
   | { kind: 'goldPick'; seat: number; count: number; reason?: 'treasure' };
 
@@ -354,6 +355,7 @@ export type GameEventBody =
   /** Veiled Isles: a treasure collected at corner `at` (null: the bonus for finding hidden sea). */
   | { type: 'treasure'; seat: number; kind: TreasureKind; at: number | null }
   | { type: 'islandSettled'; seat: number; at: number; vp: number }
+  | { type: 'embargo'; seat: number; target: number; on: boolean }
   | { type: 'robberMoved'; seat: number; hex: number; pirate?: boolean }
   | { type: 'stole'; seat: number; victim: number }
   | { type: 'discarded'; seat: number; cards: PartialHand }

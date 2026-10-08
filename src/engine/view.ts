@@ -64,7 +64,8 @@ export function viewFor(state: GameState, viewer: number | null): PlayerView {
     };
   });
   const { devDeck, progressDecks, rng: _rng, diceBag: _diceBag, nextRoll: _nextRoll, players: _players, log, pending, stats, ...rest } = state;
-  const { details, ...publicStats } = stats ?? {};
+  // While the game runs, the table only sees the dice (the rest would be a scouting report); at the end, everything.
+  const publicStats = stats && { dice: stats.dice };
   const visible = { ...structuredClone(rest), stats: structuredClone(reveal ? stats : publicStats) as GameState['stats'] };
   // Old saves marked declines for lack of cards (`auto`); they count as no answer yet.
   for (const offer of visible.trades) {

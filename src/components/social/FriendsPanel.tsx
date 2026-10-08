@@ -1,12 +1,13 @@
 'use client';
 
-import { Check, Copy, DoorOpen, Loader2, Mail, UserMinus, UserPlus, X } from 'lucide-react';
+import { Check, Copy, DoorOpen, Mail, UserMinus, UserPlus, X } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { fetchFriends, formatFriendCode, friendAction, type FriendAction } from '@/client/social';
 import { toast } from '@/client/store';
 import type { FriendInfo, FriendsData, PlayerCard } from '@/shared/protocol';
 import { PlayerPortrait, TitleTag } from '@/components/profile/Cosmetics';
+import { HexSpinner } from '@/components/ui/HexSpinner';
 
 const STATUS: Record<FriendInfo['status'], { label: string; dot: string }> = {
   lobby: { label: 'In a lobby', dot: 'bg-amber' },
@@ -128,7 +129,7 @@ export function FriendsPanel({ mode = 'full', roomCode }: { mode?: 'full' | 'inv
         >
           <input className="input w-40 py-2 uppercase tabular tracking-label" placeholder="ABCD-2345" value={code} onChange={(e) => setCode(e.target.value)} aria-label="Friend code" maxLength={9} />
           <button type="submit" className="btn btn-primary px-3" disabled={busy || !code.trim()}>
-            {busy ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />} Add
+            {busy ? <HexSpinner size={16} decorative /> : <UserPlus size={16} />} Add
           </button>
         </form>
       </div>

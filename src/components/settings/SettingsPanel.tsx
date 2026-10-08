@@ -265,6 +265,16 @@ export function SettingsPanel() {
                 ]}
               />
             </Section>
+            <Section title="Mouse pointers" hint="See other players' mouse pointers over the board, and let them see yours. Wide screens with a mouse only; never on touch screens.">
+              <Segmented
+                value={prefs.shareCursors}
+                onChange={(shareCursors) => prefs.set({ shareCursors })}
+                options={[
+                  { value: true, label: 'On' },
+                  { value: false, label: 'Off' },
+                ]}
+              />
+            </Section>
             <Section title="Zoom buttons" hint="Zoom in, out and back on the 2D board with buttons. Without them, scroll, pinch or drag the board.">
               <Segmented
                 value={prefs.zoomButtons}

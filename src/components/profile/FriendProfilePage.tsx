@@ -8,6 +8,7 @@ import { PlayerPortrait, TitleTag } from './Cosmetics';
 import { MODE_LABEL, ratingPoolFor } from '@/shared/ratings';
 import { ModeRatings } from './ModeRatings';
 import { Logomark } from '@/components/ui/Logomark';
+import { HexSpinner } from '@/components/ui/HexSpinner';
 
 const STATUS: Record<FriendInfo['status'], string> = {
   offline: 'Offline', online: 'Online', lobby: 'In a lobby', playing: 'Playing',
@@ -56,7 +57,7 @@ export function FriendProfilePage({ code }: { code: string }) {
             <button type="button" className="btn justify-self-start px-4 py-2" onClick={() => { setError(null); setAttempt((n) => n + 1); }}>Try again</button>
           </section>
         )}
-        {!data && !error && <p role="status" className="paper animate-pulse p-7">Loading friend profile…</p>}
+        {!data && !error && <div role="status" className="paper grid place-items-center gap-3 p-10 text-center font-bold"><HexSpinner size={48} decorative />Loading friend profile…</div>}
         {data && friend && stats && (
           <>
             <section className="paper grid gap-6 p-5 sm:p-7">

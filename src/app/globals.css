@@ -370,6 +370,11 @@ body {
     scale 0.12s ease;
   user-select: none;
 }
+/* A key coloured inline (a player's colour, a progress deck) shades with a darker step of its own
+   colour, not the white key's pale blue. */
+.btn[style*='--btn-bg'] {
+  --btn-shade: color-mix(in srgb, var(--btn-bg) 82%, var(--color-ink));
+}
 /* Hover: the shaded corner grows until it fills the key. A click presses the key in slightly. */
 @media (hover: hover) {
   .btn:hover:not(:disabled) {

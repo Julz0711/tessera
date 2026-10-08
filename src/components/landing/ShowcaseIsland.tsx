@@ -40,12 +40,12 @@ function demoScene(seed: number): BoardScene {
   };
 }
 
-export default function ShowcaseIsland() {
+export default function ShowcaseIsland({ paused = false }: { paused?: boolean }) {
   const [scene, setScene] = useState<BoardScene | null>(null);
   useEffect(() => {
     setScene(demoScene(Math.floor(Math.random() * 2 ** 31)));
   }, []);
   const theme = usePrefs((p) => p.boardTheme);
   if (!scene) return null;
-  return <BoardView mode="3d" scene={scene} targets={NO_TARGETS} showcase quality="high" theme={theme} />;
+  return <BoardView mode="3d" scene={scene} targets={NO_TARGETS} showcase paused={paused} quality="high" theme={theme} />;
 }

@@ -8,6 +8,7 @@ import { useUrlFilters } from '@/client/urlFilters';
 import type { LeaderboardData, LeaderboardEntry } from '@/shared/protocol';
 import { MODE_LABEL } from '@/shared/ratings';
 import { PlayerPortrait } from '@/components/profile/Cosmetics';
+import { HexSpinner } from '@/components/ui/HexSpinner';
 
 const DEFAULTS = { mode: 'classic', scope: 'world', page: '1', q: '', around: '' };
 function Row({ entry: e }: { entry: LeaderboardEntry }) {
@@ -53,7 +54,7 @@ export function LeaderboardPage() {
         <div className="flex flex-wrap gap-2"><input aria-label="Search players by name or friend code" placeholder="Search name or friend code" className="min-w-0 flex-1 input text-sm" value={get('q')} onChange={(e) => change({ q: e.target.value, page: '1', around: '' })} /><button className="btn px-3 py-2 text-sm" onClick={() => change({ around: 'me', q: '', page: '1' })}>Around me</button></div>
         <p className="text-xs text-ink-faint">At least two signed-in players are needed for a rated game. Bots and guests are excluded from Elo comparisons. Maps share their mode’s ladder. Equal ratings share a rank.</p>
         {error && <div role="alert">Couldn&apos;t load the leaderboard. <button className="font-bold underline" onClick={() => setAttempt((n) => n + 1)}>Try again</button></div>}
-        {!data && !error && <p role="status" className="text-sm text-ink-faint">Loading rankings…</p>}
+        {!data && !error && <div role="status" className="flex items-center gap-2 text-sm text-ink-faint"><HexSpinner size={16} decorative /> Loading rankings…</div>}
         {data && !data.enabled && <p>Ratings are unavailable without a database.</p>}
         {data?.signInRequired && <p><Link className="font-bold underline" href="/profile">Sign in</Link> to compare with your friends.</p>}
         {data?.enabled && !data.signInRequired && <>

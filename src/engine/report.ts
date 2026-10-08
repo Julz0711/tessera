@@ -25,20 +25,22 @@ export function standings(vps: number[], winner: number | null): number[] {
   return vps.map((vp, seat) => seat === winner ? 1 : vps.filter((v, other) => other !== seat && (other === winner || v > vp)).length + 1);
 }
 /**
- * The stats a running game can show everyone: hidden information taken out. Which development cards
- * were bought stays secret (the counts don't), and the VP timeline is the public one; samples from
- * before `publicVp` was recorded are dropped where hidden VP could be in them (Classic).
+ * The stats a running game can show everyone: the dice and nothing else (rolls, per-player roll
+ * totals, die faces, expectations, droughts). Production, trades, hands and the timeline would
+ * tell too much about the others' position, so they are zeroed or left empty until the game ends.
  */
 export function liveStats(s: Pick<GameState, 'mode' | 'stats'>): GameStats | null {
   if (!s.stats) return null;
-  const { details, ...rest } = s.stats;
-  const out: GameStats = structuredClone(rest);
+  const { details, dice, produced } = s.stats;
+  const zeros = (a: number[]) => a.map(() => 0);
+  const out: GameStats = { dice: dice.slice(), produced: produced.map((h) => Object.fromEntries(Object.keys(h).map((k) => [k, 0])) as typeof h),
+    otherGain: zeros(s.stats.otherGain), stolen: zeros(s.stats.stolen), lost: zeros(s.stats.lost), discarded: zeros(s.stats.discarded),
+    bankTrades: zeros(s.stats.bankTrades), playerTrades: zeros(s.stats.playerTrades), devBought: zeros(s.stats.devBought),
+    knightsPlayed: zeros(s.stats.knightsPlayed), progressPlayed: zeros(s.stats.progressPlayed) };
+  if (s.stats.partial) out.partial = true;
   if (details) {
-    const counters = Object.fromEntries(Object.entries(details.counters).filter(([key]) => !key.startsWith('devBought:')));
-    const timeline = details.timeline
-      .filter((sample) => sample.publicVp || s.mode !== 'classic')
-      .map(({ publicVp, ...sample }) => ({ ...sample, vp: publicVp ?? sample.vp }));
-    out.details = structuredClone({ ...details, counters, timeline });
+    const counters = Object.fromEntries(Object.entries(details.counters).filter(([key]) => key === 'rolls' || key === 'sevens' || key.startsWith('rolled:')));
+    out.details = structuredClone({ ...details, counters, hands: {}, timeline: [], milestones: [] });
   }
   return out;
 }
@@ -46,7 +48,7 @@ export function liveStats(s: Pick<GameState, 'mode' | 'stats'>): GameStats | nul
 /**
  * Explicit report allowlist: no seeds, deck order, identities or raw action payloads. `live`: the
  * report of a game still running, with nothing hidden in it: public points only (the ranking follows
- * them, no winner yet) and `liveStats`.
+ * them, no winner yet), no hand sizes, and `liveStats` (the dice only).
  */
 export function buildReport(s: Q & Pick<GameState, 'winner' | 'stats'>, opts: { live?: boolean } = {}): GameReport {
   const live = !!opts.live;
@@ -70,7 +72,7 @@ export function buildReport(s: Q & Pick<GameState, 'winner' | 'stats'>, opts: { 
         points.Defender = p.defender; points['Progress VP'] = p.progressVP; points.Merchant = s.merchant?.owner === seat ? 1 : 0;
       }
       return { name: p.name, color: p.color, isBot: p.isBot, vp: vps[seat], rank: ranks[seat], points,
-        remaining: handTotal(p.hand), unusedDev: p.devCards.length, unusedProgress: p.progress.length, improvements: { ...p.improvements } };
+        remaining: live ? 0 : handTotal(p.hand), unusedDev: live ? 0 : p.devCards.length, unusedProgress: live ? 0 : p.progress.length, improvements: { ...p.improvements } };
     }),
   };
 }

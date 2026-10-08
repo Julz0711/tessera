@@ -307,7 +307,7 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
       case 'deserterRemove':
         return send({ type: 'removeKnight', vertex: id });
       case 'placeMetropolis':
-        return send({ type: 'placeMetropolis', vertex: id });
+        return pickMetropolis(id);
       default:
         return;
     }
@@ -350,6 +350,17 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
   ] as const;
   const options = offers.flatMap(([what, at]) => (at.includes(id) ? [buildOption(what, id)] : []));
   if (options.length) return arm('vertex', id, options, false);
+}
+
+/**
+ * Picks the city for a metropolis: a popup there previews it, and a second click on the city, Enter
+ * or the popup button places it. Always asks, whatever the build confirmation preference says.
+ */
+function pickMetropolis(vertex: number): Promise<void> | void {
+  const ui = useUi.getState();
+  const armed: Armed = { target: 'vertex', at: vertex, options: [{ what: 'metropolis', action: { type: 'placeMetropolis', vertex }, cost: null }], endsMode: false };
+  if (ui.armed?.target === 'vertex' && ui.armed.at === vertex) return build(armed, 0);
+  ui.arm(armed);
 }
 
 /** Who the viewer chooses between when the robber goes to `hex` (nobody for the Bishop: it robs everyone there). */

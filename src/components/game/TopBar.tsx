@@ -3,7 +3,6 @@
 import {
   BookOpen,
   Box,
-  ChartColumn,
   Copy,
   Grid2x2,
   ArrowLeft,
@@ -32,7 +31,7 @@ import { WithKeys } from "@/components/ui/Kbd";
 import { BANNER_ICONS, useCurrentBanner } from "./EventBanner";
 import { LeaveDialog } from "./LeaveDialog";
 import { MobileSide } from "./MobileSide";
-import { ReactionPicker } from "./Reactions";
+import { CursorToggle, ReactionPicker } from "./Reactions";
 import { RulebookDialog } from "@/components/rules/RulebookDialog";
 import { gameTypeOf } from "@/engine/maps";
 import type { RuleMode } from "@/config/rulebook";
@@ -166,16 +165,6 @@ export function TopBar({
               >
                 <BookOpen size={15} /> Rules
               </button>
-              <button
-                type="button"
-                className="btn py-1.5 text-sm"
-                onClick={() => {
-                  setMenu(false);
-                  useGameDialog.getState().show("stats");
-                }}
-              >
-                <ChartColumn size={15} /> Live stats
-              </button>
               {room.you.isAdmin && view.phase !== "ended" && (
                 <button
                   type="button"
@@ -238,6 +227,7 @@ export function TopBar({
           </span>
         </button>
         {room.you.seat !== null && <ReactionPicker />}
+        <CursorToggle />
                 {/* Only shown while the connection is lost: a working connection needs no badge. */}
         {conn !== "online" && (
           <span

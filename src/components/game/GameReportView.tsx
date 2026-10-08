@@ -166,9 +166,11 @@ function TimelineChart({ report, seats, metric }: { report: GameReport; seats: n
   </div>;
 }
 
-export function GameReportView({ report, initialSeat }: { report: GameReport; initialSeat?: number | null }) {
+/** `only: 'dice'`: just the dice tab, without the tab bar (the running game's view). */
+export function GameReportView({ report, initialSeat, only }: { report: GameReport; initialSeat?: number | null; only?: 'dice' }) {
   const categories = useMemo(() => reportCategories(report), [report]);
-  const [tab, setTab] = useState<string>('overview');
+  const [tabState, setTab] = useState<string>('overview');
+  const tab = only ?? tabState;
   const [hidden, setHidden] = useState<Set<number>>(new Set());
   const [timelineMetric, setTimelineMetric] = useState<TimelineKey>('vp');
   const stats = report.stats, d = stats?.details;
@@ -203,10 +205,10 @@ export function GameReportView({ report, initialSeat }: { report: GameReport; in
       {report.players.length > 2 && <span className="self-center text-xs text-ink-faint">Tap players to narrow the comparison.</span>}
     </div>
 
-    <div role="tablist" aria-label="Stat categories" className="scroll-thin -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+    {!only && <div role="tablist" aria-label="Stat categories" className="scroll-thin -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
       {tabs.map((t) => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
         className={`inline-flex shrink-0 items-center gap-1.5 rounded-[4px] border-2 border-ink px-3.5 py-1.5 text-sm font-bold whitespace-nowrap transition ${tab === t.id ? 'bg-pick' : 'bg-white hover:bg-paper-2'}`}>{TAB_ICONS[t.id]}{t.label}</button>)}
-    </div>
+    </div>}
 
     <div role="tabpanel" className="grid min-w-0 gap-4">
       {tab === 'overview' && <>
@@ -218,8 +220,8 @@ export function GameReportView({ report, initialSeat }: { report: GameReport; in
         <PlayerDice report={report} seats={seats} />
       </>}
       {tab === 'production' && stats && <ProductionMix report={report} seats={seats} />}
-      {category && <CompareTable report={report} seats={seats} category={category} viewer={initialSeat} />}
-      {category?.matrices.map((m) => <Matrix key={m.title} report={report} seats={seats} matrix={m} />)}
+      {category && !only && <CompareTable report={report} seats={seats} category={category} viewer={initialSeat} />}
+      {!only && category?.matrices.map((m) => <Matrix key={m.title} report={report} seats={seats} matrix={m} />)}
       {tab === 'dice' && stats && <details className="paper-flat p-3">
         <summary className="cursor-pointer text-sm font-bold">Dice details</summary>
         <div className="scroll-thin mt-2 overflow-x-auto"><table className="w-full text-sm"><thead><tr>{['Total', 'Rolled', 'Expected', 'Longest drought'].map((text) => <th className="p-1.5 text-right" key={text}>{text}</th>)}</tr></thead>

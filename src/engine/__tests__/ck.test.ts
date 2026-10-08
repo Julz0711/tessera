@@ -271,7 +271,16 @@ describe('improvements and progress cards', () => {
     expect(s.players[0].improvements.trade).toBe(4);
     expect(s.players[0].hand.cloth).toBe(0);
     expect(s.metropolis.trade).toBe(0);
-    expect(s.buildings[t.edges[t.coast[0]].a]!.metropolis).toBe('trade');
+    // Even with a single city the player places the metropolis: a prompt, not an auto-placement.
+    const v = t.edges[t.coast[0]].a;
+    expect(s.buildings[v]!.metropolis).toBeNull();
+    expect(s.pending).toEqual([{ kind: 'placeMetropolis', seat: 0, track: 'trade', from: null }]);
+    const r = applyAction(s, 0, { type: 'placeMetropolis', vertex: v });
+    if (!r.ok) throw new Error(r.error);
+    s = r.state;
+    expect(s.pending).toEqual([]);
+    expect(s.buildings[v]!.metropolis).toBe('trade');
+    expect(r.events).toContainEqual(expect.objectContaining({ type: 'metropolis', seat: 0, track: 'trade', at: v, from: null }));
     expect(victoryPoints(s, 0)).toBe(4);
   });
 
@@ -287,7 +296,11 @@ describe('improvements and progress cards', () => {
     s = act(s, 0, { type: 'improveCity', track: 'science' });
     expect(s.metropolis.science).toBe(0);
     expect(s.buildings[t.edges[t.coast[10]].a]!.metropolis).toBeNull();
-    expect(s.buildings[t.edges[t.coast[0]].a]!.metropolis).toBe('science');
+    const v = t.edges[t.coast[0]].a;
+    const r = applyAction(s, 0, { type: 'placeMetropolis', vertex: v });
+    if (!r.ok) throw new Error(r.error);
+    expect(r.state.buildings[v]!.metropolis).toBe('science');
+    expect(r.events).toContainEqual(expect.objectContaining({ type: 'metropolis', seat: 0, track: 'science', at: v, from: 1 }));
   });
 
   it('draws progress cards when the red die is within level + 1', () => {

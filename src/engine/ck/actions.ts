@@ -20,7 +20,6 @@ import {
   improvementCost,
   knightMoveTargets,
   legalKnightSpots,
-  metropolisSpots,
   ownKnightAt,
   promotableKnights,
   relocationSpots,
@@ -138,9 +137,8 @@ function improveCity(ctx: Ctx, track: Track): void {
       });
     }
     s.metropolis[track] = ctx.seat;
-    const spots = metropolisSpots(s, ctx.seat);
-    if (spots.length === 1) placeMetropolisAt(ctx, ctx.seat, track, spots[0], previous);
-    else s.pending.push({ kind: 'placeMetropolis', seat: ctx.seat, track });
+    // Always the player's pick (even with a single city), so the placement is a moment of its own.
+    s.pending.push({ kind: 'placeMetropolis', seat: ctx.seat, track, from: previous });
   }
 }
 
@@ -315,7 +313,7 @@ export function resolveCkPrompt(ctx: Ctx, prompt: Prompt, action: Action): void 
     }
     case 'placeMetropolis': {
       if (action.type !== 'placeMetropolis') break;
-      placeMetropolisAt(ctx, ctx.seat, prompt.track, action.vertex, null);
+      placeMetropolisAt(ctx, ctx.seat, prompt.track, action.vertex, prompt.from ?? null);
       return removePrompt(ctx, prompt);
     }
     default:

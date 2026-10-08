@@ -22,7 +22,7 @@ export function CkPromptDialog({ view, prompt }: { view: PlayerView; prompt: Pro
   switch (prompt.kind) {
     case 'rewardDeck':
       return (
-        <Modal open dismissable={false} title={prompt.reason === 'treasure' ? 'Treasure!' : "Defender's reward"}>
+        <Modal open dismissable={false} dim={false} title={prompt.reason === 'treasure' ? 'Treasure!' : "Defender's reward"}>
           <p className="mb-3 text-sm text-ink-soft">
             {prompt.reason === 'treasure' ? 'You found a treasure' : 'You tied for the strongest defense'}. Draw a progress card from a deck of your choice:
           </p>
@@ -142,7 +142,7 @@ const PROMPT_HINT: Partial<Record<Prompt['kind'], string>> = {
   deserterRemove: 'A deserter! Pick one of your knights to leave',
   deserterPlace: 'Place the deserting knight next to your roads',
   moveRoad: 'Diplomat: pick a new spot for your road or ship',
-  placeMetropolis: 'Pick a city for your metropolis',
+  placeMetropolis: 'Pick a city for your metropolis, then confirm',
 };
 
 const KNIGHT_NAMES = { 1: 'basic', 2: 'strong', 3: 'mighty' } as const;

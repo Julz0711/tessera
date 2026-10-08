@@ -1,7 +1,7 @@
 import { HARBOR_KINDS, NUMBER_TOKENS, TERRAIN_COUNTS, TREASURE_DECK, VEILED_FOG_GOLDS, VEILED_FOG_SEAS, VEILED_FOG_TOKENS } from '../constants';
 import { randomInt, shuffle, type RngHolder } from '../rng';
 import { RESOURCES, TREASURE_KINDS, type Board, type Harbor, type HarborKind, type Hex, type LandTerrain, type Terrain, type Treasure } from '../types';
-import { bag, balancedTokens, dealTokens, spreadHarborEdges, spreadRedTokens } from './generate';
+import { bag, balancedTokens, dealTokens, spreadHarborEdges } from './generate';
 import { getTopology, type HexCoord, type Topology } from './topology';
 
 /**
@@ -241,7 +241,7 @@ export function citadelBoard(rng: RngHolder): Board {
   fixed[centre] = shuffle(rng, [6, 8])[0];
   // Each isle has exactly one 6 or 8: three isles a 6, three an 8.
   const reds = shuffle(rng, [6, 6, 6, 8, 8, 8]);
-  const tokens = spreadRedTokens(rng, topo, [
+  const tokens = dealTokens(rng, topo, [
     ...isleIds.map((ids, k): [number[], number[]] => [ids, [reds[k], 4, 5, 9, 10]]),
     [forest, [3, 4, 5, 9, 10, 11]],
     [ore, [...CITADEL_ORE_TOKENS]],
@@ -351,8 +351,8 @@ export function zealandBoard(rng: RngHolder, gold = true): Board {
   const fixed: (number | null)[] = topo.hexes.map(() => null);
   for (const id of fogged) if (terrains[id] === 'gold') fixed[id] = shuffle(rng, [6, 8])[0];
   const land = fogged.filter((id) => terrains[id] !== 'gold');
-  const homeTokens = dealTokens(rng, topo, [[home, [...ZEALAND_SHEEP_TOKENS]]], topo.hexes.map(() => null), false);
-  const tokens = spreadRedTokens(rng, topo, [[land, balancedTokens(land.length)]], fixed.map((t, id) => t ?? homeTokens[id]));
+  const homeTokens = dealTokens(rng, topo, [[home, [...ZEALAND_SHEEP_TOKENS]]], topo.hexes.map(() => null));
+  const tokens = dealTokens(rng, topo, [[land, balancedTokens(land.length)]], fixed.map((t, id) => t ?? homeTokens[id]));
 
   const hexes = hexesOf(topo, terrains, tokens);
   for (const id of home) hexes[id].start = true;
@@ -485,7 +485,6 @@ export function farShoresBoard(rng: RngHolder): Board {
       [smallLand, [2, 3, 4, 5, 6, 8, 9, 10, 11]],
     ],
     topo.hexes.map(() => null),
-    false,
   );
   const hexes = hexesOf(topo, terrains, tokens);
   for (const id of main) hexes[id].start = true;
@@ -502,7 +501,7 @@ export function fourRealmsBoard(rng: RngHolder): Board {
   shuffle(rng, bag(counts)).forEach((t, i) => (terrains[land[i]] = t));
   const pool = [2, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 8, 8, 9, 9, 9, 10, 10, 10, 11, 11, 11, 12];
   // Forest and pasture feed early growth: keep them off the 2 and the 12, as the rulebook advises.
-  const tokens = dealTokens(rng, topo, [[land, pool]], topo.hexes.map(() => null), false, (t) =>
+  const tokens = dealTokens(rng, topo, [[land, pool]], topo.hexes.map(() => null), (t) =>
     land.every((id) => !((terrains[id] === 'forest' || terrains[id] === 'pasture') && (t[id] === 2 || t[id] === 12))),
   );
   const hexes = hexesOf(topo, terrains, tokens);
@@ -537,7 +536,7 @@ export function veiledIslesBoard(rng: RngHolder): Board {
   shuffle(rng, hidden).forEach((t, i) => (terrains[fog[i]] = t));
 
   const mainLand = main.filter((id) => terrains[id] !== 'desert');
-  const mainDealt = dealTokens(rng, topo, [[mainLand, [...NUMBER_TOKENS]]], topo.hexes.map(() => null), false);
+  const mainDealt = dealTokens(rng, topo, [[mainLand, [...NUMBER_TOKENS]]], topo.hexes.map(() => null));
   const hiddenLand = fog.filter((id) => terrains[id] !== 'sea' && terrains[id] !== 'desert');
   const dealt = dealTokens(rng, topo, [[hiddenLand, [...VEILED_FOG_TOKENS]]], mainDealt);
 

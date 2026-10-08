@@ -47,8 +47,6 @@ interface MapSpec {
   slots?: readonly number[];
   /** Places the harbors itself (for maps with an inland shore). */
   placeHarbors?: (topo: Topology, rng: RngHolder) => Harbor[];
-  /** Equal numbers may sit side by side (big maps, where keeping them apart gets too tight). */
-  allowEqual?: boolean;
 }
 
 const MAPS: Record<Exclude<MapId, 'blackForest' | 'goldRush' | 'vulcan' | 'crossroads' | 'farShores' | 'fourRealms' | 'veiledIsles' | 'citadel' | 'zealand'>, MapSpec> = {
@@ -60,7 +58,6 @@ const MAPS: Record<Exclude<MapId, 'blackForest' | 'goldRush' | 'vulcan' | 'cross
     terrains: FOUR_LAKES_TERRAIN_COUNTS,
     tokens: balancedTokens(38),
     harbors: LARGE_HARBOR_KINDS,
-    allowEqual: true,
   },
   heartlake: {
     coords: HEARTLAKE_HEX_COORDS,
@@ -159,64 +156,122 @@ function crossroadsBoard(rng: RngHolder): Board {
   return { hexes, harbors };
 }
 
+/** How often a deal had to give up (no valid deal found): kept for tests and diagnostics. */
+export const dealStats = { fallbacks: 0 };
+
+/** Clashes of a full deal: touching 6/8 weigh heavily, touching equal numbers lightly (fixed-vs-fixed pairs don't count). */
+function dealClashes(topo: Topology, tokens: (number | null)[], fixed: (number | null)[]): number {
+  let n = 0;
+  for (const h of topo.hexes) {
+    const t = tokens[h.id];
+    if (t === null || t === undefined) continue;
+    for (const o of h.neighbors) {
+      const u = tokens[o];
+      if (o < h.id || u === null || u === undefined || (fixed[h.id] !== null && fixed[o] !== null)) continue;
+      if (isRed(t) && isRed(u)) n += 100;
+      else if (t === u) n += 1;
+    }
+  }
+  return n;
+}
+
 /**
- * Numbers for groups of hexes, each dealt from its own pool (the first as many as it has hexes),
- * re-dealt until no 6/8 touch and, unless `allowEqual`, no equal numbers touch. `fixed` holds the
- * numbers that don't move. If equal numbers can't be kept apart after many deals, keeping the 6s and
- * 8s apart will do.
+ * Numbers for groups of hexes, each dealt from its own pool (the first as many as it has hexes), so
+ * that no equal numbers touch and no 6/8 touch, on every map. `fixed` holds the numbers that don't
+ * move (a map's own gold 6 or 8): dealt numbers keep clear of them too, but two fixed ones may clash.
+ * Found by randomized backtracking (the most constrained hex first, with a step budget and restarts),
+ * so dense pools still deal. If nothing valid turns up, the deal with the fewest clashes (6/8 touching
+ * weigh most) is kept, so a board is always made. Deterministic from `rng`.
  */
 export function dealTokens(
   rng: RngHolder,
   topo: Topology,
   groups: [ids: number[], pool: number[]][],
   fixed: (number | null)[],
-  allowEqual = true,
   /** A map's own rule on top of the usual ones (Vulcan: a red number in every corner). */
   extra?: (tokens: (number | null)[]) => boolean,
 ): (number | null)[] {
-  let tokens: (number | null)[] = fixed;
-  for (let attempt = 0; attempt < 5000; attempt++) {
-    tokens = [...fixed];
+  const valid = tryDealTokens(rng, topo, groups, fixed, extra, 40);
+  if (valid) return valid;
+
+  // No valid deal: keep the best of many random ones.
+  dealStats.fallbacks++;
+  let best = [...fixed];
+  let bestScore = Infinity;
+  for (let attempt = 0; attempt < 300 && bestScore > 0; attempt++) {
+    const dealt = [...fixed];
     for (const [ids, pool] of groups) {
       const deal = shuffle(rng, [...pool]);
-      ids.forEach((id, i) => (tokens[id] = deal[i]));
+      ids.forEach((id, i) => (dealt[id] = deal[i] ?? null));
     }
-    if (tokensValid(topo, tokens, allowEqual || attempt >= 3000) && (!extra || extra(tokens))) break;
-  }
-  return tokens;
-}
-
-/**
- * Numbers for groups of hexes (each from its own pool) where 6s and 8s should not touch, for boards
- * with too many of them for random deals to find a valid one: the 6s and 8s go down first, each on a
- * hex with none next to it (`fixed` ones included) where there is one, then the other numbers fill
- * the rest at random. Every hex always gets a number; of many deals, the one with the fewest touching
- * 6s and 8s is kept (almost always none).
- */
-export function spreadRedTokens(rng: RngHolder, topo: Topology, groups: [ids: number[], pool: number[]][], fixed: (number | null)[]): (number | null)[] {
-  let best = [...fixed];
-  let bestClashes = Infinity;
-  for (let attempt = 0; attempt < 500 && bestClashes > 0; attempt++) {
-    const tokens = [...fixed];
-    const touchesRed = (id: number) => topo.hexes[id].neighbors.some((n) => isRed(tokens[n]));
-    let clashes = 0;
-    for (const [ids, pool] of groups) {
-      for (const red of shuffle(rng, pool.filter(isRed))) {
-        const free = ids.filter((id) => tokens[id] === null);
-        const clear = free.filter((id) => !touchesRed(id));
-        const spots = clear.length ? clear : free;
-        if (!clear.length) clashes++;
-        tokens[spots[randomInt(rng, spots.length)]] = red;
-      }
-      const rest = shuffle(rng, pool.filter((t) => !isRed(t)));
-      ids.filter((id) => tokens[id] === null).forEach((id, i) => (tokens[id] = rest[i]));
-    }
-    if (clashes < bestClashes) {
-      best = tokens;
-      bestClashes = clashes;
-    }
+    const score = dealClashes(topo, dealt, fixed) + (extra && !extra(dealt) ? 1000 : 0);
+    if (score < bestScore) { best = dealt; bestScore = score; }
   }
   return best;
+}
+
+/** dealTokens' search alone: a valid deal, or null if `attempts` restarts found none. */
+function tryDealTokens(
+  rng: RngHolder,
+  topo: Topology,
+  groups: [ids: number[], pool: number[]][],
+  fixed: (number | null)[],
+  extra: ((tokens: (number | null)[]) => boolean) | undefined,
+  attempts: number,
+  budget = 4000,
+): (number | null)[] | null {
+  const tokens: (number | null)[] = [...fixed];
+  const groupOf = new Map<number, number>();
+  groups.forEach(([ids], g) => ids.forEach((id) => { tokens[id] = null; groupOf.set(id, g); }));
+  const left = groups.map(([, pool]) => {
+    const counts = new Map<number, number>();
+    for (const t of pool) counts.set(t, (counts.get(t) ?? 0) + 1);
+    return counts;
+  });
+  const fits = (id: number, t: number) => topo.hexes[id].neighbors.every((n) => {
+    const u = tokens[n];
+    return u === null || (u !== t && !(isRed(t) && isRed(u)));
+  });
+  const candidates = (id: number) => {
+    const out: number[] = [];
+    for (const [t, n] of left[groupOf.get(id)!]) if (n > 0 && fits(id, t)) out.push(t);
+    return out;
+  };
+
+  let steps = 0;
+  const solve = (open: number[]): boolean => {
+    if (!open.length) return !extra || extra(tokens);
+    if (++steps > budget) return false;
+    let pick = -1;
+    let pickCount = Infinity;
+    for (const id of open) {
+      const c = candidates(id).length;
+      if (c < pickCount) { pick = id; pickCount = c; }
+      if (c === 0) return false;
+    }
+    // Candidates in random order, likelier (more copies left) numbers a little more often first.
+    const counts = left[groupOf.get(pick)!];
+    const order = [...new Set(shuffle(rng, [...counts].flatMap(([t, n]) => (n > 0 && fits(pick, t) ? Array<number>(n).fill(t) : []))))];
+    const rest = open.filter((id) => id !== pick);
+    for (const t of order) {
+      tokens[pick] = t;
+      counts.set(t, counts.get(t)! - 1);
+      const ok = solve(rest);
+      if (ok) return true;
+      counts.set(t, counts.get(t)! + 1);
+      tokens[pick] = null;
+      if (steps > budget) return false;
+    }
+    return false;
+  };
+
+  const all = groups.flatMap(([ids]) => ids);
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    steps = 0;
+    // A shuffled start, so the ties between equally constrained hexes break differently each time.
+    if (solve(shuffle(rng, [...all]))) return tokens;
+  }
+  return null;
 }
 
 /**
@@ -239,9 +294,9 @@ function goldRushBoard(rng: RngHolder): Board {
   const fixed: (number | null)[] = topo.hexes.map(() => null);
   fixed[gold] = randomInt(rng, 2) ? 6 : 8;
   // The middle first (it is tight: its centre touches the other six), then the ring around it.
-  const hiddenTokens = dealTokens(rng, topo, [[middle.filter((id) => id !== gold), [...GOLD_RUSH_FOG_TOKENS]]], fixed, false);
+  const hiddenTokens = dealTokens(rng, topo, [[middle.filter((id) => id !== gold), [...GOLD_RUSH_FOG_TOKENS]]], fixed);
   const land = ring.filter((id) => terrains[id] !== 'desert');
-  const tokens = dealTokens(rng, topo, [[land, balancedTokens(land.length)]], hiddenTokens, false);
+  const tokens = dealTokens(rng, topo, [[land, balancedTokens(land.length)]], hiddenTokens);
 
   const hexes: Hex[] = topo.hexes.map((h) => ({ id: h.id, q: h.q, r: h.r, terrain: terrains[h.id], token: tokens[h.id] }));
   for (const id of middle) hexes[id].fog = true;
@@ -306,7 +361,6 @@ function vulcanBoard(rng: RngHolder): Board {
       [hiddenNumbered, balancedTokens(hiddenNumbered.length).map((t) => (t === 2 ? 4 : t === 12 ? 10 : t))],
     ],
     tokens,
-    true,
     // The corners share four 6s and 8s between them: one each, so no corner starts poor.
     (dealt) => [0, 1, 2, 3].every((c) => home.filter((id) => cornerOf(id) === c && isRed(dealt[id])).length === 1),
   );
@@ -322,19 +376,31 @@ function vulcanBoard(rng: RngHolder): Board {
   return { hexes, harbors };
 }
 
-/** No neighbouring 6/8 and, unless `allowEqual`, no neighbouring equal numbers. */
-function tokensValid(topo: Topology, tokens: (number | null)[], allowEqual = false): boolean {
-  for (const h of topo.hexes) {
-    const t = tokens[h.id];
-    if (t === null) continue;
-    for (const n of h.neighbors) {
-      const u = tokens[n];
-      if (u === null) continue;
-      if (t === u && !allowEqual) return false;
-      if (isRed(t) && isRed(u)) return false;
+const FOG_PIPS: Record<number, number> = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1 };
+
+/**
+ * Splits Black Forest's fog numbers between its four resources (`sizes` hexes each) so that none is
+ * left poor: pips within 2 of its fair share, at most two 6/8s (and one if it can, at least one), and at
+ * most one 2 or 12. Random splits, the best kept if none is perfect. Deterministic from `rng`.
+ */
+function balancedFogDeal(rng: RngHolder, pool: number[], sizes: number[]): number[][] {
+  const total = pool.reduce((n, t) => n + FOG_PIPS[t], 0);
+  let best: number[][] = [];
+  let bestScore = Infinity;
+  for (let attempt = 0; attempt < 2000 && bestScore > 0; attempt++) {
+    const deck = shuffle(rng, [...pool]);
+    let at = 0;
+    const split = sizes.map((n) => deck.slice(at, (at += n)));
+    let score = 0;
+    for (const [i, part] of split.entries()) {
+      const pips = part.reduce((n, t) => n + FOG_PIPS[t], 0);
+      const reds = part.filter(isRed).length;
+      const ends = part.filter((t) => t === 2 || t === 12).length;
+      score += Math.max(0, Math.abs(pips - (total * sizes[i]) / pool.length) - 2) + Math.max(0, reds - 2) + (reds === 0 ? 1 : 0) + Math.max(0, ends - 1);
     }
+    if (score < bestScore) { best = split; bestScore = score; }
   }
-  return true;
+  return best;
 }
 
 /**
@@ -356,29 +422,32 @@ function blackForestBoard(rng: RngHolder, gold: boolean): Board {
   const goldTouches = () =>
     fogged.some((id) => terrains[id] === 'gold' && topo.hexes[id].neighbors.some((n) => terrains[n] === 'gold' || terrains[n] === 'forest'));
   // Without gold, two random resources take the gold fields' places.
+  // Two different ones, so the counts stay even (8, 8, 7, 7).
   const resources: Terrain[] = ['hills', 'pasture', 'fields', 'mountains'];
-  const hiddenBag = gold
-    ? bag(BLACK_FOREST_FOG)
-    : [...bag(BLACK_FOREST_FOG).filter((t) => t !== 'gold'), resources[randomInt(rng, 4)], resources[randomInt(rng, 4)]];
+  const extras = shuffle(rng, [...resources]).slice(0, 2);
+  const hiddenBag = gold ? bag(BLACK_FOREST_FOG) : [...bag(BLACK_FOREST_FOG).filter((t) => t !== 'gold'), ...extras];
   do {
     const hidden = shuffle(rng, [...hiddenBag]);
     fogged.forEach((id, i) => (terrains[id] = hidden[i]));
   } while (goldTouches());
 
-  // Gold is always a 6 or an 8. With this many numbers only the 6s and 8s are kept apart.
+  // Gold is always a 6 or an 8.
   const goldIds = fogged.filter((id) => terrains[id] === 'gold');
   const fixed: (number | null)[] = topo.hexes.map(() => null);
   for (const id of goldIds) fixed[id] = shuffle(rng, [6, 8])[0];
-  const tokens = spreadRedTokens(
-    rng,
-    topo,
-    [
-      [visible, [...BLACK_FOREST_TOKENS]],
-      // Tiles standing in for gold get a 5 and a 9 rather than gold's 6 or 8.
-      [fogged.filter((id) => terrains[id] !== 'gold'), gold ? [...BLACK_FOREST_FOG_TOKENS] : [...BLACK_FOREST_FOG_TOKENS, 5, 9]],
-    ],
-    fixed,
-  );
+  // Tiles standing in for gold get a 5 and a 9 rather than gold's 6 or 8.
+  const fogPool = gold ? [...BLACK_FOREST_FOG_TOKENS] : [...BLACK_FOREST_FOG_TOKENS, 5, 9];
+  const fogIds = resources.map((r) => fogged.filter((id) => terrains[id] === r));
+  // The forest first, then the fog around it; a layout or split the neighbours won't allow is dealt again.
+  const forest: [number[], number[]][] = [[visible, [...BLACK_FOREST_TOKENS]]];
+  let tokens: (number | null)[] | null = null;
+  for (let attempt = 0; attempt < 500 && !tokens; attempt++) {
+    const ring = tryDealTokens(rng, topo, forest, fixed, undefined, 1, 800);
+    if (!ring) continue;
+    const fogDeal = balancedFogDeal(rng, fogPool, fogIds.map((ids) => ids.length));
+    tokens = tryDealTokens(rng, topo, fogIds.map((ids, i): [number[], number[]] => [ids, fogDeal[i]]), ring, undefined, 1, 120);
+  }
+  tokens ??= dealTokens(rng, topo, [...forest, ...fogIds.map((ids): [number[], number[]] => [ids, fogPool.slice(0, ids.length)])], fixed);
 
   const hexes: Hex[] = topo.hexes.map((h) => ({ id: h.id, q: h.q, r: h.r, terrain: terrains[h.id], token: tokens[h.id] }));
   for (const id of fogged) hexes[id].fog = true;
@@ -411,7 +480,7 @@ export function generateBoard(rng: RngHolder, map: MapId = 'standard', opts: { g
 
   const terrains = shuffle(rng, bag(spec.terrains));
   const landIds = topo.hexes.filter((h) => terrains[h.id] !== 'desert').map((h) => h.id);
-  const tokens = dealTokens(rng, topo, [[landIds, [...spec.tokens]]], topo.hexes.map(() => null), !!spec.allowEqual);
+  const tokens = dealTokens(rng, topo, [[landIds, [...spec.tokens]]], topo.hexes.map(() => null));
 
   const hexes: Hex[] = topo.hexes.map((h) => ({
     id: h.id,

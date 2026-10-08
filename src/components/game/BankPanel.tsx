@@ -59,7 +59,7 @@ export function BankPanel({ view }: { view: PlayerView }) {
               return (
                 <div key={c} className="flex flex-col items-center gap-1">
                   <ResourceCard card={c} count={0} size="sm" selected={get === c} dim={!ok} onClick={ok ? () => (setGet(c), setCount(1)) : undefined} />
-                  <span className="text-[10px] font-bold text-ink-faint">bank {view.bank[c]}</span>
+                  <span className="text-[10px] font-bold text-ink-faint">{view.bank[c] <= 0 ? 'bank empty' : view.bank[c] <= 5 ? 'bank low' : 'bank ok'}</span>
                 </div>
               );
             })}

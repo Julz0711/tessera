@@ -40,8 +40,10 @@ export const limits = {
   action: new RateLimiter(25, 12),
   // A short burst, then about one message every 2.5 s.
   chat: new RateLimiter(4, 0.4),
-  // Two in a row, then one every 3 s.
-  reaction: new RateLimiter(2, 1 / 3),
+  // Two in a row, then one every 5 s.
+  reaction: new RateLimiter(2, 1 / 5),
+  // Mouse positions: a burst, then 20 a second (the client sends about 11).
+  cursor: new RateLimiter(30, 20),
   lobby: new RateLimiter(20, 2),
   // A client out of step asks again every couple of seconds until the whole log arrives.
   sync: new RateLimiter(5, 1),

@@ -254,6 +254,43 @@ describe('realtime server', () => {
     host.close();
   });
 
+  it('relays mouse pointers from seated players to the others, dropping bad ones and spectators', async () => {
+    const a = client(await guestCookie());
+    const b = client(await guestCookie());
+    const c = client(await guestCookie());
+    const created = await call<{ code: string }>((ack) => a.emit('room:create', { profile: profile('Ria', 'red') }, ack));
+    const code = (created as { code: string }).code;
+    expect((await call((ack) => b.emit('room:join', { code, profile: profile('Bo', 'blue') }, ack))).ok).toBe(true);
+    expect((await call((ack) => c.emit('room:join', { code, profile: profile('Cy', 'white'), spectate: true }, ack))).ok).toBe(true);
+
+    const atB: unknown[] = [];
+    const atC: unknown[] = [];
+    const atA: unknown[] = [];
+    a.on('room:cursor', (m) => atA.push(m));
+    b.on('room:cursor', (m) => atB.push(m));
+    c.on('room:cursor', (m) => atC.push(m));
+    // Sent one at a time with a pause: volatile messages are dropped while a previous one is still going out.
+    const pause = () => new Promise((r) => setTimeout(r, 40));
+    for (const [from, msg] of [
+      [a, { x: 1.5, y: -2 }],
+      [a, { x: Number.NaN, y: 0 }],
+      [a, { x: 1e9, y: 0 }],
+      [a, 'junk'],
+      [c, { x: 3, y: 3 }],
+      [a, null],
+    ] as const) {
+      from.emit('room:cursor', msg as never);
+      await pause();
+    }
+    const at = (m: unknown) => (m as { at: unknown }).at;
+    expect(atB.map(at)).toEqual([{ x: 1.5, y: -2 }, null]);
+    expect(atC.map(at)).toEqual([{ x: 1.5, y: -2 }, null]);
+    expect(atA).toEqual([]);
+    a.close();
+    b.close();
+    c.close();
+  });
+
   it('flashes quick reactions to the table, rate-limited, and blocks repeated chat', async () => {
     const a = client(await guestCookie());
     const b = client(await guestCookie());

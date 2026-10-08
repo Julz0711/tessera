@@ -3,11 +3,15 @@
 import dynamic from 'next/dynamic';
 import { Component, type ReactNode } from 'react';
 import type { BoardProps } from './types';
+import { HexSpinner } from '@/components/ui/HexSpinner';
 
 function BoardLoading() {
   return (
     <div className="grid h-full w-full place-items-center">
-      <div className="label-light animate-pulse">Raising the island…</div>
+      <div className="flex flex-col items-center gap-4 text-foam/70">
+        <HexSpinner size={56} decorative />
+        <div className="label-light">Raising the island…</div>
+      </div>
     </div>
   );
 }

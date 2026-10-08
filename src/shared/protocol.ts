@@ -5,6 +5,7 @@ import type { PlayerView } from '@/engine/view';
 import type { Cosmetics, UnlockStats } from './cosmetics';
 import type { KnightCustomization } from './knight';
 import type { ReactionId } from './reactions';
+import type { BoardPoint } from './cursors';
 import type { ModeRating, RatingPool } from './ratings';
 
 /** The PRD's conceptual identity: the game never cares whether a player is a guest. */
@@ -84,6 +85,8 @@ export interface RoomDTO {
   you: { playerId: string | null; seat: number | null; isHost: boolean; isSpectator: boolean; isAdmin?: boolean };
   /** Epoch ms when the current decision window times out (turn timer / autopilot), if any. */
   deadline: number | null;
+  /** The active player's turn clock frozen while others answer prompts: ms left (then `deadline` is null). */
+  paused?: number;
   gameNumber: number;
 }
 
@@ -126,6 +129,8 @@ export interface ClientToServerEvents {
   'game:action': (action: Action, ack: Ack) => void;
   'chat:send': (text: string, ack: Ack) => void;
   'room:react': (reaction: ReactionId, ack: Ack) => void;
+  /** Where the player's mouse is over the board, in board units (`null`: it left). Fire and forget: no ack, drops are fine. */
+  'room:cursor': (at: BoardPoint | null) => void;
   /** The client's log no longer lines up with the updates (see `GameUpdate`): send the whole view again. */
   'game:sync': () => void;
   /** The match report so far, with nothing hidden in it (the full one once the game is over). */
@@ -154,6 +159,8 @@ export interface ServerToClientEvents {
   'friend:invite': (invite: { from: string; roomCode: string }) => void;
   /** A player's quick reaction (not kept in the chat). */
   'room:reaction': (r: { playerId: string; reaction: ReactionId; at: number }) => void;
+  /** Another player's mouse over the board (`at: null`: it left the board or the table). */
+  'room:cursor': (c: { playerId: string; at: BoardPoint | null }) => void;
   'room:closed': (reason: string) => void;
   'session:replaced': () => void;
 }

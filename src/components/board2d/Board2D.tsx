@@ -20,6 +20,7 @@ import { useZoomPan } from "./useZoomPan";
 import { useWide, useZoomHost } from "@/client/hud";
 import { usePrefs } from "@/client/prefs";
 import { BoardArt } from "@/components/game/cardArt";
+import { CursorLayer2D, useCursorTracking2D } from "./Cursors2D";
 
 const S = 100; // world units → SVG units
 /** How much of its hex a tile fills; the rest is a strip of beach between neighbours. */
@@ -707,6 +708,7 @@ export default function Board2D({
     reset,
     svgHandlers,
   } = useZoomPan(bounds, !!interactive);
+  useCursorTracking2D(svgRef, S, !!interactive && !turn);
   const hostEl = useZoomHost((s) => s.el);
   const zoomHost = wideHud ? hostEl : null;
   // Wide screens zoom with the wheel and drag; their buttons are an accessibility setting.
@@ -1503,7 +1505,7 @@ export default function Board2D({
                       k={ps}
                       theme={theme}
                     />
-                  ) : armed.what === "city" && scene.buildings[armed.at] ? (
+                  ) : (armed.what === "city" || armed.what === "metropolis") && scene.buildings[armed.at] ? (
                     <PieceHalo
                       x={p.x * S}
                       y={p.y * S}
@@ -1573,6 +1575,7 @@ export default function Board2D({
         onClick={onBackground ? () => onBackground() : undefined}
       >
         {content}
+        <CursorLayer2D unit={S} enabled={!!interactive && !turn} />
       </svg>
       {popup && popupAt && (
         <div

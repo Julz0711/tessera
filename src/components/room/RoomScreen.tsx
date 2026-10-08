@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Loader2, RefreshCw } from 'lucide-react';
+import { Home, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { usePrefs } from '@/client/prefs';
@@ -9,6 +9,7 @@ import { ERR_NEEDS_PROFILE } from '@/shared/protocol';
 import { GameScreen } from '@/components/game/GameScreen';
 import { JoinCard } from './JoinCard';
 import { Lobby } from './Lobby';
+import { HexSpinner } from '@/components/ui/HexSpinner';
 
 function Centered({ children }: { children: React.ReactNode }) {
   return <div className="grid min-h-dvh place-items-center px-4">{children}</div>;
@@ -84,8 +85,8 @@ export function RoomScreen({ code: rawCode }: { code: string }) {
   if (state === 'joining' || !room) {
     return (
       <Centered>
-        <div className="flex items-center gap-3 text-foam/70">
-          <Loader2 className="animate-spin" />
+        <div className="flex flex-col items-center gap-4 text-foam/70">
+          <HexSpinner size={56} />
           <span className="font-bold">{conn === 'reconnecting' ? 'Reconnecting…' : 'Joining the table…'}</span>
         </div>
       </Centered>

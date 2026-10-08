@@ -42,7 +42,7 @@ export interface BoardTargets {
    * piece there and anchor the popup to it.
    */
   armed?:
-    | { target: 'vertex' | 'edge'; at: number; what: 'road' | 'ship' | 'settlement' | 'city' | 'knight' | 'wall' }
+    | { target: 'vertex' | 'edge'; at: number; what: 'road' | 'ship' | 'settlement' | 'city' | 'knight' | 'wall' | 'metropolis' }
     | { target: 'hex'; at: number; what: 'robber' };
 }
 
@@ -90,6 +90,8 @@ export interface BoardProps extends BoardHandlers {
   interactive?: boolean;
   /** Landing-page mode: slow orbit, no controls. */
   showcase?: boolean;
+  /** Stops the render loop (the canvas stays alive), for a board that is mounted but out of sight. */
+  paused?: boolean;
   quality?: 'high' | 'low';
   /** Size multiplier for the pieces, number tokens and harbors (the "Board size" setting). */
   pieceScale?: number;

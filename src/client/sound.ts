@@ -46,6 +46,7 @@ export type Sfx =
   | 'award'
   | 'repelled'
   | 'metropolis'
+  | 'longestRoad'
   | 'win'
   | 'lose';
 
@@ -67,7 +68,7 @@ export function setSfxVolumes(map: Partial<Record<Sfx, number>>): void {
   sfxGains = { ...map };
 }
 
-/** Sounds grouped for the Audio settings tab, covering all 31 effects. */
+/** Sounds grouped for the Audio settings tab, covering all 32 effects. */
 export const SFX_GROUPS: { id: string; label: string; sounds: { sfx: Sfx; label: string }[] }[] = [
   {
     id: 'ui',
@@ -120,6 +121,7 @@ export const SFX_GROUPS: { id: string; label: string; sounds: { sfx: Sfx; label:
       { sfx: 'award', label: 'Special award' },
       { sfx: 'repelled', label: 'Barbarians repelled' },
       { sfx: 'metropolis', label: 'Metropolis' },
+      { sfx: 'longestRoad', label: 'Longest Road' },
       { sfx: 'win', label: 'Victory' },
       { sfx: 'lose', label: 'Defeat' },
     ],
@@ -426,6 +428,14 @@ function playSfx(c: AudioContext, sfx: Sfx): void {
       [N.C5, N.E5, N.G5].forEach((f, i) => brass(c, f, { at: i * 0.11, dur: 0.3, gain: 0.09, wet: 0.35 }));
       [N.C4, N.G4, N.C5, N.E5, N.G5].forEach((f) => brass(c, f, { at: 0.36, dur: 1.3, gain: 0.06, wet: 0.5 }));
       [N.C6, N.E6, N.G5 * 2, N.C6 * 2].forEach((f, i) => bell(c, f, { at: 0.4 + i * 0.12, dur: 0.9, gain: 0.05, wet: 0.5 }));
+      break;
+    }
+    case 'longestRoad': {
+      // an epic stinger: a deep drum hit under a rising brass fanfare, a held wide chord and shimmering bells
+      drum(c, 80, { dur: 0.5, gain: 0.4 });
+      [N.G4, N.C5, N.E5, N.G5].forEach((f, i) => brass(c, f, { at: i * 0.12, dur: 0.3, gain: 0.09, wet: 0.35 }));
+      [N.C3, N.G3, N.C4, N.G4, N.C5, N.E5, N.G5, N.C6].forEach((f) => brass(c, f, { at: 0.45, dur: 1.2, gain: 0.05, wet: 0.55 }));
+      [N.E6, N.G5 * 2, N.C6 * 2, N.E6 * 2].forEach((f, i) => bell(c, f, { at: 0.5 + i * 0.1, dur: 1.0, gain: 0.045, wet: 0.6 }));
       break;
     }
     case 'win':

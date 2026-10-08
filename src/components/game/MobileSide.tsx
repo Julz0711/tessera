@@ -59,7 +59,7 @@ export function MobileSide({ view }: { view: PlayerView }) {
                   useGameDialog.getState().show('stats');
                 }}
               >
-                <ChartColumn size={14} /> Full stats
+                <ChartColumn size={14} /> Dice stats
               </button>
             </div>
           )}

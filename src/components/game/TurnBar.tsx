@@ -4,7 +4,7 @@ import { statusLine } from '@/client/describe';
 import type { PlayerView } from '@/engine/view';
 import type { RoomDTO } from '@/shared/protocol';
 import { WithKeys } from '@/components/ui/Kbd';
-import { useCountdown } from './Dock';
+import { useRoomClock } from './Dock';
 
 /**
  * The turn pill on wide screens, as on colonist: it sits right on top of the dock, with the turn
@@ -12,7 +12,7 @@ import { useCountdown } from './Dock';
  */
 export function TurnBar({ view, room }: { view: PlayerView; room: RoomDTO }) {
   const status = statusLine(view);
-  const seconds = useCountdown(room.deadline);
+  const seconds = useRoomClock(room);
   const low = seconds !== null && seconds <= 10;
   return (
     <div className="flex w-full items-stretch gap-2" aria-live="polite">

@@ -129,8 +129,10 @@ export function setEmbargo(ctx: Ctx, seat: number, on: boolean): void {
   const s = ctx.s;
   assertRule(Number.isInteger(seat) && seat >= 0 && seat < s.players.length && seat !== ctx.seat, 'Unknown player');
   const p = s.players[ctx.seat];
+  const was = p.embargo?.includes(seat) ?? false;
   p.embargo = (p.embargo ?? []).filter((x) => x !== seat);
   if (on) p.embargo.push(seat);
+  if (was !== on) emit(ctx, { type: 'embargo', seat: ctx.seat, target: seat, on });
 }
 
 /**

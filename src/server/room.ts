@@ -49,6 +49,7 @@ import type { ServerIdentity } from './identity';
 import type { Persistence } from './persistence';
 import type { RestoredRoom } from './prismaPersistence';
 import type { ReactionId } from '@/shared/reactions';
+import type { BoardPoint } from '@/shared/cursors';
 
 /** Errors whose message is safe to show the user. */
 export class UserError extends Error {}
@@ -61,6 +62,8 @@ export interface RoomIO {
   logDeltas?(socketId: string): boolean;
   /** Whether the socket belongs to a server admin (in-game admin tools). */
   isAdmin?(socketId: string): boolean;
+  /** Like `send`, but the message may be dropped when the connection is busy (mouse positions). */
+  sendVolatile?<E extends keyof ServerToClientEvents>(socketId: string, event: E, ...args: Parameters<ServerToClientEvents[E]>): void;
 }
 
 export interface RoomDeps {
@@ -106,6 +109,12 @@ const UNDO_DEPTH = 30;
 const ADMIN_BOT_PAUSE_MS = 4000;
 
 /** 'buildRoad' → 'build road', for the chat line an undo leaves. */
+/** How long a seat other than the active player gets to answer a prompt (discard, aqueduct pick…). */
+const PROMPT_MS = 30_000;
+/** One turn (or setup placement) of one seat: the turn clock restarts when this changes, never otherwise. */
+const turnKeyOf = (g: GameState) => `${g.turn.n}:${g.turn.seat}:${g.setup?.index ?? ''}`;
+const promptKey = (p: GameState['pending'][number]) => `${p.kind}${p.seat}`;
+
 const actionName = (type: string) => type.replace(/([A-Z])/g, ' $1').toLowerCase();
 
 export class Room {
@@ -125,9 +134,14 @@ export class Room {
   chat: ChatMessage[] = [];
   lastActivity: number;
   closed = false;
-  private window = { key: '', startedAt: 0 };
-  /** Extra time earned by acting while in the red zone (last 10s); resets with the window. */
-  private bonusMs = 0;
+  /**
+   * The active player's turn clock: starts with the turn (or setup placement) and nothing else
+   * restarts it. `bonusMs`: time earned by acting in the red zone (last 10s). `pausedAt`: set while
+   * other seats owe prompts (the clock stands still; on resume `startedAt` moves by the pause).
+   */
+  private turnClock = { key: '', startedAt: 0, bonusMs: 0, pausedAt: null as number | null };
+  /** While a seat other than the active one owes a prompt: when each open prompt (`kind+seat`) opened. Empty otherwise. */
+  private promptStarts = new Map<string, number>();
   private botTimer: ReturnType<typeof setTimeout> | null = null;
   private ticker: ReturnType<typeof setInterval> | null = null;
   private botGuard = { marker: '', count: 0 };
@@ -183,7 +197,7 @@ export class Room {
     room.gameId = data.gameId;
     room.gameNumber = data.gameNumber;
     room.status = data.state.phase === 'ended' ? 'finished' : 'playing';
-    room.window = { key: '', startedAt: room.now() };
+    room.resetClocks();
     room.system('The server restarted and your game was restored. Welcome back!');
     if (room.status === 'playing') {
       room.updateWindow();
@@ -266,6 +280,7 @@ export class Room {
     const seat = this.seats.find((s) => s.identityKey === key);
     if (seat) {
       seat.sockets.delete(socketId);
+      if (seat.sockets.size === 0) this.sendCursor(seat, null);
       if (this.status === 'lobby') {
         this.seats = this.seats.filter((s) => s !== seat);
         this.system(`${seat.name} left`);
@@ -328,6 +343,7 @@ export class Room {
     if (seat) {
       seat.sockets.delete(socketId);
       seat.lastSeen = this.now();
+      if (seat.sockets.size === 0) this.sendCursor(seat, null);
       if (this.status === 'lobby' && seat.sockets.size === 0) {
         // Lobby seats are released after a short grace period so a refresh keeps your seat.
         setTimeout(() => this.releaseLobbySeat(seat), this.deps.disconnectGraceMs ?? 20_000).unref?.();
@@ -530,8 +546,7 @@ export class Room {
     this.history = [];
     this.gameNumber++;
     this.status = 'playing';
-    this.window = { key: '', startedAt: this.now() };
-    this.bonusMs = 0;
+    this.resetClocks();
     this.botGuard = { marker: '', count: 0 };
     this.deps.persistence.gameStarted(this.persistGame());
     this.deps.persistence.roomStatus(this.persistRoom());
@@ -555,9 +570,8 @@ export class Room {
   /** Applies an action for a seat; returns an error message or null. */
   private apply(seat: number, action: Action): string | null {
     if (!this.game) return 'No game';
-    const dl = this.deadline();
-    const inRedZone = dl !== null && dl - this.now() <= 10_000;
-    const prevKey = this.window.key;
+    // The red zone is the last 10s of the active player's own turn clock (not while prompts for others pause it).
+    const inRedZone = seat === this.game.turn.seat && !this.promptStarts.size && this.turnEnd() - this.now() <= 10_000;
     const result = applyAction(this.game, seat, action);
     if (!result.ok) return result.error;
     // States are never mutated (see `applyAction`): keeping the old one is all an undo needs. Only
@@ -572,10 +586,10 @@ export class Room {
         this.deps.persistence.snapshot(this.gameId, result.state);
       }
     }
+    // Acting with the clock nearly out earns a bit more time, but only within the same turn — a new
+    // turn already gets a fresh clock. Before `afterChange`, so the broadcast carries the new deadline.
+    if (inRedZone && turnKeyOf(result.state) === this.turnClock.key) this.turnClock.bonusMs += 5_000;
     this.afterChange(result.events);
-    // Acting with the clock nearly out earns a bit more time, but only within the same decision
-    // window — starting a new window (new turn/prompt) already gets a fresh deadline.
-    if (inRedZone && this.window.key === prevKey) this.bonusMs += 5_000;
     return null;
   }
 
@@ -662,38 +676,81 @@ export class Room {
     }
   }
 
-  /** A decision window restarts whenever the set of owed decisions changes (new turn, new prompts). */
+  private resetClocks(): void {
+    this.turnClock = { key: '', startedAt: this.now(), bonusMs: 0, pausedAt: null };
+    this.promptStarts.clear();
+  }
+
+  /**
+   * Keeps the clocks in step with the game. The turn clock restarts only on a new turn or setup
+   * placement. Prompts owed by other seats each get their own short clock and pause the turn clock
+   * until they are all answered; prompts only the active player owes are part of their turn.
+   */
   private updateWindow(): void {
     const g = this.game;
     if (!g) return;
-    const key = `${g.turn.n}:${g.phase}:${g.setup?.index ?? ''}:${g.pending.map((p) => `${p.kind}${p.seat}`).join(',')}`;
-    if (key !== this.window.key) {
-      this.window = { key, startedAt: this.now() };
-      this.bonusMs = 0;
+    const now = this.now();
+    const key = turnKeyOf(g);
+    if (key !== this.turnClock.key) this.turnClock = { key, startedAt: now, bonusMs: 0, pausedAt: null };
+    const others = g.phase !== 'ended' && g.pending.some((p) => p.seat !== g.turn.seat);
+    const c = this.turnClock;
+    if (others && c.pausedAt === null) c.pausedAt = now;
+    else if (!others && c.pausedAt !== null) {
+      c.startedAt += now - c.pausedAt;
+      c.pausedAt = null;
     }
+    if (!others) return this.promptStarts.clear();
+    const open = new Set(g.pending.map(promptKey));
+    for (const k of this.promptStarts.keys()) if (!open.has(k)) this.promptStarts.delete(k);
+    for (const k of open) if (!this.promptStarts.has(k)) this.promptStarts.set(k, now);
   }
 
-  private windowLimitMs(): number {
-    const g = this.game!;
-    const t = this.settings.turnTimer;
-    // Bots don't mind waiting: the clock only runs while two or more people share the table.
-    if (!t || this.seats.filter((s) => !s.isBot).length < 2) return Infinity;
-    // Prompts (discards, robber…) get a shorter window than a full turn; setup placements get a full one.
-    return (g.pending.length ? Math.min(t, 45) : t) * 1000;
+  /** Whether the clocks run at all: bots don't mind waiting, so only with two or more people at the table. */
+  private clocked(): boolean {
+    return !!this.settings.turnTimer && this.seats.filter((s) => !s.isBot).length >= 2;
   }
 
-  private deadline(): number | null {
+  private turnEnd(): number {
+    const c = this.turnClock;
+    return this.clocked() ? c.startedAt + this.settings.turnTimer * 1000 + c.bonusMs : Infinity;
+  }
+
+  /** When `seat`'s current decision times out, and since when it has been theirs to make. */
+  private seatClock(seat: number): { end: number; since: number } {
+    if (!this.promptStarts.size) return { end: this.turnEnd(), since: this.turnClock.startedAt };
+    let since = 0;
+    for (const p of this.game!.pending) if (p.seat === seat) since = Math.max(since, this.promptStarts.get(promptKey(p)) ?? 0);
+    return { end: this.clocked() ? since + PROMPT_MS : Infinity, since };
+  }
+
+  /** When the decision times out (the soonest of the seats `only`, default everyone being waited on). */
+  private deadline(only?: number): number | null {
     const g = this.game;
     if (!g || g.phase === 'ended' || this.status !== 'playing') return null;
-    const humans = actorsFor(g).filter((i) => !this.seats[i].isBot);
+    const humans = actorsFor(g).filter((i) => !this.seats[i].isBot && (only === undefined || i === only));
     if (!humans.length) return null;
     const grace = this.deps.disconnectGraceMs ?? 20_000;
-    let at = this.window.startedAt + this.windowLimitMs() + this.bonusMs;
+    let at = Infinity;
     for (const i of humans) {
       const s = this.seats[i];
-      if (s.sockets.size === 0) at = Math.min(at, s.left ? this.now() : Math.max(s.lastSeen, this.window.startedAt) + grace);
+      const { end, since } = this.seatClock(i);
+      at = Math.min(at, end);
+      if (s.sockets.size === 0) at = Math.min(at, s.left ? this.now() : Math.max(s.lastSeen, since) + grace);
     }
     return Number.isFinite(at) ? at : null;
+  }
+
+  /** The clock `seat` (null: a spectator) should see: its own prompt's, or the turn clock frozen while others answer. */
+  private clockFor(seat: number | null): { deadline: number | null; paused?: number } {
+    const g = this.game;
+    const c = this.turnClock;
+    if (seat !== null && g && g.phase !== 'ended' && this.status === 'playing') {
+      const owes = g.pending.some((p) => p.seat === seat);
+      if (owes) return { deadline: this.deadline(seat) };
+      const left = this.turnEnd() - (c.pausedAt ?? 0);
+      if (c.pausedAt !== null && seat === g.turn.seat && Number.isFinite(left)) return { deadline: null, paused: Math.max(0, left) };
+    }
+    return { deadline: this.deadline() };
   }
 
   private startTicker(): void {
@@ -714,11 +771,12 @@ export class Room {
     const deadline = this.deadline();
     if (deadline === null || this.now() < deadline) return;
     const grace = this.deps.disconnectGraceMs ?? 20_000;
-    const timedOut = this.now() >= this.window.startedAt + this.windowLimitMs() + this.bonusMs;
     for (const seat of actorsFor(g)) {
       const s = this.seats[seat];
       if (s.isBot) continue;
-      const away = s.sockets.size === 0 && (s.left || this.now() - Math.max(s.lastSeen, this.window.startedAt) >= grace);
+      const { end, since } = this.seatClock(seat);
+      const timedOut = this.now() >= end;
+      const away = s.sockets.size === 0 && (s.left || this.now() - Math.max(s.lastSeen, since) >= grace);
       if (!away && !timedOut) continue;
       const action = this.safeAutopilot(seat);
       if (action && !this.safeApply(seat, action)) return;
@@ -839,7 +897,7 @@ export class Room {
       this.deps.persistence.snapshot(this.gameId, this.game);
     }
     this.system(message);
-    this.window = { key: '', startedAt: this.now() };
+    this.resetClocks();
     this.updateWindow();
     this.botPauseUntil = this.now() + ADMIN_BOT_PAUSE_MS;
     for (const sid of this.sockets.keys()) this.sendGame(sid, [], true);
@@ -878,6 +936,20 @@ export class Room {
     if (!seat) throw new UserError('Only players can react');
     const msg = { playerId: seat.playerId, reaction, at: this.now() };
     for (const sid of this.sockets.keys()) this.deps.io.send(sid, 'room:reaction', msg);
+  }
+
+  /** A seated player's mouse over the board, shown to everyone else; never kept. Spectators and strangers are ignored. */
+  cursor(socketId: string, at: BoardPoint | null): void {
+    const key = this.sockets.get(socketId);
+    const seat = key ? this.seats.find((s) => s.identityKey === key) : undefined;
+    if (!seat || seat.isBot) return;
+    this.sendCursor(seat, at);
+  }
+
+  private sendCursor(seat: Seat, at: BoardPoint | null): void {
+    const msg = { playerId: seat.playerId, at };
+    const send = this.deps.io.sendVolatile ?? this.deps.io.send;
+    for (const sid of this.sockets.keys()) if (!seat.sockets.has(sid)) send.call(this.deps.io, sid, 'room:cursor', msg);
   }
 
   private system(text: string): void {
@@ -922,7 +994,7 @@ export class Room {
         isSpectator: this.spectators.has(socketId),
         ...(this.deps.io.isAdmin?.(socketId) ? { isAdmin: true } : {}),
       },
-      deadline: this.deadline(),
+      ...this.clockFor(seatIndex >= 0 ? seatIndex : null),
       gameNumber: this.gameNumber,
     };
   }

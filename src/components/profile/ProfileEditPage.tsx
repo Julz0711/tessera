@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePrefs } from '@/client/prefs';
@@ -15,6 +15,7 @@ import { KnightCustomizer } from '@/components/knight/KnightCustomizer';
 import { CosmeticsPicker } from './Cosmetics';
 import { Logomark } from '@/components/ui/Logomark';
 import { fetchProfile } from './ProfilePage';
+import { HexSpinner } from '@/components/ui/HexSpinner';
 
 function Section({ title, children, hint }: { title: string; children: React.ReactNode; hint?: string }) {
   return (
@@ -131,7 +132,7 @@ export function ProfileEditPage() {
               </Section>
               <div className="flex justify-end pt-2">
                 <button type="button" className="btn btn-primary px-6 py-2.5" onClick={save} disabled={busy}>
-                  {busy ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} Save profile
+                  {busy ? <HexSpinner size={16} decorative /> : <Check size={16} />} Save profile
                 </button>
               </div>
             </>

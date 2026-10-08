@@ -7,32 +7,65 @@ import { CARD_COLORS } from '@/client/palette';
 import { DevCardGlyph } from '@/components/ui/Glyphs';
 import { MiniArt } from './cardArt';
 
-/** What's left in the bank (and the development deck), like a card tray on the table. */
+const PER_LAYER = 5;
+/** The tallest stack drawn: a full 6-player dev deck would otherwise tower over the strip. */
+const MAX_LAYERS = 6;
+const STEP = 2;
+
+const layersOf = (n: number) => Math.min(MAX_LAYERS, Math.ceil(n / PER_LAYER));
+const fill = (n: number) => (n <= 0 ? 'none' : n <= PER_LAYER ? 'running low' : 'plenty');
+
+/**
+ * One pile of cards: the tile is the top card, one card below it per 5 left (each peeking out above the one in front, so the pile grows taller, never wider).
+ * `reserve` layers of room are always kept so the strip doesn't change height as the pile shrinks.
+ */
+function Pile({ n, reserve, label, bg, ink, children }: { n: number; reserve: number; label: string; bg: string; ink: string; children: React.ReactNode }) {
+  const layers = layersOf(n);
+  const empty = n <= 0;
+  const room = STEP * (reserve - 1);
+  return (
+    <span className="min-w-0 flex-1" style={{ paddingTop: room }} role="img" aria-label={`${label}: ${fill(n)}`}>
+      <span className="relative block">
+        {Array.from({ length: layers - 1 }, (_, k) => layers - 1 - k).map((d) => (
+          <span
+            key={d}
+            aria-hidden
+            className="absolute inset-0 rounded-md border-2 border-ink"
+            style={{ background: `color-mix(in srgb, ${bg} ${100 - d * 6}%, black)`, transform: `translateY(${-d * STEP}px)` }}
+          />
+        ))}
+        <span
+          className={`relative flex flex-col items-center rounded-md py-1 ${empty ? 'border-2 border-dashed border-ink/40 opacity-50 grayscale' : 'border-2 border-ink'}`}
+          style={{ background: empty ? 'transparent' : bg, color: empty ? undefined : ink }}
+        >
+          {children}
+        </span>
+      </span>
+    </span>
+  );
+}
+
+/** What's left in the bank (and the development deck), as card piles: a layer per 5 cards, never the exact count. */
 export function BankStrip({ view }: { view: PlayerView }) {
   const cards = view.mode === 'ck' ? [...RESOURCES, ...COMMODITIES] : RESOURCES;
+  const classic = view.mode === 'classic';
+  // Fixed room for the biggest pile: a full resource bank is 24 (5 layers), the dev deck can run longer.
+  const reserve = classic ? MAX_LAYERS : 5;
   return (
-    <div className="paper-flat flex items-center gap-1.5 px-2 py-1.5" title="Cards left in the bank" data-bank-anchor>
-      <Landmark size={18} className="mx-0.5 shrink-0 text-ink-soft" aria-label="Bank" />
+    <div className="paper-flat flex items-end gap-1.5 px-2 py-1.5" title="Cards left in the bank" data-bank-anchor>
+      <Landmark size={18} className="mx-0.5 mb-1.5 shrink-0 text-ink-soft" aria-label="Bank" />
       {cards.map((c) => {
         const col = CARD_COLORS[c];
-        const low = view.bank[c] <= 3;
         return (
-          <span
-            key={c}
-            className="flex flex-1 flex-col items-center rounded-md border border-ink/40 py-0.5"
-            style={{ background: col.bg, color: col.ink }}
-            title={`${col.label}: ${view.bank[c]} left`}
-          >
+          <Pile key={c} n={view.bank[c]} reserve={reserve} label={col.label} bg={col.bg} ink={col.ink}>
             <MiniArt card={c} size={17} />
-            <span className={`text-[11px] font-black tabular ${low ? 'underline decoration-2' : ''}`}>{view.bank[c]}</span>
-          </span>
+          </Pile>
         );
       })}
-      {view.mode === 'classic' && (
-        <span className="flex flex-1 flex-col items-center rounded-md border border-ink/40 bg-sea-600 py-0.5 text-paper" title={`Development cards: ${view.devDeckCount} left`}>
-          <DevCardGlyph size={13} strokeWidth={2.2} />
-          <span className="text-[11px] font-black tabular">{view.devDeckCount}</span>
-        </span>
+      {classic && (
+        <Pile n={view.devDeckCount} reserve={reserve} label="Development cards" bg="var(--color-sea-600)" ink="var(--color-paper)">
+          <DevCardGlyph size={17} strokeWidth={2.2} />
+        </Pile>
       )}
     </div>
   );

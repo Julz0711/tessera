@@ -42,6 +42,12 @@ export function useCountdown(deadline: number | null): number | null {
   return deadline ? Math.max(0, Math.ceil((deadline - now) / 1000)) : null;
 }
 
+/** The seconds to show for a room: the running countdown, or the turn clock frozen while others answer prompts. */
+export function useRoomClock(room: RoomDTO): number | null {
+  const running = useCountdown(room.deadline);
+  return room.paused !== undefined ? Math.ceil(room.paused / 1000) : running;
+}
+
 function ActionButton({
   label,
   icon,
@@ -151,8 +157,10 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
   const ui = useUi();
   // Phones show the status line beside the dice; wider screens keep it in the top bar.
   const phone = !useWide(1024);
+  // Room to spare (the HUD's Large scale zooms the dock 1.15x): the builds sit in the row as keys of their own, no Build menu.
+  const inlineBuilds = useWide(1700);
   const me = view.viewer;
-  const seconds = useCountdown(room.deadline);
+  const seconds = useRoomClock(room);
   const lowTime = seconds !== null && seconds <= 10;
   // The Build or Improve key's menu, opening upwards from the dock.
   const [open, setOpen] = useState<'build' | 'improve' | null>(null);
@@ -243,6 +251,70 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
     ck && knightOk,
     ck && wallOk,
   ].filter(Boolean).length;
+  // Every build, rendered once: in the Build menu, or (wide screens) straight in the dock row.
+  const buildItems = (
+    <>
+      <ActionButton
+        label="Road"
+        shortcut="R"
+        icon={<RoadGlyph size={24} />}
+        onClick={pick(() => ui.toggleBuild('road'))}
+        active={building === 'road'}
+        disabled={!roadOk}
+        cost={COSTS.road} hand={p.hand}
+        left={left.roads}
+      />
+      {voyage && (
+        <ActionButton
+          label="Ship"
+          shortcut="S"
+          icon={<Ship size={24} />}
+          onClick={pick(() => ui.toggleBuild('ship'))}
+          active={building === 'ship'}
+          disabled={!shipOk}
+          cost={COSTS.ship} hand={p.hand}
+          left={left.ships}
+          hint="Build a ship on a sea or coast edge"
+        />
+      )}
+      <ActionButton
+        label="Settle"
+        shortcut="A"
+        icon={<SettlementGlyph size={24} />}
+        onClick={pick(() => ui.toggleBuild('settlement'))}
+        active={building === 'settlement'}
+        disabled={!settlementOk}
+        cost={COSTS.settlement} hand={p.hand}
+        left={left.settlements}
+      />
+      <ActionButton
+        label="City"
+        shortcut="C"
+        icon={<CityGlyph size={24} />}
+        onClick={pick(() => ui.toggleBuild('city'))}
+        active={building === 'city'}
+        disabled={!cityOk}
+        cost={COSTS.city} hand={p.hand}
+        left={left.cities}
+      />
+      {ck && (
+        <>
+          <ActionButton
+            label="Knight"
+            shortcut="Q"
+            icon={<KnightGlyph size={24} />}
+            onClick={pick(() => ui.toggleBuild('knight'))}
+            active={building === 'knight'}
+            disabled={!knightOk}
+            cost={COSTS.knight} hand={p.hand}
+            left={left.knights[1]}
+            hint="Recruit a basic knight"
+          />
+          <ActionButton label="Wall" shortcut="W" icon={<BrickWall size={24} />} onClick={pick(() => ui.toggleBuild('wall'))} active={building === 'wall'} disabled={!wallOk} cost={COSTS.wall} hand={p.hand} left={left.walls} hint="City wall: +2 hand limit" />
+        </>
+      )}
+    </>
+  );
   return (
     <div className={`game-dock flex w-full min-w-0 flex-col items-center gap-2 sm:w-auto ${hand ? '' : 'h-full'}`}>
       {hand && ui.panel === 'trade' && (
@@ -267,73 +339,16 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
       )}
 
       <div role="group" aria-label="Game actions" className={`game-actions relative grid w-full ${hand ? '' : 'h-full'} auto-cols-fr grid-flow-col gap-1.5 sm:w-auto sm:gap-2`}>
+        {inlineBuilds && buildItems}
         <div
           ref={menuRef}
           role="menu"
           aria-label="Build"
           // Phones: one sheet across the screen, covering the hand, in as few even rows as the builds allow.
           style={{ '--cols': buildKeys === 6 ? 3 : buildKeys } as React.CSSProperties}
-          className={`${buildOpen ? 'grid' : 'hidden'} animate-rise absolute bottom-full z-30 mb-2 gap-1.5 ${PHONE_SHEET} max-sm:grid-cols-[repeat(var(--cols),minmax(0,1fr))] sm:right-0 sm:w-max sm:grid-flow-col sm:gap-2`}
+          className={`${buildOpen && !inlineBuilds ? 'grid' : 'hidden'} animate-rise absolute bottom-full z-30 mb-2 gap-1.5 ${PHONE_SHEET} max-sm:grid-cols-[repeat(var(--cols),minmax(0,1fr))] sm:right-0 sm:w-max sm:grid-flow-col sm:gap-2`}
         >
-          <ActionButton
-            label="Road"
-            shortcut="R"
-            icon={<RoadGlyph size={24} />}
-            onClick={pick(() => ui.toggleBuild('road'))}
-            active={building === 'road'}
-            disabled={!roadOk}
-            cost={COSTS.road} hand={p.hand}
-            left={left.roads}
-          />
-          {voyage && (
-            <ActionButton
-              label="Ship"
-              shortcut="S"
-              icon={<Ship size={24} />}
-              onClick={pick(() => ui.toggleBuild('ship'))}
-              active={building === 'ship'}
-              disabled={!shipOk}
-              cost={COSTS.ship} hand={p.hand}
-              left={left.ships}
-              hint="Build a ship on a sea or coast edge"
-            />
-          )}
-          <ActionButton
-            label="Settle"
-            shortcut="A"
-            icon={<SettlementGlyph size={24} />}
-            onClick={pick(() => ui.toggleBuild('settlement'))}
-            active={building === 'settlement'}
-            disabled={!settlementOk}
-            cost={COSTS.settlement} hand={p.hand}
-            left={left.settlements}
-          />
-          <ActionButton
-            label="City"
-            shortcut="C"
-            icon={<CityGlyph size={24} />}
-            onClick={pick(() => ui.toggleBuild('city'))}
-            active={building === 'city'}
-            disabled={!cityOk}
-            cost={COSTS.city} hand={p.hand}
-            left={left.cities}
-          />
-          {ck && (
-            <>
-              <ActionButton
-                label="Knight"
-                shortcut="Q"
-                icon={<KnightGlyph size={24} />}
-                onClick={pick(() => ui.toggleBuild('knight'))}
-                active={building === 'knight'}
-                disabled={!knightOk}
-                cost={COSTS.knight} hand={p.hand}
-                left={left.knights[1]}
-                hint="Recruit a basic knight"
-              />
-              <ActionButton label="Wall" shortcut="W" icon={<BrickWall size={24} />} onClick={pick(() => ui.toggleBuild('wall'))} active={building === 'wall'} disabled={!wallOk} cost={COSTS.wall} hand={p.hand} left={left.walls} hint="City wall: +2 hand limit" />
-            </>
-          )}
+          {!inlineBuilds && buildItems}
         </div>
 
         <ActionButton
@@ -391,17 +406,19 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
             />
           </div>
         )}
-        <ActionButton
-          label="Build"
-          shortcut="D"
-          icon={<Hammer size={24} />}
-          onClick={() => toggleMenu('build')}
-          active={buildOpen || building !== null}
-          disabled={!canBuild}
-          hint="Roads, settlements, cities and more"
-          count={builds || undefined}
-          buildToggle
-        />
+        {!inlineBuilds && (
+          <ActionButton
+            label="Build"
+            shortcut="D"
+            icon={<Hammer size={24} />}
+            onClick={() => toggleMenu('build')}
+            active={buildOpen || building !== null}
+            disabled={!canBuild}
+            hint="Roads, settlements, cities and more"
+            count={builds || undefined}
+            buildToggle
+          />
+        )}
         <ActionButton
           label="End turn"
           icon={timer && seconds !== null ? <span className="text-base font-black leading-none tabular">{seconds}s</span> : <Hourglass size={24} />}

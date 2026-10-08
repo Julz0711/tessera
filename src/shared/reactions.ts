@@ -15,6 +15,7 @@ export const REACTIONS = [
   { id: 'middlefinger', text: '🖕', emote: false },
   { id: 'heart', text: '❤️', emote: false },
   { id: 'cap', text: '🧢', emote: false },
+  { id: 'scissors', text: '✂️', emote: false },
   { id: 'gg', text: 'GG', emote: true },
   { id: 'nice', text: 'Nice!', emote: true },
   { id: 'oops', text: 'Oops', emote: true },
@@ -37,8 +38,8 @@ export function isEmote(id: ReactionId): boolean {
 }
 
 /** How long a reaction bubble stays up, and the cooldown the client shows between reactions. */
-export const REACTION_SHOW_MS = 3500;
-export const REACTION_COOLDOWN_MS = 3000;
+export const REACTION_SHOW_MS = 4000;
+export const REACTION_COOLDOWN_MS = 5000;
 
 /** Minimum gap the client keeps between chat messages (the server enforces its own limit too). */
 export const CHAT_COOLDOWN_MS = 1500;

@@ -1,11 +1,12 @@
 'use client';
 
-import { Eye, Loader2, LogIn } from 'lucide-react';
+import { Eye, LogIn } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { usePrefs } from '@/client/prefs';
 import { api, useGame } from '@/client/store';
 import { sanitizeName } from '@/shared/text';
 import { ProfileFields, type ProfileDraft } from '@/components/profile/ProfileFields';
+import { HexSpinner } from '@/components/ui/HexSpinner';
 
 /** Shown to someone opening an invite link who isn't seated yet. */
 export function JoinCard({ code, onJoined }: { code: string; onJoined: () => void }) {
@@ -52,10 +53,10 @@ export function JoinCard({ code, onJoined }: { code: string; onJoined: () => voi
         {error && <p className="mt-4 rounded-lg bg-terracotta/15 px-3 py-2 text-sm font-bold text-danger">{error}</p>}
         <div className="mt-7 flex flex-wrap justify-end gap-3">
           <button type="button" className="btn px-5 py-3" onClick={() => join(true)} disabled={!!busy}>
-            {busy === 'watch' ? <Loader2 size={18} className="animate-spin" /> : <Eye size={18} />} Just watch
+            {busy === 'watch' ? <HexSpinner size={18} decorative /> : <Eye size={18} />} Just watch
           </button>
           <button type="button" className="btn btn-primary px-7 py-3 text-lg" onClick={() => join(false)} disabled={!!busy || !draft}>
-            {busy === 'play' ? <Loader2 size={20} className="animate-spin" /> : <LogIn size={20} />} Join game
+            {busy === 'play' ? <HexSpinner size={20} decorative /> : <LogIn size={20} />} Join game
           </button>
         </div>
       </div>

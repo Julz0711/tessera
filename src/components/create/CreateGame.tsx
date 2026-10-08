@@ -3,7 +3,6 @@
 import {
   ArrowLeft,
   ArrowRight,
-  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,6 +11,7 @@ import { usePrefs } from "@/client/prefs";
 import { api, startConnection, useGame } from "@/client/store";
 import { sanitizeName } from "@/shared/text";
 import { Logomark } from "@/components/ui/Logomark";
+import { HexSpinner } from '@/components/ui/HexSpinner';
 import {
   ProfileFields,
   type ProfileDraft,
@@ -103,7 +103,7 @@ export function CreateGame() {
               className="btn btn-primary px-7 py-3 text-lg"
               disabled={busy || !draft}
             >
-              {busy ? <Loader2 className="animate-spin" size={20} /> : null}
+              {busy ? <HexSpinner size={20} decorative /> : null}
               Create room <ArrowRight size={20} strokeWidth={3} />
             </button>
           </div>

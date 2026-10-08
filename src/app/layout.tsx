@@ -5,6 +5,7 @@ import { Toasts } from '@/components/ui/Toasts';
 import { PrefsLoader } from '@/components/ui/PrefsLoader';
 import { SocialLayer } from '@/components/social/SocialLayer';
 import { SettingsOverlay } from '@/components/settings/SettingsOverlay';
+import { HomeBackdrop } from '@/components/landing/HomeBackdrop';
 import { AppExperience } from '@/components/ui/AppExperience';
 import './globals.css';
 
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${fraunces.variable} ${figtree.variable}`}>
       <body className="antialiased">
         <AppExperience>
+        <HomeBackdrop />
         {children}
         <Toasts />
         <PrefsLoader />

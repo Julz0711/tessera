@@ -2,7 +2,6 @@
 
 import { ArrowLeft, ArrowRight, BookOpen, Bot, LogIn, Menu, ScrollText, Settings, Trophy } from "lucide-react";
 import { RulebookDialog } from "@/components/rules/RulebookDialog";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -10,7 +9,7 @@ import { APP_WORDMARK } from "@/config/app";
 import { LATEST_PATCH, PATCH_SEEN_KEY } from "@/config/patchNotes";
 import { usePrefs } from "@/client/prefs";
 import { useSettingsUI } from "@/client/settingsUI";
-import { fetchSession } from "@/client/session";
+import { cachedSession, fetchSession } from "@/client/session";
 import { MAPS } from "@/engine/maps";
 import type { ActiveRoom, SessionInfo } from "@/shared/protocol";
 import { MODE_LABEL, ratingPoolFor } from "@/shared/ratings";
@@ -20,10 +19,6 @@ import { KnightBadge } from "@/components/knight/KnightBadge";
 import { Logomark } from "@/components/ui/Logomark";
 import { BetaBadge } from "@/components/ui/BetaBadge";
 import { Modal } from "@/components/ui/Modal";
-
-const ShowcaseIsland = dynamic(() => import("./ShowcaseIsland"), {
-  ssr: false,
-});
 
 /** Accepts "ABCD-EFGH", "abcdefgh" or a pasted invite link. */
 export function extractCode(input: string): string | null {
@@ -90,7 +85,7 @@ function ResumeTables({ rooms, onAbandon }: { rooms: ActiveRoom[]; onAbandon: (r
 
 export function Landing() {
   const router = useRouter();
-  const [session, setSession] = useState<SessionInfo | null>(null);
+  const [session, setSession] = useState<SessionInfo | null>(cachedSession);
   const [sessionFailed, setSessionFailed] = useState(false);
   const [joining, setJoining] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
@@ -161,16 +156,15 @@ export function Landing() {
   };
 
   const signedIn = session?.kind === "user";
+  // Until the session is known, hold the Sign in spot with an invisible twin, never the signed-out UI.
+  const showSignIn = session ? !signedIn : sessionFailed;
   const name = session?.displayName || prefs.name || "Guest";
   const color = session?.color ?? prefs.color;
   const knight = session?.knight ?? prefs.knight ?? DEFAULT_KNIGHT;
 
   return (
-    <main className="landing-page relative min-h-dvh overflow-hidden bg-sea-950">
-      {/* the island */}
-      <div className="absolute inset-0" aria-hidden>
-        <ShowcaseIsland />
-      </div>
+    <main className="landing-page relative min-h-dvh overflow-hidden">
+      {/* the island lives in HomeBackdrop, mounted above the route so it survives navigation */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-sea-950/95 via-sea-950/40 to-transparent max-md:bg-sea-950/55" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-sea-950 to-transparent" />
 
@@ -202,7 +196,12 @@ export function Landing() {
           >
             <Trophy size={17} />
           </Link>
-          {!signedIn && (
+          {!session && !sessionFailed && (
+            <span className="btn btn-dark invisible px-3 py-1.5 text-sm" aria-hidden>
+              <LogIn size={16} /> <span className="hidden sm:inline">Sign in</span>
+            </span>
+          )}
+          {showSignIn && (
             <button
               type="button"
               className="btn btn-dark px-3 py-1.5 text-sm"
@@ -323,7 +322,7 @@ export function Landing() {
           <Link href="/patch-notes" className="btn justify-start px-4 py-3"><ScrollText size={18} /> What’s new {newPatch && <span className="ml-auto h-2 w-2 rounded-full bg-terracotta" />}</Link>
           <button className="btn justify-start px-4 py-3" onClick={() => { setMenu(false); setRules(true); }}><BookOpen size={18} /> Rules</button>
           <button className="btn justify-start px-4 py-3" onClick={() => { setMenu(false); useSettingsUI.getState().show(); }}><Settings size={18} /> Settings</button>
-          {!signedIn && <button className="btn btn-primary justify-start px-4 py-3" onClick={() => { setMenu(false); setSigningIn(true); }}><LogIn size={18} /> Sign in</button>}
+          {showSignIn && <button className="btn btn-primary justify-start px-4 py-3" onClick={() => { setMenu(false); setSigningIn(true); }}><LogIn size={18} /> Sign in</button>}
         </nav>
       </Modal>
 

@@ -175,7 +175,7 @@ function ArmedSpot({ armed, topo, board, color, popup }: { armed: NonNullable<Bo
       {color && armed.what === 'road' && <Road x={x} z={z} angle={topo.edges[armed.at].angle} color={color} ghost />}
       {color && armed.what === 'settlement' && <Settlement x={x} z={z} color={color} ghost />}
       {color && armed.what === 'city' && <City x={x} z={z} color={color} ghost />}
-      {(armed.what === 'knight' || armed.what === 'wall') && (
+      {(armed.what === 'knight' || armed.what === 'wall' || armed.what === 'metropolis') && (
         <mesh geometry={GEO.targetRing} material={hintMat} position={[x, TILE_TOP + 0.06, z]} rotation={[Math.PI / 2, 0, 0]} scale={1.5} />
       )}
       {popup && (

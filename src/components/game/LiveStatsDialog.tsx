@@ -8,6 +8,7 @@ import { api } from '@/client/store';
 import { useGameDialog } from '@/client/ui';
 import { Modal } from '@/components/ui/Modal';
 import { GameReportView } from './GameReportView';
+import { HexSpinner } from '@/components/ui/HexSpinner';
 
 /** How often, at most, the open stats ask the server for a fresh report while the game moves. */
 const REFRESH_MS = 2000;
@@ -53,23 +54,24 @@ export function LiveStatsDialog({ view }: { view: PlayerView }) {
 
   if (!open) return null;
   return (
-    <Modal open onClose={hide} title="Live stats" wide expansive top>
+    <Modal open onClose={hide} title="Dice stats" wide expansive top>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-ink-soft">
-        <span>Updates as the game goes on. Only public information: cards in hand and unplayed cards stay hidden.</span>
+        <span>Updates as the game goes on. The full match report is shown when the game ends.</span>
         <button type="button" className="btn px-2.5 py-1 text-xs" onClick={() => void load()} disabled={loading} aria-label="Refresh the stats">
-          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
+          {loading ? <HexSpinner size={14} decorative /> : <RefreshCw size={13} />} Refresh
         </button>
       </div>
       {report ? (
-        <GameReportView report={report} initialSeat={view.viewer} />
+        <GameReportView report={report} initialSeat={view.viewer} only="dice" />
       ) : error ? (
         <p role="alert" className="text-sm font-bold text-danger">
           {error}
         </p>
       ) : (
-        <p role="status" className="text-sm text-ink-faint">
+        <div role="status" className="grid place-items-center gap-3 py-10 text-sm text-ink-faint">
+          <HexSpinner size={48} decorative />
           Loading the stats…
-        </p>
+        </div>
       )}
     </Modal>
   );

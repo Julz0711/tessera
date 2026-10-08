@@ -322,8 +322,9 @@ describe('trading', () => {
     expect(bankRatio(s, 0, special.kind as 'wool')).toBe(2);
 
     setHand(s, 0, { [special.kind]: 2 });
-    const r = act(s, 0, { type: 'bankTrade', give: special.kind as 'wool', get: 'grain', count: 1 });
-    expect(r.players[0].hand.grain).toBe(1);
+    const get = special.kind === 'grain' ? 'wool' : 'grain';
+    const r = act(s, 0, { type: 'bankTrade', give: special.kind as 'wool', get, count: 1 });
+    expect(r.players[0].hand[get]).toBe(1);
     expect(reject(s, 0, { type: 'bankTrade', give: 'grain', get: 'grain', count: 1 })).toMatch(/different/);
   });
 

@@ -161,7 +161,7 @@ function useEventFeedback(view: PlayerView | null, events: GameEvent[], updateId
           play('card');
           break;
         case 'longestRoad':
-          if (ev.seat !== null) play(ev.seat === me ? 'award' : 'card');
+          play('longestRoad');
           if (ev.seat !== null) {
             pushBanner({ icon: 'road', title: 'Longest Road', text: `${who(ev.seat)} took the Longest Road (${ev.length})`, color: color(ev.seat), tone: ev.seat === me ? 'good' : 'info' });
           }
@@ -589,11 +589,11 @@ function SideContent({ view, tab }: { view: PlayerView; tab: SideTab }) {
   );
 }
 
-/** Opens the live stats: everything the end-of-game report shows, so far. */
+/** Opens the live dice stats (the rest of the report waits for the end of the game). */
 function FullStatsButton() {
   return (
     <button type="button" className="btn justify-self-start px-3 py-1.5 text-xs" onClick={() => useGameDialog.getState().show('stats')}>
-      <ChartColumn size={14} /> Full stats
+      <ChartColumn size={14} /> Dice stats
     </button>
   );
 }

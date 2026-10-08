@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ImagePlus, Link2, Loader2, Move, RotateCcw, UserRound, ZoomIn, ZoomOut } from 'lucide-react';
+import { Check, ImagePlus, Link2, Move, RotateCcw, UserRound, ZoomIn, ZoomOut } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { PlayerColor } from '@/engine/types';
 import { uploadFace } from '@/client/face';
@@ -20,6 +20,7 @@ import {
   type KnightSlot,
 } from '@/shared/knight';
 import { KnightBadge } from './KnightBadge';
+import { HexSpinner } from '@/components/ui/HexSpinner';
 
 // Same width:height ratio as the visor's face opening (the ellipse in KnightBadge), so what the
 // player frames here matches what actually shows in the helmet.
@@ -255,7 +256,7 @@ export function KnightCustomizer({
               </p>
               <div className="flex flex-wrap gap-2">
                 <button type="button" className="btn h-9 px-3 text-sm" onClick={() => input.current?.click()} disabled={busy}>
-                  {busy ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />}
+                  {busy ? <HexSpinner size={16} decorative /> : <ImagePlus size={15} />}
                   {look.face && own ? 'New photo' : 'Upload a photo'}
                 </button>
                 {look.face && own && (

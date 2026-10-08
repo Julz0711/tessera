@@ -12,6 +12,7 @@ import { barbarianTrackLayout } from '@/components/board/barbarian';
 import { Barbarians } from './barbarians';
 import { City, CityWall, HarborPiece, Merchant, NumberToken, ROBBER_OFFSET, Road, Robber, Settlement } from './pieces';
 import { Targets } from './targets';
+import { CursorLayer3D, CursorTracker3D } from './Cursors3D';
 import { Pirate, Ship, TreasureChest } from './voyage';
 import { HexTile } from './terrain';
 import { HORIZON_HALF, Sea } from './ocean';
@@ -234,6 +235,7 @@ export default function Board3D({
   onEdge,
   onHex,
   showcase = false,
+  paused = false,
   quality = 'high',
   pieceScale = 1,
   theme = 'classic',
@@ -271,11 +273,13 @@ export default function Board3D({
       <PieceScale.Provider value={pieceScale}>
         <Island scene={scene} targets={targets} popup={popup} shadows={shadows} onVertex={onVertex} onEdge={onEdge} onHex={onHex} fontsReady={fontsReady} />
       </PieceScale.Provider>
+      {!showcase && <CursorLayer3D />}
     </group>
   );
   const backdrop = showcase ? '#061419' : palette.sea.sky;
   return (
     <Canvas
+      frameloop={paused ? 'never' : 'always'}
       shadows={shadows ? 'percentage' : false}
       dpr={[1, dpr]}
       camera={{ position: [0, 11, 8.5], fov: 38, near: 0.1, far: HORIZON_HALF }}
@@ -319,6 +323,7 @@ export default function Board3D({
         ) : (
           <>
             {island}
+            <CursorTracker3D cx={frame.cx} cz={frame.cz} reach={frame.extent + 3} />
             <OrbitControls
               makeDefault
               // Pan with the middle or right button (or Ctrl/Shift + drag, two fingers on touch), across the table.

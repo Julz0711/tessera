@@ -47,6 +47,8 @@ export interface Prefs {
   barbarianTrack: 'large' | 'small';
   /** On a phone held upright, the 2D board turns a wide map a quarter turn to fill the tall screen. */
   turnBoard: boolean;
+  /** See other players' mouse pointers over the board, and share yours (wide screens with a mouse only). */
+  shareCursors: boolean;
 }
 
 const KEY = 'prefs.v1';
@@ -79,6 +81,7 @@ const defaults = (): Prefs => ({
   zoomButtons: false,
   barbarianTrack: 'large',
   turnBoard: true,
+  shareCursors: false,
 });
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -122,6 +125,7 @@ export function sanitizePrefs(raw: unknown): Prefs {
     zoomButtons: typeof p.zoomButtons === 'boolean' ? p.zoomButtons : base.zoomButtons,
     barbarianTrack: p.barbarianTrack === 'small' ? 'small' : 'large',
     turnBoard: typeof p.turnBoard === 'boolean' ? p.turnBoard : base.turnBoard,
+    shareCursors: typeof p.shareCursors === 'boolean' ? p.shareCursors : base.shareCursors,
   };
 }
 

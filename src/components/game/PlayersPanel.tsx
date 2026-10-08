@@ -12,15 +12,22 @@ import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
 import { Framed } from '@/components/profile/Cosmetics';
 import { titleInfo } from '@/shared/cosmetics';
-import { ReactionBubble } from './Reactions';
+import { ReactionBubble, ReactionCover } from './Reactions';
 import { Modal } from '@/components/ui/Modal';
 
-/** A number beside its icon; `award` tints it when the player holds that award (Longest road, Largest army). */
-function Stat({ icon, value, title, award }: { icon: React.ReactNode; value: React.ReactNode; title: string; award?: string }) {
+/** A chip: icon + number. `award` (a solid fill) marks the holder of Longest road, Largest army or Defender; `dim` fades an inactive one. */
+function Stat({ icon, value, title, award, dim }: { icon: React.ReactNode; value: React.ReactNode; title: string; award?: string; dim?: boolean }) {
   return (
-    <span className={`flex items-center justify-between gap-0.5 rounded-md px-0.5 tabular ${award ?? ''}`} title={title}>
-      {icon}
-      {value}
+    <span
+      className={`relative inline-flex h-5 items-center justify-between gap-1 rounded-[4px] border-2 px-1 text-sm font-black leading-none tabular ${
+        award ? `${award} border-ink shadow-[0_2px_0_0_#131a1d]` : 'border-ink/25 bg-white/60 text-ink'
+      }`}
+      title={title}
+    >
+      <span className={`contents ${dim ? '[&>*]:opacity-45' : ''}`}>
+        {icon}
+        <span>{value}</span>
+      </span>
     </span>
   );
 }
@@ -180,6 +187,9 @@ export function PlayersPanel({
         const seatInfo = room?.seats[seat];
         const acting = highlight && actors.has(seat) && view.phase !== 'ended';
         const vp = p.vp ?? p.publicVP;
+        // Your hidden VP cards show in brackets on your own card; once the game ends the totals are open.
+        const shown = view.phase === 'ended' ? vp : p.publicVP;
+        const hidden = view.phase !== 'ended' && p.vp !== null && p.vp > p.publicVP ? p.vp : null;
         const clickable = me !== null && seat !== me && view.phase !== 'ended';
         const embargoed = myEmbargo.includes(seat);
         const toggle = () => setOpen(open === seat ? null : seat);
@@ -215,14 +225,13 @@ export function PlayersPanel({
             ) : (
               <div className={`${compact ? 'h-9 w-9' : 'h-10 w-10'} rounded-full`} style={{ background: c.hex }} />
             )}
-            {/* A reaction covers the portrait; the points stay on top of it. */}
-            <ReactionBubble playerId={p.id} side={compact ? 'below' : align === 'right' ? 'left' : 'right'} cover />
             <span
-              className="absolute -bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-md border-2 border-ink bg-paper px-1.5 text-sm font-black leading-4.5 tabular"
-              title={`${vp} victory points`}
+              className="absolute -bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-md border-2 border-ink bg-paper px-1.5 text-sm font-black leading-4.5 tabular whitespace-nowrap"
+              title={hidden !== null ? `${shown} points (${hidden} with hidden cards)` : `${shown} victory points`}
             >
               {view.winner === seat && <Crown size={12} className="text-amber-deep" />}
-              {vp}
+              {shown}
+              {hidden !== null && <span className="ml-0.5 text-xs text-ink-faint">({hidden})</span>}
             </span>
             {/* The merchant (C&K) rides on its holder's portrait, so the card keeps its height. */}
             {view.merchant?.owner === seat && (
@@ -235,6 +244,48 @@ export function PlayersPanel({
               >
                 <Store size={12} strokeWidth={2.4} />
               </span>
+            )}
+          </div>
+        );
+        // Road, knights, and Defender points when there are any: a row on compact cards; otherwise a column
+        // pinned to the card's right edge, out of the flow, so a third chip never makes the card taller. It
+        // is a direct child of the card: a waiting card's filter would otherwise become its containing block.
+        const stats = (
+          <div className={`flex gap-0.5 text-ink ${compact ? 'ml-auto shrink-0 items-center' : 'absolute inset-y-1.5 right-2 flex-col items-stretch justify-center'}`}>
+            <Stat
+              icon={<Route size={15} strokeWidth={2.4} />}
+              value={p.roadLength}
+              title={view.longestRoad === seat ? `Longest road (${p.roadLength})` : 'Road length'}
+              award={view.longestRoad === seat ? 'bg-amber text-ink' : undefined}
+            />
+            {ck ? (
+              (() => {
+                const strength = view.knights.reduce((n, k) => n + (k && k.owner === seat && k.active ? k.level : 0), 0);
+                // Active knights light the swords up in gold (as on colonist); none active, they fade.
+                return (
+                  <Stat
+                    icon={<Swords size={15} strokeWidth={strength ? 2.8 : 2.2} className={strength ? 'text-amber-deep' : ''} />}
+                    value={strength}
+                    dim={!strength}
+                    title={strength ? `Active knight strength: ${strength}` : 'No active knights'}
+                  />
+                );
+              })()
+            ) : (
+              <Stat
+                icon={<Swords size={15} strokeWidth={2.4} />}
+                value={p.knightsPlayed}
+                title={view.largestArmy === seat ? `Largest army (${p.knightsPlayed} knights)` : 'Knights played'}
+                award={view.largestArmy === seat ? 'bg-terracotta text-white' : undefined}
+              />
+            )}
+            {p.defender > 0 && (
+              <Stat
+                icon={<ShieldHalf size={15} strokeWidth={2.4} />}
+                value={p.defender}
+                title={`Defender of the island: ${p.defender} VP, one for each barbarian attack this player beat back best`}
+                award="bg-sea-600 text-white"
+              />
             )}
           </div>
         );
@@ -261,43 +312,7 @@ export function PlayersPanel({
               )}
             </div>
             {ck && <ImprovementGrid levels={p.improvements} metropolis={TRACKS.filter((t) => view.metropolis[t] === seat)} compact />}
-            {/* One column: road, knights, and Defender points when there are any. */}
-            <div className={`ml-auto shrink-0 text-xs font-black text-ink-soft ${compact ? 'flex items-center gap-1' : 'grid gap-px leading-4'}`}>
-              <Stat
-                icon={<Route size={13} />}
-                value={p.roadLength}
-                title={view.longestRoad === seat ? `Longest road (${p.roadLength})` : 'Road length'}
-                award={view.longestRoad === seat ? 'bg-amber text-ink' : undefined}
-              />
-              {ck ? (
-                (() => {
-                  const strength = view.knights.reduce((n, k) => n + (k && k.owner === seat && k.active ? k.level : 0), 0);
-                  // Active knights light the swords up in gold (as on colonist); none active, they fade.
-                  return (
-                    <Stat
-                      icon={<Swords size={13} strokeWidth={strength ? 2.6 : 2} className={strength ? 'text-amber-deep' : 'opacity-40'} />}
-                      value={<span className={strength ? 'text-ink' : 'opacity-40'}>{strength}</span>}
-                      title={strength ? `Active knight strength: ${strength}` : 'No active knights'}
-                    />
-                  );
-                })()
-              ) : (
-                <Stat
-                  icon={<Swords size={13} />}
-                  value={p.knightsPlayed}
-                  title={view.largestArmy === seat ? `Largest army (${p.knightsPlayed} knights)` : 'Knights played'}
-                  award={view.largestArmy === seat ? 'bg-terracotta text-white' : undefined}
-                />
-              )}
-              {p.defender > 0 && (
-                <Stat
-                  icon={<ShieldHalf size={13} />}
-                  value={p.defender}
-                  title={`Defender of the island: ${p.defender} VP, one for each barbarian attack this player beat back best`}
-                  award="bg-sea-600 text-white"
-                />
-              )}
-            </div>
+            {compact && stats}
           </>
         );
         return (
@@ -315,7 +330,7 @@ export function PlayersPanel({
                 toggle();
               },
             })}
-            className={`paper-flat relative flex shrink-0 flex-col gap-0.5 px-2.5 py-1.5 pl-3 transition-all duration-300 motion-reduce:transition-none ${
+            className={`paper-flat relative flex shrink-0 flex-col gap-0.5 py-1.5 pl-3 ${compact ? 'pr-2.5' : 'pr-14'} transition-all duration-300 motion-reduce:transition-none ${
               compact ? 'min-w-max' : `min-w-0 ${highlight && !inline && turnSeat === seat ? (align === 'right' ? '-ml-4' : '-mr-4') : ''}`
             } ${waiting ? 'bg-paper-2 *:opacity-70 *:saturate-50' : ''} ${
               acting ? 'ring-4 ring-amber' : ''
@@ -337,8 +352,12 @@ export function PlayersPanel({
                   {avatar}
                   {contents}
                 </div>
+                {stats}
               </>
             )}
+
+            {/* A reaction takes over the whole card. */}
+            <ReactionCover playerId={p.id} color={c.hex} />
 
             {clickable && open === seat && (
               <button
@@ -381,6 +400,9 @@ export function PlayerStrip({ view, room, leading }: { view: PlayerView; room: R
         {view.players.map((p, seat) => {
           const acting = actors.has(seat) && view.phase !== 'ended';
           const vp = p.vp ?? p.publicVP;
+          // Your hidden VP cards show in brackets on your own card; once the game ends the totals are open.
+          const shown = view.phase === 'ended' ? vp : p.publicVP;
+          const hidden = view.phase !== 'ended' && p.vp !== null && p.vp > p.publicVP ? p.vp : null;
           const limit = handLimit(view, seat);
           const over = view.phase === 'play' && p.handCount > limit;
           const special = ck ? TRACKS.reduce((n, t) => n + p.progressTracks[t], 0) : p.devCount;
@@ -396,7 +418,7 @@ export function PlayerStrip({ view, room, leading }: { view: PlayerView; room: R
                 type="button"
                 onClick={() => setDetails(true)}
                 aria-haspopup="dialog"
-                aria-label={`${p.name}${seat === me ? ' (you)' : ''}: ${vp} points, ${p.handCount} cards${ck ? `, knight strength ${strength(seat)}` : ''}${awards.length ? `, ${awards.join(', ')}` : ''}${acting ? ', to play' : ''}`}
+                aria-label={`${p.name}${seat === me ? ' (you)' : ''}: ${shown} points${hidden !== null ? ` (${hidden} with hidden cards)` : ''}, ${p.handCount} cards${ck ? `, knight strength ${strength(seat)}` : ''}${awards.length ? `, ${awards.join(', ')}` : ''}${acting ? ', to play' : ''}`}
                 className={`paper-flat relative grid w-full gap-0.5 py-1 pl-2 pr-1 text-left transition-colors ${acting ? 'bg-amber' : ''}`}
                 style={{ boxShadow: `inset 4px 0 0 ${PLAYER_COLORS[p.color].hex}` }}
               >
@@ -409,9 +431,10 @@ export function PlayerStrip({ view, room, leading }: { view: PlayerView; room: R
                   {p.defender > 0 && <ShieldHalf size={12} className="shrink-0 rounded-xs bg-sea-600 text-white" />}
                 </span>
                 <span className="flex items-center gap-[3px] text-[11px] font-black tabular text-ink-soft">
-                  <span className="relative mr-auto text-[15px] leading-none text-ink" data-seat-anchor={seat}>
+                  <span className="relative mr-auto flex items-center gap-0.5 whitespace-nowrap text-[15px] leading-none text-ink" data-seat-anchor={seat}>
                     {view.winner === seat && <Crown size={11} className="mr-0.5 inline text-amber-deep" />}
-                    {vp}
+                    {shown}
+                    {hidden !== null && <span className="text-[11px] text-ink-faint">({hidden})</span>}
                     <ReactionBubble playerId={p.id} side="below" />
                   </span>
                   <span className={`flex items-center gap-0.5 ${over ? 'rounded-md bg-danger px-0.5 text-paper' : ''}`}>

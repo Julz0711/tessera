@@ -30,21 +30,29 @@ describe('detailed reports', () => {
     const live = buildReport(s, { live: true });
     expect(live.live).toBe(true);
     expect(live.winner).toBeNull();
-    // The hidden VP card counts nowhere: not in the points, the breakdown or the timeline.
+    // The hidden VP card counts nowhere, and a live report carries the dice only: no timeline, no hand sizes.
     expect(live.players[0].vp).toBe(0);
     expect(live.players[0].points['VP cards']).toBeUndefined();
-    expect(live.stats!.details!.timeline.at(-1)!.vp).toEqual([0, 0]);
+    expect(live.players[0].unusedDev).toBe(0);
+    expect(live.stats!.details!.timeline).toEqual([]);
     expect(live.stats!.details!.counters['devBought:victoryPoint']).toBeUndefined();
     expect(live.stats!.details!.counters.rolls).toEqual([3, 2]);
     // Building it leaves the game's own stats alone.
     expect(s.stats.details!.counters['devBought:victoryPoint']).toEqual([1, 0]);
     expect(JSON.stringify(live)).not.toContain('publicVp');
   });
-  it('leaves Classic timeline samples without public points out of a live report', () => {
+  it('keeps production, trades and the timeline out of a live report', () => {
     const s = newGame(2);
-    s.stats.details!.timeline.push({ turn: 1, vp: [3, 2], production: [0, 0], spent: [0, 0], hand: [0, 0], improvements: [0, 0] });
+    s.stats.produced[0].brick = 4; s.stats.bankTrades[1] = 2; s.stats.dice[6] = 3;
+    s.stats.details!.counters['rolled:6'] = [2, 1];
     sampleStats(s, 2);
-    expect(buildReport(s, { live: true }).stats!.details!.timeline.map((t) => t.turn)).toEqual([2]);
+    const live = buildReport(s, { live: true }).stats!;
+    expect(live.dice[6]).toBe(3);
+    expect(live.details!.counters['rolled:6']).toEqual([2, 1]);
+    expect(live.produced[0].brick).toBe(0);
+    expect(live.bankTrades).toEqual([0, 0]);
+    expect(live.details!.timeline).toEqual([]);
+    expect(buildReport(s).stats!.details!.timeline.length).toBeGreaterThan(0);
   });
   it('uses actual balanced bag weights and Alchemist when computing expectations', () => {
     const s = newGame(2);

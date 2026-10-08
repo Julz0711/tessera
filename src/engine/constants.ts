@@ -73,7 +73,9 @@ export const LARGE_TERRAIN_COUNTS: Record<LandTerrain, number> = { forest: 6, hi
  * Black Forest: a desert island in a lake, ringed by 24 visible forests; 30 tiles beyond lie under
  * fog: the other resources plus two gold fields, whose number is always a 6 or an 8. The forest's
  * numbers are colonist's (dealt at random): four each of 5, 6 and 8, three 4s and 9s, two 10s and
- * one each of 2, 3, 11 and 12.
+ * one each of 2, 3, 11 and 12. The fog holds seven of each resource (eight of two without gold) and
+ * deals its numbers evenly between them: similar pips each, a share of the 6s and 8s, no more than
+ * one 2 or 12 apiece.
  */
 export const BLACK_FOREST_TOKENS = [2, 3, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 8, 8, 8, 8, 9, 9, 9, 10, 10, 11, 12];
 export const BLACK_FOREST_FOG: Partial<Record<Terrain, number>> = { hills: 7, pasture: 7, fields: 7, mountains: 7, gold: 2 };

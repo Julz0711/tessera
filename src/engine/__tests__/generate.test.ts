@@ -116,6 +116,30 @@ describe('generateBoard (Black Forest)', () => {
     }
   });
 
+  it('balances the fog: even tile counts, fair pips, shared 6/8s, no resource with both 2 and 12', () => {
+    const pips: Record<number, number> = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1 };
+    for (const gold of [true, false]) {
+      for (let seed = 1; seed <= 100; seed++) {
+        const board = generateBoard({ rng: seed * 4409 }, 'blackForest', { gold });
+        const fog = board.hexes.filter((h) => h.fog && h.terrain !== 'gold');
+        const rate = fog.reduce((n, h) => n + pips[h.token!], 0) / fog.length;
+        const counts: number[] = [];
+        for (const r of ['hills', 'pasture', 'fields', 'mountains']) {
+          const own = fog.filter((h) => h.terrain === r);
+          counts.push(own.length);
+          const tokens = own.map((h) => h.token!);
+          expect(Math.abs(own.reduce((n, h) => n + pips[h.token!], 0) - rate * own.length)).toBeLessThanOrEqual(2);
+          const reds = tokens.filter((t) => t === 6 || t === 8).length;
+          expect(reds).toBeGreaterThanOrEqual(1);
+          expect(reds).toBeLessThanOrEqual(2);
+          expect(tokens.filter((t) => t === 2 || t === 12).length).toBeLessThanOrEqual(1);
+        }
+        expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(gold ? 0 : 1);
+        expect(counts.reduce((a, b) => a + b)).toBe(gold ? 28 : 30);
+      }
+    }
+  });
+
   it('pays out what a starting road uncovers in the fog', () => {
     const players = [0, 1].map((i) => ({ id: `p${i}`, name: `P${i}`, color: (['red', 'blue'] as const)[i], isBot: false }));
     const start = createGame({ seed: 11, mode: 'classic', players, settings: { map: 'blackForest' } });

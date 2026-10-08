@@ -1,8 +1,10 @@
 'use client';
 
-import { SmilePlus } from 'lucide-react';
+import { MousePointer2, SmilePlus } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useMouseScreen } from '@/client/cursors';
+import { usePrefs } from '@/client/prefs';
 import { api, useGame } from '@/client/store';
 import { REACTIONS, REACTION_COOLDOWN_MS, REACTION_SHOW_MS, isEmote, reactionText } from '@/shared/reactions';
 
@@ -15,6 +17,25 @@ function useUntil(until: number): boolean {
     return () => clearTimeout(t);
   }, [until, now]);
   return until > now;
+}
+
+/** Shows other players' mouse pointers over the board and shares yours (off by default; wide screens with a mouse only). */
+export function CursorToggle() {
+  const on = usePrefs((s) => s.shareCursors);
+  const mouse = useMouseScreen();
+  if (!mouse) return null;
+  return (
+    <button
+      type="button"
+      className={`btn h-10 w-10 p-0 ${on ? 'btn-primary' : 'btn-dark'}`}
+      onClick={() => usePrefs.getState().set({ shareCursors: !on })}
+      aria-label="Share mouse pointers"
+      aria-pressed={on}
+      title={on ? "Pointers on: you see everyone's and they see yours" : 'Show mouse pointers on the board'}
+    >
+      <MousePointer2 size={18} />
+    </button>
+  );
 }
 
 /** The smiley button and its grid of quick reactions, with a short cooldown after each one. */
@@ -73,7 +94,7 @@ export function ReactionPicker({ dock = false }: { /** In the dock: a labelled k
               role="menuitem"
               disabled={cooling}
               onClick={() => send(r.id)}
-              className={`btn h-10 p-0 ${r.emote ? 'col-span-2 text-sm' : 'text-xl'}`}
+              className={`btn h-10 p-0 ${r.emote ? `${r.text.length > 2 ? 'col-span-2' : ''} text-sm` : 'text-xl'}`}
             >
               {r.text}
             </button>
@@ -88,8 +109,7 @@ export function ReactionPicker({ dock = false }: { /** In the dock: a labelled k
  * A player's latest reaction as a speech bubble beside their avatar; it fades after a few seconds.
  * Rendered into the page body at the avatar's position, so scrolling panels don't clip it.
  */
-/** `cover`: an emoji takes the place of the portrait it sits in, rather than popping up beside it. */
-export function ReactionBubble({ playerId, side, cover = false }: { playerId: string; side: 'left' | 'right' | 'below'; cover?: boolean }) {
+export function ReactionBubble({ playerId, side }: { playerId: string; side: 'left' | 'right' | 'below' }) {
   const r = useGame((s) => s.reactions[playerId]);
   const visible = useUntil(r ? r.at + REACTION_SHOW_MS : 0);
   const anchor = useRef<HTMLSpanElement>(null);
@@ -106,19 +126,6 @@ export function ReactionBubble({ playerId, side, cover = false }: { playerId: st
   }, [visible, side, r?.at]);
   const text = r ? reactionText(r.reaction) : '';
   const emote = r ? isEmote(r.reaction) : false;
-  // An emoji takes the portrait's place for a moment, as on colonist; a phrase needs a bubble.
-  if (cover && r && visible && !emote) {
-    return (
-      <span
-        key={r.at}
-        className="pointer-events-none absolute inset-0 grid animate-pop place-items-center rounded-full border-2 border-ink bg-paper text-2xl leading-none"
-        role="status"
-        aria-label={`Reacted ${text}`}
-      >
-        {text}
-      </span>
-    );
-  }
   return (
     <span ref={anchor} className="hidden">
       {r &&
@@ -137,6 +144,36 @@ export function ReactionBubble({ playerId, side, cover = false }: { playerId: st
           </span>,
           document.body,
         )}
+    </span>
+  );
+}
+
+/**
+ * A player's latest reaction taking over their whole card: a blank canvas (the card's own background and
+ * colour stripe) with the reaction big in the middle. It sits absolutely over the card, so the card never
+ * changes size; the card's contents stay mounted underneath and are simply covered.
+ */
+export function ReactionCover({ playerId, color }: { playerId: string; color: string }) {
+  const r = useGame((s) => s.reactions[playerId]);
+  const visible = useUntil(r ? r.at + REACTION_SHOW_MS : 0);
+  // Stays mounted a moment longer so it can fade and shrink away.
+  const mounted = useUntil(r ? r.at + REACTION_SHOW_MS + 220 : 0);
+  if (!r || !mounted) return null;
+  const text = reactionText(r.reaction);
+  const emote = isEmote(r.reaction);
+  return (
+    <span
+      key={r.at}
+      data-reaction
+      className={`pointer-events-none absolute inset-0 z-10 grid place-items-center overflow-hidden rounded-[inherit] bg-paper transition duration-200 [container-type:inline-size] ${
+        visible ? 'animate-pop' : 'scale-95'
+      }`}
+      // Opacity and filter inline: a waiting card fades and greys its children, and the cover must stay solid.
+      style={{ boxShadow: `inset 5px 0 0 ${color}`, opacity: visible ? 1 : 0, filter: 'none' }}
+      role="status"
+      aria-label={`Reacted ${text}`}
+    >
+      <span className={`whitespace-nowrap pl-2 font-black leading-none text-ink ${emote ? 'font-display text-[min(2.25rem,17cqw)] uppercase' : 'text-5xl'}`}>{text}</span>
     </span>
   );
 }

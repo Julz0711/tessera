@@ -96,8 +96,10 @@ export function describe(ev: GameEvent, view: PlayerView): Part[][] {
     case 'treasure': {
       // Knights & Barbarians: a progress card from the deck of your choice; otherwise the top development card.
       const what = ev.kind === 'devCard' ? (view.mode === 'ck' ? 'a progress card of choice' : 'a development card') : TREASURE_NAMES[ev.kind];
-      return [[P(ev.seat), ev.at === null ? ' found open sea and a bonus treasure: ' : ' found a treasure: ', what]];
+      return [[P(ev.seat), ev.at === null ? ' uncovered a bonus treasure: ' : ' found a treasure: ', what]];
     }
+    case 'embargo':
+      return [[P(ev.seat), ev.on ? ' put an embargo on ' : ' lifted the embargo on ', P(ev.target)]];
     case 'islandSettled':
       return [[P(ev.seat), ` settled a new island: +${ev.vp} point${ev.vp === 1 ? '' : 's'}`]];
     case 'shipMoved':
@@ -229,7 +231,7 @@ export function statusLine(view: PlayerView): { text: string; mine: boolean } {
       moveRoad: 'Diplomat: pick where it goes',
       spy: 'Spy: take a progress card',
       masterMerchant: 'Master Merchant: take 2 cards',
-      placeMetropolis: 'Place your metropolis on a city',
+      placeMetropolis: 'Pick a city for your metropolis, then confirm',
     };
     return { text: texts[mine.kind] ?? 'Your decision', mine: true };
   }

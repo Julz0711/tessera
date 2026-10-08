@@ -19,7 +19,8 @@ export type UiMode =
 export type SideTab = 'log' | 'chat' | 'dice';
 
 export interface BuildOption {
-  what: BuildWhat;
+  /** A metropolis is placed, not built: its popup never costs anything. */
+  what: BuildWhat | 'metropolis';
   action: Action;
   /** Null when it's free (setup, Road Building). */
   cost: PartialHand | null;

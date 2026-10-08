@@ -22,7 +22,8 @@ export function revealAround(ctx: Ctx, vertices: number[]): void {
     const hex = s.board.hexes[id];
     delete hex.fog;
     if (hex.terrain === 'gold') picks++;
-    if (hex.terrain === 'sea' && s.board.treasures) oceans++;
+    // Veiled Isles: hidden sea or a hidden desert (nothing to harvest) pays a bonus treasure instead.
+    if ((hex.terrain === 'sea' || hex.terrain === 'desert') && s.board.treasures) oceans++;
     const res = TERRAIN_RESOURCE[hex.terrain];
     if (res && s.bank[res] > 0) {
       s.bank[res]--;
