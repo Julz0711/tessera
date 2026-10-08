@@ -1,0 +1,28 @@
+{
+  "loaded": 14,
+  "expected": 14,
+  "loadErrors": [],
+  "source": "Actual GLB files via Three.js GLTFLoader",
+  "materials": {
+    "Tessera_Neutral": "Vertex colors, preserve white material factor",
+    "Tessera_Player": "Replace base color with PLAYER_COLORS[color].hex",
+    "Tessera_PlayerDark": "Replace base color with PLAYER_COLORS[color].dark",
+    "Tessera_Track": "Metropolis improvement track accent"
+  },
+  "context": "Standalone representative board; not the game application",
+  "view": "normal",
+  "mode": "board",
+  "instances": 82,
+  "drawCalls": 204,
+  "triangles": 283238,
+  "meanFrameMs": 4.38,
+  "p95FrameMs": 4.7,
+  "viewport": [
+    1280,
+    720
+  ],
+  "pixelRatio": 1,
+  "sampleCount": 300,
+  "player": "blue",
+  "commodity": "paper"
+}

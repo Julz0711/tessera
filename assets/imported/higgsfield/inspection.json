@@ -1,0 +1,290 @@
+[
+  {
+    "file": "hf_sheep.blend",
+    "name": "hf_sheep",
+    "triangles": 1668,
+    "bounds": [
+      [
+        -1.0,
+        -0.730674147605896,
+        -0.8314157724380493
+      ],
+      [
+        1.0,
+        0.730674147605896,
+        0.8314157724380493
+      ]
+    ],
+    "materials": [
+      {
+        "name": "fixed",
+        "nodes": [
+          [
+            "BSDF_PRINCIPLED",
+            null
+          ],
+          [
+            "OUTPUT_MATERIAL",
+            null
+          ],
+          [
+            "MIX",
+            null
+          ],
+          [
+            "VERTEX_COLOR",
+            null
+          ]
+        ],
+        "images": []
+      }
+    ],
+    "attributes": [
+      [
+        "Color",
+        "CORNER",
+        "BYTE_COLOR"
+      ]
+    ]
+  },
+  {
+    "file": "hf_kiln.blend",
+    "name": "hf_kiln",
+    "triangles": 1816,
+    "bounds": [
+      [
+        -0.7073580026626587,
+        -1.0,
+        -0.5008087158203125
+      ],
+      [
+        0.7073580026626587,
+        1.0,
+        0.5008087158203125
+      ]
+    ],
+    "materials": [
+      {
+        "name": "fixed.001",
+        "nodes": [
+          [
+            "BSDF_PRINCIPLED",
+            null
+          ],
+          [
+            "OUTPUT_MATERIAL",
+            null
+          ],
+          [
+            "MIX",
+            null
+          ],
+          [
+            "VERTEX_COLOR",
+            null
+          ]
+        ],
+        "images": []
+      }
+    ],
+    "attributes": [
+      [
+        "Color",
+        "CORNER",
+        "BYTE_COLOR"
+      ]
+    ]
+  },
+  {
+    "file": "hf_round_tree.blend",
+    "name": "hf_round_tree",
+    "triangles": 722,
+    "bounds": [
+      [
+        -0.7375103235244751,
+        -0.774407148361206,
+        -1.0
+      ],
+      [
+        0.7375103235244751,
+        0.774407148361206,
+        1.0
+      ]
+    ],
+    "materials": [
+      {
+        "name": "fixed.002",
+        "nodes": [
+          [
+            "BSDF_PRINCIPLED",
+            null
+          ],
+          [
+            "OUTPUT_MATERIAL",
+            null
+          ],
+          [
+            "MIX",
+            null
+          ],
+          [
+            "VERTEX_COLOR",
+            null
+          ]
+        ],
+        "images": []
+      }
+    ],
+    "attributes": [
+      [
+        "Color",
+        "CORNER",
+        "BYTE_COLOR"
+      ]
+    ]
+  },
+  {
+    "file": "hf_fir.blend",
+    "name": "hf_fir",
+    "triangles": 205,
+    "bounds": [
+      [
+        -0.617633581161499,
+        -0.6256904602050781,
+        -1.0
+      ],
+      [
+        0.617633581161499,
+        0.6256904602050781,
+        1.0
+      ]
+    ],
+    "materials": [
+      {
+        "name": "fixed.003",
+        "nodes": [
+          [
+            "BSDF_PRINCIPLED",
+            null
+          ],
+          [
+            "OUTPUT_MATERIAL",
+            null
+          ],
+          [
+            "MIX",
+            null
+          ],
+          [
+            "VERTEX_COLOR",
+            null
+          ]
+        ],
+        "images": []
+      }
+    ],
+    "attributes": [
+      [
+        "Color",
+        "CORNER",
+        "BYTE_COLOR"
+      ]
+    ]
+  },
+  {
+    "file": "hf_cactus.blend",
+    "name": "hf_cactus",
+    "triangles": 379,
+    "bounds": [
+      [
+        -0.5869930386543274,
+        -0.24134036898612976,
+        -1.0
+      ],
+      [
+        0.5869930386543274,
+        0.24134036898612976,
+        1.0
+      ]
+    ],
+    "materials": [
+      {
+        "name": "fixed.004",
+        "nodes": [
+          [
+            "BSDF_PRINCIPLED",
+            null
+          ],
+          [
+            "OUTPUT_MATERIAL",
+            null
+          ],
+          [
+            "MIX",
+            null
+          ],
+          [
+            "VERTEX_COLOR",
+            null
+          ]
+        ],
+        "images": []
+      }
+    ],
+    "attributes": [
+      [
+        "Color",
+        "CORNER",
+        "BYTE_COLOR"
+      ]
+    ]
+  },
+  {
+    "file": "hf_scarecrow.blend",
+    "name": "hf_scarecrow",
+    "triangles": 3140,
+    "bounds": [
+      [
+        -0.8067567944526672,
+        -0.4675740897655487,
+        -1.0
+      ],
+      [
+        0.8067567944526672,
+        0.4675740897655487,
+        1.0
+      ]
+    ],
+    "materials": [
+      {
+        "name": "fixed.005",
+        "nodes": [
+          [
+            "BSDF_PRINCIPLED",
+            null
+          ],
+          [
+            "OUTPUT_MATERIAL",
+            null
+          ],
+          [
+            "MIX",
+            null
+          ],
+          [
+            "VERTEX_COLOR",
+            null
+          ]
+        ],
+        "images": []
+      }
+    ],
+    "attributes": [
+      [
+        "Color",
+        "CORNER",
+        "BYTE_COLOR"
+      ]
+    ]
+  }
+]

@@ -34,3 +34,8 @@ coverage/
 test-results/
 playwright-report/
 .playwright-mcp/
+
+# Blender authoring caches
+__pycache__/
+*.blend1
+*.blend2

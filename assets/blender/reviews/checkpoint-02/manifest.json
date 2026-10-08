@@ -1,0 +1,424 @@
+{
+  "schema": 1,
+  "sourceRepository": "Julz0711/tessera",
+  "sourceTree": "9b822013c3008a001fb1e719d1a8b78a5d801d7e",
+  "blender": "5.2.2 LTS",
+  "units": "Tessera board units; hex circumradius 1",
+  "up": "Y in GLB, Z in Blender",
+  "materials": {
+    "Tessera_Neutral": "Vertex colors, preserve white material factor",
+    "Tessera_Player": "Replace base color with PLAYER_COLORS[color].hex",
+    "Tessera_PlayerDark": "Replace base color with PLAYER_COLORS[color].dark",
+    "Tessera_Track": "Metropolis improvement track accent"
+  },
+  "assets": [
+    {
+      "id": "settlement",
+      "file": "settlement.glb",
+      "triangles": 4888,
+      "boundsBlender": {
+        "min": [
+          -0.20041079819202423,
+          -0.15745000541210175,
+          -0.00011749999976018444
+        ],
+        "max": [
+          0.18865565955638885,
+          0.15771128237247467,
+          0.4378049969673157
+        ]
+      },
+      "dimensionsBlender": [
+        0.3890664577484131,
+        0.3151612877845764,
+        0.43792249696707586
+      ],
+      "origin": "tile surface",
+      "materials": [
+        "Tessera_Neutral",
+        "Tessera_Player",
+        "Tessera_PlayerDark"
+      ],
+      "sha256": "4667f68958144e853325a05567482a1a556931df35734f43425546bc4d530b32"
+    },
+    {
+      "id": "city",
+      "file": "city.glb",
+      "triangles": 5141,
+      "boundsBlender": {
+        "min": [
+          -0.2453625649213791,
+          -0.20399999618530273,
+          0.0
+        ],
+        "max": [
+          0.2438572198152542,
+          0.23343677818775177,
+          0.6506999731063843
+        ]
+      },
+      "dimensionsBlender": [
+        0.4892197847366333,
+        0.4374367743730545,
+        0.6506999731063843
+      ],
+      "origin": "tile surface",
+      "materials": [
+        "Tessera_Neutral",
+        "Tessera_Player",
+        "Tessera_PlayerDark"
+      ],
+      "sha256": "66a3ceecacc06ca8911592b605599162a87e5f7d6d6b0676a82b93f44f1022a1"
+    },
+    {
+      "id": "metropolis",
+      "file": "metropolis.glb",
+      "triangles": 9057,
+      "boundsBlender": {
+        "min": [
+          -0.27678096294403076,
+          -0.2669999897480011,
+          0.0
+        ],
+        "max": [
+          0.27678096294403076,
+          0.25142407417297363,
+          0.7407000064849854
+        ]
+      },
+      "dimensionsBlender": [
+        0.5535619258880615,
+        0.5184240639209747,
+        0.7407000064849854
+      ],
+      "origin": "tile surface",
+      "materials": [
+        "Tessera_Neutral",
+        "Tessera_Player",
+        "Tessera_PlayerDark",
+        "Tessera_Track"
+      ],
+      "sha256": "de60cf6cbe698cc56f03c2b0df0d5efa6d7365159581c06d3d05e02dbcae0f91"
+    },
+    {
+      "id": "road",
+      "file": "road.glb",
+      "triangles": 2428,
+      "boundsBlender": {
+        "min": [
+          -0.3059999942779541,
+          -0.07400000095367432,
+          -0.04500000178813934
+        ],
+        "max": [
+          0.30649998784065247,
+          0.07400000095367432,
+          0.08699999749660492
+        ]
+      },
+      "dimensionsBlender": [
+        0.6124999821186066,
+        0.14800000190734863,
+        0.13199999928474426
+      ],
+      "origin": "road midpoint: tile surface +0.06",
+      "materials": [
+        "Tessera_Neutral",
+        "Tessera_Player"
+      ],
+      "sha256": "62678bda5752910a14b18c564489c310f0c78ad7e41008d47d2b2cccc7b63417"
+    },
+    {
+      "id": "ship",
+      "file": "ship.glb",
+      "triangles": 1806,
+      "boundsBlender": {
+        "min": [
+          -0.1811250001192093,
+          -0.18725000321865082,
+          0.0
+        ],
+        "max": [
+          0.23922500014305115,
+          0.18725000321865082,
+          0.5372499823570251
+        ]
+      },
+      "dimensionsBlender": [
+        0.42035000026226044,
+        0.37450000643730164,
+        0.5372499823570251
+      ],
+      "origin": "waterline",
+      "materials": [
+        "Tessera_Neutral",
+        "Tessera_Player"
+      ],
+      "sha256": "bb2ea83df2d9799502423f8007096dae1e2e54fb4bc9f6e066d1d69c2b2d1d55"
+    },
+    {
+      "id": "pirate_ship",
+      "file": "pirate_ship.glb",
+      "triangles": 2592,
+      "boundsBlender": {
+        "min": [
+          -0.23759999871253967,
+          -0.1712000072002411,
+          0.0
+        ],
+        "max": [
+          0.2655999958515167,
+          0.1712000072002411,
+          0.47519999742507935
+        ]
+      },
+      "dimensionsBlender": [
+        0.5031999945640564,
+        0.3424000144004822,
+        0.47519999742507935
+      ],
+      "origin": "waterline",
+      "materials": [
+        "Tessera_Neutral"
+      ],
+      "sha256": "5f94e4620f62f5aaa205135bd0ff7202248439e1a18274d32e2cdd6c54fa20e3"
+    },
+    {
+      "id": "barbarian_ship",
+      "file": "barbarian_ship.glb",
+      "triangles": 1520,
+      "boundsBlender": {
+        "min": [
+          -0.1712000072002411,
+          -0.2784000039100647,
+          0.0
+        ],
+        "max": [
+          0.1712000072002411,
+          0.1695999950170517,
+          0.47519999742507935
+        ]
+      },
+      "dimensionsBlender": [
+        0.3424000144004822,
+        0.4479999989271164,
+        0.47519999742507935
+      ],
+      "origin": "waterline",
+      "materials": [
+        "Tessera_Neutral"
+      ],
+      "sha256": "5e11549cee75ebc4f08f7aecfd847d225c964b0bc7cfa92b33d01006af781f52"
+    },
+    {
+      "id": "hex_forest",
+      "file": "hex_forest.glb",
+      "triangles": 1503,
+      "boundsBlender": {
+        "min": [
+          -0.8660253882408142,
+          -1.0,
+          -0.15000000596046448
+        ],
+        "max": [
+          0.8660253882408142,
+          1.0,
+          0.9100000262260437
+        ]
+      },
+      "dimensionsBlender": [
+        1.7320507764816284,
+        2.0,
+        1.0600000321865082
+      ],
+      "origin": "tile frame: surface 0.13",
+      "materials": [
+        "Tessera_Neutral"
+      ],
+      "propMinRadius": 0.45299999999999996,
+      "propMaxRadius": 0.8401307859198764,
+      "propMaxEdgeProjection": 0.7600000000000001,
+      "sha256": "cb84fc340ed92dfea61afaa7f60db917fab6083f4cc67c7be8508b15f9af3a58"
+    },
+    {
+      "id": "hex_pasture",
+      "file": "hex_pasture.glb",
+      "triangles": 5912,
+      "boundsBlender": {
+        "min": [
+          -0.8660253882408142,
+          -1.0,
+          -0.15000000596046448
+        ],
+        "max": [
+          0.8660253882408142,
+          1.0,
+          0.6271376013755798
+        ]
+      },
+      "dimensionsBlender": [
+        1.7320507764816284,
+        2.0,
+        0.7771376073360443
+      ],
+      "origin": "tile frame: surface 0.13",
+      "materials": [
+        "Tessera_Neutral"
+      ],
+      "propMinRadius": 0.4760757580973567,
+      "propMaxRadius": 0.8040936265502107,
+      "propMaxEdgeProjection": 0.76,
+      "sha256": "b0da826e8b5a0e7d9b2955ea2e3ac8d1e95ba90d579a7c16dfabed51c9623af0"
+    },
+    {
+      "id": "hex_fields",
+      "file": "hex_fields.glb",
+      "triangles": 2928,
+      "boundsBlender": {
+        "min": [
+          -0.8660253882408142,
+          -1.0,
+          -0.15000000596046448
+        ],
+        "max": [
+          0.8660253882408142,
+          1.0,
+          0.5199999809265137
+        ]
+      },
+      "dimensionsBlender": [
+        1.7320507764816284,
+        2.0,
+        0.6699999868869781
+      ],
+      "origin": "tile frame: surface 0.13",
+      "materials": [
+        "Tessera_Neutral"
+      ],
+      "propMinRadius": 0.45299999999999996,
+      "propMaxRadius": 0.7966733762987894,
+      "propMaxEdgeProjection": 0.7600000000000001,
+      "sha256": "ba7e3e71a1528a06d9f062607de109236dcf9ded889c13f96e0b9dc15b2e3f86"
+    },
+    {
+      "id": "hex_hills",
+      "file": "hex_hills.glb",
+      "triangles": 3308,
+      "boundsBlender": {
+        "min": [
+          -0.8660253882408142,
+          -1.0,
+          -0.15000000596046448
+        ],
+        "max": [
+          0.8660253882408142,
+          1.0,
+          0.4046477675437927
+        ]
+      },
+      "dimensionsBlender": [
+        1.7320507764816284,
+        2.0,
+        0.5546477735042572
+      ],
+      "origin": "tile frame: surface 0.13",
+      "materials": [
+        "Tessera_Neutral"
+      ],
+      "propMinRadius": 0.4549959616243444,
+      "propMaxRadius": 0.8113199290280846,
+      "propMaxEdgeProjection": 0.7600000000000001,
+      "sha256": "b64f7a4154a3206b2051945cda5ee62a895a9c80c1f11950440280d99a0b79e3"
+    },
+    {
+      "id": "hex_mountains",
+      "file": "hex_mountains.glb",
+      "triangles": 2154,
+      "boundsBlender": {
+        "min": [
+          -0.8660253882408142,
+          -1.0,
+          -0.15000000596046448
+        ],
+        "max": [
+          0.8660253882408142,
+          1.0,
+          0.949999988079071
+        ]
+      },
+      "dimensionsBlender": [
+        1.7320507764816284,
+        2.0,
+        1.0999999940395355
+      ],
+      "origin": "tile frame: surface 0.13",
+      "materials": [
+        "Tessera_Neutral"
+      ],
+      "propMinRadius": 0.453,
+      "propMaxRadius": 0.8469781862322986,
+      "propMaxEdgeProjection": 0.76,
+      "sha256": "343affa53de402cbc6b48fbbe05c1f4b03207a76aa1017ade9283017a716fd63"
+    },
+    {
+      "id": "hex_desert",
+      "file": "hex_desert.glb",
+      "triangles": 851,
+      "boundsBlender": {
+        "min": [
+          -0.8660253882408142,
+          -1.0,
+          -0.15000000596046448
+        ],
+        "max": [
+          0.8660253882408142,
+          1.0,
+          0.39800000190734863
+        ]
+      },
+      "dimensionsBlender": [
+        1.7320507764816284,
+        2.0,
+        0.5480000078678131
+      ],
+      "origin": "tile frame: surface 0.13",
+      "materials": [
+        "Tessera_Neutral"
+      ],
+      "propMinRadius": 0.4799076165871019,
+      "propMaxRadius": 0.7760619128135325,
+      "propMaxEdgeProjection": 0.76,
+      "sha256": "9721de6ed054394acb5376ef000a3b7436975e9c8868dce51633619520e6a513"
+    },
+    {
+      "id": "hex_gold",
+      "file": "hex_gold.glb",
+      "triangles": 1908,
+      "boundsBlender": {
+        "min": [
+          -0.8660253882408142,
+          -1.0,
+          -0.15000000596046448
+        ],
+        "max": [
+          0.8660253882408142,
+          1.0,
+          0.7099999785423279
+        ]
+      },
+      "dimensionsBlender": [
+        1.7320507764816284,
+        2.0,
+        0.8599999845027924
+      ],
+      "origin": "tile frame: surface 0.13",
+      "materials": [
+        "Tessera_Neutral"
+      ],
+      "propMinRadius": 0.45299999999999996,
+      "propMaxRadius": 0.8342238505431875,
+      "propMaxEdgeProjection": 0.7600000000000001,
+      "sha256": "a0f468a61f0d3a3904d97e20a0caa6060364e3933570a6a6b5e6145077beb601"
+    }
+  ]
+}

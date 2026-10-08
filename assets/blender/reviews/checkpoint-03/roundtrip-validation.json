@@ -1,0 +1,75 @@
+{
+  "passed": true,
+  "assets": [
+    {
+      "id": "settlement",
+      "maxBoundsError": 0.0,
+      "passed": true
+    },
+    {
+      "id": "city",
+      "maxBoundsError": 0.0,
+      "passed": true
+    },
+    {
+      "id": "metropolis",
+      "maxBoundsError": 0.0,
+      "passed": true
+    },
+    {
+      "id": "road",
+      "maxBoundsError": 0.0,
+      "passed": true
+    },
+    {
+      "id": "ship",
+      "maxBoundsError": 0.0,
+      "passed": true
+    },
+    {
+      "id": "pirate_ship",
+      "maxBoundsError": 0.0,
+      "passed": true
+    },
+    {
+      "id": "barbarian_ship",
+      "maxBoundsError": 0.0,
+      "passed": true
+    },
+    {
+      "id": "hex_forest",
+      "maxBoundsError": 0.0,
+      "passed": true
+    },
+    {
+      "id": "hex_pasture",
+      "maxBoundsError": 0.0,
+      "passed": true
+    },
+    {
+      "id": "hex_fields",
+      "maxBoundsError": 0.0,
+      "passed": true
+    },
+    {
+      "id": "hex_hills",
+      "maxBoundsError": 0.0,
+      "passed": true
+    },
+    {
+      "id": "hex_mountains",
+      "maxBoundsError": 0.0,
+      "passed": true
+    },
+    {
+      "id": "hex_desert",
+      "maxBoundsError": 0.0,
+      "passed": true
+    },
+    {
+      "id": "hex_gold",
+      "maxBoundsError": 0.0,
+      "passed": true
+    }
+  ]
+}

@@ -1,0 +1,330 @@
+{
+  "assets": [
+    {
+      "id": "settlement",
+      "triangles": 4888,
+      "drawCalls": 3,
+      "bytes": 332284,
+      "materials": {
+        "Tessera_Neutral": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "Tessera_Player": [
+          0.008568125776946545,
+          0.13563333451747894,
+          0.7454041838645935,
+          1
+        ],
+        "Tessera_PlayerDark": [
+          0.006995410192757845,
+          0.061246052384376526,
+          0.2917706370353699,
+          1
+        ]
+      },
+      "errors": [],
+      "referenceTriangleLabel": 750,
+      "exceedsReferenceLabel": true,
+      "attributesChecked": true
+    },
+    {
+      "id": "city",
+      "triangles": 5141,
+      "drawCalls": 3,
+      "bytes": 351964,
+      "materials": {
+        "Tessera_Neutral": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "Tessera_Player": [
+          0.008568125776946545,
+          0.13563333451747894,
+          0.7454041838645935,
+          1
+        ],
+        "Tessera_PlayerDark": [
+          0.006995410192757845,
+          0.061246052384376526,
+          0.2917706370353699,
+          1
+        ]
+      },
+      "errors": [],
+      "referenceTriangleLabel": 1250,
+      "exceedsReferenceLabel": true,
+      "attributesChecked": true
+    },
+    {
+      "id": "metropolis",
+      "triangles": 9057,
+      "drawCalls": 4,
+      "bytes": 620164,
+      "materials": {
+        "Tessera_Neutral": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "Tessera_Player": [
+          0.008568125776946545,
+          0.13563333451747894,
+          0.7454041838645935,
+          1
+        ],
+        "Tessera_PlayerDark": [
+          0.006995410192757845,
+          0.061246052384376526,
+          0.2917706370353699,
+          1
+        ],
+        "Tessera_Track": [
+          0.021219009533524513,
+          0.177888423204422,
+          0.04666508734226227,
+          1
+        ]
+      },
+      "errors": [],
+      "referenceTriangleLabel": 2000,
+      "exceedsReferenceLabel": true,
+      "attributesChecked": true
+    },
+    {
+      "id": "road",
+      "triangles": 2428,
+      "drawCalls": 2,
+      "bytes": 162508,
+      "materials": {
+        "Tessera_Neutral": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "Tessera_Player": [
+          0.008568125776946545,
+          0.13563333451747894,
+          0.7454041838645935,
+          1
+        ]
+      },
+      "errors": [],
+      "referenceTriangleLabel": 200,
+      "exceedsReferenceLabel": true,
+      "attributesChecked": true
+    },
+    {
+      "id": "ship",
+      "triangles": 1806,
+      "drawCalls": 2,
+      "bytes": 128452,
+      "materials": {
+        "Tessera_Neutral": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "Tessera_Player": [
+          0.008568125776946545,
+          0.13563333451747894,
+          0.7454041838645935,
+          1
+        ]
+      },
+      "errors": [],
+      "referenceTriangleLabel": 750,
+      "exceedsReferenceLabel": true,
+      "attributesChecked": true
+    },
+    {
+      "id": "pirate_ship",
+      "triangles": 2592,
+      "drawCalls": 1,
+      "bytes": 183424,
+      "materials": {
+        "Tessera_Neutral": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "errors": [],
+      "referenceTriangleLabel": 900,
+      "exceedsReferenceLabel": true,
+      "attributesChecked": true
+    },
+    {
+      "id": "barbarian_ship",
+      "triangles": 1520,
+      "drawCalls": 1,
+      "bytes": 109160,
+      "materials": {
+        "Tessera_Neutral": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "errors": [],
+      "referenceTriangleLabel": 900,
+      "exceedsReferenceLabel": true,
+      "attributesChecked": true
+    },
+    {
+      "id": "hex_forest",
+      "triangles": 1503,
+      "drawCalls": 1,
+      "bytes": 122712,
+      "materials": {
+        "Tessera_Neutral": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "errors": [],
+      "referenceTriangleLabel": 600,
+      "exceedsReferenceLabel": true,
+      "tokenClearRadius": 0.4529999870112247,
+      "edgeClearance": 0.10602540378443848,
+      "attributesChecked": true
+    },
+    {
+      "id": "hex_pasture",
+      "triangles": 5912,
+      "drawCalls": 1,
+      "bytes": 587416,
+      "materials": {
+        "Tessera_Neutral": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "errors": [],
+      "referenceTriangleLabel": 400,
+      "exceedsReferenceLabel": true,
+      "tokenClearRadius": 0.4760757615734305,
+      "edgeClearance": 0.10602540378443859,
+      "attributesChecked": true
+    },
+    {
+      "id": "hex_fields",
+      "triangles": 2928,
+      "drawCalls": 1,
+      "bytes": 212252,
+      "materials": {
+        "Tessera_Neutral": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "errors": [],
+      "referenceTriangleLabel": 400,
+      "exceedsReferenceLabel": true,
+      "tokenClearRadius": 0.4515173217639744,
+      "edgeClearance": 0.10602540378443848,
+      "attributesChecked": true
+    },
+    {
+      "id": "hex_hills",
+      "triangles": 3308,
+      "drawCalls": 1,
+      "bytes": 242368,
+      "materials": {
+        "Tessera_Neutral": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "errors": [],
+      "referenceTriangleLabel": 500,
+      "exceedsReferenceLabel": true,
+      "tokenClearRadius": 0.4549959616243444,
+      "edgeClearance": 0.10602540378443848,
+      "attributesChecked": true
+    },
+    {
+      "id": "hex_mountains",
+      "triangles": 2168,
+      "drawCalls": 1,
+      "bytes": 176468,
+      "materials": {
+        "Tessera_Neutral": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "errors": [],
+      "referenceTriangleLabel": 600,
+      "exceedsReferenceLabel": true,
+      "tokenClearRadius": 0.45046305628805294,
+      "edgeClearance": 0.10602540378443859,
+      "mineApproachObstructions": 0,
+      "attributesChecked": true
+    },
+    {
+      "id": "hex_desert",
+      "triangles": 851,
+      "drawCalls": 1,
+      "bytes": 66636,
+      "materials": {
+        "Tessera_Neutral": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "errors": [],
+      "referenceTriangleLabel": 300,
+      "exceedsReferenceLabel": true,
+      "tokenClearRadius": 0.47380714574504934,
+      "edgeClearance": 0.10602540378443859,
+      "attributesChecked": true
+    },
+    {
+      "id": "hex_gold",
+      "triangles": 1948,
+      "drawCalls": 1,
+      "bytes": 148576,
+      "materials": {
+        "Tessera_Neutral": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "errors": [],
+      "referenceTriangleLabel": 600,
+      "exceedsReferenceLabel": true,
+      "tokenClearRadius": 0.4529884154876958,
+      "edgeClearance": 0.10602540378443859,
+      "mineApproachObstructions": 0,
+      "attributesChecked": true
+    }
+  ],
+  "errors": [],
+  "totalBytes": 3444384,
+  "totalTriangles": 46050,
+  "passed": true
+}
