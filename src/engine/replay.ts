@@ -1,3 +1,4 @@
+import type { KnightCustomization } from '@/shared/knight';
 import { applyAction } from './apply';
 import type { Action, GameEvent, GameState } from './types';
 import { victoryPoints } from './vp';
@@ -10,6 +11,8 @@ export interface ReplayData {
   steps: ReplayStep[];
   /** Set when the stored actions stop before the game's end (a gap in the history). */
   incomplete?: boolean;
+  /** Each seat's knight look (added by the server, for the viewer when no live room is at hand). */
+  knights?: (KnightCustomization | null)[];
 }
 
 export interface ReplayStep {

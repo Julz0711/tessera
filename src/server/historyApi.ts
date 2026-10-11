@@ -4,6 +4,7 @@ import type { Action, GameState, Mode, PlayerColor } from '@/engine/types';
 import type { ReplayData, ReplayStep } from '@/engine/replay';
 import { MAPS, mapsForType } from '@/engine/maps';
 import { isPlayerColor } from '@/shared/colors';
+import { sanitizeKnight } from '@/shared/knight';
 import type { GameSummary, HistoryData } from '@/shared/protocol';
 import { isRatingPool } from '@/shared/ratings';
 import type { GameAnalysis } from '@/bots/analysis/types';
@@ -103,10 +104,14 @@ export const tableMember = (identity: ServerIdentity): Prisma.GameWhereInput => 
 export async function replayFor(identity: ServerIdentity, gameId: string): Promise<(ReplayData & { analysis?: GameAnalysis }) | null> {
   const db = getDb();
   if (!db || !/^[a-zA-Z0-9-]{1,100}$/.test(gameId)) return null;
-  const game = await db.game.findFirst({ where: { id: gameId, status: 'finished', ...tableMember(identity) }, select: { analysis: true } });
+  const game = await db.game.findFirst({ where: { id: gameId, status: 'finished', ...tableMember(identity) }, select: { analysis: true, players: { select: { seat: true, knightCustomization: true } } } });
   if (!game) return null;
   const data = await loadReplayData(db, gameId);
-  return data && (game.analysis ? { ...data, analysis: game.analysis as unknown as GameAnalysis } : data);
+  if (!data) return null;
+  // Knight looks by seat, so the viewer can style the board without a live room (the profile's replay page).
+  const knights: ReplayData['knights'] = [];
+  for (const p of game.players) knights[p.seat] = p.knightCustomization ? sanitizeKnight(p.knightCustomization) : null;
+  return { ...data, knights: Array.from(knights, (k) => k ?? null), ...(game.analysis ? { analysis: game.analysis as unknown as GameAnalysis } : {}) };
 }
 
 /** The stored opening state and actions of a game (no access check: callers do that). */

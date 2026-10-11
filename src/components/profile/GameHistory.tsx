@@ -1,5 +1,5 @@
 'use client';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Clapperboard } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { fetchFriends } from '@/client/social';
@@ -23,7 +23,7 @@ function GameRow({ game: g }: { game: GameSummary }) {
     <div className="mt-4 grid gap-3 border-t border-ink/10 pt-3">
       <ul className="grid gap-1 text-sm">{g.players.map((p, i) => <li key={i} className="flex justify-between gap-3"><span>{p.name}{p.isYou ? ' (you)' : p.isBot ? ' (bot)' : ''}{p.won ? ' · Winner' : ''}</span><b>{p.vp ?? '—'} VP</b></li>)}</ul>
       <p className="text-xs text-ink-faint">{g.turns ?? '—'} turns{g.ratingBefore !== null && g.ratingBefore !== undefined && <> · {g.ratingBefore} <ArrowRight size={11} strokeWidth={2.5} className="inline align-[-1px]" aria-label="to" /> {g.ratingAfter} {MODE_LABEL[isRatingPool(g.ratingPool) ? g.ratingPool : ratingPoolFor(g.mode, g.map)]} Elo</>}{g.accuracy != null && <> · Accuracy {Math.round(g.accuracy)}{g.accuracyElo ? ` (${g.accuracyElo > 0 ? '+' : ''}${g.accuracyElo} Elo)` : ''}</>}</p>
-      {g.hasReport ? <Link className="btn justify-self-start px-3 py-2 text-sm" href={`/games/${g.gameId}`}>Explore stats</Link> : <p className="text-xs text-ink-faint">Detailed stats were not recorded or are no longer available for this game.</p>}
+      {g.hasReport ? <div className="flex flex-wrap gap-2"><Link className="btn px-3 py-2 text-sm" href={`/games/${g.gameId}`}>Explore stats</Link><Link className="btn px-3 py-2 text-sm" href={`/games/${g.gameId}/replay`}><Clapperboard size={15} /> Watch replay</Link></div> : <p className="text-xs text-ink-faint">Detailed stats were not recorded or are no longer available for this game.</p>}
     </div>
   </details>;
 }

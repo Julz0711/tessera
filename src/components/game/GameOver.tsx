@@ -13,6 +13,7 @@ import { AccuracyPanel, useGameAnalysis } from './endgame/AccuracyPanel';
 import { AwardBadges } from './endgame/AwardBadges';
 import { PlayerBadge, Podium } from './endgame/Podium';
 import { PointIcons } from './endgame/PointIcons';
+import { HexSpinner } from '@/components/ui/HexSpinner';
 import { Modal } from '@/components/ui/Modal';
 import { ReplayViewer } from './replay/ReplayViewer';
 
@@ -49,17 +50,23 @@ export function GameOver({ view, room, onClose }: { view: PlayerView; room: Room
   const [replaying, setReplaying] = useState(false);
   const localReport = useMemo(() => buildReport(view), [view]);
   const [savedReport, setSavedReport] = useState<GameReport | null>(null);
+  // Saving queues behind the game's event writes (slow on free hosting), so keep asking for about a minute.
+  const [saveState, setSaveState] = useState<'saving' | 'saved' | 'unavailable'>(room.gameId ? 'saving' : 'unavailable');
   useEffect(() => {
-    if (!room.gameId) return;
+    if (!room.gameId) { setSaveState('unavailable'); return; }
+    setSaveState('saving');
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
+    const started = Date.now();
     let tries = 0;
     async function read() {
       try {
         const response = await fetch(`/api/games/${room.gameId}/report`, { signal: controller.signal });
-        if (response.ok) { const body = await response.json(); if (!controller.signal.aborted) setSavedReport(body); return; }
-      } catch { /* Completion is queued; a short retry gives persistence time to finish. */ }
-      if (!controller.signal.aborted && ++tries < 5) timer = setTimeout(read, 1500);
+        if (response.ok) { const body = await response.json(); if (!controller.signal.aborted) { setSavedReport(body); setSaveState('saved'); } return; }
+      } catch { /* Completion is queued; retrying gives persistence time to finish. */ }
+      if (controller.signal.aborted) return;
+      if (Date.now() - started > 60_000) { setSaveState('unavailable'); return; }
+      timer = setTimeout(read, [1500, 2000, 3000][tries++] ?? 5000);
     }
     void read();
     return () => { controller.abort(); clearTimeout(timer); };
@@ -122,10 +129,11 @@ export function GameOver({ view, room, onClose }: { view: PlayerView; room: Room
             type="button"
             className="btn px-4 py-2 sm:mr-auto"
             onClick={() => setReplaying(true)}
-            disabled={!savedReport || !room.gameId}
-            title={savedReport ? 'Play the game back, with every hand revealed' : 'Replays need the game history, which is still being saved (or is not kept on this server)'}
+            disabled={saveState !== 'saved'}
+            title={saveState === 'saved' ? 'Play the game back, with every hand revealed' : saveState === 'saving' ? 'The game history is still being saved' : 'The game history was not saved on this server, so there is no replay'}
           >
-            <Clapperboard size={16} /> Watch replay
+            {saveState === 'saving' ? <HexSpinner size={16} decorative /> : <Clapperboard size={16} />}
+            {saveState === 'saved' ? 'Watch replay' : saveState === 'saving' ? 'Saving game…' : 'Replay unavailable'}
           </button>
           <button
             type="button"

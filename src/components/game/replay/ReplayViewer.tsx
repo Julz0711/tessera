@@ -32,9 +32,10 @@ function seaVars(theme: keyof typeof PALETTES): React.CSSProperties {
  * A finished game played back from its recorded actions, with everything revealed. It is read-only: the
  * board has no handlers and none of the game's dialogs or dock are mounted.
  */
-export function ReplayViewer({ gameId, room, onClose }: { gameId: string; room: RoomDTO; onClose: () => void }) {
+export function ReplayViewer({ gameId, room, onClose }: { gameId: string; room: RoomDTO | null; onClose: () => void }) {
   const prefs = usePrefs();
   const [replay, setReplay] = useState<Replay | null>(null);
+  const [knights, setKnights] = useState<ReplayData['knights']>();
   const [analysis, setAnalysis] = useState<GameAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState(0);
@@ -57,6 +58,7 @@ export function ReplayViewer({ gameId, room, onClose }: { gameId: string; room: 
         if (controller.signal.aborted) return;
         setReplay(buildReplay(data));
         setAnalysis(data.analysis ?? null);
+        setKnights(data.knights);
       } catch (err) {
         if (!controller.signal.aborted) setError(err instanceof Error ? err.message : 'The replay could not be loaded.');
       }
@@ -113,7 +115,7 @@ export function ReplayViewer({ gameId, room, onClose }: { gameId: string; room: 
     };
   }, [onClose, toggle, stepBy, turnBy]);
 
-  const styles = useMemo(() => room.seats.map((s) => s.knight), [room.seats]);
+  const styles = useMemo(() => room?.seats.map((s) => s.knight) ?? knights ?? [], [room?.seats, knights]);
   const state = replay?.stateAt(step) ?? null;
   // No viewer, everything open: hands, development and progress cards, fog and treasures.
   const view = useMemo(() => (state ? viewFor(state, null, true) : null), [state]);
@@ -148,7 +150,7 @@ export function ReplayViewer({ gameId, room, onClose }: { gameId: string; room: 
             </button>
           ))}
         </div>
-        <button type="button" className="btn h-9 min-h-0 px-3 text-sm" onClick={onClose} title="Back to the results (Esc)">
+        <button type="button" className="btn h-9 min-h-0 px-3 text-sm" onClick={onClose} title="Close replay (Esc)">
           <X size={16} /> Close
         </button>
       </div>
@@ -158,7 +160,7 @@ export function ReplayViewer({ gameId, room, onClose }: { gameId: string; room: 
           <div className="paper max-w-sm p-5 text-center">
             <p className="font-bold">{error}</p>
             <button type="button" className="btn btn-primary mt-3 px-4 py-2" onClick={onClose}>
-              Back to the results
+              Close
             </button>
           </div>
         </div>
