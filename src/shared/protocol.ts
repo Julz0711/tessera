@@ -130,7 +130,7 @@ export interface ClientToServerEvents {
   'chat:send': (text: string, ack: Ack) => void;
   'room:react': (reaction: ReactionId, ack: Ack) => void;
   /** Where the player's mouse is over the board, in board units (`null`: it left). Fire and forget: no ack, drops are fine. */
-  'room:cursor': (at: BoardPoint | null) => void;
+  'room:cursor': (at: BoardPoint | null, click?: boolean) => void;
   /** The client's log no longer lines up with the updates (see `GameUpdate`): send the whole view again. */
   'game:sync': () => void;
   /** The match report so far, with nothing hidden in it (the full one once the game is over). */
@@ -160,7 +160,7 @@ export interface ServerToClientEvents {
   /** A player's quick reaction (not kept in the chat). */
   'room:reaction': (r: { playerId: string; reaction: ReactionId; at: number }) => void;
   /** Another player's mouse over the board (`at: null`: it left the board or the table). */
-  'room:cursor': (c: { playerId: string; at: BoardPoint | null }) => void;
+  'room:cursor': (c: { playerId: string; at: BoardPoint | null; click?: true }) => void;
   'room:closed': (reason: string) => void;
   'session:replaced': () => void;
 }
@@ -200,6 +200,9 @@ export interface GameSummary {
   ratingPool?: string | null;
   ratingBefore?: number | null;
   ratingAfter?: number | null;
+  /** Move analysis: accuracy 1–100 (null until analysed) and its Elo adjustment in rated games. */
+  accuracy?: number | null;
+  accuracyElo?: number | null;
   map?: string;
   turns?: number;
   hasReport?: boolean;
@@ -216,6 +219,8 @@ export interface ProfileData {
   history: GameSummary[];
   /** Signed-in players: rating and leaderboard place (null place until the first rated game). */
   rating: { rating: number; ratedGames: number; place: number | null } | null;
+  /** Average move accuracy over your recent analysed games (null average: none analysed yet). */
+  accuracy?: { average: number | null; games: number };
   /** Listed in ADMIN_EMAILS: shows the link to /admin. */
   isAdmin: boolean;
 }

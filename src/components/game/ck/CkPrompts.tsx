@@ -2,7 +2,7 @@
 
 import { Undo2, X } from 'lucide-react';
 import { useState } from 'react';
-import { CARDS, COMMODITIES, RESOURCES, TRACKS, handTotal, smithValid, type Card, type PartialHand, type Prompt } from '@/engine';
+import { CARDS, COMMODITIES, RESOURCES, TRACKS, handTotal, smithValid, type Card, type PartialHand, type Prompt, type Resource } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { PROGRESS_NAMES } from '@/client/describe';
 import { progressPickSpec } from '@/client/interaction';
@@ -10,7 +10,7 @@ import { PROGRESS_TEXT, TRACK_STYLE } from '@/client/progressText';
 import { api } from '@/client/store';
 import { useUi } from '@/client/ui';
 import { Modal } from '@/components/ui/Modal';
-import { CardPicker, ResourceCard } from '../cards';
+import { ResourceChooser, ResourcePick } from '../ResourceChooser';
 
 /** Dialogs for C&K decisions that aren't made by clicking the board. */
 export function CkPromptDialog({ view, prompt }: { view: PlayerView; prompt: Prompt }) {
@@ -46,11 +46,7 @@ export function CkPromptDialog({ view, prompt }: { view: PlayerView; prompt: Pro
         // A quick pick: the board and your hand stay in full view behind it.
         <Modal open dismissable={false} dim={false} title="Aqueduct">
           <p className="mb-3 text-sm text-ink-soft">The roll gave you nothing: take one resource of your choice.</p>
-          <div className="flex flex-wrap justify-center gap-2">
-            {RESOURCES.map((r) => (
-              <ResourceCard key={r} card={r} count={0} onClick={() => api.act({ type: 'aqueduct', resource: r })} />
-            ))}
-          </div>
+          <ResourcePick cards={RESOURCES} unavailable={(r) => view.bank[r] <= 0} onChange={(r) => api.act({ type: 'aqueduct', resource: r as Resource })} />
         </Modal>
       );
     case 'discardProgress':
@@ -84,7 +80,7 @@ export function CkPromptDialog({ view, prompt }: { view: PlayerView; prompt: Pro
           <p className="mb-3 text-sm text-ink-soft">
             {name(prompt.to)} played a card: give them {prompt.count} card{prompt.count === 1 ? '' : 's'} of your choice.
           </p>
-          <CardPicker cards={CARDS} value={sel} onChange={setSel} max={hand} limitTotal={prompt.count} />
+          <ResourceChooser cards={CARDS} value={sel} onChange={setSel} max={hand} showMax limitTotal={prompt.count} />
           <div className="mt-4 flex justify-end">
             <button type="button" className="btn btn-primary px-5 py-2" disabled={handTotal(sel) !== prompt.count} onClick={() => api.act({ type: 'giveCards', cards: sel })}>
               Give
@@ -97,11 +93,7 @@ export function CkPromptDialog({ view, prompt }: { view: PlayerView; prompt: Pro
       return (
         <Modal open dismissable={false} title="Commercial Harbor">
           <p className="mb-3 text-sm text-ink-soft">{name(prompt.from)} gave you a resource. Give back one commodity of your choice:</p>
-          <div className="flex flex-wrap justify-center gap-2">
-            {options.map((c) => (
-              <ResourceCard key={c} card={c} count={hand[c]} onClick={() => api.act({ type: 'giveCards', cards: { [c]: 1 } })} />
-            ))}
-          </div>
+          <ResourcePick cards={options} onChange={(c) => api.act({ type: 'giveCards', cards: { [c]: 1 } })} />
         </Modal>
       );
     }
@@ -123,7 +115,7 @@ export function CkPromptDialog({ view, prompt }: { view: PlayerView; prompt: Pro
       return (
         <Modal open dismissable={false} title={`${name(prompt.victim)}'s hand`}>
           <p className="mb-3 text-sm text-ink-soft">Take {prompt.count} card{prompt.count === 1 ? '' : 's'}:</p>
-          <CardPicker cards={CARDS.filter((c) => prompt.hand[c] > 0) as Card[]} value={sel} onChange={setSel} max={prompt.hand} limitTotal={prompt.count} />
+          <ResourceChooser cards={CARDS.filter((c) => prompt.hand[c] > 0) as Card[]} value={sel} onChange={setSel} max={prompt.hand} showMax limitTotal={prompt.count} />
           <div className="mt-4 flex justify-end">
             <button type="button" className="btn btn-primary px-5 py-2" disabled={handTotal(sel) !== prompt.count} onClick={() => api.act({ type: 'takeCards', cards: sel })}>
               Take
@@ -142,7 +134,7 @@ const PROMPT_HINT: Partial<Record<Prompt['kind'], string>> = {
   deserterRemove: 'A deserter! Pick one of your knights to leave',
   deserterPlace: 'Place the deserting knight next to your roads',
   moveRoad: 'Diplomat: pick a new spot for your road or ship',
-  placeMetropolis: 'Pick a city for your metropolis, then confirm',
+  placeMetropolis: 'Click a city for your metropolis',
 };
 
 const KNIGHT_NAMES = { 1: 'basic', 2: 'strong', 3: 'mighty' } as const;
@@ -185,7 +177,8 @@ export function PickBanner({ view }: { view: PlayerView }) {
     const m = ui.mode;
     if (m.t === 'build') text = { road: 'Pick where to build the road', ship: 'Pick where to launch the ship', settlement: 'Pick a spot for the settlement', city: 'Pick a settlement to upgrade', knight: 'Pick an empty spot next to your roads', wall: 'Pick a city to protect' }[m.what];
     if (m.t === 'knightMove') text = 'Pick where your knight goes (a weaker enemy knight gets displaced)';
-    if (m.t === 'knightChase') text = 'Pick where to send the robber';
+    if (m.t === 'knightChase') text = 'Pick where to send the robber or pirate';
+    if (m.t === 'knightPick') text = { activate: 'Pick a knight to activate', promote: 'Pick a knight to promote', move: 'Pick a knight to move or displace with', chase: 'Pick a knight to chase the robber or pirate' }[m.act];
     if (m.t === 'shipMove') text = m.from === null ? 'Pick a ship at the open end of a route' : 'Pick where the ship sails to';
     if (m.t === 'progress') {
       const spec = progressPickSpec(view, m.cardType, m.picked);

@@ -128,7 +128,7 @@ export const MAPS: Record<MapId, MapDefinition> = {
     id: 'zealand',
     category: 'special',
     name: 'Zealand',
-    blurb: 'Everyone starts on a ring of sheep around a lake, with twelve wool harbors on its shore, between its tiles. Sail for them and their treasures; a point for each isle you settle. The robber starts on a lone desert isle with three treasures of its own.',
+    blurb: 'Everyone starts on a ring of sheep around a lake, with twelve wool harbors on its shore, between its tiles. Sail for them and their treasures (the fog hides three seas and three deserts that pay one too); a point for each isle you settle. The robber starts on a lone desert isle with three treasures of its own.',
     maxPlayers: 4,
     bigBank: true,
     requires: ['seafarers'],

@@ -6,8 +6,8 @@ import { TREASURE_KINDS, type PartialHand, type TreasureKind } from '../types';
 
 /**
  * Veiled Isles treasures. A road or ship reaching a treasure corner collects it (built, moved or
- * placed for free); revealing hidden sea pays a bonus treasure drawn at random from the four kinds
- * (it doesn't use up the placed ones).
+ * placed for free); revealing hidden sea or desert pays a bonus treasure from the face-down pile left
+ * over after the chests are dealt (a random kind where there is no pile).
  */
 export function collectTreasures(ctx: Ctx, edge: number): void {
   const treasures = ctx.s.board.treasures;
@@ -21,7 +21,8 @@ export function collectTreasures(ctx: Ctx, edge: number): void {
 }
 
 export function oceanTreasure(ctx: Ctx): void {
-  grantTreasure(ctx, TREASURE_KINDS[randomInt(ctx.s, TREASURE_KINDS.length)], null);
+  const drawn = ctx.s.board.treasurePile?.shift();
+  grantTreasure(ctx, drawn ?? TREASURE_KINDS[randomInt(ctx.s, TREASURE_KINDS.length)], null);
 }
 
 function grantTreasure(ctx: Ctx, kind: TreasureKind, at: number | null): void {
@@ -31,6 +32,9 @@ function grantTreasure(ctx: Ctx, kind: TreasureKind, at: number | null): void {
     case 'resource':
       // A resource of choice, taken like a gold field's.
       s.pending.push({ kind: 'goldPick', seat, count: 1, reason: 'treasure' });
+      return;
+    case 'twoResources':
+      s.pending.push({ kind: 'goldPick', seat, count: 2, reason: 'treasure' });
       return;
     case 'roadBuilding':
       if (freeRouteLeft(s, seat)) s.pending.push({ kind: 'freeRoads', seat, count: freeRouteCount(s, seat) });

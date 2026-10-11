@@ -299,11 +299,13 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
     );
 
     // Mouse positions are best-effort: bad or too-frequent ones are dropped without a word.
-    socket.on('room:cursor', (at) => {
+    socket.on('room:cursor', (at, click) => {
       if (at !== null && !isBoardPoint(at)) return;
       if (!limits.cursor.take(socket.id)) return;
+      // A click ping needs a position and its own (tighter) budget; without it the message is just a move.
+      const ping = click === true && at !== null && limits.cursorClick.take(socket.id);
       try {
-        currentRoom().cursor(socket.id, at === null ? null : { x: at.x, y: at.y });
+        currentRoom().cursor(socket.id, at === null ? null : { x: at.x, y: at.y }, ping);
       } catch {
         // not in a room
       }

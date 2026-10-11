@@ -1,11 +1,11 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { PlayerColor } from '@/engine';
-import { isPlayerColor } from '@/shared/colors';
+import { isPickableColor } from '@/shared/colors';
 import { isFaceId, sanitizeKnight } from '@/shared/knight';
 import { discordConfigured, googleConfigured, handleAuth } from './auth';
 import { FACE_MAX_BYTES, FaceError, loadFace, storeFace } from './faces';
 import type { ProfileData, SessionInfo } from '@/shared/protocol';
-import { favoriteMode, historyFor, linkedProviders, preferencesFor, ratingFor, sanitizePreferences, updateProfile } from './profileApi';
+import { accuracyFor, favoriteMode, historyFor, linkedProviders, preferencesFor, ratingFor, sanitizePreferences, updateProfile } from './profileApi';
 import { cosmeticStateFor } from './cosmetics';
 import { dbEnabled, getDb, logDbError } from './db';
 import { GUEST_TTL_DAYS, newGuestId, resolveIdentity, setGuestCookie, type ServerIdentity } from './identity';
@@ -13,7 +13,8 @@ import { limits } from './rateLimit';
 import { clientIp, originAllowed } from './realtime';
 import { UserError } from './room';
 import { acceptFriend, friendProfileFor, friendsFor, inviteFriend, leaderboard, removeFriend, requestFriend } from './social';
-import { pagedHistory, reportFor } from './historyApi';
+import { pagedHistory, replayFor, reportFor } from './historyApi';
+import { analysisFor } from './gameAnalysis';
 import { modeRatingsFor } from './modeRatings';
 import { emptyRatings } from '@/shared/ratings';
 import { abandonRoom, activeRoomsFor } from './activeRooms';
@@ -58,7 +59,7 @@ async function sessionInfo(identity: ServerIdentity | null): Promise<SessionInfo
         const prefs = sanitizePreferences(profile.preferences);
         base.displayName = profile.displayName;
         base.avatarUrl = prefs.useProviderAvatar === false ? null : (profile.avatarUrl ?? base.avatarUrl);
-        base.color = isPlayerColor(profile.color) ? (profile.color as PlayerColor) : null;
+        base.color = isPickableColor(profile.color) ? (profile.color as PlayerColor) : null;
         base.knight = profile.knight ? sanitizeKnight(profile.knight) : null;
         base.stats = { gamesPlayed: profile.gamesPlayed, gamesWon: profile.gamesWon };
       }
@@ -69,7 +70,7 @@ async function sessionInfo(identity: ServerIdentity | null): Promise<SessionInfo
       });
       if (guest) {
         base.displayName = guest.displayName;
-        base.color = isPlayerColor(guest.color) ? (guest.color as PlayerColor) : null;
+        base.color = isPickableColor(guest.color) ? (guest.color as PlayerColor) : null;
         base.knight = guest.knight ? sanitizeKnight(guest.knight) : null;
         base.stats = { gamesPlayed: guest.gamesPlayed, gamesWon: guest.gamesWon };
       }
@@ -289,12 +290,14 @@ export async function handleHttp(req: IncomingMessage, res: ServerResponse, ctx?
     json(res, 200, await leaderboard(await resolveIdentity(req.headers.cookie), new URL(req.url!, 'http://localhost').searchParams));
     return true;
   }
-  if ((path === '/api/history' || /^\/api\/games\/[^/]+\/report$/.test(path)) && req.method === 'GET') {
+  if ((path === '/api/history' || /^\/api\/games\/[^/]+\/(report|replay|analysis)$/.test(path)) && req.method === 'GET') {
     const identity = await resolveIdentity(req.headers.cookie);
     if (!identity) { json(res, 401, { error: 'Sign in or start a guest session first.' }); return true; }
     try {
-      const data = path === '/api/history' ? await pagedHistory(identity, new URL(req.url!, 'http://localhost').searchParams) : await reportFor(identity, path.split('/')[3]);
-      json(res, data ? 200 : 404, data ?? { error: 'This report is unavailable or you did not play in this game.' });
+      const data = path === '/api/history' ? await pagedHistory(identity, new URL(req.url!, 'http://localhost').searchParams)
+        : path.endsWith('/replay') ? await replayFor(identity, path.split('/')[3])
+        : path.endsWith('/analysis') ? await analysisFor(identity, path.split('/')[3]) : await reportFor(identity, path.split('/')[3]);
+      json(res, data ? 200 : 404, data ?? { error: 'This report or replay is unavailable, or you were not at this game.' });
     } catch (err) {
       if (err instanceof UserError) json(res, 400, { error: err.message });
       else { logDbError('game history/report', err); json(res, 503, { error: 'Could not load game data. Please try again.' }); }
@@ -356,7 +359,7 @@ export async function handleHttp(req: IncomingMessage, res: ServerResponse, ctx?
         return fallback;
       });
     const db = getDb();
-    const [session, history, providers, preferences, rating, ratings, admin] = await Promise.all([
+    const [session, history, providers, preferences, rating, ratings, admin, accuracy] = await Promise.all([
       sessionInfo(identity),
       orElse(historyFor(identity), [], 'game history'),
       orElse(linkedProviders(identity), [], 'linked accounts'),
@@ -364,8 +367,9 @@ export async function handleHttp(req: IncomingMessage, res: ServerResponse, ctx?
       orElse(ratingFor(identity), null, 'rating'),
       identity.kind === 'user' ? orElse(modeRatingsFor(identity.id), emptyRatings(), 'mode ratings') : Promise.resolve(emptyRatings()),
       db ? orElse(isAdmin(db, identity), false, 'admin check') : Promise.resolve(false),
+      orElse(accuracyFor(identity), { average: null, games: 0 }, 'accuracy'),
     ]);
-    const data: ProfileData = { session, history, providers, preferences, favoriteMode: favoriteMode(history), rating, ratings, isAdmin: admin };
+    const data: ProfileData = { session, history, providers, preferences, favoriteMode: favoriteMode(history), rating, ratings, isAdmin: admin, accuracy };
     json(res, 200, data);
     return true;
   }

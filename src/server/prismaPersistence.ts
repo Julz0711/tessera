@@ -50,7 +50,8 @@ export interface DurablePersistence extends Persistence {
   flush(): Promise<void>;
 }
 
-export function createPrismaPersistence(db: Db): DurablePersistence {
+/** `gameFinalized`: a finished game is fully stored (results, ratings), e.g. to queue its analysis. */
+export function createPrismaPersistence(db: Db, hooks: { gameFinalized?: (gameId: string) => void } = {}): DurablePersistence {
   const queues = new Map<string, Promise<unknown>>();
   const gameRoom = new Map<string, string>();
 
@@ -158,7 +159,10 @@ export function createPrismaPersistence(db: Db): DurablePersistence {
     },
 
     gameEnded(game: PersistGame) {
-      enqueue(game.room.id, 'game end', () => finalizeGame(db, game));
+      enqueue(game.room.id, 'game end', async () => {
+        await finalizeGame(db, game);
+        hooks.gameFinalized?.(game.gameId);
+      });
     },
 
     gameAbandoned(gameId: string) {

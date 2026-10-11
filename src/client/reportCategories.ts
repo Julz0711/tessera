@@ -42,7 +42,7 @@ const SPENDING_LABELS: Record<string, string> = {
 };
 const PIECES = [['road', 'Roads'], ['ship', 'Ships'], ['settlement', 'Settlements'], ['city', 'Cities'], ['wall', 'City walls']] as const;
 const TRACKS: Track[] = ['science', 'trade', 'politics'];
-const TREASURE_LABELS: Record<string, string> = { resource: 'Resource', roadBuilding: 'Road building', bundle: 'Bundle', devCard: 'Card' };
+const TREASURE_LABELS: Record<string, string> = { resource: 'Resource', twoResources: 'Two resources', roadBuilding: 'Road building', bundle: 'Bundle', devCard: 'Card' };
 const titleCase = (text: string) => text.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
 
 /** Curated head-to-head categories for the match report. Unknown values (historical games) are null. */

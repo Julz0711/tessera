@@ -21,18 +21,35 @@ export function useMouseScreen(): boolean {
   return ok;
 }
 
-/** Whether pointers are shared and shown right now: switched on, on a screen with a mouse. */
-export function useCursorsOn(): boolean {
-  const pref = usePrefs((s) => s.shareCursors);
+/** Whether my pointer is sent to the others right now: switched on, on a screen with a mouse. */
+export function useShareCursorOn(): boolean {
+  const pref = usePrefs((s) => s.shareCursor);
   const mouse = useMouseScreen();
   const on = pref && mouse;
   useEffect(() => {
-    if (!on) {
-      useCursors.getState().clear();
-      sendCursor(null);
-    }
+    if (!on) sendCursor(null);
   }, [on]);
   return on;
+}
+
+/** Whether the others' pointers are drawn right now: not switched off, on a screen with a mouse. */
+export function useSeeCursorsOn(): boolean {
+  const pref = usePrefs((s) => s.seeCursors);
+  const mouse = useMouseScreen();
+  const on = pref && mouse;
+  useEffect(() => {
+    if (!on) useCursors.getState().clear();
+  }, [on]);
+  return on;
+}
+
+/** The Animations preference, falling back to the system setting. */
+export function motionReduced(): boolean {
+  if (typeof document === 'undefined') return false;
+  const m = document.documentElement.dataset.motion;
+  if (m === 'reduced') return true;
+  if (m === 'full') return false;
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 const MIN_GAP_MS = 90;
@@ -42,10 +59,18 @@ let lastSent: BoardPoint | null = null;
 let pending: BoardPoint | null = null;
 let timer: ReturnType<typeof setTimeout> | undefined;
 
-function flush(p: BoardPoint | null) {
+function flush(p: BoardPoint | null, click = false) {
   lastAt = Date.now();
   lastSent = p;
-  api.cursor(p);
+  api.cursor(p, click);
+}
+
+/** Sends a click at the pointer's spot right away (the server caps pings at a few a second). */
+export function sendCursorClick(p: BoardPoint): void {
+  if (timer) clearTimeout(timer);
+  timer = undefined;
+  pending = null;
+  flush(p, true);
 }
 
 /** Sends the viewer's pointer (board units; `null`: it left the board), about ten times a second and only when it moved. */

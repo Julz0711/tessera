@@ -6,7 +6,7 @@ import { CARDS, RESOURCES, handTotal, type PartialHand, type Prompt } from '@/en
 import type { PlayerView } from '@/engine/view';
 import { api } from '@/client/store';
 import { Modal } from '@/components/ui/Modal';
-import { CardPicker } from './cards';
+import { ResourceChooser } from './ResourceChooser';
 
 /** Gold (Black Forest): any resources from the bank, one per settlement (two per city) on the field. */
 export function GoldDialog({ view, prompt }: { view: PlayerView; prompt: Extract<Prompt, { kind: 'goldPick' }> }) {
@@ -19,7 +19,8 @@ export function GoldDialog({ view, prompt }: { view: PlayerView; prompt: Extract
       <p className="mb-4 text-sm text-ink-soft">
         Choose {need} resource{need === 1 ? '' : 's'} from the bank.
       </p>
-      <CardPicker cards={RESOURCES} value={sel} onChange={setSel} max={view.bank} limitTotal={need} />
+      {/* The bank's stock is capped silently: a kind greys out only when it is gone. */}
+      <ResourceChooser cards={RESOURCES} value={sel} onChange={setSel} max={view.bank} limitTotal={need} />
       <div className="mt-5 flex items-center justify-between">
         <span className="text-sm font-bold text-ink-soft">
           {total}/{need} chosen
@@ -55,7 +56,7 @@ export function DiscardDialog({ view, prompt }: { view: PlayerView; prompt: Extr
           ? 'A saboteur struck! Choose the cards you give up.'
           : `A 7 was rolled and you hold ${view.players[me].handCount} cards. Choose ${prompt.count} to return to the bank.`}
       </p>
-      <CardPicker cards={cards} value={sel} onChange={setSel} max={hand} limitTotal={prompt.count} />
+      <ResourceChooser cards={cards} value={sel} onChange={setSel} max={hand} showMax limitTotal={prompt.count} />
       <div className="mt-5 flex items-center justify-between">
         <span className="text-sm font-bold text-ink-soft">
           {total}/{prompt.count} selected

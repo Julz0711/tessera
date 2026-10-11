@@ -6,6 +6,11 @@
  */
 import {
   COSTS,
+  canKnightAct,
+  chasePirateKnights,
+  chaseRobberKnights,
+  promotableKnights,
+  chaseTargets,
   hasCards,
   piecesLeft,
   intrigueTargets,
@@ -37,7 +42,7 @@ import type { PlayerView } from '@/engine/view';
 import { NO_TARGETS, type BoardTargets, type TargetKind } from '@/components/board/types';
 import { usePrefs } from './prefs';
 import { api } from './store';
-import { useUi, type Armed, type BuildOption, type BuildWhat, type RobberPick, type UiMode } from './ui';
+import { useUi, type Armed, type BuildOption, type BuildWhat, type KnightAct, type RobberPick, type UiMode } from './ui';
 
 export interface PickSpec {
   target: 'vertex' | 'hex' | 'edge';
@@ -190,8 +195,11 @@ function baseTargets(view: PlayerView | null, mode: UiMode, hints: boolean): Boa
     const { moves, displaces } = knightMoveTargets(view, me, mode.from);
     return { ...NO_TARGETS, kind: 'knightDestination', vertices: [...moves, ...displaces], selectedVertex: mode.from };
   }
+  if (mode?.t === 'knightPick') {
+    return { ...NO_TARGETS, kind: 'vertexPick', vertices: knightPickTargets(view, me, mode.act) };
+  }
   if (mode?.t === 'knightChase') {
-    return { ...NO_TARGETS, kind: 'robber', hexes: robberTargets(view, me, (s) => view.players[s].publicVP, false), selectedVertex: mode.from };
+    return { ...NO_TARGETS, kind: 'robber', hexes: chaseTargets(view, me, mode.from, (s) => view.players[s].publicVP), selectedVertex: mode.from };
   }
   if (mode?.t === 'shipMove') {
     if (mode.from === null) return { ...NO_TARGETS, kind: 'edgePick', edges: sailableShips(view, me) };
@@ -268,6 +276,37 @@ function routeOptions(view: PlayerView, id: number, roads: number[], ships: numb
   return out;
 }
 
+/** Your knights that can take `act` right now (the Knight key's actions). */
+export function knightPickTargets(view: PlayerView, me: number, act: KnightAct): number[] {
+  if (view.turn.seat !== me || !view.turn.rolled || view.pending.length) return [];
+  const hand = view.players[me].hand;
+  const mine = view.knights.flatMap((k, v) => (k && k.owner === me ? [v] : []));
+  switch (act) {
+    case 'activate':
+      return hasCards(hand, COSTS.activate) ? mine.filter((v) => !view.knights[v]!.active) : [];
+    case 'promote':
+      return hasCards(hand, COSTS.promote) ? promotableKnights(view, me) : [];
+    case 'move':
+      return mine.filter((v) => {
+        if (!canKnightAct(view, me, v)) return false;
+        const { moves, displaces } = knightMoveTargets(view, me, v);
+        return moves.length + displaces.length > 0;
+      });
+    case 'chase':
+      return [...new Set([...chaseRobberKnights(view, me), ...chasePirateKnights(view, me)])];
+  }
+}
+
+/** Starts a Knight-key action: with one knight that can move or chase, straight to where; otherwise pick the knight. */
+export function startKnightAct(view: PlayerView, act: KnightAct): void {
+  const me = view.viewer;
+  if (me === null) return;
+  const knights = knightPickTargets(view, me, act);
+  const ui = useUi.getState();
+  if (knights.length === 1 && (act === 'move' || act === 'chase')) return ui.setMode({ t: act === 'move' ? 'knightMove' : 'knightChase', from: knights[0] });
+  ui.setMode({ t: 'knightPick', act });
+}
+
 async function send(action: Action, then?: () => void): Promise<void> {
   const r = await api.act(action);
   if (r.ok) then?.();
@@ -318,6 +357,11 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
   if (mode?.t === 'build') return arm(target === 'edge' ? 'edge' : 'vertex', id, [buildOption(mode.what, id)], true);
   if (mode?.t === 'knightMove') return send({ type: 'moveKnight', from: mode.from, to: id }, done);
   if (mode?.t === 'knightChase') return pickRobberHex(view, id, mode.from);
+  if (mode?.t === 'knightPick') {
+    if (mode.act === 'activate') return send({ type: 'activateKnight', vertex: id }, done);
+    if (mode.act === 'promote') return send({ type: 'promoteKnight', vertex: id }, done);
+    return ui.setMode({ t: mode.act === 'move' ? 'knightMove' : 'knightChase', from: id });
+  }
   if (mode?.t === 'shipMove') {
     if (mode.from === null || mode.from === id) return ui.setMode({ t: 'shipMove', from: mode.from === id ? null : id });
     return send({ type: 'moveShip', from: mode.from, to: id }, done);
@@ -352,15 +396,10 @@ export async function handlePick(view: PlayerView, target: 'vertex' | 'edge' | '
   if (options.length) return arm('vertex', id, options, false);
 }
 
-/**
- * Picks the city for a metropolis: a popup there previews it, and a second click on the city, Enter
- * or the popup button places it. Always asks, whatever the build confirmation preference says.
- */
+/** Places the metropolis on the clicked city straight away (only your eligible cities are offered). */
 function pickMetropolis(vertex: number): Promise<void> | void {
-  const ui = useUi.getState();
   const armed: Armed = { target: 'vertex', at: vertex, options: [{ what: 'metropolis', action: { type: 'placeMetropolis', vertex }, cost: null }], endsMode: false };
-  if (ui.armed?.target === 'vertex' && ui.armed.at === vertex) return build(armed, 0);
-  ui.arm(armed);
+  return build(armed, 0);
 }
 
 /** Who the viewer chooses between when the robber goes to `hex` (nobody for the Bishop: it robs everyone there). */

@@ -1,46 +1,16 @@
 'use client';
 
-import {
-  Anchor,
-  Anvil,
-  Bomb,
-  BrickWall,
-  Church,
-  Construction,
-  Droplets,
-  Eye,
-  FlaskConical,
-  HandCoins,
-  Handshake,
-  Heart,
-  Lightbulb,
-  Magnet,
-  Minus,
-  Pickaxe,
-  Pill,
-  Plus,
-  Printer,
-  Scale,
-  ScrollText,
-  Ship,
-  Store,
-  Swords,
-  UserMinus,
-  VenetianMask,
-} from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { reducedMotion } from '@/client/fx';
-import { COMMODITIES, type Card, type DevCardType, type PartialHand, type ProgressCard, type ProgressCardType } from '@/engine/types';
+import { COMMODITIES, type Card, type DevCardType, type PartialHand, type ProgressCard, type Track } from '@/engine/types';
 import { DEV_NAMES, DEV_TEXT, PROGRESS_NAMES } from '@/client/describe';
 import { CARD_COLORS } from '@/client/palette';
 import { PROGRESS_TEXT, TRACK_STYLE } from '@/client/progressText';
-import { RoadGlyph } from '@/components/ui/Glyphs';
-import { ArtShapes, FacetBackground, Medallion, MiniArt, mix } from './cardArt';
+import { ArtShapes, FacetBackground, MiniArt, mix } from './cardArt';
+import { BACK_BG, CardBackArt, CardTile, DEV_ART, PROGRESS_ART, TrackGlyph, type BackKind } from './cardArtLowPoly';
 
 /** How much relief the card faces get: a gentle hint of the low-poly facets. */
 const DEPTH = 0.45;
-
-type Icon = (p: { size?: number; strokeWidth?: number; className?: string }) => React.ReactNode;
 
 /** Small inline chip (log lines, trade summaries): the card's art on its colour, with a count. */
 export function CardChip({ card, n }: { card: Card; n?: number }) {
@@ -85,10 +55,11 @@ const CARD_BOX: Record<CardSize, string> = {
 };
 
 /** The count, tucked inside the card's top-right corner (it used to hang over the edge). */
-function CountBadge({ n, small, warn }: { n: number; small?: boolean; warn?: boolean }) {
+function CountBadge({ n, small, warn, low }: { n: number; small?: boolean; warn?: boolean; low?: boolean }) {
+  const y = low ? 'bottom' : 'top';
   return (
     <span
-      className={`hex-badge z-10 tabular ${warn ? 'hex-badge-warn' : ''} ${small ? 'right-px top-px w-4 text-[10px]' : 'right-0.5 top-0.5 w-5 text-[10px]'}`}
+      className={`hex-badge z-10 tabular ${warn ? 'hex-badge-warn' : ''} ${small ? `right-px ${y}-px w-4 text-[10px]` : `right-0.5 ${y}-0.5 w-5 text-[10px]`}`}
     >
       {n}
     </span>
@@ -107,6 +78,7 @@ function CardShell({
   glow,
   badge,
   warn,
+  tight,
   children,
 }: {
   bg: string;
@@ -121,6 +93,8 @@ function CardShell({
   badge?: number;
   /** Red count badge (the hand is over the discard limit). */
   warn?: boolean;
+  /** Tighter corners and the count in the bottom corner: the development and progress faces. */
+  tight?: boolean;
   children: React.ReactNode;
 }) {
   const Tag = onClick ? 'button' : 'div';
@@ -130,13 +104,13 @@ function CardShell({
       onClick={onClick}
       title={title}
       // The drop shadow is a class (not an inline style) so Tailwind's rings compose with it.
-      className={`relative flex shrink-0 flex-col items-center justify-center rounded-lg border-2 border-ink shadow-card ${CARD_BOX[size]} transition ${
+      className={`relative flex shrink-0 flex-col items-center justify-center ${tight ? 'rounded-[5px]' : 'rounded-lg'} border-2 border-ink shadow-card ${CARD_BOX[size]} transition ${
         dim ? 'opacity-35' : ''
       } ${selected ? '-translate-y-2 ring-4 ring-amber' : glow ? 'ring-3 ring-amber' : ''} ${onClick ? 'cursor-pointer hover:-translate-y-1' : ''}`}
       style={{ background: bg, color: ink }}
     >
       {children}
-      {badge !== undefined && badge > 0 && <CountBadge n={badge} small={size === 'xs'} warn={warn} />}
+      {badge !== undefined && badge > 0 && <CountBadge n={badge} small={size === 'xs'} warn={warn} low={tight} />}
     </Tag>
   );
 }
@@ -290,31 +264,97 @@ export function CardStack({
   );
 }
 
+/** What a header prints when the full name would have to shrink below its size's floor to fit one line. */
+const SHORT_NAMES: Record<string, string> = {
+  'Victory Point': 'Victory',
+  'Road Building': 'Roads',
+  'Year of Plenty': 'Plenty',
+  Constitution: 'Constit.',
+  'Commercial Harbor': 'Harbor',
+  'Master Merchant': 'Master',
+  'Merchant Fleet': 'Fleet',
+  'Resource Monopoly': 'Res. Mono',
+  'Trade Monopoly': 'Trade Mono',
+};
+/** The header's usable width, its usual font size and the smallest it may shrink to (px), per size. */
+const HEAD_FIT: Partial<Record<CardSize, { width: number; base: number; min: number }>> = {
+  md: { width: 48, base: 7, min: 6 },
+  xl: { width: 72, base: 8, min: 6.5 },
+  lg: { width: 96, base: 10, min: 7.5 },
+};
+/** Uppercase black Figtree runs at about this many ems per letter. */
+const EM_PER_CHAR = 0.7;
+
+/** The header's one line: the full name at a size that fits, else its short form. */
+function headerLabel(name: string, size: CardSize): { label: string; fontSize: number } | null {
+  const fit = HEAD_FIT[size];
+  if (!fit) return null;
+  const sizeFor = (text: string) => Math.min(fit.base, fit.width / (text.length * EM_PER_CHAR));
+  const full = sizeFor(name);
+  const short = SHORT_NAMES[name];
+  if (full >= fit.min || !short) return { label: name, fontSize: Math.max(full, fit.min) };
+  return { label: short, fontSize: sizeFor(short) };
+}
+
+const INK = '#131a1d';
+
 /**
- * Name ribbon for development and progress cards (their names can take two lines). On the phone's
- * hand card (md) it runs edge to edge in 9px bold, the smallest that still reads, breaking a long
- * word with a hyphen ("Consti-tution"). The two tinier sizes, only used for a crowded hand, leave it
- * off; tapping any card opens it at full size with its name.
+ * The ink name header per size. The sizes themselves never change; the design scales with them. The
+ * two tinier hand sizes leave the header off (their name would be under 5px) and give the tile the room;
+ * tapping any card opens it at full size with its name. The rule text sits beside the card in its dialog,
+ * so no size prints it.
  */
-function Ribbon({ color, size, children }: { color: string; size: CardSize; children: React.ReactNode }) {
-  if (size === 'xs' || size === 'sm') return null;
+const HEAD: Record<CardSize, string | null> = {
+  xs: null,
+  sm: null,
+  md: 'h-[11px] px-0.5',
+  xl: 'h-3.5 px-[3px]',
+  lg: 'h-[18px] px-1',
+};
+/** Room around the hex tile. */
+const TILE_PAD: Record<CardSize, string> = { xs: 'p-px', sm: 'p-0.5', md: 'p-[3px]', xl: 'p-1', lg: 'p-1.5' };
+/** The corner hex indices and the victory-point chip, only where they are big enough to read. */
+const CORNER: Partial<Record<CardSize, { glyph: string; vp: string }>> = {
+  xl: { glyph: 'top-[3px] h-2.5 w-[9px]', vp: 'top-[3px] rounded-[2px] border border-ink px-[2px] py-px text-[6px]' },
+  lg: { glyph: 'top-1 h-3.5 w-3.25', vp: 'top-1 rounded-[2px] border-[1.5px] border-ink px-[3px] py-px text-[7.5px]' },
+};
+const CORNER_SIDE: Record<CardSize, [string, string]> = {
+  xs: ['', ''],
+  sm: ['', ''],
+  md: ['', ''],
+  xl: ['left-[3px]', 'right-[3px]'],
+  lg: ['left-1', 'right-1'],
+};
+
+/** The shared "Emblem x Low-poly" face: ink name header, a paper hex tile with the illustration, track glyphs in the corners. */
+function EmblemFace({ name, tint, art, vp, size }: { name: string; tint: 'dev' | Track; art: React.ReactNode; vp?: boolean; size: CardSize }) {
+  const head = HEAD[size];
+  const corner = CORNER[size];
+  const [left, right] = CORNER_SIDE[size];
+  // Always one line: the name shrinks to fit, or a long one prints its short form (the full name is the card's title).
+  const line = headerLabel(name, size);
   return (
-    <span
-      lang="en"
-      className={`pointer-events-none absolute grid place-items-center text-center leading-[1.08] ${
-        size === 'lg'
-          ? 'inset-x-[5%] bottom-[5%] min-h-8 px-[11%] py-1 text-[11px] font-black'
-          : size === 'xl'
-            ? 'inset-x-[5%] bottom-[5%] min-h-[17%] px-[7%] py-[3px] text-[10px] font-black'
-            : 'inset-x-px bottom-[4%] min-h-[17%] px-[5%] py-[2px] text-[9px] font-bold tracking-[-0.01em] hyphens-auto [overflow-wrap:anywhere]'
-      }`}
-      style={{
-        background: mix(color, '#000000', 0.45),
-        color: '#fff7ea',
-        clipPath: 'polygon(0 0, 100% 0, 94% 50%, 100% 100%, 0 100%, 6% 50%)',
-      }}
-    >
-      {children}
+    <span className="pointer-events-none absolute inset-0 flex flex-col overflow-hidden rounded-[3px]">
+      {head && line && (
+        <span className={`grid shrink-0 place-items-center overflow-hidden whitespace-nowrap text-center font-black uppercase leading-none ${head}`} style={{ background: INK, color: '#fbfcfc', fontSize: line.fontSize }}>
+          {line.label}
+        </span>
+      )}
+      <span className={`relative min-h-0 flex-1 ${TILE_PAD[size]}`}>
+        <CardTile tint={tint} simple={size === 'xs' || size === 'sm' || size === 'md'} className="block h-full w-full">
+          {art}
+        </CardTile>
+        {corner && (
+          <>
+            <TrackGlyph track={tint} className={`absolute ${left} ${corner.glyph}`} />
+            {vp ? (
+              <span className={`absolute ${right} ${corner.vp} bg-amber font-black leading-none text-ink`}>1 VP</span>
+            ) : (
+              <TrackGlyph track={tint} className={`absolute ${right} ${corner.glyph}`} />
+            )}
+          </>
+        )}
+      </span>
     </span>
   );
 }
@@ -340,18 +380,8 @@ export function DevCardFace({
   onClick?: () => void;
 }) {
   return (
-    <CardShell bg={DEV_BG} ink="#f6eddb" size={size} title={`${DEV_NAMES[type]}: ${DEV_TEXT[type]}`} onClick={onClick} glow={glow} badge={count}>
-      <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[4.5px]">
-        <svg className="h-full w-full" viewBox="0 0 100 140" preserveAspectRatio="xMidYMid slice">
-          <FacetBackground color={DEV_BG} seed={type} depth={DEPTH} />
-          <g transform="translate(-2 1) scale(1.04)">
-            <ArtShapes card={type} />
-          </g>
-        </svg>
-      </span>
-      <Ribbon color={DEV_BG} size={size}>
-        {DEV_NAMES[type]}
-      </Ribbon>
+    <CardShell bg={DEV_BG} ink="#fbfcfc" size={size} title={`${DEV_NAMES[type]}: ${DEV_TEXT[type]}`} onClick={onClick} glow={glow} badge={count} tight>
+      <EmblemFace name={DEV_NAMES[type]} tint="dev" art={DEV_ART[type]} vp={type === 'victoryPoint'} size={size} />
       {fresh && (
         <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-md border-2 border-ink bg-paper px-1 text-[10px] font-black uppercase leading-3 tracking-caps text-ink">
           New
@@ -361,41 +391,9 @@ export function DevCardFace({
   );
 }
 
-const PROGRESS_ICON: Record<ProgressCardType, Icon> = {
-  // science
-  alchemist: FlaskConical,
-  crane: Construction,
-  engineer: BrickWall,
-  inventor: Lightbulb,
-  irrigation: Droplets,
-  medicine: Pill,
-  mining: Pickaxe,
-  printer: Printer,
-  roadBuilding: RoadGlyph,
-  smith: Anvil,
-  // politics
-  bishop: Church,
-  constitution: ScrollText,
-  deserter: UserMinus,
-  diplomat: Handshake,
-  intrigue: VenetianMask,
-  saboteur: Bomb,
-  spy: Eye,
-  warlord: Swords,
-  wedding: Heart,
-  // trade
-  commercialHarbor: Anchor,
-  masterMerchant: HandCoins,
-  merchant: Store,
-  merchantFleet: Ship,
-  resourceMonopoly: Magnet,
-  tradeMonopoly: Scale,
-};
-
-/** A C&K progress card: a faceted face in its track's colour, the card's symbol on a hexagon token. */
+/** A C&K progress card: the card is its track's colour, with an ink name header and the card's low-poly art on a hex tile. */
 export function ProgressCardFace({ card, size = 'md', glow, onClick }: { card: ProgressCard; size?: CardSize; glow?: boolean; onClick?: () => void }) {
   const style = TRACK_STYLE[card.track];
-  const Icon = PROGRESS_ICON[card.type];
   return (
     <CardShell
       bg={style.color}
@@ -404,61 +402,20 @@ export function ProgressCardFace({ card, size = 'md', glow, onClick }: { card: P
       title={`${PROGRESS_NAMES[card.type]}: ${PROGRESS_TEXT[card.type]}`}
       onClick={onClick}
       glow={glow}
+      tight
     >
-      <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[4.5px]">
-        <svg className="h-full w-full" viewBox="0 0 100 140" preserveAspectRatio="xMidYMid slice">
-          <FacetBackground color={style.color} seed={card.type} depth={DEPTH} />
-          <Medallion cx={50} cy={50} r={31} />
-        </svg>
-      </span>
-      <span className="pointer-events-none absolute left-1/2 top-[35.7%] -translate-x-1/2 -translate-y-1/2" style={{ color: mix(style.color, '#131a1d', 0.55) }}>
-        <Icon size={size === 'lg' ? 40 : size === 'xl' ? 28 : 20} strokeWidth={2.4} />
-      </span>
-      <Ribbon color={style.color} size={size}>
-        {PROGRESS_NAMES[card.type]}
-      </Ribbon>
+      <EmblemFace name={PROGRESS_NAMES[card.type]} tint={card.track} art={PROGRESS_ART[card.type]} vp={card.type === 'printer' || card.type === 'constitution'} size={size} />
     </CardShell>
   );
 }
 
-/** +/- picker for choosing how many of each card (discards, trades). */
-export function CardPicker({
-  cards,
-  value,
-  onChange,
-  max,
-  limitTotal,
-}: {
-  cards: readonly Card[];
-  value: PartialHand;
-  onChange: (v: PartialHand) => void;
-  /** Per-card maximum (e.g. what you hold); undefined = unlimited. */
-  max?: PartialHand;
-  limitTotal?: number;
-}) {
-  const total = cards.reduce((n, c) => n + (value[c] ?? 0), 0);
-  const set = (c: Card, n: number) => onChange({ ...value, [c]: Math.max(0, n) });
+/** The face-down card of the development deck or of a progress track, at one of the card sizes. */
+export function CardBack({ kind, size = 'md', count }: { kind: BackKind; size?: CardSize; count?: number }) {
   return (
-    <div className="flex flex-wrap gap-2">
-      {cards.map((c) => {
-        const n = value[c] ?? 0;
-        const cap = max ? (max[c] ?? 0) : Infinity;
-        const canAdd = n < cap && (limitTotal === undefined || total < limitTotal);
-        return (
-          <div key={c} className="flex flex-col items-center gap-1">
-            <ResourceCard card={c} count={n} size="sm" onClick={canAdd ? () => set(c, n + 1) : undefined} dim={cap === 0} />
-            <div className="flex items-center gap-1">
-              <button type="button" className="btn h-6 w-6 p-0" disabled={n === 0} onClick={() => set(c, n - 1)} aria-label={`Less ${c}`}>
-                <Minus size={12} />
-              </button>
-              <button type="button" className="btn h-6 w-6 p-0" disabled={!canAdd} onClick={() => set(c, n + 1)} aria-label={`More ${c}`}>
-                <Plus size={12} />
-              </button>
-            </div>
-            {max && <span className="text-[10px] font-bold text-ink-faint">of {cap}</span>}
-          </div>
-        );
-      })}
-    </div>
+    <CardShell bg={BACK_BG[kind]} ink={INK} size={size} title={kind === 'dev' ? 'Development card' : `${TRACK_STYLE[kind].label} progress card`} badge={count} tight>
+      <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[3px]">
+        <CardBackArt kind={kind} label={size === 'lg' || size === 'xl'} className="block h-full w-full" />
+      </span>
+    </CardShell>
   );
 }

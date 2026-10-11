@@ -15,7 +15,7 @@ type PlayerRow = Awaited<ReturnType<Prisma.TransactionClient['player']['findMany
 const abandoned = (p: PlayerRow) => p.isBot && !!(p.userId || p.guestSessionId);
 
 /** Locks every identity in the game, in a stable order, so concurrent games can't interleave rating updates. */
-async function lockIdentities(tx: Prisma.TransactionClient, players: PlayerRow[]): Promise<void> {
+export async function lockIdentities(tx: Prisma.TransactionClient, players: Pick<PlayerRow, 'userId' | 'guestSessionId'>[]): Promise<void> {
   // Persisted identities also cover guests who linked their account while the match was running.
   const identityKeys = [...new Set(players.flatMap((p) => p.userId ? [`user:${p.userId}`] : p.guestSessionId ? [`guest:${p.guestSessionId}`] : []))].sort();
   for (const id of identityKeys) await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`rating:${id}`}, 0))::text`;

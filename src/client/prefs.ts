@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import type { PlayerColor } from '@/engine/types';
-import { isPlayerColor } from '@/shared/colors';
+import { isPickableColor } from '@/shared/colors';
 import { isBoardTheme, type BoardThemeId } from './themes';
 import { DEFAULT_COSMETICS, sanitizeCosmetics, type Cosmetics } from '@/shared/cosmetics';
 import { DEFAULT_KNIGHT, sanitizeKnight, type KnightCustomization } from '@/shared/knight';
@@ -47,8 +47,14 @@ export interface Prefs {
   barbarianTrack: 'large' | 'small';
   /** On a phone held upright, the 2D board turns a wide map a quarter turn to fill the tall screen. */
   turnBoard: boolean;
-  /** See other players' mouse pointers over the board, and share yours (wide screens with a mouse only). */
-  shareCursors: boolean;
+  /** Send my mouse pointer (and clicks) to the other players (wide screens with a mouse only). */
+  shareCursor: boolean;
+  /** Show the other players' mouse pointers over the board (wide screens with a mouse only). */
+  seeCursors: boolean;
+  /** The amber mouse cursor (beta; mouse screens only). */
+  customCursor: boolean;
+  /** The in-game layout on wide screens: the classic dock, or the experimental build column above the hand (beta). */
+  uiVariant: 'legacy' | 'experimental';
 }
 
 const KEY = 'prefs.v1';
@@ -81,7 +87,10 @@ const defaults = (): Prefs => ({
   zoomButtons: false,
   barbarianTrack: 'large',
   turnBoard: true,
-  shareCursors: false,
+  shareCursor: false,
+  seeCursors: true,
+  customCursor: false,
+  uiVariant: 'legacy',
 });
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -100,12 +109,12 @@ const FIELDS = Object.keys(defaults()) as (keyof Prefs)[];
 export function sanitizePrefs(raw: unknown): Prefs {
   const base = defaults();
   if (!raw || typeof raw !== 'object') return base;
-  const p = raw as Partial<Prefs> & { uiScale?: unknown };
+  const p = raw as Partial<Prefs> & { uiScale?: unknown; shareCursors?: unknown };
   // `uiScale` was the name of this setting when it scaled the whole interface.
   const boardScale = p.boardScale ?? p.uiScale;
   return {
     name: typeof p.name === 'string' ? p.name.slice(0, 20) : base.name,
-    color: isPlayerColor(p.color) ? p.color : base.color,
+    color: isPickableColor(p.color) ? p.color : base.color,
     knight: sanitizeKnight(p.knight),
     cosmetics: sanitizeCosmetics(p.cosmetics),
     view: p.view === '2d' ? '2d' : '3d',
@@ -125,7 +134,11 @@ export function sanitizePrefs(raw: unknown): Prefs {
     zoomButtons: typeof p.zoomButtons === 'boolean' ? p.zoomButtons : base.zoomButtons,
     barbarianTrack: p.barbarianTrack === 'small' ? 'small' : 'large',
     turnBoard: typeof p.turnBoard === 'boolean' ? p.turnBoard : base.turnBoard,
-    shareCursors: typeof p.shareCursors === 'boolean' ? p.shareCursors : base.shareCursors,
+    // `shareCursors` was the old one-switch "share and see": it carries over as sharing.
+    shareCursor: typeof p.shareCursor === 'boolean' ? p.shareCursor : typeof p.shareCursors === 'boolean' ? p.shareCursors : base.shareCursor,
+    seeCursors: typeof p.seeCursors === 'boolean' ? p.seeCursors : base.seeCursors,
+    customCursor: typeof p.customCursor === 'boolean' ? p.customCursor : base.customCursor,
+    uiVariant: p.uiVariant === 'experimental' ? 'experimental' : 'legacy',
   };
 }
 

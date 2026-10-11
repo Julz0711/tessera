@@ -44,6 +44,8 @@ export const limits = {
   reaction: new RateLimiter(2, 1 / 5),
   // Mouse positions: a burst, then 20 a second (the client sends about 11).
   cursor: new RateLimiter(30, 20),
+  // Click pings on the shared pointers: three at once, then four a second.
+  cursorClick: new RateLimiter(3, 4),
   lobby: new RateLimiter(20, 2),
   // A client out of step asks again every couple of seconds until the whole log arrives.
   sync: new RateLimiter(5, 1),

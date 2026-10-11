@@ -58,6 +58,7 @@ function useProfileSync() {
 export function PrefsLoader() {
   const load = usePrefs((s) => s.load);
   const motion = usePrefs((s) => s.motion);
+  const customCursor = usePrefs((s) => s.customCursor);
   const sfxVolume = usePrefs((s) => s.sfxVolume);
   useEffect(() => {
     load();
@@ -67,6 +68,11 @@ export function PrefsLoader() {
   useEffect(() => {
     document.documentElement.dataset.motion = motion;
   }, [motion]);
+  // The amber cursor (beta), for the cursor rules in globals.css.
+  useEffect(() => {
+    if (customCursor) document.documentElement.dataset.cursor = 'custom';
+    else delete document.documentElement.dataset.cursor;
+  }, [customCursor]);
   // Per-sound volumes apply app-wide, wherever a sound gets played from.
   useEffect(() => {
     setSfxVolumes(sfxVolume);

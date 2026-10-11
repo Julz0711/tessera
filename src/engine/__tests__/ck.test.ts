@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction } from '../apply';
 import { checkProgressLimit } from '../ck/events';
-import { canKnightAct, knightStrength, masterMerchantVictims, relocationSpots, roadMoveTargets, smithOptions, smithValid } from '../ck/queries';
+import { canKnightAct, chasePirateKnights, chaseRobberKnights, chaseTargets, knightStrength, masterMerchantVictims, relocationSpots, roadMoveTargets, smithOptions, smithValid } from '../ck/queries';
 import { handLimit, topo } from '../queries';
 import type { GameState, ProgressCardType } from '../types';
 import { makeCtx } from '../state';
@@ -533,5 +533,72 @@ describe('improvements and progress cards', () => {
     expect(s.turn.crane).toBe(false);
     s = act(s, 0, { type: 'improveCity', track: 'politics' });
     expect(s.players[0].hand.coin).toBe(1);
+  });
+});
+
+describe('knights chasing the pirate', () => {
+  /** A C&K game with the outer ring flooded and the pirate on a sea hex far from the robber (on the centre). */
+  function seaGame() {
+    const s0 = newGame(3, 11, 'ck');
+    const ring = (h: { q: number; r: number }) => Math.max(Math.abs(h.q), Math.abs(h.r), Math.abs(h.q + h.r));
+    for (const h of s0.board.hexes) if (ring(h) === 2) (h.terrain = 'sea'), (h.token = null);
+    const s = autoSetup(s0);
+    clearBoard(s);
+    s.players.forEach((_, i) => setHand(s, i, {}));
+    s.turn.rolled = true;
+    s.turn.dice = { red: 2, yellow: 3, event: 'ship' };
+    s.longestRoad = null;
+    s.barbarian.attacks = 1;
+    const t = topo(s);
+    const seaHexes = s.board.hexes.filter((h) => h.terrain === 'sea').map((h) => h.id);
+    s.pirate = seaHexes[0];
+    s.robber = s.board.hexes.find((h) => h.q === 0 && h.r === 0)!.id;
+    const knight = { id: 1, owner: 0, level: 1 as const, active: true, activatedOn: 0, promotedOn: -1 };
+    const pirateCorner = t.hexes[s.pirate].vertices[0];
+    const robberCorner = t.hexes[s.robber].vertices[0];
+    return { s, t, seaHexes, pirateCorner, robberCorner, knight };
+  }
+
+  it('lets a knight beside the pirate send it to another sea hex and steal, then goes inactive', () => {
+    const { s, t, seaHexes, pirateCorner, knight } = seaGame();
+    s.knights[pirateCorner] = knight;
+    const dest = seaHexes[3];
+    s.ships[t.hexes[dest].edges[0]] = 1;
+    setHand(s, 1, { ore: 2 });
+    expect(chasePirateKnights(s, 0)).toEqual([pirateCorner]);
+    expect(chaseRobberKnights(s, 0)).toEqual([]);
+    const targets = chaseTargets(s, 0, pirateCorner, () => 5);
+    expect(targets).toContain(dest);
+    expect(targets.every((h) => s.board.hexes[h].terrain === 'sea')).toBe(true);
+    const n = act(s, 0, { type: 'chaseRobber', vertex: pirateCorner, hex: dest, victim: 1 });
+    expect(n.pirate).toBe(dest);
+    expect(n.robber).toBe(s.robber);
+    expect(n.knights[pirateCorner]!.active).toBe(false);
+    expect(n.players[0].hand.ore).toBe(1);
+  });
+
+  it('keeps pirate chases on sea and robber chases on land', () => {
+    const { s, seaHexes, pirateCorner, robberCorner, knight } = seaGame();
+    const land = s.board.hexes.find((h) => h.terrain !== 'sea' && h.id !== s.robber)!.id;
+    s.knights[pirateCorner] = knight;
+    expect(reject(s, 0, { type: 'chaseRobber', vertex: pirateCorner, hex: land, victim: null })).toMatch(/next to the robber/);
+    s.knights[pirateCorner] = null;
+    s.knights[robberCorner] = knight;
+    expect(reject(s, 0, { type: 'chaseRobber', vertex: robberCorner, hex: seaHexes[3], victim: null })).toMatch(/next to the pirate/);
+    const n = act(s, 0, { type: 'chaseRobber', vertex: robberCorner, hex: land, victim: null });
+    expect(n.robber).toBe(land);
+    expect(n.pirate).toBe(s.pirate);
+  });
+
+  it('needs the knight to stand beside the pirate, active, and the first barbarian attack to have come', () => {
+    const { s, seaHexes, robberCorner, pirateCorner, knight } = seaGame();
+    s.knights[robberCorner] = knight;
+    expect(reject(s, 0, { type: 'chaseRobber', vertex: robberCorner, hex: seaHexes[3], victim: null })).toMatch(/next to the pirate/);
+    s.knights[robberCorner] = null;
+    s.knights[pirateCorner] = { ...knight, active: false };
+    expect(reject(s, 0, { type: 'chaseRobber', vertex: pirateCorner, hex: seaHexes[3], victim: null })).toMatch(/active knight/);
+    s.knights[pirateCorner] = knight;
+    s.barbarian.attacks = 0;
+    expect(reject(s, 0, { type: 'chaseRobber', vertex: pirateCorner, hex: seaHexes[3], victim: null })).toMatch(/after the first barbarian attack/);
   });
 });

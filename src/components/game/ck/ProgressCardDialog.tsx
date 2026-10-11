@@ -29,7 +29,8 @@ import { api } from '@/client/store';
 import { useUi } from '@/client/ui';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { Modal } from '@/components/ui/Modal';
-import { ProgressCardFace, ResourceCard } from '../cards';
+import { ProgressCardFace } from '../cards';
+import { ResourcePick } from '../ResourceChooser';
 
 type Chooser = 'player' | 'card' | 'resource' | 'commodity' | 'dice' | 'offers' | null;
 
@@ -248,11 +249,8 @@ export function ProgressCardDialog({ view, id }: { view: PlayerView; id: number 
             </div>
           )}
           {(chooser === 'card' || chooser === 'resource' || chooser === 'commodity') && (
-            <div className="flex flex-wrap justify-center gap-2">
-              {(chooser === 'card' ? CARDS : chooser === 'resource' ? RESOURCES : COMMODITIES).map((c) => (
-                <ResourceCard key={c} card={c as Card} count={0} onClick={() => play({ card: c as Card })} />
-              ))}
-            </div>
+            // Monopolies take from players and the fleet is a trade rate, never the bank: nothing greys out.
+            <ResourcePick cards={chooser === 'card' ? CARDS : chooser === 'resource' ? RESOURCES : COMMODITIES} onChange={(c) => play({ card: c })} />
           )}
           {chooser === 'dice' && (
             <div className="grid gap-3">

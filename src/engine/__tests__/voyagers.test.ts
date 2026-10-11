@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { generateBoard } from '../board/generate';
 import { canHoldRoad, canHoldSettlement, canHoldShip, islandsOf } from '../board/sea';
 import { getTopology } from '../board/topology';
-import { HARBOR_KINDS, TREASURE_DECK } from '../constants';
+import { HARBOR_KINDS, TREASURE_DECK, ZEALAND_TREASURE_DECK } from '../constants';
 import { MAPS } from '../maps';
 import { legalSettlementSpots, legalShipSpots, movableShips, pirateBorders, shipDestinations } from '../queries';
 import { knightReach, legalKnightSpots, openRoutes, routeMoveTargets } from '../ck/queries';
@@ -166,13 +166,36 @@ describe('Zealand', () => {
       expect(s.board.hexes.find((h) => ring(h) === 0)!.terrain).toBe('sea');
       const fog = s.board.hexes.filter((h) => h.fog);
       expect(fog).toHaveLength(60);
-      expect(fog.every((h) => h.terrain !== 'sea' && h.terrain !== 'desert' && h.token !== null && ring(h) >= 4)).toBe(true);
+      expect(fog.every((h) => ring(h) >= 4 && (h.terrain === 'sea' || h.terrain === 'desert' ? h.token === null : h.token !== null))).toBe(true);
+      // The fog hides exactly 3 seas and 3 deserts, at most one of each on an isle, which stays in one piece.
+      const hidden = (terrain: string) => fog.filter((h) => h.terrain === terrain);
+      expect(hidden('sea')).toHaveLength(3);
+      expect(hidden('desert')).toHaveLength(3);
+      const fogged = new Set(fog.map((h) => h.id));
+      const group = new Map<number, number>();
+      const pieces: number[][] = [];
+      for (const h of fog) {
+        if (group.has(h.id)) continue;
+        const piece = [h.id];
+        group.set(h.id, pieces.length);
+        for (let i = 0; i < piece.length; i++) for (const n of t.hexes[piece[i]].neighbors) if (fogged.has(n) && !group.has(n)) { group.set(n, pieces.length); piece.push(n); }
+        pieces.push(piece);
+      }
+      expect(pieces.map((p) => p.length)).toEqual([10, 10, 10, 10, 10, 10]);
+      for (const terrain of ['sea', 'desert']) expect(new Set(hidden(terrain).map((h) => group.get(h.id))).size).toBe(3);
+      // Each isle's land is one island (the island count below also holds), so a point per isle stays right.
+      const landIslands = pieces.map((p) => new Set(p.filter((id) => s.board.hexes[id].terrain !== 'sea').map((id) => islandsOf(s.board, t)[id])).size);
+      expect(landIslands).toEqual([1, 1, 1, 1, 1, 1]);
+      // No harbor or chest corner rests on a hidden sea or desert.
+      const special = new Set([...hidden('sea'), ...hidden('desert')].map((h) => h.id));
+      for (const h of s.board.harbors) expect(t.edges[h.edge].hexes.some((id) => special.has(id))).toBe(false);
+      for (const x of s.board.treasures!) expect(t.vertices[x.vertex].hexes.some((id) => special.has(id))).toBe(false);
       const gold = fog.filter((h) => h.terrain === 'gold');
       expect(gold).toHaveLength(2);
       for (const h of gold) expect([6, 8]).toContain(h.token);
       expect(gold.some((h) => t.hexes[h.id].neighbors.includes(gold.find((o) => o.id !== h.id)!.id))).toBe(false);
       // One desert: a lone, unfogged isle in open water, where the robber starts.
-      const desert = s.board.hexes.filter((h) => h.terrain === 'desert');
+      const desert = s.board.hexes.filter((h) => h.terrain === 'desert' && !h.fog);
       expect(desert).toHaveLength(1);
       expect(desert[0].fog).toBeUndefined();
       expect(t.hexes[desert[0].id].neighbors.every((n) => s.board.hexes[n].terrain === 'sea')).toBe(true);
@@ -183,10 +206,12 @@ describe('Zealand', () => {
       expect(Math.min(...fog.map((h) => apart(h, desert[0])))).toBeGreaterThanOrEqual(4);
       expect(new Set(islandsOf(s.board, t).filter((i) => i >= 0)).size).toBe(8);
       // The six isles are the same shape turned about the middle: the same number of hexes at each distance.
-      const profile = (ids: number[]) => ids.map((id) => ring(s.board.hexes[id])).sort((a, b) => a - b).join();
       const isles = new Map<number, number[]>();
       islandsOf(s.board, t).forEach((i, id) => { if (i >= 0 && s.board.hexes[id].fog) isles.set(i, [...(isles.get(i) ?? []), id]); });
-      expect([...isles.values()].every((ids) => ids.length === 10 && profile(ids) === profile([...isles.values()][0]))).toBe(true);
+      expect(isles.size).toBe(6);
+      expect([...isles.values()].every((ids) => ids.length >= 9 && ids.length <= 10)).toBe(true);
+      // Counting the hidden seas and deserts, the six isles are the same shape turned about the middle.
+      expect(new Set(pieces.map((p) => p.map((id) => ring(s.board.hexes[id])).sort((a, b) => a - b).join())).size).toBe(1);
     }
   });
 
@@ -195,6 +220,8 @@ describe('Zealand', () => {
       const board = generateBoard({ rng: seed }, 'zealand', { gold: false });
       expect(board.hexes.filter((h) => h.terrain === 'gold')).toHaveLength(0);
       expect(board.hexes.filter((h) => h.fog)).toHaveLength(60);
+      expect(board.hexes.filter((h) => h.fog && h.terrain === 'sea')).toHaveLength(3);
+      expect(board.hexes.filter((h) => h.fog && h.terrain === 'desert')).toHaveLength(3);
     }
   });
 
@@ -240,7 +267,7 @@ describe('Zealand', () => {
       expect(new Set(corners).size).toBe(corners.length);
       expect(s.board.harbors.every((h) => canHoldShip(s.board, t, h.edge))).toBe(true);
       // The pirate starts in the water right beside the desert island, on its outer side.
-      const desert = s.board.hexes.find((h) => h.terrain === 'desert')!;
+      const desert = s.board.hexes.find((h) => h.terrain === 'desert' && !h.fog)!;
       expect(t.hexes[s.pirate!].neighbors).toContain(desert.id);
       expect(s.board.hexes[s.pirate!].terrain).toBe('sea');
       expect(ring(s.board.hexes[s.pirate!])).toBeGreaterThanOrEqual(ring(desert));
@@ -254,6 +281,8 @@ describe('Zealand', () => {
       const board = generateBoard({ rng: seed }, 'zealand');
       const t = getTopology(board.hexes);
       expect(board.treasures).toHaveLength(21);
+      expect(board.treasurePile).toHaveLength(7);
+      expect([...board.treasures!.map((x) => x.kind), ...board.treasurePile!].sort()).toEqual([...ZEALAND_TREASURE_DECK].sort());
       for (const x of board.treasures!) kinds.add(x.kind!);
       const spots = new Set(board.treasures!.map((x) => x.vertex));
       for (const x of board.treasures!) {
@@ -263,7 +292,7 @@ describe('Zealand', () => {
         expect(t.vertices[x.vertex].hexes.some((h) => board.hexes[h].terrain !== 'sea')).toBe(true);
         expect(t.vertices[x.vertex].hexes.some((h) => board.hexes[h].terrain === 'sea')).toBe(true);
       }
-      const desert = board.hexes.find((h) => h.terrain === 'desert')!;
+      const desert = board.hexes.find((h) => h.terrain === 'desert' && !h.fog)!;
       expect(board.treasures!.filter((x) => t.vertices[x.vertex].hexes.includes(desert.id))).toHaveLength(3);
       const isleOf = islandsOf(board, t);
       const perIsle = new Map<number, number>();
@@ -284,7 +313,13 @@ describe('Zealand', () => {
       }
       for (const sides of toward.values()) expect(sides.sort()).toEqual([0, 1, 1]);
     }
-    expect(kinds.size).toBe(4);
+    expect(kinds.size).toBe(5);
+  });
+
+  it('keeps the treasure pile hidden from every view', () => {
+    const s = game('zealand', 'classic', 1, 4);
+    expect(s.board.treasurePile).toHaveLength(7);
+    for (let seat = 0; seat < 4; seat++) expect(viewFor(s, seat).board.treasurePile).toBeUndefined();
   });
 
   it('fits eight starting settlements', () => {
@@ -330,12 +365,13 @@ describe('Veiled Isles', () => {
     expect(seaSpots.size).toBeGreaterThan(1);
   });
 
-  it('places exactly 15 treasures with the 5/4/3/3 mix, apart and off the home island', () => {
+  it('places 15 treasures and keeps 4 as a draw pile, all 19 together being the deck, apart and off the home island', () => {
     for (const seed of seeds) {
       const board = generateBoard({ rng: seed }, 'veiledIsles');
       const t = getTopology(board.hexes);
       expect(board.treasures).toHaveLength(15);
-      expect(board.treasures!.map((x) => x.kind).sort()).toEqual([...TREASURE_DECK].sort());
+      expect(board.treasurePile).toHaveLength(4);
+      expect([...board.treasures!.map((x) => x.kind), ...board.treasurePile!].sort()).toEqual([...TREASURE_DECK].sort());
       const spots = new Set(board.treasures!.map((x) => x.vertex));
       for (const x of board.treasures!) {
         expect(t.vertices[x.vertex].vertices.some((n) => spots.has(n))).toBe(false);
@@ -498,6 +534,7 @@ describe('Veiled Isles rewards', () => {
     ['resource', 'goldPick'],
     ['devCard', 'rewardDeck'],
     ['roadBuilding', 'freeRoads'],
+    ['twoResources', 'goldPick'],
   ] as const)('a %s treasure asks for %s', (kind, prompt) => {
     const { s, e1, tr } = nearTreasure(kind);
     const after = act(s, 0, { type: 'buildShip', edge: e1 });
@@ -547,6 +584,21 @@ describe('Veiled Isles rewards', () => {
     expect(after.players[0].hand.brick).toBe(before.brick + 1);
   });
 
+  it('a two-resources treasure is a pick of two', () => {
+    const { s, e1 } = nearTreasure('twoResources');
+    const after = act(s, 0, { type: 'buildShip', edge: e1 });
+    expect(after.pending.find((p) => p.kind === 'goldPick' && p.seat === 0)).toMatchObject({ count: 2, reason: 'treasure' });
+  });
+
+  it('never sends the draw pile to any seat', () => {
+    const s = autoSetup(game('veiledIsles', 'ck', 9));
+    expect(s.board.treasurePile).toHaveLength(4);
+    for (const seat of [0, 1, 2, 3]) {
+      if (!s.players[seat]) continue;
+      expect(viewFor(s, seat).board.treasurePile).toBeUndefined();
+    }
+  });
+
   it('shows a treasure only once collected', () => {
     const { s, e1, tr } = nearTreasure('bundle');
     const after = act(s, 0, { type: 'buildShip', edge: e1 });
@@ -555,7 +607,7 @@ describe('Veiled Isles rewards', () => {
     expect(seen.filter((x) => x.takenBy === undefined).every((x) => x.kind === null)).toBe(true);
   });
 
-  it('pays a random bonus treasure for revealing hidden sea, without touching the placed ones', () => {
+  it('draws the top of the pile for revealing hidden sea, without touching the placed ones', () => {
     const s = autoSetup(game('veiledIsles', 'ck', 21));
     const t = getTopology(s.board.hexes);
     s.turn.seat = 0;
@@ -575,8 +627,10 @@ describe('Veiled Isles rewards', () => {
     s.buildings[home] = { owner: 0, city: false, wall: false, metropolis: null };
     s.ships[e0] = 0;
     const kinds = s.board.treasures!.map((x) => x.kind);
+    const [top, ...rest] = s.board.treasurePile!;
     const after = act(s, 0, { type: 'buildShip', edge });
-    expect(after.log.some((ev) => ev.type === 'treasure' && ev.at === null)).toBe(true);
+    expect(after.log.some((ev) => ev.type === 'treasure' && ev.at === null && ev.kind === top)).toBe(true);
+    expect(after.board.treasurePile).toEqual(rest);
     expect(after.board.treasures!.map((x) => x.kind)).toEqual(kinds);
   });
 

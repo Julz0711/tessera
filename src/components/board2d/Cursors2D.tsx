@@ -2,14 +2,14 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { useCursors } from '@/client/cursorStore';
-import { sendCursor, useCursorsOn } from '@/client/cursors';
+import { motionReduced, sendCursor, sendCursorClick, useSeeCursorsOn, useShareCursorOn } from '@/client/cursors';
 import { useGame } from '@/client/store';
 import { PLAYER_COLORS } from '@/shared/colors';
-import { CURSOR_SHOW_MS } from '@/shared/cursors';
+import { CURSOR_SHOW_MS, RIPPLE_MS } from '@/shared/cursors';
 
 /** Sends where the viewer's mouse is over the board, in board units (svg units / `unit`); nothing happens while sharing is off. */
 export function useCursorTracking2D(svgRef: RefObject<SVGSVGElement | null>, unit: number, enabled: boolean): void {
-  const on = useCursorsOn() && enabled;
+  const on = useShareCursorOn() && enabled;
   useEffect(() => {
     const svg = svgRef.current;
     if (!on || !svg) return;
@@ -20,9 +20,17 @@ export function useCursorTracking2D(svgRef: RefObject<SVGSVGElement | null>, uni
       sendCursor({ x: p.x / unit, y: p.y / unit });
     };
     const leave = () => sendCursor(null);
+    const down = (e: PointerEvent) => {
+      const ctm = svg.getScreenCTM();
+      if (!ctm || e.pointerType === 'touch' || e.button !== 0) return;
+      const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
+      sendCursorClick({ x: p.x / unit, y: p.y / unit });
+    };
+    svg.addEventListener('pointerdown', down, true);
     svg.addEventListener('pointermove', move);
     svg.addEventListener('pointerleave', leave);
     return () => {
+      svg.removeEventListener('pointerdown', down, true);
       svg.removeEventListener('pointermove', move);
       svg.removeEventListener('pointerleave', leave);
       sendCursor(null);
@@ -65,14 +73,40 @@ function Mark({ id, unit }: { id: string; unit: number }) {
   );
 }
 
+/** A click by another player: a ring in their colour that grows and fades (a still dot with reduced motion). */
+function Ripple({ id, x, y }: { id: string; x: number; y: number }) {
+  const seat = useGame((s) => s.room?.seats.find((p) => p.playerId === id));
+  const [still] = useState(motionReduced);
+  if (!seat) return null;
+  const col = PLAYER_COLORS[seat.color].hex;
+  const dur = `${RIPPLE_MS}ms`;
+  return (
+    <g pointerEvents="none" transform={`translate(${x} ${y})`}>
+      {still ? (
+        <circle r="7" fill={col} stroke="#131a1d" strokeWidth="2" />
+      ) : (
+        // A CSS animation, not SVG <animate>: one added after the svg loaded runs on the document's clock and is already over.
+        <g className="cursor-ripple-2d" style={{ animationDuration: dur }}>
+          <circle r="34" fill="none" stroke="#131a1d" strokeWidth="7" vectorEffect="non-scaling-stroke" />
+          <circle r="34" fill="none" stroke={col} strokeWidth="3.5" vectorEffect="non-scaling-stroke" />
+        </g>
+      )}
+    </g>
+  );
+}
+
 /** Other players' mouse pointers, inside the board's own svg so they pan and zoom with it. */
 export function CursorLayer2D({ unit, enabled }: { unit: number; enabled: boolean }) {
-  const on = useCursorsOn() && enabled;
+  const on = useSeeCursorsOn() && enabled;
   const ids = useCursors((s) => Object.keys(s.cursors).join('|'));
-  if (!on || !ids) return null;
+  const ripples = useCursors((s) => s.ripples);
+  if (!on || (!ids && !ripples.length)) return null;
   return (
     <g>
-      {ids.split('|').map((id) => (
+      {ripples.map((r) => (
+        <Ripple key={r.id} id={r.playerId} x={r.x * unit} y={r.y * unit} />
+      ))}
+      {ids && ids.split('|').map((id) => (
         <Mark key={id} id={id} unit={unit} />
       ))}
     </g>

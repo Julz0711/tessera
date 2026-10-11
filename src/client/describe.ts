@@ -65,6 +65,7 @@ function count(h: PartialHand): number {
 /** The card treasure depends on the rules: see the `treasure` line. */
 const TREASURE_NAMES: Record<Exclude<TreasureKind, 'devCard'>, string> = {
   resource: 'a resource of choice',
+  twoResources: 'two resources of choice',
   roadBuilding: 'two free roads or ships',
   bundle: 'wool, grain and brick',
 };
@@ -105,9 +106,9 @@ export function describe(ev: GameEvent, view: PlayerView): Part[][] {
     case 'shipMoved':
       return [[P(ev.seat), ' sailed a ship to a new route']];
     case 'robberMoved': {
-      if (ev.pirate) return [[P(ev.seat), ' sailed the pirate to a new sea hex']];
+      if (ev.pirate) return [[P(ev.seat), ev.chased ? ' chased the pirate away with a knight, to a new sea hex' : ' sailed the pirate to a new sea hex']];
       const hex = view.board.hexes[ev.hex];
-      return [[P(ev.seat), ` moved the robber to ${TERRAIN_COLORS[hex.terrain].label.toLowerCase()}${hex.token ? ` (${hex.token})` : ''}`]];
+      return [[P(ev.seat), `${ev.chased ? ' chased the robber away with a knight to' : ' moved the robber to'} ${TERRAIN_COLORS[hex.terrain].label.toLowerCase()}${hex.token ? ` (${hex.token})` : ''}`]];
     }
     case 'stole':
       return [[P(ev.seat), ' stole ', ...(s?.card ? [{ card: s.card as Card, n: 1 }] : ['a card']), ' from ', P(ev.victim)]];

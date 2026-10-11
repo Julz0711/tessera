@@ -461,6 +461,7 @@ export const RULEBOOK: RuleChapter[] = [
             '**Move:** an active knight can travel along your own roads and ships to an empty corner. It can pass through your own pieces but not through opponents\' buildings or knights. Moving makes it inactive.',
             '**Displace:** an active knight can move onto a corner held by an opponent\'s **weaker** knight. The owner of the displaced knight must move it along their own roads to another empty corner connected to where it stood. If there is no such place, the knight is removed.',
             '**Chase the robber:** an active knight standing next to the robber can make the robber move. The knight becomes inactive and you move the robber and steal as with a 7.',
+            '**Chase the pirate** (Voyagers and Special maps): a knight on a corner of the pirate\'s hex can chase the pirate to another sea hex, and you steal from a ship owner there as with a 7. A knight next to the robber moves it over land only, and a knight next to the pirate moves it over sea only.',
           ],
           'A knight you activated this turn cannot move, displace or chase the robber until your next turn. Using Warlord to activate counts the same way.',
           'Opponent knights block your roads and break your Longest Road, like settlements do. You cannot build a settlement where a knight stands.',
@@ -680,9 +681,10 @@ export const RULEBOOK: RuleChapter[] = [
       {
         title: 'Treasures',
         body: [
-          'Some Special maps have treasure chests on corners of the board. A road or ship that reaches a treasure\'s corner collects it: a newly built road or ship, a free one (Road Building), a ship you move there, or a starting road or ship. Every treasure is one of four kinds:',
+          'Some Special maps have treasure chests on corners of the board. A road or ship that reaches a treasure\'s corner collects it: a newly built road or ship, a free one (Road Building), a ship you move there, or a starting road or ship. Every treasure is one of five kinds:',
           [
             '**A resource of your choice** from the bank.',
+            '**Two resources of your choice** from the bank.',
             '**Road Building:** place 2 free roads or ships.',
             '**Three resources:** 1 Brick + 1 Wool + 1 Grain.',
             '**A card.** In Classic rules, the top development card, which you cannot play this turn. With Knights & Barbarians rules, a progress card from the deck of your choice.',
@@ -695,9 +697,9 @@ export const RULEBOOK: RuleChapter[] = [
           'Knights & Barbarians rules only, up to 4 players, **16** points to win.',
           [
             'You start on the standard-sized island. It is surrounded by sea with 15 fogged tiles scattered around it.',
-            'The fog always hides exactly 2 sea tiles, 0 or 1 gold fields, and otherwise resource tiles (never desert) with random numbers.',
-            '15 treasures lie at fixed spots around the island: 5 resource, 4 Road Building, 3 three-resource and 3 card treasures, shuffled each game.',
-            'Uncovering a hidden sea or desert tile pays a bonus treasure of a random kind.',
+            'The fog always hides exactly 2 sea tiles, 2 gold fields, 1 desert and 2 tiles of each resource, with the numbers spread evenly.',
+            '15 treasures lie at fixed spots around the island, dealt each game from a shuffled deck of 19: 5 resource, 4 two-resource, 4 Road Building, 3 three-resource and 3 card treasures.',
+            'Uncovering a hidden sea or desert tile draws a bonus treasure from the 4 left over after the chests are dealt.',
             'Your first settlement on each island that is not a home island is worth **1 point**.',
           ],
         ],
@@ -722,7 +724,9 @@ export const RULEBOOK: RuleChapter[] = [
             'Everyone starts on a ring of 18 Pasture tiles around a lake. Twelve 2:1 Wool harbors line its shore.',
             'Six isles of 10 fogged tiles each lie out at sea. Twelve more harbors line their coasts, a 3:1 and a 2:1 on every isle.',
             'The host can turn the **two gold fields** in the fog on or off. Each gold field is a 6 or an 8.',
-            'The robber starts on a lone desert island far out at sea. Sailing there pays three treasures. Every isle has three treasures too, 21 in all, each of a random kind.',
+            'Among the 60 fogged tiles are 3 sea tiles and 3 deserts, never more than one of each on an isle.',
+            'The robber starts on a lone desert island far out at sea. Sailing there pays three treasures. Every isle has three treasures too, 21 in all, dealt each game from a shuffled deck of 28: 7 resource, 6 two-resource, 6 Road Building, 5 three-resource and 4 card treasures.',
+            'Uncovering a hidden sea or desert tile draws a bonus treasure from the 7 left over after the chests are dealt.',
             'Your first settlement on each island that is not a home island is worth **1 point**.',
           ],
         ],
@@ -819,7 +823,8 @@ export const RULEBOOK: RuleChapter[] = [
           'With **Balanced** dice, rolls are drawn from a bag instead of thrown. The bag holds all 36 combinations of two dice, and each draw takes one out. So over a game, every total shows up close to its normal odds, and 6, 7 and 8 stay the most common.',
           [
             'The bag is refilled with all 36 while 12 are still left in it, so counting cards never tells you for sure what comes next.',
-            'A draw that would repeat the previous total counts as 70% as likely.',
+            'Recent totals are held back: each time a total came up in the last 5 rolls, it gets a third less likely (100%, 66%, 32%, then not at all).',
+            'Sevens are shared fairly: a player who has rolled more than their share of 7s gets fewer, one who has rolled fewer gets more, and a run of 7s by the same player is damped.',
           ],
           'With **Random** dice, each roll is two fair dice thrown fresh.',
         ],

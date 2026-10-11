@@ -5,12 +5,17 @@ import type { Action, DevCardType, PartialHand, ProgressCardType } from '@/engin
 
 export type BuildWhat = 'road' | 'ship' | 'settlement' | 'city' | 'knight' | 'wall';
 
+/** What the Knight key offers besides recruiting: each picks one of your knights on the board. */
+export type KnightAct = 'activate' | 'promote' | 'move' | 'chase';
+
 /** What a click on the board means right now (beyond setup and prompts, which the game decides). */
 export type UiMode =
   | null
   | { t: 'build'; what: BuildWhat }
   | { t: 'knightMove'; from: number }
   | { t: 'knightChase'; from: number }
+  /** The Knight key's actions: pick which of your knights does it. */
+  | { t: 'knightPick'; act: KnightAct }
   /** Voyagers: pick one of your open-route ships, then where it sails. */
   | { t: 'shipMove'; from: number | null }
   | { t: 'progress'; card: number; cardType: ProgressCardType; picked: number[] };

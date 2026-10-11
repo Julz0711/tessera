@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowUpCircle, Footprints, Power, ShieldAlert } from 'lucide-react';
-import { COSTS, canKnightAct, chaseKnights, hasCards, knightMoveTargets, promotableKnights } from '@/engine';
+import { COSTS, canKnightAct, chasePirateKnights, chaseRobberKnights, hasCards, knightMoveTargets, promotableKnights } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { api } from '@/client/store';
 import { useUi } from '@/client/ui';
@@ -30,7 +30,10 @@ export function KnightMenu({ view, vertex }: { view: PlayerView; vertex: number 
         : acts && !canMove && view.pending.length === 0
           ? 'No free corner along your roads to move to, and no weaker rival knight to displace. Build a road on from here.'
           : null;
-  const canChase = myTurn && chaseKnights(view, me).includes(vertex);
+  const besideRobber = chaseRobberKnights(view, me).includes(vertex);
+  const besidePirate = chasePirateKnights(view, me).includes(vertex);
+  const canChase = myTurn && (besideRobber || besidePirate);
+  const chaseLabel = besideRobber && besidePirate ? 'Chase the robber or pirate away' : besidePirate ? 'Chase the pirate away' : 'Chase the robber away';
   const canPromote = myTurn && promotableKnights(view, me).includes(vertex) && hasCards(hand, COSTS.promote);
   const canActivate = myTurn && !knight.active && hasCards(hand, COSTS.activate);
   const close = () => ui.setKnightMenu(null);
@@ -44,7 +47,7 @@ export function KnightMenu({ view, vertex }: { view: PlayerView; vertex: number 
       <p className="mb-3 text-sm text-ink-soft">
         {knight.active
           ? acts
-            ? 'Ready for action: move, displace a weaker knight, or chase the robber.'
+            ? 'Ready for action: move, displace a weaker knight, or chase the robber or pirate.'
             : 'Activated this turn, it can act from your next turn.'
           : 'Inactive. Activate it to defend against the barbarians and to act.'}
       </p>
@@ -75,7 +78,7 @@ export function KnightMenu({ view, vertex }: { view: PlayerView; vertex: number 
         </button>
         {moveBlocked && knight.active && <p className="-mt-1 px-1 text-xs text-ink-faint">{moveBlocked}</p>}
         <button type="button" className="btn justify-start px-4 py-2.5" disabled={!canChase} onClick={() => ui.setMode({ t: 'knightChase', from: vertex })}>
-          <ShieldAlert size={16} /> Chase the robber away
+          <ShieldAlert size={16} /> {chaseLabel}
         </button>
       </div>
       {knight.level === 2 && !promotableKnights(view, me).includes(vertex) && view.players[me].improvements.politics < 3 && (

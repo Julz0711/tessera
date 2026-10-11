@@ -58,7 +58,7 @@ export function DesktopHud({
   }, [editing]);
 
   const item = (panel: HudPanel, side: HudSide) => (
-    <div key={panel} className={`pointer-events-auto ${panel === 'side' && !editing ? 'flex min-h-0 flex-col' : 'shrink-0'} ${drag?.panel === panel ? 'opacity-40' : ''}`}>
+    <div key={panel} className={`pointer-events-auto ${panel === 'side' && !editing ? 'flex min-h-0 w-full min-w-0 flex-1 flex-col' : 'shrink-0'} ${drag?.panel === panel ? 'opacity-40' : ''}`}>
       {editing && (
         <div
           className="mb-1 flex cursor-grab touch-none select-none items-center gap-1.5 rounded-lg border-2 border-ink bg-amber px-2 py-1 text-xs font-black uppercase tracking-caps text-ink shadow-[0_2px_0_0_#000] active:cursor-grabbing"
@@ -88,12 +88,16 @@ export function DesktopHud({
     </div>
   );
 
+  const hasSide = (slot: HudSlot) => slotPanels(layout, slot).some((p) => p === 'side' && !skip?.(p));
+
   const group = (slot: HudSlot, side: HudSide, extra = '') => {
     const blocked = drag && !fits(drag.panel, slot);
+    // The group holding the log takes the column's free height (the others keep their natural height; the log shrinks and scrolls inside).
+    const grows = !editing && hasSide(slot);
     return (
       <div
         data-hud-drop={editing ? slot : undefined}
-        className={`flex flex-col gap-2 ${editing ? '' : 'min-h-0'} ${extra} ${
+        className={`flex flex-col gap-2 ${editing ? '' : grows ? 'min-h-0 flex-[1_1_auto]' : 'shrink-0'} ${extra} ${
           editing ? `min-h-24 rounded-2xl p-1.5 outline-2 outline-dashed ${drag?.over === slot ? 'bg-amber/15 outline-amber' : 'outline-foam/40'} ${blocked ? 'opacity-40' : ''}` : ''
         }`}
       >
@@ -119,7 +123,8 @@ export function DesktopHud({
       style={{ zoom }}
     >
       {group(side === 'left' ? 'leftTop' : 'rightTop', side, editing ? 'flex-[1_0_auto] justify-start' : '')}
-      {!editing && <div className="flex-1" />}
+      {/* The spacer pushes the bottom group down, unless the log's group fills the gap itself. */}
+      {!editing && !hasSide(side === 'left' ? 'leftTop' : 'rightTop') && !hasSide(side === 'left' ? 'leftBottom' : 'rightBottom') && <div className="flex-1" />}
       {group(side === 'left' ? 'leftBottom' : 'rightBottom', side, editing ? 'flex-[1_0_auto] justify-end' : '')}
     </div>
   );

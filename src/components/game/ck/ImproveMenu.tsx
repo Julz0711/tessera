@@ -1,43 +1,39 @@
 'use client';
 
-import { Crown, Star } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import { TRACKS, improvementBlocker, improvementCost, type Track } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { TRACK_STYLE } from '@/client/progressText';
 import { play } from '@/client/sound';
 import { api } from '@/client/store';
-import { CostDots } from '../BuildCostsCard';
 import { MiniArt } from '../cardArt';
 
 const LEVELS = [1, 2, 3, 4, 5];
 
 /**
- * Your city improvements at a glance, as the Improve key's icon: a column per track, filled from
- * the bottom up to the level reached (like the flip charts in the box).
+ * Your city improvements at a glance, as the Improve key's icon: a bar per track on a common base,
+ * filled from the bottom up to the level reached (a sliver shows even at 0, so the three read as bars).
  */
 export function ProgressGrid({ view }: { view: PlayerView }) {
   const p = view.players[view.viewer!];
   return (
-    <span className="dim-group grid grid-flow-col gap-1" aria-hidden>
-      {TRACKS.map((t) => (
-        <span key={t} className="flex flex-col-reverse gap-[1.5px]">
-          {LEVELS.map((n) => (
-            <span
-              key={n}
-              className="h-[4px] w-[8px] rounded-[1px] border-[1.5px] border-current"
-              style={{ background: n <= p.improvements[t] ? TRACK_STYLE[t].color : 'var(--color-paper)' }}
-            />
-          ))}
-        </span>
-      ))}
+    <span className="dim-group flex flex-col items-stretch gap-0" aria-hidden>
+      <span className="flex items-end gap-0.75 px-0.5">
+        {TRACKS.map((t) => (
+          <span key={t} className="relative h-5.5 w-2 overflow-hidden rounded-t-xs border-2 border-b-0 border-current bg-paper">
+            <span className="absolute inset-x-0 bottom-0" style={{ height: `${Math.max(p.improvements[t], 0.4) * 20}%`, background: TRACK_STYLE[t].color }} />
+          </span>
+        ))}
+      </span>
+      <span className="h-0.5 rounded-full bg-current" />
     </span>
   );
 }
 
 /**
- * One track in the Improve menu: its level as five steps in the track's colour (★ marks the
- * ability at 3, the crown the metropolis), the next level's price in commodity pips, and a click
- * builds it straight away.
+ * One track in the Improve menu, price first: the track's name on its colour, the commodity you pay
+ * for the next level with how many, and the level reached as a slim five-step bar. A click builds it
+ * straight away; the ability at 3 and the metropolis from 4 are in the tooltip.
  */
 function TrackKey({ view, track, onDone }: { view: PlayerView; track: Track; onDone: () => void }) {
   const me = view.viewer!;
@@ -57,39 +53,37 @@ function TrackKey({ view, track, onDone }: { view: PlayerView; track: Track; onD
       role="menuitem"
       disabled={off}
       title={hint}
-      className="btn relative h-20 w-full flex-col sm:w-20 gap-1 px-1 py-1 text-[11px]"
+      aria-label={`${hint}. Level ${level} of 5`}
+      className="btn relative h-20 w-full flex-col items-stretch gap-0 overflow-visible p-0 sm:w-24"
       onClick={() => {
         play('click');
         void api.act({ type: 'improveCity', track });
         onDone();
       }}
     >
-      <span className="flex items-center gap-1 leading-none">
-        <span className={off ? 'opacity-50 grayscale' : ''}>
-          <MiniArt card={style.commodity} size={14} />
-        </span>
+      <span className="rounded-t-[2px] border-b-2 border-ink py-0.5 text-center text-[11px] font-black uppercase leading-4 tracking-caps" style={{ background: style.color, color: style.ink }}>
         {style.label}
       </span>
-      <span className="flex items-end gap-[3px]" aria-label={`Level ${level} of 5`}>
-        {LEVELS.map((n) => (
-          <span
-            key={n}
-            className={`grid w-3 place-items-center rounded-[2px] border ${off ? 'border-current' : 'border-ink'}`}
-            style={{ height: 8 + n * 2.5, background: n <= level && !off ? style.color : 'transparent', color: off ? undefined : style.ink }}
-          >
-            {n === 3 && <Star size={7} strokeWidth={4} className={off ? '' : n <= level ? '' : 'text-ink/40'} />}
-          </span>
-        ))}
-      </span>
-      {level < 5 ? (
-        cost > 0 ? (
-          <CostDots cost={{ [style.commodity]: cost }} hand={p.hand} />
+      <span className="flex flex-1 items-center justify-center gap-1 text-base font-black leading-none">
+        {level >= 5 ? (
+          <span className="text-xs uppercase tracking-caps">Max</span>
+        ) : cost > 0 ? (
+          <>
+            <MiniArt card={style.commodity} size={22} />
+            <span className="tabular">×{cost}</span>
+          </>
         ) : (
-          <span className="text-[10px] font-black uppercase leading-none tracking-caps">Free</span>
-        )
-      ) : (
-        <span className="text-[10px] font-black uppercase leading-none tracking-caps">Max</span>
-      )}
+          <span className="text-xs uppercase tracking-caps">Free</span>
+        )}
+      </span>
+      <span className="flex items-center gap-1.5 px-1.5 pb-1.5">
+        <span className="flex flex-1 gap-px" aria-hidden>
+          {LEVELS.map((n) => (
+            <span key={n} className="h-1.5 flex-1 rounded-[1px] border border-ink" style={{ background: n <= level ? style.color : 'transparent' }} />
+          ))}
+        </span>
+        <span className="text-[10px] font-black leading-none tabular">L{level}</span>
+      </span>
       {metropolis && (
         <span className="hex-badge hex-badge-amber -right-1.5 -top-2" title="Your metropolis">
           <Crown size={10} strokeWidth={3} />

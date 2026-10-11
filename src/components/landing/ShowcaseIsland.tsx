@@ -13,7 +13,7 @@ function demoScene(seed: number): BoardScene {
   let s = createGame({
     seed,
     mode: 'classic',
-    players: (['red', 'blue', 'orange', 'white'] as const).map((color, i) => ({ id: `d${i}`, name: `D${i}`, color, isBot: true })),
+    players: (['red', 'blue', 'orange', 'green'] as const).map((color, i) => ({ id: `d${i}`, name: `D${i}`, color, isBot: true })),
   });
   for (let guard = 0; s.phase === 'setup' && guard < 40; guard++) {
     const seat = s.setup!.order[s.setup!.index];

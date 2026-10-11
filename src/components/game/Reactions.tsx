@@ -19,19 +19,19 @@ function useUntil(until: number): boolean {
   return until > now;
 }
 
-/** Shows other players' mouse pointers over the board and shares yours (off by default; wide screens with a mouse only). */
+/** Shares your mouse pointer with the other players (off by default; wide screens with a mouse only). Seeing theirs is a setting. */
 export function CursorToggle() {
-  const on = usePrefs((s) => s.shareCursors);
+  const on = usePrefs((s) => s.shareCursor);
   const mouse = useMouseScreen();
   if (!mouse) return null;
   return (
     <button
       type="button"
       className={`btn h-10 w-10 p-0 ${on ? 'btn-primary' : 'btn-dark'}`}
-      onClick={() => usePrefs.getState().set({ shareCursors: !on })}
-      aria-label="Share mouse pointers"
+      onClick={() => usePrefs.getState().set({ shareCursor: !on })}
+      aria-label="Share my mouse pointer"
       aria-pressed={on}
-      title={on ? "Pointers on: you see everyone's and they see yours" : 'Show mouse pointers on the board'}
+      title={on ? 'Sharing your pointer: the others see it on the board' : 'Share your mouse pointer with the other players'}
     >
       <MousePointer2 size={18} />
     </button>

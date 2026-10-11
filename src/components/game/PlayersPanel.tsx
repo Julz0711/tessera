@@ -12,6 +12,7 @@ import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
 import { Framed } from '@/components/profile/Cosmetics';
 import { titleInfo } from '@/shared/cosmetics';
+import { BACK_BG, CardBackArt, type BackKind } from './cardArtLowPoly';
 import { ReactionBubble, ReactionCover } from './Reactions';
 import { Modal } from '@/components/ui/Modal';
 
@@ -32,8 +33,12 @@ function Stat({ icon, value, title, award, dim }: { icon: React.ReactNode; value
   );
 }
 
-function CardBack({ bg }: { bg: string }) {
-  return <span className="h-3.75 w-2.75 shrink-0 rounded-[3px] border-2 border-ink" style={{ background: bg }} />;
+function CardBack({ bg, back }: { bg: string; back?: BackKind }) {
+  return (
+    <span className="relative h-3.75 w-2.75 shrink-0 overflow-hidden rounded-[3px] border-2 border-ink" style={{ background: back ? BACK_BG[back] : bg }}>
+      {back && <CardBackArt kind={back} label={false} className="absolute inset-0 h-full w-full" />}
+    </span>
+  );
 }
 
 /** A face-down card at the table with its count in a badge, as on colonist. */
@@ -43,6 +48,7 @@ function CardIcon({
   n,
   title,
   glyph = '?',
+  back,
   small,
   warn,
 }: {
@@ -51,6 +57,8 @@ function CardIcon({
   n: number;
   title: string;
   glyph?: React.ReactNode;
+  /** Draws the development or progress deck's back instead of the glyph. */
+  back?: BackKind;
   small?: boolean;
   /** Shown in red, with this explanation added to the tooltip. */
   warn?: string;
@@ -67,7 +75,14 @@ function CardIcon({
       title={label}
       aria-label={label}
     >
-      {glyph}
+      {back ? (
+        // Clipped by its own box at the border's inner radius; the badge stays outside it.
+        <span className="absolute inset-0 overflow-hidden rounded-[4px]">
+          <CardBackArt kind={back} label={false} className={`block h-full w-full ${n ? '' : 'opacity-40'}`} />
+        </span>
+      ) : (
+        glyph
+      )}
       <span
         className={`hex-badge -right-2 -top-2.5 w-4.5 tabular ${warn ? 'hex-badge-warn' : ''}`}
       >
@@ -89,7 +104,7 @@ export function ProgressCounts({ tracks }: { tracks: Record<Track, number> }) {
     <span className="flex items-center gap-1.5 tabular" title={`Progress cards: ${summary}`} aria-label={`Progress cards: ${summary}`}>
       {TRACKS.map((t) => (
         <span key={t} className={`flex items-center gap-0.5 ${tracks[t] ? '' : 'opacity-40'}`}>
-          <CardBack bg={TRACK_STYLE[t].color} />
+          <CardBack bg={TRACK_STYLE[t].color} back={t} />
           {tracks[t]}
         </span>
       ))}
@@ -152,6 +167,7 @@ export function PlayersPanel({
   highlight = true,
   seats,
   inline = false,
+  stepOut = true,
 }: {
   view: PlayerView;
   room: RoomDTO | null;
@@ -166,6 +182,8 @@ export function PlayersPanel({
   seats?: number[];
   /** In the bottom bar: the card stays in line instead of sticking out on its turn. */
   inline?: boolean;
+  /** The current player's card sticks out towards the board (off: it is only highlighted, as in the replay). */
+  stepOut?: boolean;
 }) {
   // Whoever has to act: a pending prompt comes first (even a gold pick found during setup).
   const actors = new Set(
@@ -304,11 +322,11 @@ export function PlayersPanel({
                 <span className={`flex items-center ${compact ? 'gap-2.5' : 'gap-3'}`}>
                   {/* the hand and the three progress decks share one size, so their badges line up */}
                   {TRACKS.map((t) => (
-                    <CardIcon key={t} bg={TRACK_STYLE[t].color} ink={TRACK_STYLE[t].ink} n={p.progressTracks[t]} title={`${TRACK_STYLE[t].label} progress cards`} glyph="" small />
+                    <CardIcon key={t} bg={TRACK_STYLE[t].color} ink={TRACK_STYLE[t].ink} n={p.progressTracks[t]} title={`${TRACK_STYLE[t].label} progress cards`} glyph="" back={t} small />
                   ))}
                 </span>
               ) : (
-                <CardIcon bg={DEV_BG} n={p.devCount} title="Development cards" small={compact} />
+                <CardIcon bg={DEV_BG} n={p.devCount} title="Development cards" back="dev" small={compact} />
               )}
             </div>
             {ck && <ImprovementGrid levels={p.improvements} metropolis={TRACKS.filter((t) => view.metropolis[t] === seat)} compact />}
@@ -331,7 +349,7 @@ export function PlayersPanel({
               },
             })}
             className={`paper-flat relative flex shrink-0 flex-col gap-0.5 py-1.5 pl-3 ${compact ? 'pr-2.5' : 'pr-14'} transition-all duration-300 motion-reduce:transition-none ${
-              compact ? 'min-w-max' : `min-w-0 ${highlight && !inline && turnSeat === seat ? (align === 'right' ? '-ml-4' : '-mr-4') : ''}`
+              compact ? 'min-w-max' : `min-w-0 ${highlight && !inline && stepOut && turnSeat === seat ? (align === 'right' ? '-ml-4' : '-mr-4') : ''}`
             } ${waiting ? 'bg-paper-2 *:opacity-70 *:saturate-50' : ''} ${
               acting ? 'ring-4 ring-amber' : ''
             } ${clickable ? 'cursor-pointer hover:brightness-[0.97]' : ''}`}
@@ -442,7 +460,7 @@ export function PlayerStrip({ view, room, leading }: { view: PlayerView; room: R
                     {p.handCount}
                   </span>
                   <span className="flex items-center gap-0.5">
-                    <CardBack bg={ck ? '#7c6a9e' : DEV_BG} />
+                    <CardBack bg={ck ? '#7c6a9e' : DEV_BG} back={ck ? undefined : 'dev'} />
                     {special}
                   </span>
                   {/* Knights & Barbarians: the active knights' strength, gold when it counts, as in the players panel. */}

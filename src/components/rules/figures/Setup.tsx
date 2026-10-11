@@ -1,7 +1,7 @@
 import { PLAYER_COLORS } from '@/shared/colors';
 import { Arrow, House } from './art-basic';
 
-const SEATS = ['red', 'blue', 'orange', 'white'] as const;
+const SEATS = ['red', 'blue', 'orange', 'green'] as const;
 
 function Round({ order, label }: { order: number[]; label: string }) {
   return (

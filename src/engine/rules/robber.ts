@@ -18,7 +18,7 @@ export function discard(ctx: Ctx, prompt: Extract<Prompt, { kind: 'discard' }>, 
  * Moves the robber for the acting seat and resolves the theft: one chosen victim, or (Bishop)
  * one random card from everyone with a building on the hex.
  */
-export function relocateRobber(ctx: Ctx, hex: number, victim: number | null, everyone = false): void {
+export function relocateRobber(ctx: Ctx, hex: number, victim: number | null, everyone = false, chased = false): void {
   const s = ctx.s;
   assertRule(isHex(s, hex), 'Unknown hex');
   const pirate = s.board.hexes[hex].terrain === 'sea';
@@ -28,7 +28,7 @@ export function relocateRobber(ctx: Ctx, hex: number, victim: number | null, eve
   assertRule(allowed.includes(hex), pirate ? 'The pirate cannot sail there' : 'Friendly robber: that hex only touches players with 2 or fewer points');
   if (pirate) s.pirate = hex;
   else s.robber = hex;
-  emit(ctx, { type: 'robberMoved', seat: ctx.seat, hex, ...(pirate ? { pirate: true } : {}) });
+  emit(ctx, { type: 'robberMoved', seat: ctx.seat, hex, ...(pirate ? { pirate: true } : {}), ...(chased ? { chased: true } : {}) });
 
   if (everyone) {
     for (const other of hexNeighbours(s, ctx.seat, hex).sort((a, b) => a - b)) stealRandom(ctx, ctx.seat, other);

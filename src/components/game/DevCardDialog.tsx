@@ -2,13 +2,20 @@
 
 import { ArrowLeft, Play } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { RESOURCES, type DevCardType, type Resource } from '@/engine';
+import { RESOURCES, type DevCardType, type PartialHand, type Resource } from '@/engine';
 import type { PlayerView } from '@/engine/view';
 import { DEV_NAMES, DEV_TEXT } from '@/client/describe';
 import { api } from '@/client/store';
 import { useUi } from '@/client/ui';
 import { Modal } from '@/components/ui/Modal';
-import { DevCardFace, ResourceCard } from './cards';
+import { DevCardFace } from './cards';
+import { ResourceChooser, ResourcePick } from './ResourceChooser';
+
+const tally = (picked: Resource[]): PartialHand => {
+  const t: PartialHand = {};
+  for (const r of picked) t[r] = (t[r] ?? 0) + 1;
+  return t;
+};
 
 function myFreeTurn(view: PlayerView): boolean {
   return view.viewer !== null && view.phase === 'play' && view.turn.seat === view.viewer && view.pending.length === 0;
@@ -78,36 +85,30 @@ export function DevCardDialog({ view, type }: { view: PlayerView; type: DevCardT
       ) : (
         <div className="grid gap-4">
           <p className="text-sm text-ink-soft">{type === 'monopoly' ? 'Pick the resource everyone hands over.' : 'Pick two resources to take from the bank.'}</p>
-          <div className="flex flex-wrap justify-center gap-2">
-            {RESOURCES.map((r) => (
-              <ResourceCard
-                key={r}
-                card={r}
-                count={picked.filter((x) => x === r).length}
-                selected={picked.includes(r)}
-                onClick={() => setPicked((prev) => (type === 'monopoly' ? [r] : prev && prev.length < 2 ? [...prev, r] : [r]))}
-              />
-            ))}
-          </div>
+          {type === 'monopoly' ? (
+            <ResourcePick cards={RESOURCES} value={picked[0] ?? null} onChange={(r) => setPicked([r as Resource])} />
+          ) : (
+            // Taken from the bank: a kind greys out only when it is gone, and the count it holds never shows.
+            <ResourceChooser
+              cards={RESOURCES}
+              value={tally(picked)}
+              onChange={(v) => setPicked(RESOURCES.flatMap((r) => Array<Resource>(v[r] ?? 0).fill(r)))}
+              max={view.bank}
+              limitTotal={2}
+            />
+          )}
           <div className="flex items-center justify-between gap-2">
             <button type="button" className="btn btn-ghost px-2 py-2 text-sm" onClick={() => setPicked(null)}>
               <ArrowLeft size={15} /> Back
             </button>
-            <div className="flex gap-2">
-              {type === 'yearOfPlenty' && (
-                <button type="button" className="btn px-3 py-2 text-sm" disabled={picked.length === 0} onClick={() => setPicked([])}>
-                  Clear
-                </button>
-              )}
-              <button
-                type="button"
-                className="btn btn-primary px-5 py-2"
-                disabled={type === 'monopoly' ? picked.length !== 1 : picked.length !== 2}
-                onClick={confirm}
-              >
-                <Play size={15} /> Play
-              </button>
-            </div>
+            <button
+              type="button"
+              className="btn btn-primary px-5 py-2"
+              disabled={type === 'monopoly' ? picked.length !== 1 : picked.length !== 2}
+              onClick={confirm}
+            >
+              <Play size={15} /> Play
+            </button>
           </div>
         </div>
       )}

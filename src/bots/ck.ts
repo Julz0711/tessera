@@ -15,7 +15,8 @@ import {
   TRACK_COMMODITY,
   activatableKnights,
   barbarianStrength,
-  chaseKnights,
+  chasePirateKnights,
+  chaseRobberKnights,
   handTotal,
   hasCards,
   improvementBlocker,
@@ -221,7 +222,8 @@ function preferredTrack(view: PlayerView, seat: number): Track {
   return argmax([...TRACKS], (t) => me.hand[TRACK_COMMODITY[t]] * 2 + me.improvements[t] * 1.5 + (t === 'science' ? 0.4 : 0) + (t === 'politics' ? 0.2 : 0))!;
 }
 
-function goals(view: PlayerView, seat: number): Goal[] {
+/** Everything the bot would like to build next, best first (the analysis uses these as candidate moves). */
+export function goals(view: PlayerView, seat: number): Goal[] {
   const out: Goal[] = [];
   const me = view.players[seat];
   const left = piecesLeft(view, seat);
@@ -461,13 +463,21 @@ export function ckBotAction(view: PlayerView, seat: number, opts: BotOptions = {
   }
 
   // Knights next to the robber chase it away when it sits on our land.
-  const chasers = chaseKnights(view, seat);
+  const chasers = chaseRobberKnights(view, seat);
   if (chasers.length) {
     const t = topo(view);
     const robbed = t.hexes[view.robber].vertices.some((v) => view.buildings[v]?.owner === seat);
     if (robbed) {
       const { hex, victim } = chooseRobber(view, seat, false);
       if (hex !== view.robber) return { type: 'chaseRobber', vertex: chasers[0], hex, victim: robberVictims(view, seat, hex).length ? victim : null };
+    }
+  }
+  // Likewise the pirate, when it sits along our ships.
+  const sailors = chasePirateKnights(view, seat);
+  if (sailors.length && view.pirate != null && topo(view).hexes[view.pirate].edges.some((e) => view.ships[e] === seat)) {
+    const { hex, victim } = chooseRobber(view, seat, true, 'sea');
+    if (hex !== view.pirate && view.board.hexes[hex].terrain === 'sea') {
+      return { type: 'chaseRobber', vertex: sailors[0], hex, victim: robberVictims(view, seat, hex).length ? victim : null };
     }
   }
 

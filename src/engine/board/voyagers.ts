@@ -1,6 +1,6 @@
-import { HARBOR_KINDS, NUMBER_TOKENS, TERRAIN_COUNTS, TREASURE_DECK, VEILED_FOG_GOLDS, VEILED_FOG_SEAS, VEILED_FOG_TOKENS } from '../constants';
+import { HARBOR_KINDS, NUMBER_TOKENS, TERRAIN_COUNTS, TREASURE_DECK, VEILED_FOG_GOLDS, VEILED_FOG_SEAS, VEILED_FOG_TOKENS, ZEALAND_TREASURE_DECK } from '../constants';
 import { randomInt, shuffle, type RngHolder } from '../rng';
-import { RESOURCES, TREASURE_KINDS, type Board, type Harbor, type HarborKind, type Hex, type LandTerrain, type Terrain, type Treasure } from '../types';
+import { RESOURCES, type Board, type Harbor, type HarborKind, type Hex, type LandTerrain, type Terrain, type Treasure, type TreasureKind } from '../types';
 import { bag, balancedTokens, dealTokens, spreadHarborEdges } from './generate';
 import { getTopology, type HexCoord, type Topology } from './topology';
 
@@ -176,6 +176,12 @@ function outerCoast(topo: Topology, terrains: Terrain[], ids: number[], joined =
   });
 }
 
+/** The whole deck shuffled: the first cards go face up onto the chest corners, the rest stay hidden as the draw pile. */
+function dealTreasures(rng: RngHolder, deck: readonly TreasureKind[], corners: number[]): { treasures: Treasure[]; treasurePile: TreasureKind[] } {
+  const cards = shuffle(rng, [...deck]);
+  return { treasures: corners.map((vertex, i) => ({ vertex, kind: cards[i] })), treasurePile: cards.slice(corners.length) };
+}
+
 /** Up to `n` of `edges`, drawn at random, none sharing a corner with another or with `used`. */
 function pickApart<T extends { a: number; b: number }>(rng: RngHolder, edges: T[], n: number, used = new Set<number>()): T[] {
   const out: T[] = [];
@@ -286,9 +292,9 @@ const ZEALAND_ISLE: HexCoord[] = [
   { q: 5, r: -4 },
 ];
 
-/** What the six fogged isles of Zealand hide, dealt at random across all of them (60 hexes, all land). */
+/** What the six fogged isles of Zealand hide besides their 3 seas and 3 deserts, dealt at random across all of them (54 land hexes). */
 const zealandFog = (gold: boolean): Partial<Record<LandTerrain, number>> =>
-  gold ? { forest: 13, hills: 13, fields: 13, mountains: 13, pasture: 6, gold: 2 } : { forest: 14, hills: 14, fields: 14, mountains: 14, pasture: 4 };
+  gold ? { forest: 12, hills: 12, fields: 11, mountains: 11, pasture: 6, gold: 2 } : { forest: 13, hills: 13, fields: 12, mountains: 12, pasture: 4 };
 
 /** The 18 sheep numbers: good ones, never a 2 or a 12. */
 const ZEALAND_SHEEP_TOKENS = [3, 3, 4, 4, 5, 5, 5, 6, 6, 8, 8, 9, 9, 9, 10, 10, 11, 11];
@@ -301,7 +307,8 @@ const ZEALAND_SHEEP_TOKENS = [3, 3, 4, 4, 5, 5, 5, 6, 6, 8, 8, 9, 9, 9, 10, 10, 
  * an 8) hide among them. A one-hex desert island lies far out at sea, at least three sea hexes from
  * the nearest isle, where the robber starts; sailing there is rewarded with three treasures on its
  * corners. Every isle has three treasures on its coast, one on the side facing the mainland and two on
- * the outer side (18), so 21 in all, each a random kind. The pirate starts beside the desert island, on its
+ * the outer side (18), so 21 in all, dealt from a deck of 28 (the other 7 stay hidden as a draw pile). The fog also hides three seas and
+ * three deserts; uncovering one draws a treasure from that pile. The pirate starts beside the desert island, on its
  * outer side.
  */
 export function zealandBoard(rng: RngHolder, gold = true): Board {
@@ -341,22 +348,11 @@ export function zealandBoard(rng: RngHolder, gold = true): Board {
   const fogged = topo.hexes.filter((h) => landed.has(`${h.q},${h.r}`)).map((h) => h.id);
   const isleIds = isles.map((tiles) => tiles.map((t) => topo.hexAt(t.q, t.r)!));
   for (const id of home) terrains[id] = 'pasture';
-  // Two gold fields never touch (each is a 6 or an 8).
-  const goldTouches = () => fogged.some((id) => terrains[id] === 'gold' && topo.hexes[id].neighbors.some((n) => terrains[n] === 'gold'));
-  do shuffle(rng, bag(zealandFog(gold))).forEach((t, i) => { terrains[fogged[i]] = t; }); while (goldTouches());
+  // The isles are land (placeholder) until their harbors and chests are placed; the fog is dealt afterwards.
+  for (const id of fogged) terrains[id] = 'pasture';
 
   const desert = topo.hexAt(spot.q, spot.r)!;
   terrains[desert] = 'desert';
-
-  const fixed: (number | null)[] = topo.hexes.map(() => null);
-  for (const id of fogged) if (terrains[id] === 'gold') fixed[id] = shuffle(rng, [6, 8])[0];
-  const land = fogged.filter((id) => terrains[id] !== 'gold');
-  const homeTokens = dealTokens(rng, topo, [[home, [...ZEALAND_SHEEP_TOKENS]]], topo.hexes.map(() => null));
-  const tokens = dealTokens(rng, topo, [[land, balancedTokens(land.length)]], fixed.map((t, id) => t ?? homeTokens[id]));
-
-  const hexes = hexesOf(topo, terrains, tokens);
-  for (const id of home) hexes[id].start = true;
-  for (const id of fogged) hexes[id].fog = true;
 
   // Twelve wool harbors on the sheep island, two on each of its six sides: one at every place where two
   // of its outer tiles meet, on the coast edge just clockwise of it. Each therefore sits between two
@@ -420,11 +416,55 @@ export function zealandBoard(rng: RngHolder, gold = true): Board {
       chests.push(vertexAt.get(placeKey(x, y))!);
     }
   }
-  const treasures: Treasure[] = chests.map((vertex) => ({ vertex, kind: TREASURE_KINDS[randomInt(rng, TREASURE_KINDS.length)] }));
+  const { treasures, treasurePile } = dealTreasures(rng, ZEALAND_TREASURE_DECK, chests);
+
+  // The fog hides three seas and three deserts, at most one of each on an isle, on a
+  // hex touching a harbor's edge or ends or a chest corner. A sea may not cut its isle in two (an isle is one
+  // island, worth its point to whoever first settles any part of it).
+  const marked = new Set<number>();
+  for (const h of harbors) for (const v of [topo.edges[h.edge].a, topo.edges[h.edge].b]) for (const hx of topo.vertices[v].hexes) marked.add(hx);
+  for (const c of chests) for (const hx of topo.vertices[c].hexes) marked.add(hx);
+  const connected = (ids: number[], gone: number) => {
+    const rest = new Set(ids.filter((id) => id !== gone));
+    const seen = new Set<number>([[...rest][0]]);
+    const stack = [...seen];
+    while (stack.length) for (const n of topo.hexes[stack.pop()!].neighbors) if (rest.has(n) && !seen.has(n)) { seen.add(n); stack.push(n); }
+    return seen.size === rest.size;
+  };
+  const special = new Set<number>();
+  const mark = (kind: 'sea' | 'desert') => {
+    let placed = 0;
+    for (const k of shuffle(rng, [0, 1, 2, 3, 4, 5])) {
+      if (placed === 3) break;
+      const ok = shuffle(rng, isleIds[k]).find((id) => !marked.has(id) && !special.has(id) && (kind === 'desert' || connected(isleIds[k], id)));
+      if (ok === undefined) continue;
+      special.add(ok);
+      terrains[ok] = kind;
+      placed++;
+    }
+    if (placed < 3) throw new Error('No room for the fogged seas and deserts');
+  };
+  mark('sea');
+  mark('desert');
+
+  // The rest of the fog, dealt at random. Two gold fields never touch (each is a 6 or an 8).
+  const open = fogged.filter((id) => !special.has(id));
+  const goldTouches = () => open.some((id) => terrains[id] === 'gold' && topo.hexes[id].neighbors.some((n) => terrains[n] === 'gold'));
+  do shuffle(rng, bag(zealandFog(gold))).forEach((t, i) => { terrains[open[i]] = t; }); while (goldTouches());
+
+  const fixed: (number | null)[] = topo.hexes.map(() => null);
+  for (const id of open) if (terrains[id] === 'gold') fixed[id] = shuffle(rng, [6, 8])[0];
+  const land = open.filter((id) => terrains[id] !== 'gold');
+  const homeTokens = dealTokens(rng, topo, [[home, [...ZEALAND_SHEEP_TOKENS]]], topo.hexes.map(() => null));
+  const tokens = dealTokens(rng, topo, [[land, balancedTokens(land.length)]], fixed.map((t, id) => t ?? homeTokens[id]));
+
+  const hexes = hexesOf(topo, terrains, tokens);
+  for (const id of home) hexes[id].start = true;
+  for (const id of fogged) hexes[id].fog = true;
 
   // The pirate starts beside the desert island, on its outer side.
   const beside = topo.hexes[desert].neighbors.filter((n) => distance(topo.hexes[n].q, topo.hexes[n].r) >= distance(spot.q, spot.r));
-  return { hexes, harbors, pirateStart: beside[randomInt(rng, beside.length)], robberStart: desert, treasures };
+  return { hexes, harbors, pirateStart: beside[randomInt(rng, beside.length)], robberStart: desert, treasures, treasurePile };
 }
 
 const idsOf = (layout: Layout, test: (code: string) => boolean) =>
@@ -550,13 +590,12 @@ export function veiledIslesBoard(rng: RngHolder): Board {
     if (!v) throw new Error('Treasure spot is not a corner');
     return v.id;
   });
-  const deck = shuffle(rng, [...TREASURE_DECK]);
-  const treasures: Treasure[] = corners.map((vertex, i) => ({ vertex, kind: deck[i] }));
+  const { treasures, treasurePile } = dealTreasures(rng, TREASURE_DECK, corners);
 
   // Nine harbors in fixed spots on the home island's coast; their kinds are shuffled.
   const kinds = shuffle(rng, [...HARBOR_KINDS]);
   const harbors: Harbor[] = VEILED_HARBORS.map(([row, col, angle], i) => ({ edge: sideOf(topo, L.at(row, col), angle), kind: kinds[i] }));
   // The robber starts in the home island's desert, never the fogged one.
   const robberStart = main.find((id) => terrains[id] === 'desert');
-  return { hexes, harbors, pirateStart: L.codes.indexOf('P'), treasures, robberStart };
+  return { hexes, harbors, pirateStart: L.codes.indexOf('P'), treasures, treasurePile, robberStart };
 }

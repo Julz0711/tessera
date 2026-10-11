@@ -182,12 +182,21 @@ export const EVENT_DIE: EventFace[] = ['ship', 'ship', 'ship', 'trade', 'politic
 /** Probability "pips" of each number token (ways to roll it out of 36). */
 export const PIPS: Record<number, number> = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1 };
 
-/** Veiled Isles: the 15 placed treasures, shuffled without replacement. */
+/** Veiled Isles: all 19 treasures, shuffled; 15 go onto the chest corners and the other 4 form the draw pile. */
 export const TREASURE_DECK: readonly TreasureKind[] = [
   ...Array<TreasureKind>(5).fill('resource'),
   ...Array<TreasureKind>(4).fill('roadBuilding'),
   ...Array<TreasureKind>(3).fill('bundle'),
   ...Array<TreasureKind>(3).fill('devCard'),
+  ...Array<TreasureKind>(4).fill('twoResources'),
+];
+/** Zealand: all 28 treasures, shuffled; 21 go onto the chest corners and the other 7 form the draw pile. */
+export const ZEALAND_TREASURE_DECK: readonly TreasureKind[] = [
+  ...Array<TreasureKind>(7).fill('resource'),
+  ...Array<TreasureKind>(6).fill('twoResources'),
+  ...Array<TreasureKind>(6).fill('roadBuilding'),
+  ...Array<TreasureKind>(5).fill('bundle'),
+  ...Array<TreasureKind>(4).fill('devCard'),
 ];
 /** Veiled Isles: sea hexes hidden under the fog, every game. */
 export const VEILED_FOG_SEAS = 2;

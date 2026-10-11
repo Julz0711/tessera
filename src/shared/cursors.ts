@@ -15,3 +15,6 @@ export function isBoardPoint(v: unknown): v is BoardPoint {
 
 /** How long another player's cursor stays after its last update. */
 export const CURSOR_SHOW_MS = 3000;
+
+/** How long a click ripple plays on the receiving boards. */
+export const RIPPLE_MS = 450;

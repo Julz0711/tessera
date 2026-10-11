@@ -2,20 +2,20 @@
 
 import { Html } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Plane, Raycaster, Vector2, Vector3, type Group } from 'three';
 import { useCursors } from '@/client/cursorStore';
-import { sendCursor, useCursorsOn } from '@/client/cursors';
+import { motionReduced, sendCursor, sendCursorClick, useSeeCursorsOn, useShareCursorOn } from '@/client/cursors';
 import { useGame } from '@/client/store';
 import { PLAYER_COLORS } from '@/shared/colors';
-import { CURSOR_SHOW_MS } from '@/shared/cursors';
+import { CURSOR_SHOW_MS, RIPPLE_MS } from '@/shared/cursors';
 
 /** Pointers hover just above the tiles (world y; the island itself sits a little above the sea). */
 const CURSOR_HEIGHT = 0.2;
 
 /** Sends where the viewer's mouse is on the board, in board units: the ray under it meets the board plane. */
 export function CursorTracker3D({ cx, cz, reach }: { cx: number; cz: number; reach: number }) {
-  const on = useCursorsOn();
+  const on = useShareCursorOn();
   const gl = useThree((s) => s.gl);
   const camera = useThree((s) => s.camera);
   useEffect(() => {
@@ -25,20 +25,29 @@ export function CursorTracker3D({ cx, cz, reach }: { cx: number; cz: number; rea
     const plane = new Plane(new Vector3(0, 1, 0), -CURSOR_HEIGHT);
     const ndc = new Vector2();
     const hit = new Vector3();
-    const move = (e: PointerEvent) => {
-      if (e.pointerType === 'touch') return;
+    const at = (e: PointerEvent) => {
       const r = el.getBoundingClientRect();
       ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -(((e.clientY - r.top) / r.height) * 2 - 1));
       ray.setFromCamera(ndc, camera);
       const p = ray.ray.intersectPlane(plane, hit);
       // Looking at the sky or the far horizon is not "over the board".
-      if (!p || Math.hypot(p.x, p.z) > reach) return sendCursor(null);
-      sendCursor({ x: p.x + cx, y: p.z + cz });
+      return p && Math.hypot(p.x, p.z) <= reach ? { x: p.x + cx, y: p.z + cz } : null;
     };
+    const move = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return;
+      sendCursor(at(e));
+    };
+    const down = (e: PointerEvent) => {
+      if (e.pointerType === 'touch' || e.button !== 0) return;
+      const p = at(e);
+      if (p) sendCursorClick(p);
+    };
+    el.addEventListener('pointerdown', down, true);
     const leave = () => sendCursor(null);
     el.addEventListener('pointermove', move);
     el.addEventListener('pointerleave', leave);
     return () => {
+      el.removeEventListener('pointerdown', down, true);
       el.removeEventListener('pointermove', move);
       el.removeEventListener('pointerleave', leave);
       sendCursor(null);
@@ -88,14 +97,48 @@ function Mark({ id }: { id: string }) {
   );
 }
 
+/** A click by another player: a ring in their colour on the board that grows and fades (a still dot with reduced motion). */
+function Ripple({ id, x, y }: { id: string; x: number; y: number }) {
+  const seat = useGame((s) => s.room?.seats.find((p) => p.playerId === id));
+  const [still] = useState(motionReduced);
+  if (!seat) return null;
+  const col = PLAYER_COLORS[seat.color].hex;
+  const size = still ? 14 : 56;
+  return (
+    <group position={[x, CURSOR_HEIGHT, y]}>
+      <Html zIndexRange={[19, 0]} style={{ pointerEvents: 'none' }}>
+        <div
+          className={still ? undefined : 'cursor-ripple-3d'}
+          style={{
+            animationDuration: `${RIPPLE_MS}ms`,
+            width: size,
+            height: size,
+            borderRadius: '50%',
+            boxSizing: 'border-box',
+            border: still ? '2px solid #131a1d' : `4px solid ${col}`,
+            background: still ? col : 'transparent',
+            boxShadow: still ? 'none' : '0 0 0 2px #131a1d, inset 0 0 0 2px #131a1d',
+            transform: 'translate(-50%, -50%)',
+            pointerEvents: 'none',
+          }}
+        />
+      </Html>
+    </group>
+  );
+}
+
 /** Other players' mouse pointers on the board (put inside the island's group: positions are board units). */
 export function CursorLayer3D() {
-  const on = useCursorsOn();
+  const on = useSeeCursorsOn();
   const ids = useCursors((s) => Object.keys(s.cursors).join('|'));
-  if (!on || !ids) return null;
+  const ripples = useCursors((s) => s.ripples);
+  if (!on || (!ids && !ripples.length)) return null;
   return (
     <>
-      {ids.split('|').map((id) => (
+      {ripples.map((r) => (
+        <Ripple key={r.id} id={r.playerId} x={r.x} y={r.y} />
+      ))}
+      {ids && ids.split('|').map((id) => (
         <Mark key={id} id={id} />
       ))}
     </>

@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, RotateCcw, Users } from 'lucide-react';
+import { Clapperboard, Home, RotateCcw, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { buildReport, type GameReport } from '@/engine/report';
@@ -9,10 +9,12 @@ import type { PlayerView } from '@/engine/view';
 import { api } from '@/client/store';
 import type { RoomDTO } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
+import { AccuracyPanel, useGameAnalysis } from './endgame/AccuracyPanel';
 import { AwardBadges } from './endgame/AwardBadges';
 import { PlayerBadge, Podium } from './endgame/Podium';
 import { PointIcons } from './endgame/PointIcons';
 import { Modal } from '@/components/ui/Modal';
+import { ReplayViewer } from './replay/ReplayViewer';
 
 
 function Confetti() {
@@ -44,6 +46,7 @@ function Confetti() {
 export function GameOver({ view, room, onClose }: { view: PlayerView; room: RoomDTO; onClose: () => void }) {
   const router = useRouter();
   const [tab, setTab] = useState<'standings' | 'stats'>('standings');
+  const [replaying, setReplaying] = useState(false);
   const localReport = useMemo(() => buildReport(view), [view]);
   const [savedReport, setSavedReport] = useState<GameReport | null>(null);
   useEffect(() => {
@@ -62,13 +65,15 @@ export function GameOver({ view, room, onClose }: { view: PlayerView; room: Room
     return () => { controller.abort(); clearTimeout(timer); };
   }, [room.gameId]);
   const report = savedReport ?? localReport;
+  // The move analysis starts once the game is stored (the saved report shows it is); none in memory-only mode.
+  const analysis = useGameAnalysis(room.gameId, !!savedReport);
   const order = view.players.map((_, i) => i).sort((a, b) => report.players[a].rank - report.players[b].rank);
   const winner = view.winner;
   const iWon = winner !== null && winner === view.viewer;
   return (
     <>
       {iWon && <Confetti />}
-      <Modal open onClose={onClose} title={winner !== null ? (iWon ? 'Victory!' : `${view.players[winner].name} wins`) : 'Game over'} wide expansive={tab === 'stats'} top>
+      <Modal open={!replaying} onClose={onClose} title={winner !== null ? (iWon ? 'Victory!' : `${view.players[winner].name} wins`) : 'Game over'} wide expansive={tab === 'stats'} top>
         <div className="mb-3 flex gap-1.5">
           {(['standings', 'stats'] as const).map((t) => (
             <button
@@ -106,11 +111,22 @@ export function GameOver({ view, room, onClose }: { view: PlayerView; room: Room
                 })}
               </ol>
             )}
+            {analysis && <AccuracyPanel status={analysis} report={report} order={order} viewer={view.viewer} />}
           </>
         ) : (
           <GameReportView report={report} initialSeat={view.viewer} />
         )}
         <div className="mt-5 flex flex-wrap justify-end gap-2">
+          {/* Replays are stored with the game history; the saved report turning up shows the game was written to it. */}
+          <button
+            type="button"
+            className="btn px-4 py-2 sm:mr-auto"
+            onClick={() => setReplaying(true)}
+            disabled={!savedReport || !room.gameId}
+            title={savedReport ? 'Play the game back, with every hand revealed' : 'Replays need the game history, which is still being saved (or is not kept on this server)'}
+          >
+            <Clapperboard size={16} /> Watch replay
+          </button>
           <button
             type="button"
             className="btn px-4 py-2"
@@ -135,6 +151,7 @@ export function GameOver({ view, room, onClose }: { view: PlayerView; room: Room
           )}
         </div>
       </Modal>
+      {replaying && room.gameId && <ReplayViewer gameId={room.gameId} room={room} onClose={() => setReplaying(false)} />}
     </>
   );
 }

@@ -143,9 +143,9 @@ export function chooseDiscard(view: PlayerView, seat: number, count: number, car
   return out;
 }
 
-export function chooseRobber(view: PlayerView, seat: number, pirate = true): { hex: number; victim: number | null } {
+export function chooseRobber(view: PlayerView, seat: number, pirate = true, only?: 'land' | 'sea'): { hex: number; victim: number | null } {
   const t = topo(view);
-  const targets = robberTargets(view, seat, (s) => view.players[s].publicVP, pirate);
+  const targets = robberTargets(view, seat, (s) => view.players[s].publicVP, pirate).filter((h) => !only || (view.board.hexes[h].terrain === 'sea') === (only === 'sea'));
   const hex =
     argmax(targets, (h) => {
       const tile = view.board.hexes[h];
@@ -347,7 +347,8 @@ export function bestRoute(view: PlayerView, seat: number): Goal | null {
   return road ? { action: { type: 'buildRoad', edge: road.edge }, cost: COSTS.road, value: road.value } : null;
 }
 
-function goals(view: PlayerView, seat: number): Goal[] {
+/** Everything the bot would like to build next, best first (the analysis uses these as candidate moves). */
+export function goals(view: PlayerView, seat: number): Goal[] {
   const out: Goal[] = [];
   const left = piecesLeft(view, seat);
   const weights = resourceWeights(view);

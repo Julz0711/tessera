@@ -22,7 +22,7 @@ function GameRow({ game: g }: { game: GameSummary }) {
     </summary>
     <div className="mt-4 grid gap-3 border-t border-ink/10 pt-3">
       <ul className="grid gap-1 text-sm">{g.players.map((p, i) => <li key={i} className="flex justify-between gap-3"><span>{p.name}{p.isYou ? ' (you)' : p.isBot ? ' (bot)' : ''}{p.won ? ' · Winner' : ''}</span><b>{p.vp ?? '—'} VP</b></li>)}</ul>
-      <p className="text-xs text-ink-faint">{g.turns ?? '—'} turns{g.ratingBefore !== null && g.ratingBefore !== undefined && <> · {g.ratingBefore} <ArrowRight size={11} strokeWidth={2.5} className="inline align-[-1px]" aria-label="to" /> {g.ratingAfter} {MODE_LABEL[isRatingPool(g.ratingPool) ? g.ratingPool : ratingPoolFor(g.mode, g.map)]} Elo</>}</p>
+      <p className="text-xs text-ink-faint">{g.turns ?? '—'} turns{g.ratingBefore !== null && g.ratingBefore !== undefined && <> · {g.ratingBefore} <ArrowRight size={11} strokeWidth={2.5} className="inline align-[-1px]" aria-label="to" /> {g.ratingAfter} {MODE_LABEL[isRatingPool(g.ratingPool) ? g.ratingPool : ratingPoolFor(g.mode, g.map)]} Elo</>}{g.accuracy != null && <> · Accuracy {Math.round(g.accuracy)}{g.accuracyElo ? ` (${g.accuracyElo > 0 ? '+' : ''}${g.accuracyElo} Elo)` : ''}</>}</p>
       {g.hasReport ? <Link className="btn justify-self-start px-3 py-2 text-sm" href={`/games/${g.gameId}`}>Explore stats</Link> : <p className="text-xs text-ink-faint">Detailed stats were not recorded or are no longer available for this game.</p>}
     </div>
   </details>;

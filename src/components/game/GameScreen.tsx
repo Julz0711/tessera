@@ -341,6 +341,8 @@ export function GameScreen() {
   const bar = useRef<HTMLDivElement>(null);
   const others = useRef<HTMLDivElement>(null);
   const [trayRoom, setTrayRoom] = useState<number>();
+  // Experimental layout: the build column stands above the hand, portalled there from the Dock (which owns the build logic).
+  const [buildHost, setBuildHost] = useState<HTMLDivElement | null>(null);
   const [barH, setBarH] = useState(0);
   const [cornerH, setCornerH] = useState(0);
   useLayoutEffect(() => {
@@ -376,10 +378,12 @@ export function GameScreen() {
   const barred = wide && me !== null;
   // On the 2D board the barbarians' progress is the tall track at the left edge of wide screens (outside
   // the movable panels) or the small HUD panel, as set; the 3D board keeps its own track on the sea, plus the small panel.
-  const bigTrack = wide && view.mode === 'ck' && prefs.view === '2d' && prefs.barbarianTrack === 'large';
+  // Experimental layout: the tall track stands above the build column instead (and the small panel goes).
+  const barBar = wide && me !== null && prefs.uiVariant === 'experimental' && view.mode === 'ck';
+  const bigTrack = wide && view.mode === 'ck' && prefs.view === '2d' && prefs.barbarianTrack === 'large' && !barBar;
   // The 2D board's zoom buttons only show when turned on (Settings → Accessibility).
   const unused = (panel: HudPanel) =>
-    (panel === 'barbarian' && (view.mode !== 'ck' || bigTrack)) || ((panel === 'dice' || panel === 'players') && barred) || (panel === 'zoom' && !prefs.zoomButtons);
+    (panel === 'barbarian' && (view.mode !== 'ck' || bigTrack || barBar)) || ((panel === 'dice' || panel === 'players') && barred) || (panel === 'zoom' && !prefs.zoomButtons);
   // A side column takes room from the flat board when it holds more than the (usually empty) offers
   // and the small zoom buttons.
   const columnUsed = (side: HudSide) =>
@@ -399,7 +403,7 @@ export function GameScreen() {
     switch (panel) {
       case 'side':
         return (
-          <div className={`flex h-72 flex-col overflow-hidden ${ui.sideTab === 'dice' ? 'min-h-48' : 'min-h-36'}`}>
+          <div className="flex min-h-24 w-full min-w-0 flex-1 flex-col overflow-hidden">
             <SidePanel view={view} unread={unread} />
           </div>
         );
@@ -492,6 +496,19 @@ export function GameScreen() {
         {wide && me !== null ? (
           <div ref={bar} className="flex h-22 items-stretch gap-2">
             <div ref={handCell} className="pointer-events-auto relative flex min-w-0 flex-1">
+              {prefs.uiVariant === 'experimental' && (
+                // The build column above the hand's left end, with (Knights & Barbarians) the barbarians'
+                // track standing on top of it, a size smaller so both fit under the top bar.
+                // The keys take the track's width (w-min: as wide as the wider of the two).
+                <div className="absolute bottom-full left-0 mb-2 flex w-min flex-col items-stretch gap-2">
+                  {barBar && (
+                    <div className="pointer-events-none">
+                      <BarbarianTrack view={view} theme={prefs.boardTheme} paper />
+                    </div>
+                  )}
+                  <div ref={setBuildHost} />
+                </div>
+              )}
               {ui.panel === 'trade' && (
                 <div className="absolute bottom-full left-0 mb-2 w-full">
                   <TradePanel view={view} big />
@@ -506,9 +523,10 @@ export function GameScreen() {
                 <DiceBox view={view} size={58} bare />
                 <TurnBar view={view} room={room} />
               </div>
-              <Dock view={view} room={room} hand={false} timer={false} />
+              <Dock view={view} room={room} hand={false} timer={false} buildColumn={prefs.uiVariant === 'experimental' ? buildHost : null} />
             </div>
-            <div className="relative w-72 shrink-0">
+            {/* As wide as the HUD column's content above it (w-78 less its pl-4 and pr-1), so the edges line up. */}
+            <div className="relative w-73 shrink-0">
               <div ref={others} className="pointer-events-auto absolute inset-x-0 bottom-full mb-2">
                 {/* In turn order down to yours: the card right above yours plays just before you. */}
                 <PlayersPanel view={view} room={room} seats={view.players.map((_, i) => (me + 1 + i) % view.players.length).filter((i) => i !== me)} inline />

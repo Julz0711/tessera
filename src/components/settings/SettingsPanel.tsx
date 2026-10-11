@@ -265,10 +265,30 @@ export function SettingsPanel() {
                 ]}
               />
             </Section>
-            <Section title="Mouse pointers" hint="See other players' mouse pointers over the board, and let them see yours. Wide screens with a mouse only; never on touch screens.">
+            <Section title="Mouse pointers" hint="Show other players' pointers (and clicks) over the board: on by default. Share my pointer: lets them see yours, same as the pointer button next to the emoji button. Wide screens with a mouse only; never on touch screens.">
+              <div className="mb-1 text-xs font-bold">Show other players' pointers</div>
               <Segmented
-                value={prefs.shareCursors}
-                onChange={(shareCursors) => prefs.set({ shareCursors })}
+                value={prefs.seeCursors}
+                onChange={(seeCursors) => prefs.set({ seeCursors })}
+                options={[
+                  { value: true, label: 'On' },
+                  { value: false, label: 'Off' },
+                ]}
+              />
+              <div className="mb-1 mt-3 text-xs font-bold">Share my pointer</div>
+              <Segmented
+                value={prefs.shareCursor}
+                onChange={(shareCursor) => prefs.set({ shareCursor })}
+                options={[
+                  { value: true, label: 'On' },
+                  { value: false, label: 'Off' },
+                ]}
+              />
+            </Section>
+            <Section title="Amber cursor (beta)" hint="Swap the system mouse pointer for the amber arrow. Mice only; touch screens have no pointer.">
+              <Segmented
+                value={prefs.customCursor}
+                onChange={(customCursor) => prefs.set({ customCursor })}
                 options={[
                   { value: true, label: 'On' },
                   { value: false, label: 'Off' },
@@ -295,6 +315,16 @@ export function SettingsPanel() {
                 value={prefs.hudScale}
                 onChange={(hudScale) => prefs.set({ hudScale })}
                 options={(Object.keys(HUD_SCALE) as HudScale[]).map((s) => ({ value: s, label: s === 'small' ? 'S' : s === 'medium' ? 'M' : 'L' }))}
+              />
+            </Section>
+            <Section title="Layout" hint="Try the new in-game layout: a build column above your cards, highlighted when you can build.">
+              <Segmented
+                value={prefs.uiVariant}
+                onChange={(uiVariant) => prefs.set({ uiVariant })}
+                options={[
+                  { value: 'legacy', label: 'Legacy' },
+                  { value: 'experimental', label: 'Experimental (beta)' },
+                ]}
               />
             </Section>
             <Section

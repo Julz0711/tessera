@@ -37,9 +37,11 @@ function redactPrompt(p: Prompt, viewer: number | null): Prompt {
   return p;
 }
 
-/** What `viewer` is allowed to know. Never includes the RNG state or deck order. */
-export function viewFor(state: GameState, viewer: number | null): PlayerView {
-  const reveal = state.phase === 'ended';
+/**
+ * What `viewer` is allowed to know. Never includes the RNG state or deck order. `reveal` (on once the
+ * game has ended) opens every hand, card and fogged hex; a replay passes it for every step.
+ */
+export function viewFor(state: GameState, viewer: number | null, reveal = state.phase === 'ended'): PlayerView {
   const players: PublicPlayer[] = state.players.map((p, seat) => {
     const own = seat === viewer || reveal;
     return {
@@ -85,6 +87,8 @@ export function viewFor(state: GameState, viewer: number | null): PlayerView {
   if (visible.board.treasures && !reveal) {
     visible.board.treasures = visible.board.treasures.map((t) => (t.takenBy === undefined ? { vertex: t.vertex, kind: null } : t));
   }
+  // The draw pile behind hidden sea and desert is never shown.
+  delete visible.board.treasurePile;
   return {
     ...visible,
     players,

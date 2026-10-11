@@ -1,6 +1,6 @@
 import { ratingPoolFor, RATING_POOLS, type RatingPool } from '@/shared/ratings';
 import type { Mode, PlayerColor } from '@/engine/types';
-import { isPlayerColor } from '@/shared/colors';
+import { isPickableColor, isPlayerColor } from '@/shared/colors';
 import { clampCosmetics } from '@/shared/cosmetics';
 import { sanitizeKnight } from '@/shared/knight';
 import type { GameSummary, ProfileData, ProfilePreferences, ProfileUpdate } from '@/shared/protocol';
@@ -80,6 +80,21 @@ export async function historyFor(identity: ServerIdentity, take = 25): Promise<G
   }));
 }
 
+/** Recent games counted in the profile's average accuracy. */
+export const ACCURACY_GAMES = 20;
+
+/** Average accuracy over the identity's last `ACCURACY_GAMES` analysed games. */
+export async function accuracyFor(identity: ServerIdentity): Promise<NonNullable<ProfileData['accuracy']>> {
+  const db = getDb();
+  if (!db) return { average: null, games: 0 };
+  const where = identity.kind === 'user' ? { userId: identity.id } : { guestSessionId: identity.id };
+  const rows = await db.player.findMany({ where: { ...where, accuracy: { not: null }, game: { status: 'finished' } },
+    orderBy: { game: { startedAt: 'desc' } }, take: ACCURACY_GAMES, select: { accuracy: true } });
+  if (!rows.length) return { average: null, games: 0 };
+  const average = rows.reduce((n, r) => n + r.accuracy!, 0) / rows.length;
+  return { average: Math.round(average * 10) / 10, games: rows.length };
+}
+
 export async function ratingFor(identity: ServerIdentity): Promise<ProfileData['rating']> {
   const db = getDb();
   if (!db || identity.kind !== 'user') return null;
@@ -109,7 +124,7 @@ export async function updateProfile(identity: ServerIdentity, input: unknown): P
   const src = (input && typeof input === 'object' ? input : {}) as ProfileUpdate;
   const data: Record<string, unknown> = {};
   if (typeof src.displayName === 'string') data.displayName = sanitizeName(src.displayName);
-  if (src.color !== undefined && isPlayerColor(src.color)) data.color = src.color;
+  if (src.color !== undefined && isPickableColor(src.color)) data.color = src.color;
   if (src.knight !== undefined) data.knight = sanitizeKnight(src.knight);
   if (src.cosmetics !== undefined) data.cosmetics = clampCosmetics(src.cosmetics, (await cosmeticStateFor(identity)).unlocks);
   if (identity.kind === 'user') {

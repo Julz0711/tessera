@@ -1,7 +1,8 @@
 'use client';
 
-import { ArrowLeftRight, BrickWall, Eye, Hammer, Hourglass, Ship, Sparkles } from 'lucide-react';
+import { ArrowLeftRight, ArrowUpCircle, BrickWall, Eye, Footprints, Hammer, Hourglass, Power, Sailboat, ShieldAlert, Ship, Sparkles, Swords } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   COSTS,
   hasCards,
@@ -11,12 +12,13 @@ import {
   legalSettlementSpots,
   legalShipSpots,
   piecesLeft,
+  sailableShips,
   shipsInPlay,
   wallSpots,
   type PartialHand,
 } from '@/engine';
 import type { PlayerView } from '@/engine/view';
-import { confirmBuild, confirmRobber } from '@/client/interaction';
+import { confirmBuild, confirmRobber, knightPickTargets, startKnightAct } from '@/client/interaction';
 import { play } from '@/client/sound';
 import { api } from '@/client/store';
 import { buildMode, useUi } from '@/client/ui';
@@ -66,6 +68,8 @@ function ActionButton({
   bankAnchor,
   count,
   buildToggle,
+  column,
+  ready,
 }: {
   label: string;
   /** Keyboard key, shown after the label where there's a keyboard to press it on. */
@@ -90,6 +94,10 @@ function ActionButton({
   count?: number;
   /** The Build key: clicks on it don't count as clicking away from its menu. */
   buildToggle?: boolean;
+  /** The experimental layout's build column: a small square key, icon only, its cost in a bubble on hover. */
+  column?: boolean;
+  /** In the column: you can make this build right now (amber outline). */
+  ready?: boolean;
   className?: string;
 }) {
   const click = () => {
@@ -123,15 +131,25 @@ function ActionButton({
       data-bank-anchor={bankAnchor ? '' : undefined}
       data-build-toggle={buildToggle ? '' : undefined}
       aria-haspopup={buildToggle ? 'menu' : undefined}
-      className={`btn group relative min-w-0 flex-col gap-0.5 px-0 py-1.5 text-[10px] tracking-tight sm:size-22 sm:rounded-lg! sm:px-1 sm:py-1 sm:text-xs sm:tracking-normal ${primary ? 'btn-primary' : active ? 'btn-on' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''} ${className}`}
+      className={`btn group relative min-w-0 flex-col gap-0.5 px-0 py-1.5 text-[10px] tracking-tight ${column ? `h-12! w-full! min-w-12 rounded-[4px]! p-0! ${ready ? 'build-ready' : ''}` : 'sm:size-22 sm:rounded-lg! sm:px-1 sm:py-1 sm:text-xs sm:tracking-normal'} ${primary ? 'btn-primary' : active ? 'btn-on' : danger ? 'btn-danger' : ''} ${pulse ? 'animate-pulse' : ''} ${className}`}
     >
-      {shortcut && <Kbd k={shortcut} className="absolute left-1 top-1 text-[11px]" />}
+      {shortcut && <Kbd k={shortcut} className={`absolute ${column ? 'left-0.5 top-0.5 text-[9px]' : 'left-1 top-1 text-[11px]'}`} />}
       {/* A build you can't make is drawn in outline, but its cost dots stay: they show what's missing. */}
-      <span className="flex flex-col items-center gap-0.5">
-        {icon}
-        <span className="whitespace-nowrap leading-none">{label}</span>
-      </span>
-      {cost && hand && <CostDots cost={cost} hand={hand} />}
+      {column ? (
+        <>
+          {icon}
+          <span className="pointer-events-none absolute left-full top-1/2 z-40 ml-2 hidden -translate-y-1/2 items-center gap-2 whitespace-nowrap rounded-[4px] border-2 border-ink bg-white px-2 py-1 text-xs text-ink group-hover:flex">
+            {label}
+            {cost && hand && <CostDots cost={cost} hand={hand} />}
+          </span>
+        </>
+      ) : (
+        <span className="flex flex-col items-center gap-0.5">
+          {icon}
+          <span className="whitespace-nowrap leading-none">{label}</span>
+        </span>
+      )}
+      {!column && cost && hand && <CostDots cost={cost} hand={hand} />}
       {count !== undefined && (
         <span className="hex-badge hex-badge-amber -right-1.5 -top-2" title={`${count} you can build now`}>
           {count}
@@ -152,8 +170,22 @@ const PHONE_SHEET = 'max-sm:inset-x-0 max-sm:rounded-[6px] max-sm:border-2 max-s
 /**
  * `hand: false` leaves the hand and the trade panel out (wide screens give them their own corner, see
  * GameScreen); `timer: false` leaves the countdown off End turn (it sits above it instead, see TurnBar).
+ * `buildColumn` (experimental layout, wide screens) is the element above the hand that the builds
+ * are portalled into as a column of small keys; the dock then drops its Build key (Trade, Progress/Improve stay).
  */
-export function Dock({ view, room, hand = true, timer = true }: { view: PlayerView; room: RoomDTO; hand?: boolean; timer?: boolean }) {
+export function Dock({
+  view,
+  room,
+  hand = true,
+  timer = true,
+  buildColumn = null,
+}: {
+  view: PlayerView;
+  room: RoomDTO;
+  hand?: boolean;
+  timer?: boolean;
+  buildColumn?: HTMLElement | null;
+}) {
   const ui = useUi();
   // Phones show the status line beside the dice; wider screens keep it in the top bar.
   const phone = !useWide(1024);
@@ -162,18 +194,19 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
   const me = view.viewer;
   const seconds = useRoomClock(room);
   const lowTime = seconds !== null && seconds <= 10;
-  // The Build or Improve key's menu, opening upwards from the dock.
-  const [open, setOpen] = useState<'build' | 'improve' | null>(null);
+  // The Build, Improve or Knight key's menu, opening upwards from the dock (sideways from the build column).
+  const [open, setOpen] = useState<'build' | 'improve' | 'knight' | null>(null);
   const buildOpen = open === 'build';
   const setBuildOpen = (o: boolean) => setOpen(o ? 'build' : null);
   const menuRef = useRef<HTMLDivElement>(null);
   const improveRef = useRef<HTMLDivElement>(null);
+  const knightRef = useRef<HTMLDivElement>(null);
   // A menu closes on Esc, on a click anywhere else, and when the turn moves on.
   useEffect(() => {
-    if (!buildOpen) return;
+    if (!buildOpen && open !== 'knight') return;
     const away = (e: PointerEvent) => {
       const t = e.target as Element | null;
-      if (!menuRef.current?.contains(t) && !improveRef.current?.contains(t) && !t?.closest?.('[data-build-toggle]')) setOpen(null);
+      if (!menuRef.current?.contains(t) && !improveRef.current?.contains(t) && !knightRef.current?.contains(t) && !t?.closest?.('[data-build-toggle]')) setOpen(null);
     };
     const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(null);
     window.addEventListener('pointerdown', away);
@@ -185,7 +218,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
   }, [open]);
   useEffect(() => setOpen(null), [view.turn.n, view.turn.seat]);
   // One of Build, Improve and Trade open at a time: opening one closes the others.
-  const toggleMenu = (menu: 'build' | 'improve') => {
+  const toggleMenu = (menu: 'build' | 'improve' | 'knight') => {
     if (ui.panel === 'trade') ui.setPanel(null);
     setOpen((o) => (o === menu ? null : menu));
   };
@@ -231,6 +264,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
   const roadOk = canBuild && left.roads > 0 && has(COSTS.road) && legalRoadSpots(view, me).length > 0;
   const settlementOk = canBuild && left.settlements > 0 && has(COSTS.settlement) && legalSettlementSpots(view, me).length > 0;
   const voyage = shipsInPlay(view);
+  const sailable = voyage ? sailableShips(view, me) : [];
   const shipOk = canBuild && left.ships > 0 && has(COSTS.ship) && legalShipSpots(view, me).length > 0;
   const cityOk = canBuild && left.cities > 0 && has(COSTS.city) && legalCitySpots(view, me).length > 0;
   const devOk = canBuild && !ck && view.devDeckCount > 0 && has(COSTS.devCard);
@@ -242,6 +276,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
     fn();
     setBuildOpen(false);
   };
+  const col = buildColumn !== null;
   const buildKeys = 3 + (voyage ? 1 : 0) + (ck ? 2 : 0);
   const builds = [
     roadOk,
@@ -251,6 +286,22 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
     ck && knightOk,
     ck && wallOk,
   ].filter(Boolean).length;
+  // Knights & Barbarians: the Knights key (beside Improve) opens what your knights can do; each picks
+  // one of your knights on the board (or goes straight on when only one knight can move or chase).
+  const knightActs = (['activate', 'promote', 'move', 'chase'] as const).map((a) => ck && knightPickTargets(view, me, a).length > 0);
+  const knightMode = ui.mode?.t === 'knightPick' || ui.mode?.t === 'knightMove' || ui.mode?.t === 'knightChase';
+  const knightPick = (fn: () => void) => () => {
+    fn();
+    setOpen(null);
+  };
+  const knightItems = (
+    <>
+      <ActionButton label="Activate" icon={<Power size={22} />} onClick={knightPick(() => startKnightAct(view, 'activate'))} active={ui.mode?.t === 'knightPick' && ui.mode.act === 'activate'} disabled={!knightActs[0]} cost={COSTS.activate} hand={p.hand} hint="Activate a knight: it defends and can act from your next turn" />
+      <ActionButton label="Promote" icon={<ArrowUpCircle size={22} />} onClick={knightPick(() => startKnightAct(view, 'promote'))} active={ui.mode?.t === 'knightPick' && ui.mode.act === 'promote'} disabled={!knightActs[1]} cost={COSTS.promote} hand={p.hand} hint="Promote a knight one level" />
+      <ActionButton label="Displace" icon={<Footprints size={22} />} onClick={knightPick(() => startKnightAct(view, 'move'))} active={ui.mode?.t === 'knightMove' || (ui.mode?.t === 'knightPick' && ui.mode.act === 'move')} disabled={!knightActs[2]} hint="Move an active knight, or displace a weaker rival knight" />
+      <ActionButton label="Chase" icon={<ShieldAlert size={22} />} onClick={knightPick(() => startKnightAct(view, 'chase'))} active={ui.mode?.t === 'knightChase' || (ui.mode?.t === 'knightPick' && ui.mode.act === 'chase')} disabled={!knightActs[3]} hint="Chase the robber or pirate away with an active knight" />
+    </>
+  );
   // Every build, rendered once: in the Build menu, or (wide screens) straight in the dock row.
   const buildItems = (
     <>
@@ -260,7 +311,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
         icon={<RoadGlyph size={24} />}
         onClick={pick(() => ui.toggleBuild('road'))}
         active={building === 'road'}
-        disabled={!roadOk}
+        disabled={!roadOk} column={col} ready={roadOk}
         cost={COSTS.road} hand={p.hand}
         left={left.roads}
       />
@@ -271,7 +322,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
           icon={<Ship size={24} />}
           onClick={pick(() => ui.toggleBuild('ship'))}
           active={building === 'ship'}
-          disabled={!shipOk}
+          disabled={!shipOk} column={col} ready={shipOk}
           cost={COSTS.ship} hand={p.hand}
           left={left.ships}
           hint="Build a ship on a sea or coast edge"
@@ -283,7 +334,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
         icon={<SettlementGlyph size={24} />}
         onClick={pick(() => ui.toggleBuild('settlement'))}
         active={building === 'settlement'}
-        disabled={!settlementOk}
+        disabled={!settlementOk} column={col} ready={settlementOk}
         cost={COSTS.settlement} hand={p.hand}
         left={left.settlements}
       />
@@ -293,7 +344,7 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
         icon={<CityGlyph size={24} />}
         onClick={pick(() => ui.toggleBuild('city'))}
         active={building === 'city'}
-        disabled={!cityOk}
+        disabled={!cityOk} column={col} ready={cityOk}
         cost={COSTS.city} hand={p.hand}
         left={left.cities}
       />
@@ -305,12 +356,12 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
             icon={<KnightGlyph size={24} />}
             onClick={pick(() => ui.toggleBuild('knight'))}
             active={building === 'knight'}
-            disabled={!knightOk}
+            disabled={!knightOk} column={col} ready={knightOk}
             cost={COSTS.knight} hand={p.hand}
             left={left.knights[1]}
             hint="Recruit a basic knight"
           />
-          <ActionButton label="Wall" shortcut="W" icon={<BrickWall size={24} />} onClick={pick(() => ui.toggleBuild('wall'))} active={building === 'wall'} disabled={!wallOk} cost={COSTS.wall} hand={p.hand} left={left.walls} hint="City wall: +2 hand limit" />
+          <ActionButton label="Wall" shortcut="W" icon={<BrickWall size={24} />} onClick={pick(() => ui.toggleBuild('wall'))} active={building === 'wall'} disabled={!wallOk} column={col} ready={wallOk} cost={COSTS.wall} hand={p.hand} left={left.walls} hint="City wall: +2 hand limit" />
         </>
       )}
     </>
@@ -339,17 +390,25 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
       )}
 
       <div role="group" aria-label="Game actions" className={`game-actions relative grid w-full ${hand ? '' : 'h-full'} auto-cols-fr grid-flow-col gap-1.5 sm:w-auto sm:gap-2`}>
-        {inlineBuilds && buildItems}
         <div
           ref={menuRef}
           role="menu"
           aria-label="Build"
           // Phones: one sheet across the screen, covering the hand, in as few even rows as the builds allow.
           style={{ '--cols': buildKeys === 6 ? 3 : buildKeys } as React.CSSProperties}
-          className={`${buildOpen && !inlineBuilds ? 'grid' : 'hidden'} animate-rise absolute bottom-full z-30 mb-2 gap-1.5 ${PHONE_SHEET} max-sm:grid-cols-[repeat(var(--cols),minmax(0,1fr))] sm:right-0 sm:w-max sm:grid-flow-col sm:gap-2`}
+          className={`${buildOpen && !inlineBuilds && !col ? 'grid' : 'hidden'} animate-rise absolute bottom-full z-30 mb-2 gap-1.5 ${PHONE_SHEET} max-sm:grid-cols-[repeat(var(--cols),minmax(0,1fr))] sm:right-0 sm:w-max sm:grid-flow-col sm:gap-2`}
         >
-          {!inlineBuilds && buildItems}
+          {!inlineBuilds && !col && buildItems}
         </div>
+
+        {/* Experimental layout: the same builds as a column of small keys above the hand. */}
+        {buildColumn &&
+          createPortal(
+            <div role="group" aria-label="Build" className="flex flex-col gap-1.5">
+              {buildItems}
+            </div>,
+            buildColumn,
+          )}
 
         <ActionButton
           label="Trade"
@@ -406,7 +465,49 @@ export function Dock({ view, room, hand = true, timer = true }: { view: PlayerVi
             />
           </div>
         )}
-        {!inlineBuilds && (
+        {ck && (
+          <div className="grid sm:relative">
+            <div
+              ref={knightRef}
+              role="menu"
+              aria-label="Knights"
+              className={`${open === 'knight' ? 'flex max-sm:grid' : 'hidden'} animate-rise absolute bottom-full z-30 mb-2 gap-1.5 ${PHONE_SHEET} max-sm:grid-cols-2 sm:left-1/2 sm:w-max sm:-translate-x-1/2 sm:gap-2`}
+            >
+              {knightItems}
+            </div>
+            <ActionButton
+              label="Knights"
+              shortcut="K"
+              icon={<Swords size={24} />}
+              onClick={() => toggleMenu('knight')}
+              active={open === 'knight' || knightMode}
+              disabled={view.phase !== 'play'}
+              hint="Activate, promote, displace or chase with your knights"
+              count={knightActs.filter(Boolean).length || undefined}
+              buildToggle
+            />
+          </div>
+        )}
+        {voyage && (
+          // Moving a ship: light up the ships at an open route end, then pick where it sails (straight
+          // to that when only one can move). Clicking a ship on the board still works too.
+          <ActionButton
+            label="Move ship"
+            shortcut="M"
+            icon={<Sailboat size={24} />}
+            onClick={() => {
+              setOpen(null);
+              if (ui.mode?.t === 'shipMove') return ui.setMode(null);
+              ui.setMode({ t: 'shipMove', from: sailable.length === 1 ? sailable[0] : null });
+            }}
+            active={ui.mode?.t === 'shipMove'}
+            disabled={!myTurn || !view.turn.rolled || !free || sailable.length === 0}
+            hint="Sail one of your ships at the open end of a route"
+          />
+        )}
+        {/* Wide screens: the builds stand in the row, after Trade and Improve (or Progress). */}
+        {inlineBuilds && !col && buildItems}
+        {!inlineBuilds && !col && (
           <ActionButton
             label="Build"
             shortcut="D"

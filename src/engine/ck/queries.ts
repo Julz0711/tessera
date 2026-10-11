@@ -1,6 +1,6 @@
 /** Read-only Cities & Knights rule queries (usable on full states and redacted views). */
 import { ABILITY_LEVEL, MAX_IMPROVEMENT, METROPOLIS_LEVEL, TERRAIN_RESOURCE, TRACK_COMMODITY } from '../constants';
-import { blockedFor, legalRoadSpots, piecesLeft, shipDestinations, topo, touchesOwnRoute, type Q } from '../queries';
+import { blockedFor, legalRoadSpots, piecesLeft, robberTargets, shipDestinations, topo, touchesOwnRoute, type Q } from '../queries';
 import type { KnightLevel, Track } from '../types';
 import { victoryPoints } from '../vp';
 
@@ -81,10 +81,28 @@ export function robberActive(s: Q): boolean {
   return s.barbarian.attacks > 0;
 }
 
-/** Own actionable knights on a corner of the robber's hex. */
-export function chaseKnights(s: Q, seat: number): number[] {
+/** Own actionable knights on a corner of the robber's hex: they chase it to a land hex. */
+export function chaseRobberKnights(s: Q, seat: number): number[] {
   if (!robberActive(s)) return [];
   return topo(s).hexes[s.robber].vertices.filter((v) => canKnightAct(s, seat, v));
+}
+
+/** Voyagers: own actionable knights on a corner of the pirate's hex: they chase it to another sea hex. */
+export function chasePirateKnights(s: Q, seat: number): number[] {
+  if (!robberActive(s) || s.pirate == null) return [];
+  return topo(s).hexes[s.pirate].vertices.filter((v) => canKnightAct(s, seat, v));
+}
+
+/** Own actionable knights beside the robber or the pirate. */
+export function chaseKnights(s: Q, seat: number): number[] {
+  return [...new Set([...chaseRobberKnights(s, seat), ...chasePirateKnights(s, seat)])];
+}
+
+/** Hexes a knight at `vertex` may chase to: land for the robber, sea for the pirate, by what it stands beside. */
+export function chaseTargets(s: Q, seat: number, vertex: number, publicVP: (seat: number) => number): number[] {
+  const land = chaseRobberKnights(s, seat).includes(vertex);
+  const sea = chasePirateKnights(s, seat).includes(vertex);
+  return robberTargets(s, seat, publicVP, sea).filter((h) => (s.board.hexes[h].terrain === 'sea' ? sea : land));
 }
 
 export function activatableKnights(s: Q, seat: number): number[] {

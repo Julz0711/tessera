@@ -9,6 +9,7 @@ import { APP_NAME } from './src/config/app';
 import { checkDatabase, disableDb, getDb } from './src/server/db';
 import { handleHttp } from './src/server/http';
 import { createPrismaPersistence } from './src/server/prismaPersistence';
+import { scheduleAnalysis } from './src/server/gameAnalysis';
 import { findFreePort } from './src/server/port';
 import { attachRealtime } from './src/server/realtime';
 import { acquirePrivacyLock } from './src/server/privacyMaintenance';
@@ -63,7 +64,8 @@ const privacyLock = db ? await acquirePrivacyLock(process.env.DIRECT_DATABASE_UR
   console.error('> Lost the privacy maintenance lock. Stopping to prevent unsafe writes.');
   process.exit(1);
 }) : undefined;
-const persistence = db ? createPrismaPersistence(db) : undefined;
+// Finished games get their move analysis (accuracy) in the background.
+const persistence = db ? createPrismaPersistence(db, { gameFinalized: scheduleAnalysis }) : undefined;
 const realtime = attachRealtime(server, { persistence });
 
 // Socket.IO handles its own upgrade requests; everything else (e.g. Next.js HMR) goes to Next.

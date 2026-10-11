@@ -27,6 +27,78 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: "1.10",
+    date: "2026-10-11",
+    summary: "Watch your games back with a move-by-move accuracy score, new card designs, mouse pointers at the table and fairer balanced dice.",
+    sections: [
+      {
+        title: "Replays and accuracy",
+        icon: "log",
+        items: [
+          "Watch replay on the end screen: play the whole game back with every hand revealed. Step by move or by turn, or jump along the timeline to the 7s, Longest Road and Largest Army changes, barbarian attacks and the win. A points graph shows how the game went, and you can switch between 2D and 3D.",
+          "Accuracy: after each game, every decision is checked against the alternatives. You get a score from 1 to 100 with your inaccuracies, mistakes and blunders. Mistakes and blunders are marked on the replay timeline, together with the better move.",
+          "Your profile shows your average accuracy. In ranked games, a good or poor game moves your rating by up to 3 points.",
+        ],
+      },
+      {
+        title: "Cards",
+        icon: "hand",
+        items: [
+          "New development and progress cards: every card has its own picture on a hex tile, with its name on top and its track colour as the background, so they are easy to tell apart.",
+          "Choosing resources (gold, treasure, Year of Plenty, discarding and more) now uses big, sturdy keys. The bank's stock is no longer shown: a resource is only greyed out when the bank has none left.",
+          "The bank shows its cards as stacks, so nobody can count exactly what's left.",
+          "Classic: if you hold Victory Point cards, your points show as 6 (8). The others still see 6.",
+        ],
+      },
+      {
+        title: "Your turn",
+        icon: "turn",
+        items: [
+          "Turn timer: you have 120 seconds, and they no longer restart when something happens. In the last 10 seconds, every action adds 5 seconds. When another player has to answer, for example by discarding, they get their own 30 seconds and your time pauses.",
+          "New keys in the bottom bar: Knights (K) to activate, promote, displace or chase, and Move ship (M) on sea maps.",
+          "The Improve menu shows what the next level of each track costs, with a clear level bar. The Improve key shows your three tracks at a glance.",
+          "Metropolis: just click the city you want.",
+          "Choosing from a treasure or the aqueduct no longer blurs your hand.",
+          "Longest Road changing hands plays a sound for everyone.",
+        ],
+      },
+      {
+        title: "At the table",
+        icon: "players",
+        items: [
+          "Mouse pointers: switch on sharing with the button next to reactions, and the others see your pointer and your clicks on the board. You can hide other players' pointers under Settings › Mouse pointers. Wide screens only.",
+          "Reactions now fill your whole player card for a moment. New: the ✂️ emote.",
+          "Player cards show Longest Road, knight strength and Defender points as clear chips.",
+          "New colours: mint and lavender. White is gone, as it was hard to see.",
+          "The log marks whose turn starts, scrolls along reliably and notes when an embargo starts or ends.",
+          "During a game, the stats only show the dice.",
+        ],
+      },
+      {
+        title: "Rules and maps",
+        icon: "map",
+        items: [
+          "Number tokens never sit next to the same number, on every map.",
+          "Balanced dice: totals that came up recently are less likely, and 7s are shared fairly between players.",
+          "Treasure: a new treasure lets you take 2 resources of your choice. Sea and desert tiles revealed from the fog give a treasure from a hidden pile.",
+          "Knights & Barbarians on sea maps: knights can chase the pirate away.",
+          "Black Forest: tiles and numbers are spread more evenly. Zealand: the fog also hides three sea and three desert tiles.",
+        ],
+        maps: ["blackForest", "veiledIsles", "zealand"],
+      },
+      {
+        title: "Look and feel",
+        icon: "board",
+        items: [
+          "Try the experimental layout under Settings › Layout: build keys in a column above your cards, with the ones you can afford highlighted, plus a tall barbarian track and a log that grows.",
+          "On wide screens, roads, settlements and the other builds sit right in the bottom bar.",
+          "A new hex loading spinner, and the home page no longer flashes or reloads its island when you come back to it.",
+          "An amber mouse cursor to try under Settings (beta).",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.9",
     date: "2026-10-06",
     summary: "A new look for the whole game, a bottom bar like the big Catan sites, \"?\" trade offers and a proper phone layout.",

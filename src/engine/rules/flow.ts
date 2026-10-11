@@ -51,7 +51,7 @@ export function rollDice(ctx: Ctx): void {
   const forced = s.nextRoll ?? null;
   s.nextRoll = null;
   const { red, yellow } =
-    s.turn.alchemist ?? forced ?? (s.settings.dice === 'balanced' ? drawBalanced(s) : { red: rollDie(s), yellow: rollDie(s) });
+    s.turn.alchemist ?? forced ?? (s.settings.dice === 'balanced' ? drawBalanced(s, ctx.seat) : { red: rollDie(s), yellow: rollDie(s) });
   const event = s.mode === 'ck' ? (forced?.event ?? EVENT_DIE[randomInt(s, EVENT_DIE.length)]) : undefined;
   s.turn.alchemist = null;
   s.turn.rolled = true;

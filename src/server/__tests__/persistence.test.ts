@@ -74,6 +74,27 @@ describe.skipIf(!url)('prisma persistence', async () => {
     expect(guest?.gamesWon).toBe(final.winner === 0 ? 1 : 0);
   });
 
+  it('serves a finished game as a replay to the table, and only to the table', async () => {
+    const { replayFor } = await import('../historyApi');
+    const { buildReplay } = await import('@/engine/replay');
+    const guestId = randomUUID();
+    const g = setup([`g:${guestId}`]);
+    persistence.roomCreated(g.room);
+    persistence.gameStarted({ gameId: g.gameId, room: g.room, seats: g.seats, state: g.state });
+    const final = play(g, 20_000);
+    persistence.gameEnded({ gameId: g.gameId, room: g.room, seats: g.seats, state: final });
+    await persistence.flush();
+
+    const identity = (id: string) => ({ key: `g:${id}`, kind: 'guest' as const, id, displayName: null, avatarUrl: null });
+    expect(await replayFor(identity(randomUUID()), g.gameId)).toBeNull();
+    const data = await replayFor(identity(guestId), g.gameId);
+    expect(data).not.toBeNull();
+    const replay = buildReplay(data!);
+    expect(replay.stopped).toBe(false);
+    expect(replay.stateAt(replay.total).buildings).toEqual(final.buildings);
+    expect(replay.stateAt(replay.total).winner).toBe(final.winner);
+  });
+
   it('records a game even when a new guest is saved at the same moment', async () => {
     // Joining (rememberProfile) and starting the game both create the guest row, on different queues.
     for (let i = 0; i < 40; i++) {

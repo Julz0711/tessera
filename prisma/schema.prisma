@@ -184,6 +184,9 @@ model Game {
   turns          Int            @default(0)
   report         Json?
   hasReport      Boolean        @default(false)
+  // Move-by-move accuracy (src/bots/analysis), filled in the background after the game ends.
+  analysis       Json?
+  analysedAt     DateTime?
   startedAt      DateTime       @default(now())
   endedAt        DateTime?
   updatedAt      DateTime       @updatedAt
@@ -219,6 +222,13 @@ model Player {
   ratingAfter         Int?
   ratingVersion       Int?
   unratedReason       String?
+  // From the game analysis: accuracy 1–100 and flagged moves (null until analysed, or not analysed).
+  accuracy            Float?
+  inaccuracies        Int?
+  mistakes            Int?
+  blunders            Int?
+  // Rated games: the accuracy's Elo adjustment, applied once on top of ratingDelta (null: none applied).
+  accuracyElo         Int?
   game                Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
   user                User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   guestSession        GuestSession? @relation(fields: [guestSessionId], references: [id], onDelete: SetNull)

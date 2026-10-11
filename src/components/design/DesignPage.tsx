@@ -3,15 +3,24 @@
 import { ArrowLeft, Check, Hammer, Hourglass, Landmark, Settings, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
-import type { PlayerColor } from '@/engine';
-import { AskCard, DevCardFace, ResourceCard } from '@/components/game/cards';
+import { RESOURCES, type Card, type PartialHand, type PlayerColor } from '@/engine';
+import type { DevCardType, ProgressCardType, Track } from '@/engine/types';
+import { AskCard, CardBack, DevCardFace, ProgressCardFace, ResourceCard, type CardSize } from '@/components/game/cards';
+import { ResourceChooser, ResourcePick } from '@/components/game/ResourceChooser';
 import { ColorPicker } from '@/components/ui/ColorPicker';
 import { RoadGlyph, SettlementGlyph } from '@/components/ui/Glyphs';
-import { CURSOR_LABELS, CURSOR_OPTIONS, CURSOR_SVGS } from '@/components/ui/cursors';
 import { HexSpinner } from '@/components/ui/HexSpinner';
 import { Kbd } from '@/components/ui/Kbd';
 import { Logomark } from '@/components/ui/Logomark';
 import { Segmented } from '@/components/ui/Segmented';
+
+const DEV_TYPES: DevCardType[] = ['knight', 'victoryPoint', 'roadBuilding', 'yearOfPlenty', 'monopoly'];
+const PROGRESS_BY_TRACK: Record<Track, ProgressCardType[]> = {
+  science: ['alchemist', 'crane', 'engineer', 'inventor', 'irrigation', 'medicine', 'mining', 'printer', 'roadBuilding', 'smith'],
+  politics: ['bishop', 'constitution', 'deserter', 'diplomat', 'intrigue', 'saboteur', 'spy', 'warlord', 'wedding'],
+  trade: ['commercialHarbor', 'masterMerchant', 'merchant', 'merchantFleet', 'resourceMonopoly', 'tradeMonopoly'],
+};
+const CARD_SIZES: CardSize[] = ['xs', 'sm', 'md', 'xl', 'lg'];
 
 /**
  * The design language on one page: every control in each of its states, as the app draws them.
@@ -23,6 +32,8 @@ export function DesignPage() {
   const [on, setOn] = useState(true);
   const [tile, setTile] = useState(0);
   const [color, setColor] = useState<PlayerColor>('red');
+  const [pick, setPick] = useState<PartialHand>({ lumber: 1 });
+  const [single, setSingle] = useState<Card | null>('wool');
 
   return (
     <main className="page-safe-top min-h-dvh bg-[radial-gradient(ellipse_at_top,_#0f2f3b_0%,_#061419_60%)] px-4 py-6 sm:py-10">
@@ -145,6 +156,42 @@ export function DesignPage() {
             </div>
           </Block>
 
+          <Block title="Resource chooser" hint="Tap a key to add one, the hex shows the count, the minus takes one back. Bank picks never show the stock: a key greys out only when the bank has none (here: ore). Single choices are radios.">
+            <ResourceChooser cards={RESOURCES} value={pick} onChange={setPick} max={{ brick: 4, lumber: 1, wool: 9, grain: 9, ore: 0 }} limitTotal={2} />
+            <ResourcePick cards={RESOURCES} value={single} onChange={(c) => setSingle(c)} />
+          </Block>
+
+          <Block title="Development and progress cards" hint="Ink name header, a paper hex tile with the low-poly art, track glyphs in the corners. The sizes are fixed: the two smallest drop the header, the corners come back from xl up.">
+            <div className="flex flex-wrap items-end gap-2">
+              {DEV_TYPES.map((t) => (
+                <DevCardFace key={t} type={t} size="md" />
+              ))}
+              {(['dev', 'science', 'politics', 'trade'] as const).map((k) => (
+                <CardBack key={k} kind={k} size="md" />
+              ))}
+            </div>
+            {(Object.keys(PROGRESS_BY_TRACK) as Track[]).map((track) => (
+              <div key={track} className="flex flex-wrap items-end gap-2">
+                {PROGRESS_BY_TRACK[track].map((type, i) => (
+                  <ProgressCardFace key={type} card={{ id: i, type, track }} size="md" />
+                ))}
+              </div>
+            ))}
+            <div className="flex flex-wrap items-end gap-3">
+              {CARD_SIZES.map((size) => (
+                <span key={size} className="flex items-end gap-2">
+                  <DevCardFace type="victoryPoint" size={size} count={2} />
+                  <DevCardFace type="knight" size={size} fresh />
+                  <ProgressCardFace card={{ id: 1, type: 'commercialHarbor', track: 'trade' }} size={size} />
+                  <ProgressCardFace card={{ id: 2, type: 'constitution', track: 'politics' }} size={size} glow />
+                  <ProgressCardFace card={{ id: 3, type: 'alchemist', track: 'science' }} size={size} />
+                  <CardBack kind="science" size={size} />
+                  <CardBack kind="dev" size={size} />
+                </span>
+              ))}
+            </div>
+          </Block>
+
           <Block title="Loading spinner" hint="A ring of six hexes lighting in turn, drawn in the text colour. 48 to 64px above the text on startup and full-screen waits, 16px inside buttons (decorative when a label sits next to it).">
             <div className="grid items-center gap-3 sm:grid-cols-[1fr_1fr_auto]">
               <div className="grid h-28 place-items-center rounded-[6px] border-2 border-ink bg-sea-950 text-paper">
@@ -161,49 +208,6 @@ export function DesignPage() {
                   <HexSpinner size={16} decorative /> Joining…
                 </button>
               </div>
-            </div>
-          </Block>
-
-          <Block title="Cursor (options)" hint="Three in-theme cursor sets, each with a default arrow and a pointer for clickable things. Shown at 2x on dark and light; hover the boxes to try them live. Not applied app-wide yet.">
-            <div className="grid gap-4">
-              {(['a', 'b', 'c'] as const).map((k) => (
-                <div key={k} className="grid gap-2">
-                  <div className="text-sm font-black">{CURSOR_LABELS[k]}</div>
-                  <div className="grid items-center gap-3 sm:grid-cols-[auto_1fr_1fr_auto]">
-                    <div className="flex gap-2">
-                      {[CURSOR_SVGS[k].default, CURSOR_SVGS[k].pointer].map((s, i) => (
-                        <div key={i} className="flex gap-1">
-                          <span
-                            aria-hidden
-                            className="grid h-20 w-20 place-items-center rounded-[6px] border-2 border-ink bg-sea-950"
-                            dangerouslySetInnerHTML={{ __html: s.replace('width="32" height="32"', 'width="64" height="64"') }}
-                          />
-                          <span
-                            aria-hidden
-                            className="grid h-20 w-20 place-items-center rounded-[6px] border-2 border-ink bg-paper"
-                            dangerouslySetInnerHTML={{ __html: s.replace('width="32" height="32"', 'width="64" height="64"') }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    <div
-                      className="grid h-20 place-items-center rounded-[6px] border-2 border-ink bg-sea-950 text-xs font-bold text-paper"
-                      style={{ cursor: CURSOR_OPTIONS[k].default }}
-                    >
-                      Hover (dark)
-                    </div>
-                    <div
-                      className="grid h-20 place-items-center rounded-[6px] border-2 border-ink bg-paper text-xs font-bold text-ink"
-                      style={{ cursor: CURSOR_OPTIONS[k].default }}
-                    >
-                      Hover (light)
-                    </div>
-                    <button type="button" className="btn" style={{ cursor: CURSOR_OPTIONS[k].pointer }}>
-                      Sample button
-                    </button>
-                  </div>
-                </div>
-              ))}
             </div>
           </Block>
 

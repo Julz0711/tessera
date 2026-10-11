@@ -148,8 +148,10 @@ function wire(s: ClientSocket): void {
     useGame.setState((st) => ({ reactions: { ...st.reactions, [r.playerId]: { reaction: r.reaction, at: Date.now() } } }));
     play('reaction');
   });
-  s.on('room:cursor', ({ playerId, at }) => {
-    if (usePrefs.getState().shareCursors) useCursors.getState().put(playerId, at);
+  s.on('room:cursor', ({ playerId, at, click }) => {
+    if (!usePrefs.getState().seeCursors) return;
+    useCursors.getState().put(playerId, at);
+    if (click && at) useCursors.getState().ping(playerId, at);
   });
   s.on('room:closed', (reason) => useGame.setState({ notice: reason, room: null, view: null, code: null }));
   s.on('session:replaced', () =>
@@ -250,9 +252,10 @@ export const api = {
   admin: (cmd: AdminGameCommand) => request<{ message: string }>((s, ack) => s.emit('admin:game', cmd, ack)).then(report),
   chat: (text: string) => request((s, ack) => s.emit('chat:send', text, ack)).then(report),
   /** Where the viewer's mouse is over the board (a seated player only; best-effort, so it may be dropped). */
-  cursor(at: BoardPoint | null) {
+  cursor(at: BoardPoint | null, click?: boolean) {
     if (!socket?.connected || useGame.getState().room?.you.seat == null) return;
-    socket.volatile.emit('room:cursor', at);
+    if (click) socket.volatile.emit('room:cursor', at, true);
+    else socket.volatile.emit('room:cursor', at);
   },
   react(reaction: ReactionId) {
     useGame.setState({ lastReactionAt: Date.now() });

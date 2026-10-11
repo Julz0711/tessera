@@ -28,7 +28,7 @@ import { checkProgressLimit } from '@/engine/ck/events';
 import { makeCtx } from '@/engine/state';
 import { buildReport, type GameReport } from '@/engine/report';
 import { DUEL_RULES, MAPS, defaultVP, isDuelMap, mapSupports } from '@/engine/maps';
-import { COLOR_ORDER, isPlayerColor } from '@/shared/colors';
+import { COLOR_ORDER, isPickableColor } from '@/shared/colors';
 import { DEFAULT_COSMETICS, sanitizeCosmetics, type Cosmetics } from '@/shared/cosmetics';
 import { DEFAULT_KNIGHT, sanitizeKnight, type KnightCustomization } from '@/shared/knight';
 import {
@@ -443,7 +443,7 @@ export class Room {
 
   private applyProfile(seat: Seat, patch: Partial<JoinProfile>): void {
     if (patch.name !== undefined) seat.name = sanitizeName(patch.name, seat.name);
-    if (patch.color !== undefined && isPlayerColor(patch.color)) {
+    if (patch.color !== undefined && isPickableColor(patch.color)) {
       const taken = this.seats.some((s) => s !== seat && s.color === patch.color);
       if (taken) throw new UserError('That color is taken');
       seat.color = patch.color;
@@ -939,15 +939,15 @@ export class Room {
   }
 
   /** A seated player's mouse over the board, shown to everyone else; never kept. Spectators and strangers are ignored. */
-  cursor(socketId: string, at: BoardPoint | null): void {
+  cursor(socketId: string, at: BoardPoint | null, click = false): void {
     const key = this.sockets.get(socketId);
     const seat = key ? this.seats.find((s) => s.identityKey === key) : undefined;
     if (!seat || seat.isBot) return;
-    this.sendCursor(seat, at);
+    this.sendCursor(seat, at, click);
   }
 
-  private sendCursor(seat: Seat, at: BoardPoint | null): void {
-    const msg = { playerId: seat.playerId, at };
+  private sendCursor(seat: Seat, at: BoardPoint | null, click = false): void {
+    const msg = click && at ? { playerId: seat.playerId, at, click: true as const } : { playerId: seat.playerId, at };
     const send = this.deps.io.sendVolatile ?? this.deps.io.send;
     for (const sid of this.sockets.keys()) if (!seat.sockets.has(sid)) send.call(this.deps.io, sid, 'room:cursor', msg);
   }
@@ -1113,7 +1113,7 @@ export class Room {
 
   private freeColor(preferred?: PlayerColor): PlayerColor {
     const used = new Set(this.seats.map((s) => s.color));
-    if (preferred && isPlayerColor(preferred) && !used.has(preferred)) return preferred;
+    if (preferred && isPickableColor(preferred) && !used.has(preferred)) return preferred;
     return COLOR_ORDER.find((c) => !used.has(c)) ?? 'red';
   }
 

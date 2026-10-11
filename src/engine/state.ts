@@ -13,6 +13,7 @@ import {
   MAX_PLAYERS,
   PROGRESS_DECKS,
 } from './constants';
+import { DICE_VERSION } from './dice';
 import { emptyHand } from './hand';
 import { DUEL_RULES, defaultVP, isDuelMap, mapSupports } from './maps';
 import { normalizeSeed, shuffle } from './rng';
@@ -129,6 +130,7 @@ export function createGame(opts: CreateGameOptions): GameState {
     friendlyRobber: opts.settings?.friendlyRobber ?? isDuelMap(map),
     gold,
     dice: opts.settings?.dice ?? (isDuelMap(map) ? DUEL_RULES.dice : 'random'),
+    diceVersion: DICE_VERSION,
   };
 
   const n = players.length;

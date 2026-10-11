@@ -1,6 +1,6 @@
 import { getTopology } from './board/topology';
 import { TERRAIN_COMMODITY, TERRAIN_RESOURCE } from './constants';
-import { BAG_REFILL_AT, REPEAT_WEIGHT } from './dice';
+import { BAG_REFILL_AT, DICE_VERSION, REPEAT_WEIGHT, bagCards, balancedWeights } from './dice';
 import { emptyHand, handTotal } from './hand';
 import { bankRatio } from './queries';
 import { victoryPoints } from './vp';
@@ -142,7 +142,14 @@ export function rollProbabilities(s: GameState): number[] {
   const probabilities = Array<number>(13).fill(0);
   const fixed = s.turn.alchemist ?? s.nextRoll;
   if (fixed) { probabilities[fixed.red + fixed.yellow] = 1; return probabilities; }
-  const cards = s.settings.dice === 'balanced' && s.diceBag && s.diceBag.cards.length > BAG_REFILL_AT ? s.diceBag.cards : Array.from({ length: 36 }, (_, i) => i);
+  if (s.settings.dice === 'balanced' && s.settings.diceVersion === DICE_VERSION) {
+    const cards = bagCards(s.diceBag);
+    const weights = balancedWeights(cards, s.diceBag, s.turn.seat);
+    const sum = weights.reduce((a, w) => a + w, 0);
+    cards.forEach((card, i) => { probabilities[Math.floor(card / 6) + card % 6 + 2] += weights[i] / sum; });
+    return probabilities;
+  }
+  const cards = s.settings.dice === 'balanced' && s.diceBag &&s.diceBag.cards.length > BAG_REFILL_AT ? s.diceBag.cards : Array.from({ length: 36 }, (_, i) => i);
   let sum = 0;
   for (const card of cards) {
     const total = Math.floor(card / 6) + card % 6 + 2;

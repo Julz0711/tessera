@@ -40,7 +40,7 @@ export interface MiniPieces {
 export function MiniBoard({
   hexes,
   pieces = {},
-  colors = ['red', 'blue', 'orange', 'white'],
+  colors = ['red', 'blue', 'orange', 'green'],
   height = 200,
   label,
 }: {

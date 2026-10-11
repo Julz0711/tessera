@@ -3,7 +3,7 @@ import { COSTS, KNIGHTS_PER_LEVEL, MAX_PROGRESS_IN_HAND, TRACK_COMMODITY } from 
 import { recordSpend } from '../detailedStats';
 import { RuleError, assertRule } from '../errors';
 import { cardList, handTotal, hasCards, parseHand, removeCards, transfer } from '../hand';
-import { isVertex, piecesLeft, topo } from '../queries';
+import { isHex, isVertex, piecesLeft, topo } from '../queries';
 import { removePrompt, requireMode, requireRolled } from '../rules/common';
 import { revealAround } from '../rules/fog';
 import { collectTreasures } from '../rules/treasure';
@@ -16,6 +16,8 @@ import { buildWallAt, displaceKnight, promoteKnightAt } from './pieces';
 import { playProgress } from './progress';
 import {
   canKnightAct,
+  chasePirateKnights,
+  chaseRobberKnights,
   improvementBlocker,
   improvementCost,
   knightMoveTargets,
@@ -100,10 +102,16 @@ function chaseRobber(ctx: Ctx, vertex: number, hex: number, victim: number | nul
   requireRolled(ctx);
   const s = ctx.s;
   assertRule(robberActive(s), 'The robber only appears after the first barbarian attack');
-  assertRule(canKnightAct(s, ctx.seat, vertex), 'Only an active knight (not activated this turn) can chase the robber');
-  assertRule(topo(s).hexes[s.robber].vertices.includes(vertex), 'Your knight must stand next to the robber');
+  assertRule(canKnightAct(s, ctx.seat, vertex), 'Only an active knight (not activated this turn) can chase the robber or pirate');
+  assertRule(isHex(s, hex), 'Unknown hex');
+  // A knight chases the piece it stands beside: the robber over land, the pirate over sea.
+  if (s.board.hexes[hex].terrain === 'sea') {
+    assertRule(chasePirateKnights(s, ctx.seat).includes(vertex), 'Your knight must stand next to the pirate to chase it');
+  } else {
+    assertRule(chaseRobberKnights(s, ctx.seat).includes(vertex), 'Your knight must stand next to the robber to chase it');
+  }
   s.knights[vertex]!.active = false;
-  relocateRobber(ctx, hex, victim);
+  relocateRobber(ctx, hex, victim, false, true);
 }
 
 // ── Walls & improvements ────────────────────────────────────────────────────

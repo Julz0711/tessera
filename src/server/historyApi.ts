@@ -1,11 +1,13 @@
 import { Prisma } from '@/generated/prisma/client';
 import type { GameReport } from '@/engine/report';
-import type { Mode, PlayerColor } from '@/engine/types';
+import type { Action, GameState, Mode, PlayerColor } from '@/engine/types';
+import type { ReplayData, ReplayStep } from '@/engine/replay';
 import { MAPS, mapsForType } from '@/engine/maps';
 import { isPlayerColor } from '@/shared/colors';
 import type { GameSummary, HistoryData } from '@/shared/protocol';
 import { isRatingPool } from '@/shared/ratings';
-import { getDb } from './db';
+import type { GameAnalysis } from '@/bots/analysis/types';
+import { getDb, type Db } from './db';
 import type { ServerIdentity } from './identity';
 import { UserError } from './room';
 import { normalizeFriendCode } from './social';
@@ -73,6 +75,7 @@ export async function pagedHistory(identity: ServerIdentity, params: URLSearchPa
     map: (p.game.settings as { map?: string }).map ?? 'standard', turns: p.game.turns, hasReport: p.game.hasReport,
     startedAt: p.game.startedAt.toISOString(), endedAt: p.game.endedAt?.toISOString() ?? null, status: 'finished', won: p.won, rank: p.rank,
     finalVp: p.finalVp, ratingDelta: p.ratingDelta, ratingPool: p.ratingPool, ratingBefore: p.ratingBefore, ratingAfter: p.ratingAfter,
+    accuracy: p.accuracy, accuracyElo: p.accuracyElo,
     players: p.game.players.map((other) => ({ name: other.displayName, color: (isPlayerColor(other.color) ? other.color : 'red') as PlayerColor,
       vp: other.finalVp, won: other.won, isBot: other.isBot, isYou: other.id === p.id })),
   }));
@@ -88,4 +91,39 @@ export async function reportFor(identity: ServerIdentity, gameId: string): Promi
     select: { report: true, startedAt: true, endedAt: true } });
   if (!game?.report) return null;
   return { ...(game.report as unknown as GameReport), startedAt: game.startedAt.toISOString(), endedAt: game.endedAt?.toISOString() };
+}
+
+/** Who may see a finished game's replay and analysis: anyone seated in it or at its table (the room's other games). */
+export const tableMember = (identity: ServerIdentity): Prisma.GameWhereInput => ({ room: { games: { some: { players: { some: owner(identity) } } } } });
+
+/**
+ * A finished game as its opening state plus every action taken, for the replay viewer (with the move
+ * analysis, once there is one). Open to anyone at the game's table, since the end screen is too.
+ */
+export async function replayFor(identity: ServerIdentity, gameId: string): Promise<(ReplayData & { analysis?: GameAnalysis }) | null> {
+  const db = getDb();
+  if (!db || !/^[a-zA-Z0-9-]{1,100}$/.test(gameId)) return null;
+  const game = await db.game.findFirst({ where: { id: gameId, status: 'finished', ...tableMember(identity) }, select: { analysis: true } });
+  if (!game) return null;
+  const data = await loadReplayData(db, gameId);
+  return data && (game.analysis ? { ...data, analysis: game.analysis as unknown as GameAnalysis } : data);
+}
+
+/** The stored opening state and actions of a game (no access check: callers do that). */
+export async function loadReplayData(db: Db, gameId: string): Promise<ReplayData | null> {
+  const game = await db.game.findUnique({ where: { id: gameId }, select: { players: { select: { id: true, seat: true } } } });
+  if (!game) return null;
+  const initial = await db.gameSnapshot.findFirst({ where: { gameId }, orderBy: { seq: 'asc' } });
+  if (!initial) return null;
+  const rows = await db.gameEvent.findMany({ where: { gameId, seq: { gt: initial.seq } }, orderBy: { seq: 'asc' }, select: { seq: true, playerId: true, payload: true } });
+  const seats = new Map(game.players.map((p) => [p.id, p.seat]));
+  const steps: ReplayStep[] = [];
+  let incomplete = false;
+  for (const row of rows) {
+    const seat = row.playerId ? seats.get(row.playerId) : undefined;
+    const action = (row.payload as { action?: Action } | null)?.action;
+    if (seat === undefined || !action) { incomplete = true; break; }
+    steps.push({ seat, action });
+  }
+  return { gameId, initial: initial.state as unknown as GameState, steps, ...(incomplete ? { incomplete } : {}) };
 }

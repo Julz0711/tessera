@@ -111,6 +111,12 @@ export function ProfilePage() {
                 <Stat label="Games won" value={stats.gamesWon} />
                 <Stat label="Win rate" value={`${winRate}%`} />
                 <Stat label="Recent favorite mode" value={data.favoriteMode ? MODE_LABEL[data.favoriteMode] : '—'} />
+                {data.session.persistence && (
+                  <Stat
+                    label={data.accuracy?.games ? `Accuracy (last ${data.accuracy.games} game${data.accuracy.games === 1 ? '' : 's'})` : 'Accuracy'}
+                    value={data.accuracy?.average != null ? Math.round(data.accuracy.average) : '—'}
+                  />
+                )}
 
               </div>
               <div className="flex flex-wrap gap-2 empty:hidden">

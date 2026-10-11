@@ -51,8 +51,8 @@ export interface Harbor {
 }
 
 /** Veiled Isles treasure rewards. `devCard` is a progress card of a chosen track in C&K. */
-export type TreasureKind = 'resource' | 'roadBuilding' | 'bundle' | 'devCard';
-export const TREASURE_KINDS: readonly TreasureKind[] = ['resource', 'roadBuilding', 'bundle', 'devCard'];
+export type TreasureKind = 'resource' | 'twoResources' | 'roadBuilding' | 'bundle' | 'devCard';
+export const TREASURE_KINDS: readonly TreasureKind[] = ['resource', 'twoResources', 'roadBuilding', 'bundle', 'devCard'];
 
 export interface Treasure {
   /** Corner a ship must reach to collect it. */
@@ -72,6 +72,8 @@ export interface Board {
   robberStart?: number;
   /** Veiled Isles: treasure spots. */
   treasures?: Treasure[];
+  /** Veiled Isles: face-down treasures left over after the chests are dealt; hidden sea and desert draw from it. Never sent to clients. */
+  treasurePile?: TreasureKind[];
 }
 
 // ── Modes & settings ────────────────────────────────────────────────────────
@@ -129,6 +131,8 @@ export interface GameSettings {
   gold?: boolean;
   /** Random dice, or balanced ones drawn from a bag (see dice.ts). Games from before lack it (= random). */
   dice?: DiceMode;
+  /** Balanced dice algorithm: 2 = recency + fair sevens (dice.ts). Games from before lack it (= the original rule). */
+  diceVersion?: number;
 }
 
 export type DiceMode = 'random' | 'balanced';
@@ -140,6 +144,14 @@ export interface DiceBag {
   cards: number[];
   /** The previous drawn total (0 before the first draw). */
   last: number;
+  /** v2 only: the last totals drawn (up to five). */
+  recent?: number[];
+  /** v2 only: sevens rolled per seat. */
+  sevens?: number[];
+  /** v2 only: seats that have rolled at least once. */
+  rolled?: number[];
+  /** v2 only: the latest sevens that one seat rolled in a row. */
+  streak?: { seat: number; count: number } | null;
 }
 
 // ── Pieces ──────────────────────────────────────────────────────────────────
@@ -209,7 +221,7 @@ export interface ProgressCard {
 }
 
 // ── Players ─────────────────────────────────────────────────────────────────
-export type PlayerColor = 'red' | 'blue' | 'orange' | 'white' | 'green' | 'purple' | 'teal' | 'pink' | 'brown' | 'black';
+export type PlayerColor = 'red' | 'blue' | 'orange' | 'white' | 'green' | 'purple' | 'teal' | 'pink' | 'brown' | 'black' | 'mint' | 'lavender';
 
 export interface PlayerState {
   /** Random per-game player id (never an account or guest id). */
@@ -356,7 +368,7 @@ export type GameEventBody =
   | { type: 'treasure'; seat: number; kind: TreasureKind; at: number | null }
   | { type: 'islandSettled'; seat: number; at: number; vp: number }
   | { type: 'embargo'; seat: number; target: number; on: boolean }
-  | { type: 'robberMoved'; seat: number; hex: number; pirate?: boolean }
+  | { type: 'robberMoved'; seat: number; hex: number; pirate?: boolean; chased?: boolean }
   | { type: 'stole'; seat: number; victim: number }
   | { type: 'discarded'; seat: number; cards: PartialHand }
   /** `free`: drawn from a treasure, not bought. */
