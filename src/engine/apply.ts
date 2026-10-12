@@ -58,6 +58,9 @@ export function applyAction(state: GameState, seat: number, action: Action): App
     updateLongestRoad(ctx);
     checkWinner(ctx);
     recordActionStats(state, s, seat, action, ctx.events);
+    // Every action gets its own seq, even a silent one (answering a trade offer): the server stores
+    // actions by seq, and two sharing one lost the second (and broke the replay from there).
+    if (!ctx.events.length) s.seq++;
     return { ok: true, state: s, events: ctx.events };
   } catch (err) {
     if (err instanceof RuleError) return { ok: false, error: err.message };

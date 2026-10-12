@@ -125,7 +125,7 @@ function wire(s: ClientSocket): void {
     if (!log) {
       // Only the new events came: they continue the log we hold, unless an update went missing. Once
       // one has, nothing appends until the whole log is back (asked for again if the answer is slow).
-      const follows = !syncAskedAt && prev !== null && (events.length ? events[0].seq === prev.seq + 1 : view.seq === prev.seq);
+      const follows = !syncAskedAt && prev !== null && (events.length ? events[0].seq === prev.seq + 1 : view.seq - prev.seq <= 1 && view.seq >= prev.seq);
       if (!follows && Date.now() - syncAskedAt > 2000) {
         syncAskedAt = Date.now();
         s.emit('game:sync');

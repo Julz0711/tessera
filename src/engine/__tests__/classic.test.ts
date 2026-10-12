@@ -375,7 +375,10 @@ describe('trading', () => {
     s = act(s, 0, { type: 'offerTrade', give: { brick: 1 }, want: { ore: 1 }, to: [] });
     const id = s.trades[0].id;
     expect(reject(s, 2, { type: 'respondTrade', id, accept: true })).toMatch(/don't have/);
+    // Accepting emits no event but still takes its own seq (the server stores actions by seq).
+    const before = s.seq;
     s = act(s, 1, { type: 'respondTrade', id, accept: true });
+    expect(s.seq).toBe(before + 1);
     expect(reject(s, 0, { type: 'confirmTrade', id, partner: 2 })).toMatch(/not accepted/);
     s = act(s, 0, { type: 'confirmTrade', id, partner: 1 });
     expect(s.players[0].hand).toMatchObject({ brick: 1, ore: 1 });
