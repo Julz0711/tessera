@@ -11,10 +11,13 @@ import { usePrefs } from "@/client/prefs";
 import { useSettingsUI } from "@/client/settingsUI";
 import { cachedSession, fetchSession } from "@/client/session";
 import { MAPS } from "@/engine/maps";
-import type { ActiveRoom, SessionInfo } from "@/shared/protocol";
+import type { ActiveRoom, ProgressData, SessionInfo } from "@/shared/protocol";
 import { MODE_LABEL, ratingPoolFor } from "@/shared/ratings";
 import { SignInChoices } from "@/components/auth/SignInChoices";
 import { KnightBadge } from "@/components/knight/KnightBadge";
+import { LevelBadge } from "@/components/progression/ItemArt";
+import { fetchProgress } from "@/components/progression/ProgressPage";
+import { Quay } from "@/components/landing/Quay";
 import { Logomark } from "@/components/ui/Logomark";
 import { BetaBadge } from "@/components/ui/BetaBadge";
 import { Modal } from "@/components/ui/Modal";
@@ -82,6 +85,34 @@ function ResumeTables({ rooms, onAbandon }: { rooms: ActiveRoom[]; onAbandon: (r
   );
 }
 
+/** Where you stand, in a line: level, XP bar and the next level unlock. Shown where the quay doesn't fit. */
+function ProgressCard({ data }: { data: ProgressData }) {
+  const { level } = data;
+  const next = data.items
+    .filter((i) => !i.unlocked && i.unlock.kind === "level")
+    .sort((a, b) => (a.unlock.kind === "level" && b.unlock.kind === "level" ? a.unlock.n - b.unlock.n : 0))[0];
+  return (
+    <Link
+      href="/profile?tab=progress"
+      className="landing-progress-card paper-flat animate-rise mt-6 flex max-w-sm items-center gap-3 p-3 [animation-delay:240ms] hover:brightness-105"
+    >
+      <LevelBadge level={level.level} size={36} />
+      <span className="min-w-0 flex-1">
+        <span className="flex items-baseline justify-between gap-2">
+          <span className="font-bold text-ink">Level {level.level}</span>
+          <span className="text-xs font-bold tabular text-ink-soft">{level.into} / {level.need} XP</span>
+        </span>
+        <span className="mt-1 block h-2 overflow-hidden rounded-[4px] border-2 border-ink bg-paper-2" role="progressbar" aria-valuenow={level.into} aria-valuemax={level.need} aria-label="XP to next level">
+          <span className="block h-full bg-amber" style={{ width: `${level.need ? Math.min(100, (level.into / level.need) * 100) : 0}%` }} />
+        </span>
+        {next && next.unlock.kind === "level" && (
+          <span className="mt-1.5 block truncate text-xs font-bold text-ink-soft">Next: {next.name} at level {next.unlock.n}</span>
+        )}
+      </span>
+    </Link>
+  );
+}
+
 export function Landing() {
   const router = useRouter();
   const [session, setSession] = useState<SessionInfo | null>(cachedSession);
@@ -92,6 +123,7 @@ export function Landing() {
   const [rules, setRules] = useState(false);
   const [code, setCode] = useState("");
   const [tables, setTables] = useState<ActiveRoom[]>([]);
+  const [progress, setProgress] = useState<ProgressData | null>(null);
   const [codeError, setCodeError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const prefs = usePrefs();
@@ -105,8 +137,14 @@ export function Landing() {
     }
   }, []);
 
+  const loadProgress = () => {
+    fetchProgress()
+      .then((d) => d && setProgress(d))
+      .catch(() => undefined);
+  };
   useEffect(() => {
     prefs.load();
+    loadProgress();
     fetchSession()
       .then(setSession)
       .catch(() => setSessionFailed(true));
@@ -174,64 +212,38 @@ export function Landing() {
           </span>
           <BetaBadge />
         </div>
-        <div className="hidden items-center gap-2 md:flex">
-          <Link
-            href="/patch-notes"
-            className="btn btn-dark relative h-9 w-9 p-0"
-            title={`Patch notes (${LATEST_PATCH})`}
-            aria-label={newPatch ? `Patch notes: ${LATEST_PATCH} is new` : "Patch notes"}
-          >
-            <ScrollText size={17} />
-            {newPatch && (
-              <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-ink bg-amber" />
-            )}
+        <nav className="hidden flex-1 items-center gap-6 pl-8 text-sm font-bold text-foam/70 md:flex" aria-label="Main navigation">
+          <Link href="/profile?tab=progress" className="landing-link">Progress</Link>
+          <Link href="/leaderboard" className="landing-link">Leaderboard</Link>
+          <button type="button" className="landing-link" onClick={() => setRules(true)}>Rules</button>
+          <Link href="/patch-notes" className="landing-link" aria-label={newPatch ? `What’s new: ${LATEST_PATCH} is new` : "What’s new"} title={`Patch notes (${LATEST_PATCH})`}>
+            What’s new
+            {newPatch && <span className="ml-1.5 inline-block h-2 w-2 rounded-full bg-terracotta align-middle" aria-hidden />}
           </Link>
-          <Link
-            href="/leaderboard"
-            className="btn btn-dark h-9 w-9 p-0"
-            title="Leaderboard"
-            aria-label="Leaderboard"
-          >
-            <Trophy size={17} />
-          </Link>
+          <button type="button" className="landing-link" onClick={() => useSettingsUI.getState().show()}>Settings</button>
+        </nav>
+        <div className="hidden items-center gap-4 md:flex">
           {!session && !sessionFailed && (
-            <span className="btn btn-dark invisible px-3 py-1.5 text-sm" aria-hidden>
-              <LogIn size={16} /> <span className="hidden sm:inline">Sign in</span>
-            </span>
+            <span className="invisible text-sm font-bold" aria-hidden>Sign in</span>
           )}
           {showSignIn && (
-            <button
-              type="button"
-              className="btn btn-dark px-3 py-1.5 text-sm"
-              title="Sign in"
-              aria-label="Sign in"
-              onClick={() => setSigningIn(true)}
-            >
-              <LogIn size={16} />{" "}
-              <span className="hidden sm:inline">Sign in</span>
+            <button type="button" className="landing-link text-sm font-bold text-foam/70" onClick={() => setSigningIn(true)}>
+              Sign in
             </button>
           )}
-          <button
-            type="button"
-            className="btn btn-dark h-9 w-9 p-0"
-            title="Settings"
-            aria-label="Settings"
-            onClick={() => useSettingsUI.getState().show()}
-          >
-            <Settings size={17} />
-          </button>
-          <Link href="/profile" className="btn btn-dark px-3 py-1.5 text-sm">
+          <Link href="/profile?tab=progress" className="btn btn-dark px-3 py-1.5 text-sm">
             <KnightBadge color={color} size={24} />
+            {progress?.enabled && <LevelBadge level={progress.level.level} size={22} />}
             <span className="max-w-28 truncate">{name}</span>
           </Link>
         </div>
         <div className="flex shrink-0 items-center gap-2 md:hidden">
-          <Link href="/profile" className="btn btn-dark h-11 w-11 p-0" aria-label="Your profile"><KnightBadge color={color} size={28} /></Link>
+          <Link href="/profile" className="btn btn-dark h-11 gap-1 px-2" aria-label="Your profile"><KnightBadge color={color} size={28} />{progress?.enabled && <LevelBadge level={progress.level.level} size={20} />}</Link>
           <button className="btn btn-dark h-11 w-11 p-0" aria-label="Open navigation" aria-haspopup="dialog" onClick={() => setMenu(true)}><Menu size={20} /></button>
         </div>
       </header>
 
-      <section className="landing-hero relative z-10 flex min-h-[calc(100dvh-72px)] flex-col justify-center px-5 pb-16 sm:px-10 md:max-w-160">
+      <section className={`landing-hero ${progress?.enabled ? "landing-hero-quay" : ""} relative z-10 flex min-h-[calc(100dvh-72px)] flex-col justify-center px-5 pb-16 sm:px-10 md:max-w-160`}>
         <h1
           className="display animate-rise text-[clamp(3.6rem,13vw,8.5rem)] font-black leading-[0.86] tracking-[-0.02em] text-paper"
           style={{ fontVariationSettings: "'SOFT' 100, 'WONK' 1, 'opsz' 144" }}
@@ -287,7 +299,10 @@ export function Landing() {
             {codeError}
           </p>
         )}
+        {progress?.enabled && <ProgressCard data={progress} />}
       </section>
+
+      {progress?.enabled && <Quay data={progress} name={name} color={color} onChanged={loadProgress} />}
 
       <footer className="landing-footer relative z-10 flex gap-4 px-5 pb-4 text-xs font-bold text-foam/60 sm:px-10">
         <Link href="/privacy" className="hover:text-paper">

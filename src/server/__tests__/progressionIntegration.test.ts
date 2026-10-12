@@ -50,7 +50,7 @@ describe.skipIf(!url)('progression with PostgreSQL', () => {
     expect((await profile(b.id)).xp).toBe(350);
     expect(await db.player.findUnique({ where: { id: g.playerIds[0] } })).toMatchObject({ xpGained: 1160 });
     const data = await progressDataFor(userId(a));
-    expect(data.level).toMatchObject({ level: 6, xp: 1160 });
+    expect(data.level).toMatchObject({ level: 8, xp: 1160 });
     expect(data.feats.find((f) => f.id === 'knighted')).toMatchObject({ n: 1, doneAt: expect.any(String) });
     expect(data.items.find((i) => i.id === 'title.d')).toMatchObject({ unlocked: true });
     expect(data.recent).toEqual([expect.objectContaining({ gameId: g.id, xp: 1160, won: true })]);

@@ -31,19 +31,29 @@ describe('level curve', () => {
   it('matches the designed totals', () => {
     expect(xpForLevel(1)).toBe(0);
     expect(xpForLevel(2)).toBe(150);
-    expect(xpForLevel(10)).toBe(2250);
-    expect(xpForLevel(30)).toBe(14500);
-    expect(xpForLevel(50)).toBe(32000);
-    expect(xpForLevel(100)).toBe(75750);
-    expect(xpToNext(30)).toBe(875);
-    expect(xpToNext(80)).toBe(875);
+    expect(xpForLevel(10)).toBe(1500);
+    expect(xpForLevel(30)).toBe(6420);
+    expect(xpForLevel(50)).toBe(14720);
+    expect(xpForLevel(100)).toBe(69730);
+    expect(xpToNext(1)).toBe(150);
+    expect(xpToNext(99)).toBe(1945);
+    // Past level 100 every level costs what level 100 does.
+    expect(xpToNext(100)).toBe(2000);
+    expect(xpToNext(150)).toBe(2000);
+    expect(xpForLevel(101)).toBe(69730 + 2000);
+  });
+
+  it('grows about 2.65% per level, never shrinking', () => {
+    for (let L = 1; L < 100; L++) expect(xpToNext(L + 1)).toBeGreaterThanOrEqual(xpToNext(L));
+    expect(xpToNext(99) / xpToNext(1)).toBeGreaterThan(12);
+    expect(xpToNext(99) / xpToNext(1)).toBeLessThan(14);
   });
 
   it('turns XP back into a level with progress inside it', () => {
     expect(levelFor(0)).toEqual({ level: 1, into: 0, need: 150, xp: 0 });
     expect(levelFor(149).level).toBe(1);
-    expect(levelFor(150)).toMatchObject({ level: 2, into: 0, need: 175 });
-    for (const L of [1, 2, 7, 29, 30, 31, 64, 100, 250]) {
+    expect(levelFor(150)).toMatchObject({ level: 2, into: 0, need: 155 });
+    for (const L of [1, 2, 7, 29, 30, 31, 64, 99, 100, 101, 250]) {
       expect(levelFor(xpForLevel(L)).level).toBe(L);
       expect(levelFor(xpForLevel(L + 1) - 1).level).toBe(L);
     }

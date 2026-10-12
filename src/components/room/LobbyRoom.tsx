@@ -18,7 +18,7 @@ import { ItemArt, LevelBadge, SurroundFrame } from '@/components/progression/Ite
 /** Bots have no loadout: they take turns wearing the free placeholders. */
 const BOT_LOOKS = itemsIn('character').filter((i) => i.unlock.kind === 'free').map((i) => i.id);
 
-function Pad({ color, dashed }: { color?: string; dashed?: boolean }) {
+export function Pad({ color, dashed }: { color?: string; dashed?: boolean }) {
   return (
     <svg viewBox="0 0 160 52" className="absolute bottom-3 left-1/2 w-[82%] max-w-[200px] -translate-x-1/2" aria-hidden="true">
       {dashed ? (

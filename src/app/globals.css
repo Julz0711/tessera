@@ -186,6 +186,16 @@ body {
 .landing-header { padding-top: max(1.25rem, var(--safe-top)); padding-left: max(1.25rem, var(--safe-left)); padding-right: max(1.25rem, var(--safe-right)); }
 .landing-hero { flex: 1; min-height: min(760px, calc(100svh - 120px)); padding-top: 3rem; }
 .landing-footer { padding-bottom: max(1rem, var(--safe-bottom)); }
+/* The quay (your character) needs room: big and tall screens only. Elsewhere the compact progress card shows. */
+.landing-quay { display: none; }
+@media (min-width: 1024px) and (min-height: 760px) {
+  .landing-quay { display: block; }
+  .landing-hero-quay { padding-bottom: 17.5rem; }
+  .landing-progress-card { display: none; }
+}
+.landing-link { border-bottom: 2px solid transparent; padding: .25rem 0; }
+.landing-link:hover, .landing-link:focus-visible { border-bottom-color: var(--color-paper); color: var(--color-paper); }
+.landing-link:focus-visible { outline: 2px solid var(--color-paper); outline-offset: 3px; border-radius: 2px; }
 .app-dialog { height: var(--visible-height, 100dvh); top: var(--visible-top, 0px); bottom: auto; padding-top: max(.75rem, var(--safe-top)); padding-bottom: max(.75rem, var(--safe-bottom)); }
 .dialog-sheet { max-height: 100%; min-width: 0; overscroll-behavior-y: contain; }
 /* Pinned near the top (Modal `top`): the top margin comes out of the height, or the sheet runs off the bottom. */
