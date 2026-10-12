@@ -40,6 +40,7 @@ import {
   type JoinProfile,
   type RoomDTO,
   type RoomSettings,
+  type SeatCrew,
   type ServerToClientEvents,
 } from '@/shared/protocol';
 import { sanitizeChat, sanitizeName } from '@/shared/text';
@@ -87,6 +88,8 @@ interface Seat {
   cosmetics: Cosmetics;
   /** Restored after a restart without a saved frame/title: the player's next join may set it, once. */
   cosmeticsPending?: boolean;
+  /** Level and loadout, read from storage by the socket layer on every join. */
+  crew?: SeatCrew;
   avatarUrl?: string;
   sockets: Set<string>;
   lastSeen: number;
@@ -209,7 +212,7 @@ export class Room {
 
   // ── Membership ────────────────────────────────────────────────────────────
 
-  join(socketId: string, identity: ServerIdentity, opts: { profile?: JoinProfile; spectate?: boolean }): RoomDTO {
+  join(socketId: string, identity: ServerIdentity, opts: { profile?: JoinProfile; spectate?: boolean; crew?: SeatCrew }): RoomDTO {
     this.assertOpen();
     this.touch();
     const key = identity.key;
@@ -225,6 +228,7 @@ export class Room {
       seat.sockets = new Set([socketId]);
       seat.left = false;
       seat.lastSeen = this.now();
+      if (opts.crew) seat.crew = opts.crew;
       if (opts.profile && this.status === 'lobby') this.applyProfile(seat, opts.profile);
       // Mid-game the look is fixed. Only a seat restored without a saved frame/title takes the one
       // the player brings, on their first rejoin.
@@ -247,6 +251,7 @@ export class Room {
           color: this.freeColor(opts.profile.color),
           knight: sanitizeKnight(opts.profile.knight),
           cosmetics: sanitizeCosmetics(opts.profile.cosmetics),
+          crew: opts.crew,
           avatarUrl: identity.avatarUrl ?? undefined,
           sockets: new Set([socketId]),
           lastSeen: this.now(),
@@ -438,6 +443,14 @@ export class Room {
     if (!seat) throw new UserError('You are not seated in this room');
     if (this.status !== 'lobby') throw new UserError('You can change this in the lobby');
     this.applyProfile(seat, patch);
+    this.broadcastRoom();
+  }
+
+  /** A fresh level and loadout for the caller's seat (after they changed their loadout). Lobby only: a game's look is fixed. */
+  setCrew(socketId: string, crew: SeatCrew): void {
+    const seat = this.seatOf(socketId);
+    if (!seat || this.status !== 'lobby') return;
+    seat.crew = crew;
     this.broadcastRoom();
   }
 
@@ -978,6 +991,7 @@ export class Room {
         color: s.color,
         knight: s.knight,
         cosmetics: s.cosmetics,
+        crew: s.crew,
         avatarUrl: s.avatarUrl,
         isBot: s.isBot,
         isGuest: s.isGuest,

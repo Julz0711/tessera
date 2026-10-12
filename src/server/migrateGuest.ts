@@ -6,6 +6,7 @@
  */
 import { sanitizeName } from '@/shared/text';
 import { getDb } from './db';
+import { invalidateProgress } from './progression';
 
 export async function ensureProfile(userId: string, name?: string | null, image?: string | null): Promise<void> {
   const db = getDb();
@@ -41,6 +42,7 @@ export async function migrateGuestToUser(guestId: string, userId: string, isNewU
           color: profile.color ?? guest.color,
           knight: profile.knight ?? guest.knight ?? undefined,
           cosmetics: profile.cosmetics ?? guest.cosmetics ?? undefined,
+          loadout: profile.loadout ?? guest.loadout ?? undefined,
         },
       });
     } else {
@@ -51,12 +53,15 @@ export async function migrateGuestToUser(guestId: string, userId: string, isNewU
           color: guest.color,
           knight: guest.knight ?? undefined,
           cosmetics: guest.cosmetics ?? undefined,
+          loadout: guest.loadout ?? undefined,
           gamesPlayed: guest.gamesPlayed,
           gamesWon: guest.gamesWon,
         },
       });
     }
 
+    // The guest's games are the account's now: its XP and feats are rebuilt from the joint history.
+    await invalidateProgress(tx, [{ userId }]);
     await tx.guestSession.update({ where: { id: guestId }, data: { migratedToUserId: userId, migratedAt: new Date() } });
     return true;
   });

@@ -43,6 +43,7 @@ import { MODE_LABEL, ratingPoolFor } from "@/shared/ratings";
 import { PLAYER_COLORS } from "@/shared/colors";
 import { KnightBadge } from "@/components/knight/KnightBadge";
 import { Framed, TitleTag } from "@/components/profile/Cosmetics";
+import { ItemArt, LevelBadge } from "@/components/progression/ItemArt";
 import { Modal } from "@/components/ui/Modal";
 import { Logomark } from "@/components/ui/Logomark";
 import {
@@ -171,6 +172,7 @@ function SeatCard({
             </span>
           )}
           <TitleTag title={seat.cosmetics.title} className="shrink-0" />
+          {seat.crew && <LevelBadge level={seat.crew.level} size={22} />}
         </div>
         <div className="flex items-center gap-2 text-xs font-semibold text-ink-faint">
           {seat.isBot ? (
@@ -196,6 +198,13 @@ function SeatCard({
             ))}
         </div>
       </div>
+      {seat.crew && (
+        // Placeholder figure and banner until the lobby room scene replaces this list.
+        <div className="flex shrink-0 items-end" aria-hidden="true">
+          <ItemArt id={seat.crew.loadout.character} color={seat.color} size={52} />
+          <ItemArt id={seat.crew.loadout.banner} color={seat.color} size={36} />
+        </div>
+      )}
       {onEdit && (
         <button
           type="button"

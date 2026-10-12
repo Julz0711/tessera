@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Database, ShieldCheck, LogOut, Pencil, Save } from 'lucide-react';
+import { ArrowLeft, Database, ShieldCheck, LogOut, Pencil, Save, Sparkles } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -102,6 +102,9 @@ export function ProfilePage() {
                     {user ? `Signed in with ${data.providers.map((p) => p[0].toUpperCase() + p.slice(1)).join(' & ') || 'your account'}` : 'Guest'}
                   </p>
                 </div>
+                <Link href="/progress" className="btn shrink-0 px-3 py-2" aria-label="Progress" title="Progress">
+                  <Sparkles size={16} /> <span className="hidden sm:inline">Progress</span>
+                </Link>
                 <Link href="/profile/edit" className="btn shrink-0 px-3 py-2" aria-label="Edit profile" title="Edit profile">
                   <Pencil size={16} /> <span className="hidden sm:inline">Edit profile</span>
                 </Link>

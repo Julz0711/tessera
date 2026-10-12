@@ -4,6 +4,7 @@ import type { GameReport } from '@/engine/report';
 import type { PlayerView } from '@/engine/view';
 import type { Cosmetics, UnlockStats } from './cosmetics';
 import type { KnightCustomization } from './knight';
+import type { Item, LevelInfo, Loadout } from './progression';
 import type { ReactionId } from './reactions';
 import type { BoardPoint } from './cursors';
 import type { ModeRating, RatingPool } from './ratings';
@@ -57,6 +58,12 @@ export interface JoinProfile {
   cosmetics?: Cosmetics;
 }
 
+/** What a seat shows of a player's progression. Set by the server from storage, never by the client. */
+export interface SeatCrew {
+  level: number;
+  loadout: Loadout;
+}
+
 export interface SeatDTO {
   /** Public per-game player id (never an account id). */
   playerId: string;
@@ -64,6 +71,8 @@ export interface SeatDTO {
   color: PlayerColor;
   knight: KnightCustomization;
   cosmetics: Cosmetics;
+  /** Level and loadout (people only; missing until the player's first join after a restart). */
+  crew?: SeatCrew;
   avatarUrl?: string;
   isBot: boolean;
   isGuest: boolean;
@@ -121,6 +130,8 @@ export interface ClientToServerEvents {
   'room:leave': (ack: Ack) => void;
   'room:settings': (p: Partial<RoomSettings>, ack: Ack) => void;
   'room:profile': (p: Partial<JoinProfile>, ack: Ack) => void;
+  /** Re-reads your level and loadout from storage into your lobby seat (after changing your loadout). */
+  'room:crew': (ack: Ack) => void;
   'room:addBot': (ack: Ack) => void;
   'room:removeSeat': (playerId: string, ack: Ack) => void;
   'room:start': (ack: Ack) => void;
@@ -230,7 +241,23 @@ export interface ProfileUpdate {
   color?: PlayerColor;
   knight?: KnightCustomization;
   cosmetics?: Cosmetics;
+  /** Worn character/banner/title/surround; the server keeps only unlocked items. */
+  loadout?: Loadout;
   preferences?: ProfilePreferences;
+}
+
+/** GET /api/progress — only ever returned to the identity itself. */
+export interface ProgressData {
+  /** False without a database: nothing is tracked, everyone is level 1. */
+  enabled: boolean;
+  level: LevelInfo;
+  /** Best rating (rating unlocks); null: never rated. */
+  rating: number | null;
+  loadout: Loadout;
+  feats: { id: string; name: string; description: string; target: number; xp: number; n: number; doneAt: string | null }[];
+  items: (Item & { unlocked: boolean })[];
+  /** XP from the latest games, newest first. */
+  recent: { gameId: string; endedAt: string | null; won: boolean; xp: number }[];
 }
 
 /** A table you still hold a seat at (GET /api/rooms/active), for the main menu's "rejoin". */

@@ -7,6 +7,7 @@ import { FACE_MAX_BYTES, FaceError, loadFace, storeFace } from './faces';
 import type { ProfileData, SessionInfo } from '@/shared/protocol';
 import { accuracyFor, favoriteMode, historyFor, linkedProviders, preferencesFor, ratingFor, sanitizePreferences, updateProfile } from './profileApi';
 import { cosmeticStateFor } from './cosmetics';
+import { progressDataFor } from './progression';
 import { dbEnabled, getDb, logDbError } from './db';
 import { GUEST_TTL_DAYS, newGuestId, resolveIdentity, setGuestCookie, type ServerIdentity } from './identity';
 import { limits } from './rateLimit';
@@ -316,6 +317,15 @@ export async function handleHttp(req: IncomingMessage, res: ServerResponse, ctx?
     }
     const data = await friendProfileFor(identity, path.slice('/api/friends/'.length));
     json(res, data ? 200 : 404, data ?? { error: 'Profile unavailable. You can only view accepted friends.' });
+    return true;
+  }
+  if (path === '/api/progress' && req.method === 'GET') {
+    const identity = await resolveIdentity(req.headers.cookie);
+    if (!identity) {
+      json(res, 401, { error: 'No session' });
+      return true;
+    }
+    json(res, 200, await progressDataFor(identity));
     return true;
   }
   if (path === '/api/profile' && (req.method === 'GET' || req.method === 'PATCH')) {

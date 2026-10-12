@@ -86,6 +86,11 @@ model Profile {
   preferences Json?
   gamesPlayed Int      @default(0)
   gamesWon    Int      @default(0)
+  // Progression (src/shared/progression): total XP, feat counters (null: not built yet, rebuilt
+  // from game history on first use) and the worn character/banner/title/surround.
+  xp          Int      @default(0)
+  progress    Json?
+  loadout     Json?
   // Elo-style rating from games with at least two signed-in players (see src/server/rating.ts).
   rating      Int      @default(1000)
   ratedGames  Int      @default(0)
@@ -138,6 +143,9 @@ model GuestSession {
   cosmetics        Json?
   gamesPlayed      Int       @default(0)
   gamesWon         Int       @default(0)
+  xp               Int       @default(0)
+  progress         Json?
+  loadout          Json?
   createdAt        DateTime  @default(now())
   lastSeenAt       DateTime  @default(now())
   expiresAt        DateTime
@@ -216,6 +224,8 @@ model Player {
   finalVp             Int?
   rank                Int?
   won                 Boolean       @default(false)
+  // XP this game paid the player, feats included (null: none awarded, e.g. a bot).
+  xpGained            Int?
   ratingDelta         Int?
   ratingPool          String?
   ratingBefore        Int?

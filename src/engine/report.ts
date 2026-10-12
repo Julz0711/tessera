@@ -16,6 +16,8 @@ export interface GameReport {
   endedAt?: string;
   /** A running game's report (`buildReport(…, { live: true })`): public information only. */
   live?: boolean;
+  /** An admin changed the game by hand (set when it's stored): it earns no rating or XP. */
+  adminEdited?: boolean;
   stats: GameStats | null;
   players: { name: string; color: PlayerColor; isBot: boolean; vp: number; rank: number; points: Record<string, number>;
     remaining: number; unusedDev: number; unusedProgress: number; improvements: Record<string, number>;
