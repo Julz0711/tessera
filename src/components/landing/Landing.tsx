@@ -220,9 +220,8 @@ export function Landing() {
             What’s new
             {newPatch && <span className="ml-1.5 inline-block h-2 w-2 rounded-full bg-terracotta align-middle" aria-hidden />}
           </Link>
-          <button type="button" className="landing-link" onClick={() => useSettingsUI.getState().show()}>Settings</button>
         </nav>
-        <div className="hidden items-center gap-4 md:flex">
+        <div className="hidden items-center gap-3 md:flex">
           {!session && !sessionFailed && (
             <span className="invisible text-sm font-bold" aria-hidden>Sign in</span>
           )}
@@ -236,6 +235,7 @@ export function Landing() {
             {progress?.enabled && <LevelBadge level={progress.level.level} size={22} />}
             <span className="max-w-28 truncate">{name}</span>
           </Link>
+          <button type="button" className="btn btn-dark h-9 w-9 p-0" aria-label="Settings" title="Settings" onClick={() => useSettingsUI.getState().show()}><Settings size={18} /></button>
         </div>
         <div className="flex shrink-0 items-center gap-2 md:hidden">
           <Link href="/profile" className="btn btn-dark h-11 gap-1 px-2" aria-label="Your profile"><KnightBadge color={color} size={28} />{progress?.enabled && <LevelBadge level={progress.level.level} size={20} />}</Link>
