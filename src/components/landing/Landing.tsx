@@ -90,7 +90,7 @@ function ResumeTables({ rooms, onAbandon }: { rooms: ActiveRoom[]; onAbandon: (r
   );
 }
 
-/** Where you stand, in a line: level, XP bar and the next level unlock. Shown where the quay doesn't fit. */
+/** Where you stand, in a line: level, XP bar and the next level unlock. Its own panel on phones; a section of the dock on desktop. */
 function ProgressCard({ data, dock = false }: { data: ProgressData; dock?: boolean }) {
   const { level } = data;
   const next = data.items
@@ -99,19 +99,19 @@ function ProgressCard({ data, dock = false }: { data: ProgressData; dock?: boole
   return (
     <Link
       href="/profile?tab=progress"
-      className={`paper-flat flex items-center gap-3 p-3 hover:brightness-105 ${dock ? "w-80" : "landing-progress-card animate-rise mt-6 max-w-sm [animation-delay:240ms]"}`}
+      className={`group flex items-center gap-3 text-paper ${dock ? "w-80 p-4 hover:bg-sea-700" : "glass landing-progress-card animate-rise mt-6 max-w-sm p-3 [animation-delay:240ms] hover:bg-sea-700"}`}
     >
       <LevelBadge level={level.level} size={36} />
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline justify-between gap-2">
-          <span className="font-bold text-ink">Level {level.level}</span>
-          <span className="text-xs font-bold tabular text-ink-soft">{level.into} / {level.need} XP</span>
+          <span className="font-bold">Level {level.level}</span>
+          <span className="text-xs font-bold tabular text-foam/60">{level.into} / {level.need} XP</span>
         </span>
-        <span className="mt-1 block h-2 overflow-hidden rounded-[4px] border-2 border-ink bg-paper-2" role="progressbar" aria-valuenow={level.into} aria-valuemax={level.need} aria-label="XP to next level">
+        <span className="mt-1.5 block h-2 overflow-hidden rounded-[4px] border-2 border-ink bg-sea-950" role="progressbar" aria-valuenow={level.into} aria-valuemax={level.need} aria-label="XP to next level">
           <span className="block h-full bg-amber" style={{ width: `${level.need ? Math.min(100, (level.into / level.need) * 100) : 0}%` }} />
         </span>
         {next && next.unlock.kind === "level" && (
-          <span className="mt-1.5 block truncate text-xs font-bold text-ink-soft">Next: {next.name} at level {next.unlock.n}</span>
+          <span className="mt-1.5 block truncate text-xs font-bold text-foam/60">Next: {next.name} at level {next.unlock.n}</span>
         )}
       </span>
     </Link>
@@ -285,7 +285,7 @@ export function Landing() {
 
       <section className={`landing-hero ${progress?.enabled ? "landing-hero-quay" : ""} relative z-10 flex min-h-[calc(100dvh-72px)] flex-col justify-center px-5 pb-16 sm:px-10 md:max-w-160`}>
         <h1
-          className="display animate-rise text-[clamp(3.6rem,13vw,8.5rem)] font-black leading-[0.86] tracking-[-0.02em] text-paper"
+          className="display animate-rise text-[clamp(3.6rem,11vw,7rem)] font-black leading-[0.86] tracking-[-0.02em] text-paper"
           style={{ fontVariationSettings: "'SOFT' 100, 'WONK' 1, 'opsz' 144" }}
         >
           {APP_WORDMARK}
@@ -293,24 +293,24 @@ export function Landing() {
 
         {tables.length > 0 && <ResumeTables rooms={tables} onAbandon={(r) => { setAbandonError(null); setAbandoning(r); }} />}
 
-        <div className={`landing-actions animate-rise paper-flat ${tables.length ? "mt-5" : "mt-9"} grid w-[22rem] max-w-full gap-2 p-3 [animation-delay:160ms]`}>
-          <h2 className="text-xs font-bold uppercase tracking-label text-ink-soft">Play</h2>
+        <div className={`landing-actions animate-rise glass ${tables.length ? "mt-5" : "mt-9"} grid w-[22rem] max-w-full gap-2 p-3 [animation-delay:160ms]`}>
+          <h2 className="text-xs font-bold uppercase tracking-label text-foam/60">Play</h2>
           {/* With a table to go back to, Rejoin takes the accent colour. */}
           <button type="button" onClick={() => createNow("lobby")} disabled={!!creating} className={`btn ${tables.length ? "" : "btn-primary"} w-full px-5 py-3 text-lg`}>
             {creating === "lobby" ? <HexSpinner size={20} decorative /> : null}
             Create lobby <ArrowRight size={20} strokeWidth={3} />
           </button>
           <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => createNow("bots")} disabled={!!creating} className="btn whitespace-nowrap px-3 py-2.5 text-base">
+            <button type="button" onClick={() => createNow("bots")} disabled={!!creating} className="btn btn-dark whitespace-nowrap px-3 py-2.5 text-base">
               {creating === "bots" ? <HexSpinner size={18} decorative /> : <Bot size={18} />}
               Play vs bots
             </button>
             {!joining ? (
-              <button type="button" className="btn px-3 py-2.5 text-base" onClick={() => setJoining(true)}>
+              <button type="button" className="btn btn-dark whitespace-nowrap px-3 py-2.5 text-base" onClick={() => setJoining(true)}>
                 Join game
               </button>
             ) : (
-              <form onSubmit={submitJoin} className="flex min-w-0 items-center gap-1 rounded-[4px] border-2 border-ink bg-paper-2 pl-2">
+              <form onSubmit={submitJoin} className="flex min-w-0 items-center gap-1 rounded-[4px] border-2 border-ink bg-sea-950 pl-2">
                 <input
                   ref={inputRef}
                   value={code}
@@ -326,9 +326,9 @@ export function Landing() {
                   enterKeyHint="go"
                   aria-invalid={!!codeError}
                   aria-describedby={codeError ? 'room-code-error' : undefined}
-                  className="min-w-0 flex-1 bg-transparent text-sm font-bold uppercase tabular tracking-label text-ink outline-none placeholder:text-ink/30"
+                  className="min-w-0 flex-1 bg-transparent text-sm font-bold uppercase tabular tracking-label text-paper outline-none placeholder:text-foam/30"
                 />
-                <button type="submit" className="btn btn-dark m-0.5 px-2.5 py-1.5 text-sm">Go</button>
+                <button type="submit" className="btn btn-primary m-0.5 px-2.5 py-1.5 text-sm">Go</button>
               </form>
             )}
           </div>
@@ -343,8 +343,10 @@ export function Landing() {
 
       {progress?.enabled && (
         <div className="landing-dock absolute inset-x-5 bottom-14 z-10 items-end gap-4 sm:inset-x-10">
-          <FriendsCard />
-          <ProgressCard data={progress} dock />
+          <div className="glass flex items-stretch divide-x-2 divide-ink overflow-hidden">
+            <FriendsCard />
+            <ProgressCard data={progress} dock />
+          </div>
           <div className="flex-1" />
           <Quay data={progress} color={color} ratings={ratings} onChanged={() => { loadProgress(); loadRatings(); }} />
         </div>

@@ -40,22 +40,22 @@ export function Quay({ data, color, ratings, onChanged }: { data: ProgressData; 
           </span>
         )}
       </button>
-      <div className="paper-flat flex items-center gap-2 p-3">
+      <div className="glass flex items-center gap-2 p-3 text-paper">
         <div className="min-w-0 flex-1" aria-live="polite">
-          <p className="text-xs font-bold uppercase tracking-label text-ink-soft">Your rating{cur ? ` · ${MODE_LABEL[cur.pool]}` : ''}</p>
+          <p className="text-xs font-bold uppercase tracking-label text-foam/60">Your rating{cur ? ` · ${MODE_LABEL[cur.pool]}` : ''}</p>
           {cur ? (
             <>
               <p className="display text-3xl font-black leading-tight tabular">{cur.rating.toLocaleString()}</p>
-              <p className="text-xs font-bold text-ink-soft">{cur.ratedGames} rated {cur.ratedGames === 1 ? 'game' : 'games'}{cur.place ? ` · #${cur.place}` : ''}</p>
+              <p className="text-xs font-bold text-foam/60">{cur.ratedGames} rated {cur.ratedGames === 1 ? 'game' : 'games'}{cur.place ? ` · #${cur.place}` : ''}</p>
             </>
           ) : (
-            <p className="mt-1 text-sm font-bold text-ink-soft">No rated games yet</p>
+            <p className="mt-1 text-sm font-bold text-foam/70">No rated games yet</p>
           )}
         </div>
         {shown.length > 1 && (
           <div className="flex shrink-0 gap-1">
-            <button type="button" className="btn h-8 w-8 p-0" aria-label="Previous mode" onClick={() => step(-1)}><ChevronLeft size={16} /></button>
-            <button type="button" className="btn h-8 w-8 p-0" aria-label="Next mode" onClick={() => step(1)}><ChevronRight size={16} /></button>
+            <button type="button" className="btn btn-dark h-8 w-8 p-0" aria-label="Previous mode" onClick={() => step(-1)}><ChevronLeft size={16} /></button>
+            <button type="button" className="btn btn-dark h-8 w-8 p-0" aria-label="Next mode" onClick={() => step(1)}><ChevronRight size={16} /></button>
           </div>
         )}
       </div>
