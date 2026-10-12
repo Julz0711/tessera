@@ -232,8 +232,8 @@ export function Landing() {
           )}
           <Link href="/profile" className="btn btn-dark h-10 px-3 py-0 text-sm">
             <KnightBadge color={color} size={24} />
-            {progress?.enabled && <LevelBadge level={progress.level.level} size={22} />}
             <span className="max-w-28 truncate">{name}</span>
+            {progress?.enabled && <LevelBadge level={progress.level.level} size={22} />}
           </Link>
           <button type="button" className="btn btn-dark h-10 w-10 shrink-0 p-0" aria-label="Settings" title="Settings" onClick={() => useSettingsUI.getState().show()}><Settings size={18} /></button>
         </div>
