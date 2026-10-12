@@ -12,6 +12,7 @@ import { ItemArt, LevelBadge, SurroundFrame } from '@/components/progression/Ite
  * The lobby as a room: every seat is a spot on the floor where the player stands as their
  * character on a pad ringed in their colour, with their banner beside them and a nameplate below.
  * Open seats are empty pads. Seats sit side by side, so the wall and floor run on as one room.
+ * The room is desktop only; phones and tablets get the nameplates as a plain list.
  */
 
 /** Bots have no loadout: they take turns wearing the free placeholders. */
@@ -33,17 +34,12 @@ function Pad({ color, dashed }: { color?: string; dashed?: boolean }) {
   );
 }
 
-/** Figures stand a little smaller on phones so two spots fit side by side. */
-function Floor({ children }: { children: React.ReactNode }) {
-  return <span className="absolute inset-0 origin-bottom scale-[.8] sm:scale-100">{children}</span>;
-}
-
 /** One spot of the room's floor: wall above, floor below; alternate spots shade the wall like facets. */
 function Spot({ index, children }: { index: number; children: React.ReactNode }) {
   const wall = index % 2 ? '#12384a' : 'var(--color-sea-800)';
   return (
     <div
-      className="relative h-40 sm:h-60"
+      className="relative h-60"
       style={{ background: `linear-gradient(180deg, ${wall} 0 56%, var(--color-sea-950) 56% calc(56% + 3px), #143c4e calc(56% + 3px) 100%)` }}
     >
       {children}
@@ -55,7 +51,7 @@ function Figure({ seat, index }: { seat: SeatDTO; index: number }) {
   const character = seat.crew?.loadout.character ?? BOT_LOOKS[index % BOT_LOOKS.length];
   const banner = seat.crew?.loadout.banner ?? null;
   return (
-    <Floor>
+    <>
       <Pad color={PLAYER_COLORS[seat.color].hex} />
       <span className={`absolute bottom-7 left-1/2 -translate-x-[62%] ${seat.connected ? '' : 'opacity-50'}`}>
         <ItemArt id={character} color={seat.color} size={140} />
@@ -65,11 +61,11 @@ function Figure({ seat, index }: { seat: SeatDTO; index: number }) {
           <ItemArt id={banner} color={seat.color} size={96} />
         </span>
       )}
-    </Floor>
+    </>
   );
 }
 
-function Nameplate({ seat, onEdit }: { seat: SeatDTO; onEdit?: () => void }) {
+function Nameplate({ seat, onEdit, onRemove, onLook }: { seat: SeatDTO; onEdit?: () => void; onRemove?: () => void; onLook?: () => void }) {
   const title = seat.crew?.loadout.title ? itemById(seat.crew.loadout.title)?.name : null;
   return (
     <div className="paper-flat grid gap-1.5 p-2">
@@ -92,11 +88,21 @@ function Nameplate({ seat, onEdit }: { seat: SeatDTO; onEdit?: () => void }) {
             )}
           </div>
         </div>
+        {onRemove && (
+          <button type="button" onClick={onRemove} className="btn btn-ghost h-7 w-7 shrink-0 p-0" aria-label={`Remove ${seat.name}`} title="Remove">
+            <X size={14} />
+          </button>
+        )}
       </div>
       <div className="flex min-h-6 items-center gap-1.5">
         {seat.crew && <LevelBadge level={seat.crew.level} size={20} />}
         <span className="min-w-0 flex-1 truncate text-xs font-bold text-ink-soft">{title ?? (seat.isBot ? 'Crewmate' : !seat.isGuest ? <span className="inline-flex items-center gap-1"><UserRound size={11} /> Profile</span> : '')}</span>
         {seat.isYou && <span className="shrink-0 rounded-[4px] bg-ink px-1.5 text-[10px] font-black uppercase tracking-caps text-paper">You</span>}
+        {onLook && (
+          <button type="button" onClick={onLook} className="btn btn-ghost h-7 w-7 shrink-0 p-0" aria-label="Change your character, banner, title and surround" title="Look">
+            <Shirt size={13} />
+          </button>
+        )}
         {onEdit && (
           <button type="button" onClick={onEdit} className="btn btn-ghost h-7 w-7 shrink-0 p-0" aria-label="Edit your name and colour" title="Name and colour">
             <Pencil size={13} />
@@ -107,15 +113,31 @@ function Nameplate({ seat, onEdit }: { seat: SeatDTO; onEdit?: () => void }) {
   );
 }
 
-export function LobbyRoom({ room, onEditProfile, onWardrobe }: { room: RoomDTO; onEditProfile: () => void; onWardrobe: () => void }) {
+function OpenSeat({ host }: { host: boolean }) {
+  return (
+    <div className="grid min-h-[84px] place-items-center gap-1.5 rounded-[6px] border-2 border-dashed border-foam/25 p-2 text-center">
+      <span className="text-xs font-bold text-foam/60">Open seat</span>
+      {host && (
+        <button type="button" className="btn btn-dark gap-1.5 px-2.5 py-1 text-xs leading-none" onClick={() => api.addBot()}>
+          <Plus size={14} strokeWidth={2.75} /> Add bot
+        </button>
+      )}
+    </div>
+  );
+}
+
+type Props = { room: RoomDTO; onEditProfile: () => void; onWardrobe: () => void };
+
+/** Desktop: the room scene with everyone standing as their character. */
+function Scene({ room, onEditProfile, onWardrobe }: Props) {
   const host = room.you.isHost;
   const empty = Math.max(0, room.settings.maxPlayers - room.seats.length);
   const spots = room.settings.maxPlayers;
-  // Up to four seats share one row from tablet width; five or six need a wide screen for that.
-  const row = spots > 4 ? 'xl:[grid-template-columns:repeat(var(--spots),minmax(0,1fr))]' : 'md:[grid-template-columns:repeat(var(--spots),minmax(0,1fr))]';
+  // Five or six spots only share one row on wide screens; below that they wrap in threes.
+  const row = spots > 4 ? 'grid-cols-3 xl:[grid-template-columns:repeat(var(--spots),minmax(0,1fr))]' : '[grid-template-columns:repeat(var(--spots),minmax(0,1fr))]';
   return (
     <div
-      className={`grid grid-cols-2 overflow-hidden rounded-[6px] border-2 border-ink bg-sea-950 sm:grid-cols-3 ${row}`}
+      className={`hidden overflow-hidden rounded-[6px] border-2 border-ink bg-sea-950 lg:grid ${row}`}
       style={{ '--spots': spots } as React.CSSProperties}
     >
       {room.seats.map((seat, i) => (
@@ -140,29 +162,43 @@ export function LobbyRoom({ room, onEditProfile, onWardrobe }: { room: RoomDTO; 
           </div>
         </div>
       ))}
-      {Array.from({ length: empty }, (_, k) => {
-        const i = room.seats.length + k;
-        return (
-          <div key={`open${k}`} className="grid content-start">
-            <Spot index={i}>
-              <Floor>
-                <Pad dashed />
-                <Plus size={22} strokeWidth={3} className="absolute bottom-[1.6rem] left-1/2 -translate-x-1/2 text-sea-300/70" aria-hidden="true" />
-              </Floor>
-            </Spot>
-            <div className="p-1.5">
-              <div className="grid min-h-[84px] place-items-center gap-1.5 rounded-[6px] border-2 border-dashed border-foam/25 p-2 text-center">
-                <span className="text-xs font-bold text-foam/60">Open seat</span>
-                {host && (
-                  <button type="button" className="btn btn-dark gap-1.5 px-2.5 py-1 text-xs leading-none" onClick={() => api.addBot()}>
-                    <Plus size={14} strokeWidth={2.75} /> Add bot
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })}
+      {Array.from({ length: empty }, (_, k) => (
+        <div key={`open${k}`} className="grid content-start">
+          <Spot index={room.seats.length + k}>
+            <Pad dashed />
+            <Plus size={22} strokeWidth={3} className="absolute bottom-[1.6rem] left-1/2 -translate-x-1/2 text-sea-300/70" aria-hidden="true" />
+          </Spot>
+          <div className="p-1.5"><OpenSeat host={host} /></div>
+        </div>
+      ))}
     </div>
+  );
+}
+
+/** Phones and tablets: just the nameplates, so the table stays short. */
+function List({ room, onEditProfile, onWardrobe }: Props) {
+  const host = room.you.isHost;
+  const empty = Math.max(0, room.settings.maxPlayers - room.seats.length);
+  return (
+    <ul className="grid gap-2 sm:grid-cols-2 lg:hidden">
+      {room.seats.map((seat) => (
+        <li key={seat.playerId} className="animate-pop">
+          <Nameplate seat={seat}
+            onEdit={seat.isYou ? onEditProfile : undefined}
+            onLook={seat.isYou ? onWardrobe : undefined}
+            onRemove={host && !seat.isYou ? () => api.removeSeat(seat.playerId) : undefined} />
+        </li>
+      ))}
+      {Array.from({ length: empty }, (_, k) => <li key={`open${k}`}><OpenSeat host={host} /></li>)}
+    </ul>
+  );
+}
+
+export function LobbyRoom(props: Props) {
+  return (
+    <>
+      <Scene {...props} />
+      <List {...props} />
+    </>
   );
 }
