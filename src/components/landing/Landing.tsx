@@ -343,12 +343,12 @@ export function Landing() {
 
       {progress?.enabled && (
         <div className="landing-dock absolute inset-x-5 bottom-14 z-10 items-end gap-4 sm:inset-x-10">
+          <Quay data={progress} color={color} ratings={ratings} onChanged={() => { loadProgress(); loadRatings(); }} />
+          <div className="flex-1" />
           <div className="glass flex items-stretch divide-x-2 divide-ink overflow-hidden">
             <FriendsCard />
             <ProgressCard data={progress} dock />
           </div>
-          <div className="flex-1" />
-          <Quay data={progress} color={color} ratings={ratings} onChanged={() => { loadProgress(); loadRatings(); }} />
         </div>
       )}
 
