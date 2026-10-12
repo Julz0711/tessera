@@ -13,7 +13,6 @@ import { cachedSession, fetchSession } from "@/client/session";
 import { MAPS } from "@/engine/maps";
 import type { ActiveRoom, SessionInfo } from "@/shared/protocol";
 import { MODE_LABEL, ratingPoolFor } from "@/shared/ratings";
-import { DEFAULT_KNIGHT } from "@/shared/knight";
 import { SignInChoices } from "@/components/auth/SignInChoices";
 import { KnightBadge } from "@/components/knight/KnightBadge";
 import { Logomark } from "@/components/ui/Logomark";
@@ -160,7 +159,6 @@ export function Landing() {
   const showSignIn = session ? !signedIn : sessionFailed;
   const name = session?.displayName || prefs.name || "Guest";
   const color = session?.color ?? prefs.color;
-  const knight = session?.knight ?? prefs.knight ?? DEFAULT_KNIGHT;
 
   return (
     <main className="landing-page relative min-h-dvh overflow-hidden">
@@ -223,12 +221,12 @@ export function Landing() {
             <Settings size={17} />
           </button>
           <Link href="/profile" className="btn btn-dark px-3 py-1.5 text-sm">
-            <KnightBadge knight={knight} color={color} size={24} />
+            <KnightBadge color={color} size={24} />
             <span className="max-w-28 truncate">{name}</span>
           </Link>
         </div>
         <div className="flex shrink-0 items-center gap-2 md:hidden">
-          <Link href="/profile" className="btn btn-dark h-11 w-11 p-0" aria-label="Your profile"><KnightBadge knight={knight} color={color} size={28} /></Link>
+          <Link href="/profile" className="btn btn-dark h-11 w-11 p-0" aria-label="Your profile"><KnightBadge color={color} size={28} /></Link>
           <button className="btn btn-dark h-11 w-11 p-0" aria-label="Open navigation" aria-haspopup="dialog" onClick={() => setMenu(true)}><Menu size={20} /></button>
         </div>
       </header>
@@ -317,7 +315,7 @@ export function Landing() {
 
       <Modal open={menu} onClose={() => setMenu(false)} title="Menu">
         <nav className="grid gap-2" aria-label="Main navigation">
-          <Link href="/profile" className="btn justify-start px-4 py-3"><KnightBadge knight={knight} color={color} size={24} /> Your profile</Link>
+          <Link href="/profile" className="btn justify-start px-4 py-3"><KnightBadge color={color} size={24} /> Your profile</Link>
           <Link href="/progress" className="btn justify-start px-4 py-3"><Sparkles size={18} /> Progress</Link>
           <Link href="/leaderboard" className="btn justify-start px-4 py-3"><Trophy size={18} /> Leaderboard</Link>
           <Link href="/patch-notes" className="btn justify-start px-4 py-3"><ScrollText size={18} /> What’s new {newPatch && <span className="ml-auto h-2 w-2 rounded-full bg-terracotta" />}</Link>

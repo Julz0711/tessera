@@ -1,7 +1,8 @@
 /**
- * Profile cosmetics: a frame around your portrait and a title under your name. A few are free;
- * the rest unlock by playing, winning and (signed in) climbing the rating. The server clamps
- * anything a player hasn't unlocked back to the default, so they can't be claimed by hand.
+ * LEGACY profile cosmetics: a frame around your portrait and a title under your name. Replaced by
+ * the progression loadout (src/shared/progression) and no longer shown or picked anywhere; kept
+ * only so stored choices are still sanitized and clamped by the server. A few are free; the rest
+ * unlock by playing, winning and (signed in) climbing the rating.
  */
 
 export interface UnlockStats {
@@ -58,8 +59,8 @@ export const NO_UNLOCKS: UnlockStats = { gamesPlayed: 0, gamesWon: 0, rating: nu
 const frameById = new Map<string, (typeof FRAMES)[number]>(FRAMES.map((f) => [f.id, f]));
 const titleById = new Map<string, (typeof TITLES)[number]>(TITLES.map((t) => [t.id, t]));
 
-export const frameInfo = (id: FrameId) => frameById.get(id)!;
-export const titleInfo = (id: TitleId) => titleById.get(id)!;
+const frameInfo = (id: FrameId) => frameById.get(id)!;
+const titleInfo = (id: TitleId) => titleById.get(id)!;
 
 export function sanitizeCosmetics(input: unknown): Cosmetics {
   const src = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
@@ -89,31 +90,4 @@ export function clampCosmetics(input: unknown, stats: UnlockStats): Cosmetics {
     frame: isUnlocked(frameInfo(c.frame).req, stats) ? c.frame : DEFAULT_COSMETICS.frame,
     title: c.title && isUnlocked(titleInfo(c.title).req, stats) ? c.title : null,
   };
-}
-
-export function requirementText(req: Requirement): string {
-  switch (req.kind) {
-    case 'free':
-      return 'Free';
-    case 'played':
-      return `Play ${req.n} game${req.n === 1 ? '' : 's'}`;
-    case 'won':
-      return `Win ${req.n} game${req.n === 1 ? '' : 's'}`;
-    case 'rating':
-      return `Reach ${req.n} rating`;
-  }
-}
-
-/** Progress towards a requirement, for "3 / 5" style hints. */
-export function requirementProgress(req: Requirement, stats: UnlockStats): { have: number; need: number } | null {
-  switch (req.kind) {
-    case 'free':
-      return null;
-    case 'played':
-      return { have: Math.min(stats.gamesPlayed, req.n), need: req.n };
-    case 'won':
-      return { have: Math.min(stats.gamesWon, req.n), need: req.n };
-    case 'rating':
-      return { have: Math.min(stats.rating ?? 1000, req.n), need: req.n };
-  }
 }

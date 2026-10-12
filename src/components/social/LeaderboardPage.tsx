@@ -7,14 +7,14 @@ import { useEffect, useState } from 'react';
 import { useUrlFilters } from '@/client/urlFilters';
 import type { LeaderboardData, LeaderboardEntry } from '@/shared/protocol';
 import { MODE_LABEL } from '@/shared/ratings';
-import { PlayerPortrait } from '@/components/profile/Cosmetics';
+import { PlayerPortrait } from '@/components/profile/PlayerPortrait';
 import { HexSpinner } from '@/components/ui/HexSpinner';
 
 const DEFAULTS = { mode: 'classic', scope: 'world', page: '1', q: '', around: '' };
 function Row({ entry: e }: { entry: LeaderboardEntry }) {
   return <li className={`grid grid-cols-[2rem_1fr_auto] items-center gap-3 rounded-xl p-3 ${e.isYou ? 'bg-amber/20 ring-1 ring-amber' : 'odd:bg-paper-2/70'}`}>
     <span className="font-black tabular text-ink-soft">#{e.place}</span>
-    <div className="flex min-w-0 items-center gap-2"><div className="shrink-0"><PlayerPortrait knight={e.knight} color={e.color} avatarUrl={e.avatarUrl} frame={e.cosmetics.frame} size={36} /></div><div className="min-w-0">
+    <div className="flex min-w-0 items-center gap-2"><div className="shrink-0"><PlayerPortrait color={e.color} avatarUrl={e.avatarUrl} size={36} /></div><div className="min-w-0">
       <p className="truncate text-sm font-bold">{e.isFriend || e.isYou ? <Link className="hover:underline" href={e.isYou ? '/profile' : `/profile/${e.code}`}>{e.name}</Link> : e.name}{e.isYou ? ' (you)' : e.isFriend ? ' · Friend' : ''}</p>
       <p className="text-xs text-ink-faint">{e.ratedGames} games · {e.gamesWon} wins · {Math.round(e.gamesWon / e.ratedGames * 100)}%</p>
     </div></div>

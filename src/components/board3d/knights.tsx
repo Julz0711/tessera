@@ -1,12 +1,12 @@
 'use client';
 
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { Topology } from '@/engine/board/topology';
 import type { KnightLevel, PlayerColor } from '@/engine/types';
 import { PLAYER_COLORS } from '@/shared/colors';
-import { DEFAULT_KNIGHT, KNIGHT_STEEL, faceFrame, faceUrl, knightLook, type KnightCustomization } from '@/shared/knight';
+import { KNIGHT_STEEL } from '@/shared/knight';
 import type { BoardScene } from '@/components/board/types';
 import { mat } from './materials';
 import { Grounded, useAppear } from './pieces';
@@ -14,18 +14,6 @@ import { usePieceScale } from './pieceScale';
 import { TILE_TOP } from './terrain';
 import { useBoardKit } from './themes';
 import type { KnightFigureProps } from './themes/types';
-
-const faceCache = new Map<string, THREE.Texture>();
-
-function faceTexture(id: string): THREE.Texture {
-  let tex = faceCache.get(id);
-  if (!tex) {
-    tex = new THREE.TextureLoader().load(faceUrl(id));
-    tex.colorSpace = THREE.SRGBColorSpace;
-    faceCache.set(id, tex);
-  }
-  return tex;
-}
 
 const G = {
   base: new THREE.CylinderGeometry(0.17, 0.19, 0.05, 10),
@@ -47,33 +35,6 @@ const G = {
   grip: new THREE.BoxGeometry(0.018, 0.06, 0.018),
   pommel: new THREE.IcosahedronGeometry(0.016, 0),
 };
-
-/**
- * A face-plate circle whose UVs sample a panned/zoomed window of the (shared, cached) face
- * texture. Baking the crop into a per-knight geometry — rather than into the texture's own
- * offset/repeat — means two knights can share one cached texture per face id even with different
- * framing, and it's unaffected by the texture image still loading in over the network.
- */
-function framedFaceGeometry(frame: { x: number; y: number; zoom: number }): THREE.CircleGeometry {
-  const geo = G.face.clone();
-  const uv = geo.getAttribute('uv');
-  const arr = uv.array as Float32Array;
-  const repeat = 1 / frame.zoom;
-  // Offsets are divided by zoom so a given faceX/faceY pans by the same fraction of the *visible*
-  // (zoomed) window rather than the full image — dragging feels the same speed at any zoom level.
-  // Y is negated relative to X: the geometry's V axis runs opposite to the SVG/CSS Y used to define
-  // faceY (see KnightBadge and KnightCustomizer), so this keeps a "drag down" feel consistent.
-  // faceX is in units of the customizer's window *width*, and that window is 32:37 (narrower than
-  // the square photo it crops), so a sideways pan covers 32/37 as much of the photo as a vertical one.
-  const offsetX = (-frame.x * (32 / 37)) / frame.zoom;
-  const offsetY = frame.y / frame.zoom;
-  for (let i = 0; i < arr.length; i += 2) {
-    arr[i] = repeat * (arr[i] - 0.5) + 0.5 + offsetX;
-    arr[i + 1] = repeat * (arr[i + 1] - 0.5) + 0.5 + offsetY;
-  }
-  uv.needsUpdate = true;
-  return geo;
-}
 
 /**
  * Where each figure in a knight group stands and how big it is, keyed by level (1 = basic, 2 =
@@ -99,9 +60,9 @@ const BASE_SCALE: Record<KnightLevel, number> = { 1: 1, 2: 1.15, 3: 1.3 };
 /**
  * The classic knight body (legs through sword); the caller positions and scales it to form a
  * group. Themes replace this with their own `Knight` (see `KnightFigureProps` in themes/types.ts)
- * but keep the same `metal`/`trim`/`cloth`/`faceMat`/`faceGeo`/`shadows`/`headY` contract.
+ * but keep the same `metal`/`trim`/`cloth`/`shadows`/`headY` contract.
  */
-function KnightFigure({ metal, trim, cloth, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+function KnightFigure({ metal, trim, cloth, shadows, headY }: KnightFigureProps) {
   const s = shadows;
   return (
     <>
@@ -116,15 +77,9 @@ function KnightFigure({ metal, trim, cloth, faceMat, faceGeo, shadows, headY }: 
       {/* helmet with a face opening */}
       <mesh geometry={G.helmet} material={metal} position={[0, headY - 0.05, 0]} castShadow={s} />
       <mesh geometry={G.dome} material={metal} position={[0, headY + 0.015, 0]} castShadow={s} />
-      {faceMat ? (
-        <mesh geometry={faceGeo ?? G.face} material={faceMat} position={[0, headY - 0.05, 0.0755]} />
-      ) : (
-        <>
-          <mesh geometry={G.face} material={mat(KNIGHT_STEEL.visor)} position={[0, headY - 0.05, 0.0755]} />
-          <mesh geometry={G.visorSlit} material={metal} position={[0, headY - 0.04, 0.078]} />
-          <mesh geometry={G.visorSlit} material={metal} position={[0, headY - 0.065, 0.078]} />
-        </>
-      )}
+      <mesh geometry={G.face} material={mat(KNIGHT_STEEL.visor)} position={[0, headY - 0.05, 0.0755]} />
+      <mesh geometry={G.visorSlit} material={metal} position={[0, headY - 0.04, 0.078]} />
+      <mesh geometry={G.visorSlit} material={metal} position={[0, headY - 0.065, 0.078]} />
       <mesh geometry={G.plume} material={cloth} position={[0, headY + 0.1, -0.03]} rotation={[-0.6, 0, 0]} castShadow={s} />
       {/* shield (left) and sword (right) */}
       <group position={[-0.14, 0.24, 0.05]} rotation={[Math.PI / 2, 0, 0.35]}>
@@ -143,37 +98,22 @@ function KnightFigure({ metal, trim, cloth, faceMat, faceGeo, shadows, headY }: 
 }
 
 /**
- * The basic low-poly knight (~0.6 units tall at scale 1) in the player's color, optionally wearing
- * the face the player uploaded for that knight level. `level` shows as the number of figures standing together (1, 2 or 3,
+ * The basic low-poly knight (~0.6 units tall at scale 1) in the player's color, always with its
+ * visor (uploaded photo faces are no longer shown). `level` shows as the number of figures standing together (1, 2 or 3,
  * each a little smaller as the group grows) plus gold studs on the base; an active knight glows.
  */
 export function KnightModel({
-  knight: custom = DEFAULT_KNIGHT,
   color,
   level,
   active,
   shadows = true,
 }: {
-  knight?: KnightCustomization;
   color: PlayerColor;
   level?: KnightLevel;
   active?: boolean;
   shadows?: boolean;
 }) {
   const pc = PLAYER_COLORS[color];
-  // Each level (basic, strong, mighty) can wear its own face.
-  const knight = knightLook(custom, level ?? 1);
-  const faceMat = useMemo(
-    () => (knight.face ? new THREE.MeshBasicMaterial({ map: faceTexture(knight.face) }) : null),
-    [knight.face],
-  );
-  const frame = faceFrame(knight);
-  const faceGeo = useMemo(
-    () => (knight.face ? framedFaceGeometry(frame) : null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [knight.face, frame.x, frame.y, frame.zoom],
-  );
-  useEffect(() => () => faceGeo?.dispose(), [faceGeo]);
   const metal = mat(KNIGHT_STEEL.base, { rough: 0.45, metal: 0.55 });
   const trim = mat(KNIGHT_STEEL.trim, { rough: 0.5, metal: 0.4 });
   const cloth = mat(pc.hex);
@@ -208,7 +148,7 @@ export function KnightModel({
         {KNIGHT_FORMATION[level ?? 1].map((figure, i) => (
           <group key={i} position={[figure.pos[0], 0, figure.pos[1]]} scale={figure.scale}>
             <Grounded>
-              <Figure metal={metal} trim={trim} cloth={cloth} dark={dark} faceMat={faceMat} faceGeo={faceGeo} shadows={s} headY={headY} />
+              <Figure metal={metal} trim={trim} cloth={cloth} dark={dark} shadows={s} headY={headY} />
             </Grounded>
           </group>
         ))}
@@ -245,7 +185,7 @@ export function KnightPieces({ scene, topo }: { scene: BoardScene; topo: Topolog
         const p = topo.vertices[v];
         return (
           <BoardKnight key={`k${k.id}`} x={p.x} z={p.y} active={k.active}>
-            <KnightModel knight={scene.styles[k.owner] ?? undefined} color={scene.colors[k.owner]} level={k.level} active={k.active} />
+            <KnightModel color={scene.colors[k.owner]} level={k.level} active={k.active} />
           </BoardKnight>
         );
       })}
@@ -254,14 +194,14 @@ export function KnightPieces({ scene, topo }: { scene: BoardScene; topo: Topolog
 }
 
 /** Slowly turning knight used for previews (profile page). */
-export function TurntableKnight({ knight, color }: { knight: KnightCustomization; color: PlayerColor }) {
+export function TurntableKnight({ color }: { color: PlayerColor }) {
   const ref = useRef<THREE.Group>(null);
   useFrame((_, dt) => {
     if (ref.current) ref.current.rotation.y += dt * 0.7;
   });
   return (
     <group ref={ref} scale={2.6} position={[0, -0.7, 0]}>
-      <KnightModel knight={knight} color={color} level={1} active />
+      <KnightModel color={color} level={1} active />
     </group>
   );
 }

@@ -23,12 +23,12 @@ function answerOf(offer: TradeOffer, seat: number): Answer {
 
 /** A player's knight, with their answer to an offer as a small badge. */
 function Avatar({ view, seat, size = 30, answer }: { view: PlayerView; seat: number; size?: number; answer?: Answer }) {
-  const knight = useGame((s) => s.room?.seats[seat]?.knight);
+  const seated = useGame((s) => !!s.room?.seats[seat]);
   const p = view.players[seat];
   return (
     <span className="relative inline-block shrink-0" title={seat === view.viewer ? 'You' : p.name}>
-      {knight ? (
-        <KnightBadge knight={knight} color={p.color} size={size} />
+      {seated ? (
+        <KnightBadge color={p.color} size={size} />
       ) : (
         <span className="block rounded-full border-2 border-ink" style={{ width: size, height: size, background: PLAYER_COLORS[p.color].hex }} />
       )}

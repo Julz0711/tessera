@@ -349,7 +349,7 @@ const KNIGHT = {
   axeHead: new THREE.ConeGeometry(0.055, 0.09, 3),
 };
 
-function Knight({ metal, trim, cloth, dark, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+function Knight({ metal, trim, cloth, dark, shadows, headY }: KnightFigureProps) {
   const s = shadows;
   return (
     <>
@@ -367,11 +367,7 @@ function Knight({ metal, trim, cloth, dark, faceMat, faceGeo, shadows, headY }: 
       {[-1, 1].map((side) => (
         <mesh key={side} geometry={KNIGHT.horn} material={mat('#e8dfc8', { rough: 0.6 })} position={[side * 0.08, headY + 0.005, -0.005]} rotation={[0.1, 0, side * 1.3]} />
       ))}
-      {faceMat ? (
-        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.05, 0.0755]} />
-      ) : (
-        <mesh geometry={KNIGHT.face} material={trim} position={[0, headY - 0.05, 0.0755]} />
-      )}
+      <mesh geometry={KNIGHT.face} material={trim} position={[0, headY - 0.05, 0.0755]} />
       {/* round shield on the left arm, a cross of planks over the boss */}
       <group position={[-0.15, 0.24, 0.05]} rotation={[Math.PI / 2, 0, 0.35]}>
         <mesh geometry={KNIGHT.shield} material={cloth} castShadow={s} />

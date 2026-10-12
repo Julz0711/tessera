@@ -7,9 +7,10 @@ import { useEffect, useState } from 'react';
 import { signOut } from '@/client/auth';
 import { usePrefs } from '@/client/prefs';
 import { ensureSession } from '@/client/session';
-import type { ProfileData } from '@/shared/protocol';
-import { DEFAULT_KNIGHT } from '@/shared/knight';
-import { PlayerPortrait, TitleTag } from './Cosmetics';
+import type { ProfileData, ProgressData } from '@/shared/protocol';
+import { itemById } from '@/shared/progression';
+import { fetchProgress } from '@/components/progression/ProgressPage';
+import { PlayerPortrait } from './PlayerPortrait';
 import { GameHistory } from './GameHistory';
 import { MODE_LABEL } from '@/shared/ratings';
 import { ModeRatings } from './ModeRatings';
@@ -44,6 +45,7 @@ export function ProfilePage() {
   const { get, change } = useUrlFilters(PROFILE_FILTERS);
   const tab = ['overview', 'history', 'friends'].includes(get('tab')) ? get('tab') : 'overview';
   const [data, setData] = useState<ProfileData | null>(null);
+  const [progress, setProgress] = useState<ProgressData | null>(null);
   const [failed, setFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -53,6 +55,8 @@ export function ProfilePage() {
     fetchProfile()
       .then((d) => (d ? setData(d) : setFailed(true)))
       .catch(() => setFailed(true));
+    // Surround and title come from the wardrobe; the portrait shows plain until they arrive.
+    fetchProgress().then(setProgress).catch(() => {});
     // Auth.js lands failed sign-ins here with ?error=...; show it once, then drop it from the URL.
     const error = new URLSearchParams(window.location.search).get('error');
     if (error) {
@@ -66,8 +70,8 @@ export function ProfilePage() {
   const user = s?.kind === 'user';
   const name = s?.displayName || prefs.name || 'Guest';
   const color = s?.color ?? prefs.color;
-  const knight = s?.knight ?? prefs.knight ?? DEFAULT_KNIGHT;
-  const cosmetics = s?.cosmetics ?? prefs.cosmetics;
+  const loadout = progress?.loadout;
+  const title = loadout?.title ? itemById(loadout.title)?.name : null;
   const stats = s?.stats ?? { gamesPlayed: 0, gamesWon: 0 };
   const winRate = stats.gamesPlayed ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100) : 0;
 
@@ -94,10 +98,10 @@ export function ProfilePage() {
           <section className="paper animate-rise grid grid-cols-[minmax(0,1fr)] gap-6 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:p-7">
             <div className="grid min-w-0 content-start gap-4">
               <div className="flex items-start gap-4">
-                <PlayerPortrait knight={knight} color={color} avatarUrl={user ? s?.avatarUrl : null} frame={cosmetics.frame} size={92} />
+                <PlayerPortrait color={color} avatarUrl={user ? s?.avatarUrl : null} surround={loadout?.surround} size={92} />
                 <div className="min-w-0 flex-1">
                   <h1 className="display truncate text-4xl font-black">{name}</h1>
-                  <TitleTag title={cosmetics.title} className="mb-1" />
+                  {title && <p className="mb-1 text-sm font-black text-ink-soft">{title}</p>}
                   <p className="text-sm font-bold text-ink-faint">
                     {user ? `Signed in with ${data.providers.map((p) => p[0].toUpperCase() + p.slice(1)).join(' & ') || 'your account'}` : 'Guest'}
                   </p>
@@ -146,7 +150,7 @@ export function ProfilePage() {
             <div className="flex min-w-0 flex-col items-center gap-1 overflow-hidden rounded-2xl border-2 border-ink bg-paper-2 p-3">
               {/* The knight stands in the middle of the card; its caption sits on the bottom edge. */}
               <div className="grid flex-1 place-items-center">
-                <KnightPreview3D knight={knight} color={color} size={200} />
+                <KnightPreview3D color={color} size={200} />
               </div>
               <span className="label">Your knight</span>
             </div>

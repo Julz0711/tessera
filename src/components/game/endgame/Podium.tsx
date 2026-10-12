@@ -4,7 +4,8 @@ import type { PlayerView } from '@/engine/view';
 import type { RoomDTO } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
-import { Framed, TitleTag } from '@/components/profile/Cosmetics';
+import { SurroundFrame } from '@/components/progression/ItemArt';
+import { itemById } from '@/shared/progression';
 import { PointIcons } from './PointIcons';
 
 /** Step heights by rank (1st tallest). */
@@ -13,11 +14,15 @@ const STEP = [96, 70, 52];
 export function PlayerBadge({ seat, view, room, size }: { seat: number; view: PlayerView; room: RoomDTO; size: number }) {
   const seatInfo = room.seats[seat];
   if (!seatInfo) return null;
-  return (
-    <Framed frame={seatInfo.cosmetics.frame} size={size}>
-      {(s) => <KnightBadge knight={seatInfo.knight} color={view.players[seat].color} size={s} />}
-    </Framed>
-  );
+  const badge = <KnightBadge color={view.players[seat].color} size={size} />;
+  return seatInfo.crew ? <SurroundFrame id={seatInfo.crew.loadout.surround} size={size}>{badge}</SurroundFrame> : badge;
+}
+
+/** The worn title under a podium name (none for bots and players without one). */
+function SeatTitle({ seat, room }: { seat: number; room: RoomDTO }) {
+  const id = room.seats[seat]?.crew?.loadout.title;
+  const name = id ? itemById(id)?.name : null;
+  return name ? <span className="max-w-full truncate text-[11px] font-bold text-ink-soft">{name}</span> : null;
 }
 
 /**
@@ -44,7 +49,7 @@ export function Podium({ order, view, room, report }: { order: number[]; view: P
                 <span className="truncate">{p.name}</span>
                 {seat === view.viewer && <span className="text-xs font-bold text-ink-soft">(you)</span>}
               </div>
-              <TitleTag title={room.seats[seat]?.cosmetics.title} />
+              <SeatTitle seat={seat} room={room} />
               <div
                 className="mt-1.5 flex w-full flex-col items-center justify-center rounded-t-xl border-2 border-b-0 border-ink"
                 style={{ height: STEP[rank], background: c.hex, color: c.ink, boxShadow: `inset 0 -6px 0 ${c.dark}55` }}

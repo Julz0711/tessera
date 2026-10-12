@@ -452,7 +452,7 @@ const KNIGHT = {
   guard: new THREE.TorusGeometry(0.022, 0.006, 4, 10),
 };
 
-function Knight({ cloth, dark, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+function Knight({ cloth, dark, shadows, headY }: KnightFigureProps) {
   const s = shadows;
   const brass = mat(BRASS, { metal: 0.5, rough: 0.4 });
   return (
@@ -473,11 +473,7 @@ function Knight({ cloth, dark, faceMat, faceGeo, shadows, headY }: KnightFigureP
       {[-0.028, 0.028].map((x) => (
         <mesh key={x} geometry={KNIGHT.lens} material={brass} position={[x, headY + 0.02, 0.073]} />
       ))}
-      {faceMat ? (
-        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.05, 0.0755]} />
-      ) : (
-        <mesh geometry={KNIGHT.face} material={mat('#c9a27a')} position={[0, headY - 0.05, 0.0755]} />
-      )}
+      <mesh geometry={KNIGHT.face} material={mat('#c9a27a')} position={[0, headY - 0.05, 0.0755]} />
       {/* the sabre, its blade curving forward */}
       <group position={[0.14, 0.2, 0.07]}>
         <mesh geometry={KNIGHT.hilt} material={dark} position={[0, -0.02, 0]} />

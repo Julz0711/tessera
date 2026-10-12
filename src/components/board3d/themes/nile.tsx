@@ -303,7 +303,7 @@ const KNIGHT = {
   hook: new THREE.BoxGeometry(0.06, 0.05, 0.012),
 };
 
-function Knight({ trim, cloth, dark, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+function Knight({ trim, cloth, dark, shadows, headY }: KnightFigureProps) {
   const s = shadows;
   const skin = mat('#c9986a');
   return (
@@ -321,11 +321,7 @@ function Knight({ trim, cloth, dark, faceMat, faceGeo, shadows, headY }: KnightF
         <mesh key={side} geometry={KNIGHT.wing} material={cloth} position={[side * 0.075, headY - 0.03, -0.015]} rotation={[0, 0, side * 0.22]} castShadow={s} />
       ))}
       <mesh geometry={KNIGHT.band} material={mat('#e8c35a', { metal: 0.4, rough: 0.35 })} position={[0, headY - 0.005, 0.073]} />
-      {faceMat ? (
-        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.05, 0.0755]} />
-      ) : (
-        <mesh geometry={KNIGHT.face} material={skin} position={[0, headY - 0.05, 0.0755]} />
-      )}
+      <mesh geometry={KNIGHT.face} material={skin} position={[0, headY - 0.05, 0.0755]} />
       {/* a rectangular hide shield, held forward on the left */}
       <group position={[-0.14, 0.23, 0.06]} rotation={[0, 0.3, 0]}>
         <mesh geometry={KNIGHT.shieldRim} material={dark} castShadow={s} />

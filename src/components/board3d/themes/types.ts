@@ -23,10 +23,9 @@ export interface ModelProps {
 /**
  * What one C&K knight figure is drawn with (see `KnightFigure`/`KnightModel` in knights.tsx): the
  * player's colours (`cloth` in `hex`, `dark` for trim/accents — keep it dominant, like a
- * `ModelProps`' `c`), a neutral steel `metal`/`trim` a theme may reuse for straps and blades, the
- * uploaded face (`faceMat`/`faceGeo`, null without one — mount it on the head's front so it stays
- * visible), whether to cast shadows, and `headY` (world y of the head's centre at scale 1) so the
- * face and any headwear line up. A themed `Knight` is free to ignore `metal`/`trim` if its own
+ * `ModelProps`' `c`), a neutral steel `metal`/`trim` a theme may reuse for straps and blades,
+ * whether to cast shadows, and `headY` (world y of the head's centre at scale 1) so the face and
+ * any headwear line up. A themed `Knight` is free to ignore `metal`/`trim` if its own
  * palette reads better, but should stay close to the classic's ~0.6-unit height and footprint so
  * formations and hit targets still work.
  */
@@ -35,8 +34,6 @@ export interface KnightFigureProps {
   trim: THREE.Material;
   cloth: THREE.Material;
   dark: THREE.Material;
-  faceMat: THREE.Material | null;
-  faceGeo: THREE.BufferGeometry | null;
   shadows: boolean;
   headY: number;
 }

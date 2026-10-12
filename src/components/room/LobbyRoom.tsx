@@ -71,7 +71,7 @@ function Nameplate({ seat, onEdit, onRemove, onLook }: { seat: SeatDTO; onEdit?:
     <div className="paper-flat grid gap-1.5 p-2">
       <div className="flex min-w-0 items-center gap-2">
         <SurroundFrame id={seat.crew?.loadout.surround ?? null} size={40}>
-          <KnightBadge knight={seat.knight} color={seat.color} size={40} />
+          <KnightBadge color={seat.color} size={40} />
         </SurroundFrame>
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-1">

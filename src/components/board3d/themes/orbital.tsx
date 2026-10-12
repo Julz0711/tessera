@@ -358,7 +358,7 @@ const KNIGHT = {
   gunBarrel: new THREE.CylinderGeometry(0.008, 0.009, 0.09, 8).rotateZ(Math.PI / 2),
 };
 
-function Knight({ trim, cloth, dark, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+function Knight({ trim, cloth, dark, shadows, headY }: KnightFigureProps) {
   const s = shadows;
   return (
     <>
@@ -373,11 +373,7 @@ function Knight({ trim, cloth, dark, faceMat, faceGeo, shadows, headY }: KnightF
       <mesh geometry={KNIGHT.arm} material={cloth} position={[0.115, 0.25, 0.02]} rotation={[0.5, 0, -0.2]} castShadow={s} />
       {/* the ring collar, then face and helmet lamp inside a clear bubble helmet */}
       <mesh geometry={KNIGHT.ring} material={dark} position={[0, headY - 0.09, 0]} rotation={[Math.PI / 2, 0, 0]} />
-      {faceMat ? (
-        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.05, 0.0755]} />
-      ) : (
-        <mesh geometry={KNIGHT.face} material={mat('#c9a27a')} position={[0, headY - 0.05, 0.0755]} />
-      )}
+      <mesh geometry={KNIGHT.face} material={mat('#c9a27a')} position={[0, headY - 0.05, 0.0755]} />
       <mesh geometry={KNIGHT.bubble} material={mat(CYAN, { opacity: 0.32, rough: 0.15 })} position={[0, headY - 0.01, 0]} castShadow={s} />
       {/* a two-handed blaster */}
       <group position={[0.15, 0.19, 0.06]} rotation={[0, 0.5, 0]}>

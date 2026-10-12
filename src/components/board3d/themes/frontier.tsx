@@ -320,14 +320,13 @@ const KNIGHT = {
   star: new THREE.IcosahedronGeometry(0.016, 0),
   arm: new THREE.BoxGeometry(0.045, 0.13, 0.045),
   head: new THREE.IcosahedronGeometry(0.075, 0),
-  face: new THREE.CircleGeometry(0.046, 16),
   brim: new THREE.CylinderGeometry(0.15, 0.15, 0.015, 12),
   crown: new THREE.CylinderGeometry(0.06, 0.07, 0.085, 10),
   barrel: new THREE.CylinderGeometry(0.009, 0.009, 0.34, 6),
   stock: new THREE.BoxGeometry(0.03, 0.05, 0.09),
 };
 
-function Knight({ trim, cloth, dark, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+function Knight({ trim, cloth, dark, shadows, headY }: KnightFigureProps) {
   const s = shadows;
   return (
     <>
@@ -341,9 +340,6 @@ function Knight({ trim, cloth, dark, faceMat, faceGeo, shadows, headY }: KnightF
       <mesh geometry={KNIGHT.arm} material={cloth} position={[0.12, 0.26, 0.03]} rotation={[0.6, 0, -0.3]} castShadow={s} />
       {/* a bare head under a wide-brimmed hat, the face open to the sun */}
       <mesh geometry={KNIGHT.head} material={mat('#c9a27a')} position={[0, headY - 0.02, 0]} castShadow={s} />
-      {faceMat ? (
-        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.06, 0.0755]} />
-      ) : null}
       <mesh geometry={KNIGHT.crown} material={dark} position={[0, headY + 0.075, -0.005]} />
       <mesh geometry={KNIGHT.brim} material={dark} position={[0, headY + 0.04, -0.005]} rotation={[0.05, 0, 0]} castShadow={s} />
       {/* the rifle, slung diagonally across the body */}
