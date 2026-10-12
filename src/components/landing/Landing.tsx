@@ -99,7 +99,7 @@ function ProgressCard({ data, dock = false }: { data: ProgressData; dock?: boole
   return (
     <Link
       href="/profile?tab=progress"
-      className={`group flex items-center gap-3 text-paper ${dock ? "w-80 p-4 hover:bg-sea-700" : "glass landing-progress-card animate-rise mt-6 max-w-sm p-3 [animation-delay:240ms] hover:bg-sea-700"}`}
+      className={`group flex items-center gap-3 text-paper ${dock ? "glass w-80 p-4 hover:bg-sea-700" : "glass landing-progress-card animate-rise mt-6 max-w-sm p-3 [animation-delay:240ms] hover:bg-sea-700"}`}
     >
       <LevelBadge level={level.level} size={36} />
       <span className="min-w-0 flex-1">
@@ -345,9 +345,9 @@ export function Landing() {
         <div className="landing-dock absolute inset-x-5 bottom-14 z-10 items-end gap-4 sm:inset-x-10">
           <Quay data={progress} color={color} ratings={ratings} onChanged={() => { loadProgress(); loadRatings(); }} />
           <div className="flex-1" />
-          <div className="glass flex items-stretch divide-x-2 divide-ink overflow-hidden">
-            <FriendsCard />
+          <div className="flex items-stretch gap-4">
             <ProgressCard data={progress} dock />
+            <FriendsCard />
           </div>
         </div>
       )}

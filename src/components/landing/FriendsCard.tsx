@@ -43,7 +43,7 @@ export function FriendsCard() {
   const friends = [...data.friends].sort((a, b) => ORDER[a.status] - ORDER[b.status]);
   const online = friends.filter((f) => f.status !== 'offline').length;
   return (
-    <div className="w-72 p-4 text-paper">
+    <div className="glass w-72 p-4 text-paper">
       <h2 className="mb-2 text-xs font-bold uppercase tracking-label text-foam/60">Friends{friends.length ? ` · ${online} online` : ''}</h2>
       {friends.length === 0 ? (
         <p className="text-sm font-bold text-foam/70">Add friends from your profile to see when they&apos;re online.</p>
