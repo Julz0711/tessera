@@ -207,6 +207,9 @@ export function candidatesFor(s: GameState, seat: number, taken: Action, max: nu
   const out: Action[] = [];
   for (const a of options) {
     if (out.length >= max) break;
+    // An offer to the other players is never an alternative: whether they take it isn't up to the decider,
+    // so "you should have offered" can't be held against a move (bank and port trades are certain and stay).
+    if (a !== taken && a.type === 'offerTrade') continue;
     const k = key(a);
     if (seen.has(k)) continue;
     seen.add(k);
