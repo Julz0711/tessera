@@ -1,8 +1,7 @@
-import type { Metadata } from 'next';
-import { ProgressPage } from '@/components/progression/ProgressPage';
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = { title: 'Progress' };
-
-export default function Page() {
-  return <ProgressPage />;
+/** Progress lives in the profile now; old links land on its tab. */
+export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const { tab } = await searchParams;
+  redirect(tab === 'wardrobe' ? '/profile?tab=progress&view=wardrobe' : '/profile?tab=progress');
 }

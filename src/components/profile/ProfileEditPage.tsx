@@ -110,7 +110,7 @@ export function ProfileEditPage() {
                 <ColorPicker value={color} onChange={setColor} />
               </Section>
               <Section title="Your look" hint="Characters, banners, titles and surrounds are picked in your wardrobe.">
-                <Link href="/progress?tab=wardrobe" className="btn justify-self-start px-4 py-2">
+                <Link href="/profile?tab=progress&view=wardrobe" className="btn justify-self-start px-4 py-2">
                   <Shirt size={16} /> Open wardrobe
                 </Link>
               </Section>

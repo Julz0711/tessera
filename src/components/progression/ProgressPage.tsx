@@ -1,9 +1,7 @@
 'use client';
 
-import { ArrowLeft, Check, Lock } from 'lucide-react';
-import Link from 'next/link';
+import { Check, Lock } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { usePrefs } from '@/client/prefs';
 import { ensureSession } from '@/client/session';
 import { api, toast, useGame } from '@/client/store';
 import { useUrlFilters } from '@/client/urlFilters';
@@ -11,11 +9,10 @@ import type { PlayerColor } from '@/engine/types';
 import { featById, SLOTS, unlockText, type Loadout, type Slot } from '@/shared/progression';
 import type { ProgressData } from '@/shared/protocol';
 import { HexSpinner } from '@/components/ui/HexSpinner';
-import { Logomark } from '@/components/ui/Logomark';
 import { Segmented } from '@/components/ui/Segmented';
 import { ItemArt, LevelBadge } from './ItemArt';
 
-const FILTERS = { tab: 'progress', slot: 'character' };
+const FILTERS = { view: 'progress', slot: 'character' };
 const SLOT_LABEL: Record<Slot, string> = { character: 'Characters', banner: 'Banners', title: 'Titles', surround: 'Surrounds' };
 type ItemRow = ProgressData['items'][number];
 
@@ -176,22 +173,17 @@ export function Wardrobe({ data, color, slot, onSlot, onWear, saving }: {
   );
 }
 
-export function ProgressPage() {
-  const prefs = usePrefs();
+/** Progress and wardrobe, shown as the Progress tab of the profile. */
+export function ProgressPanel({ color }: { color: PlayerColor }) {
   const { get, change } = useUrlFilters(FILTERS);
-  const tab = get('tab') === 'wardrobe' ? 'wardrobe' : 'progress';
+  const view = get('view') === 'wardrobe' ? 'wardrobe' : 'progress';
   const slot = (SLOTS as readonly string[]).includes(get('slot')) ? (get('slot') as Slot) : 'character';
   const [data, setData] = useState<ProgressData | null>(null);
   const [failed, setFailed] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [sessionColor, setSessionColor] = useState<PlayerColor | null>(null);
-  const color: PlayerColor = sessionColor ?? prefs.color;
 
   useEffect(() => {
-    prefs.load();
-    ensureSession().then((s) => setSessionColor(s.color)).catch(() => {});
     fetchProgress().then((d) => (d ? setData(d) : setFailed(true))).catch(() => setFailed(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const wear = async (loadout: Loadout) => {
@@ -202,30 +194,20 @@ export function ProgressPage() {
   };
 
   return (
-    <main className="page-safe-top min-h-dvh bg-[radial-gradient(ellipse_at_top,_#0f2f3b_0%,_#061419_60%)] px-4 py-8">
-      <div className="mx-auto grid max-w-4xl gap-5">
-        <div className="flex items-center justify-between">
-          <Link href="/profile" className="flex items-center gap-2 text-sm font-bold text-foam/70 hover:text-paper">
-            <ArrowLeft size={16} /> Profile
-          </Link>
-          <Logomark size={28} />
+    <section className="paper animate-rise grid gap-5 p-5 sm:p-7">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="display text-2xl font-black">Progress</h2>
+          <p className="mt-1 text-sm text-ink-soft">Play and win games to level up. Feats and levels unlock what you can wear.</p>
         </div>
-        <section className="paper grid gap-5 p-5 sm:p-7">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h1 className="display text-4xl font-black">Progress</h1>
-              <p className="mt-2 text-sm text-ink-soft">Play and win games to level up. Feats and levels unlock what you can wear.</p>
-            </div>
-            <Segmented label="View" value={tab} options={[{ value: 'progress', label: 'Progress' }, { value: 'wardrobe', label: 'Wardrobe' }]} onChange={(v) => change({ tab: v })} />
-          </div>
-          {failed && <p role="alert">Couldn&apos;t load your progress. Reload the page to try again.</p>}
-          {!data && !failed && <div role="status" className="flex items-center gap-2 text-sm text-ink-faint"><HexSpinner size={16} decorative /> Loading…</div>}
-          {data && !data.enabled && <p className="text-sm text-ink-soft">Progress isn&apos;t saved on this server (no database), so everyone stays at level 1.</p>}
-          {data && tab === 'progress' && <Overview data={data} color={color} />}
-          {data && tab === 'wardrobe' && <Wardrobe data={data} color={color} slot={slot} onSlot={(s) => change({ slot: s })} onWear={wear} saving={saving} />}
-          <p className="text-xs text-ink-faint">Characters, banners, titles and surrounds shown here are placeholders while the real art is made.</p>
-        </section>
+        <Segmented label="View" value={view} options={[{ value: 'progress', label: 'Progress' }, { value: 'wardrobe', label: 'Wardrobe' }]} onChange={(v) => change({ view: v })} />
       </div>
-    </main>
+      {failed && <p role="alert">Couldn&apos;t load your progress. Reload the page to try again.</p>}
+      {!data && !failed && <div role="status" className="flex items-center gap-2 text-sm text-ink-faint"><HexSpinner size={16} decorative /> Loading…</div>}
+      {data && !data.enabled && <p className="text-sm text-ink-soft">Progress isn&apos;t saved on this server (no database), so everyone stays at level 1.</p>}
+      {data && view === 'progress' && <Overview data={data} color={color} />}
+      {data && view === 'wardrobe' && <Wardrobe data={data} color={color} slot={slot} onSlot={(s) => change({ slot: s })} onWear={wear} saving={saving} />}
+      <p className="text-xs text-ink-faint">Characters, banners, titles and surrounds shown here are placeholders while the real art is made.</p>
+    </section>
   );
 }

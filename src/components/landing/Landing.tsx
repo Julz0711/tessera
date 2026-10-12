@@ -316,7 +316,7 @@ export function Landing() {
       <Modal open={menu} onClose={() => setMenu(false)} title="Menu">
         <nav className="grid gap-2" aria-label="Main navigation">
           <Link href="/profile" className="btn justify-start px-4 py-3"><KnightBadge color={color} size={24} /> Your profile</Link>
-          <Link href="/progress" className="btn justify-start px-4 py-3"><Sparkles size={18} /> Progress</Link>
+          <Link href="/profile?tab=progress" className="btn justify-start px-4 py-3"><Sparkles size={18} /> Progress</Link>
           <Link href="/leaderboard" className="btn justify-start px-4 py-3"><Trophy size={18} /> Leaderboard</Link>
           <Link href="/patch-notes" className="btn justify-start px-4 py-3"><ScrollText size={18} /> What’s new {newPatch && <span className="ml-auto h-2 w-2 rounded-full bg-terracotta" />}</Link>
           <button className="btn justify-start px-4 py-3" onClick={() => { setMenu(false); setRules(true); }}><BookOpen size={18} /> Rules</button>

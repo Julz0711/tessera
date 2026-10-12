@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Database, ShieldCheck, LogOut, Pencil, Save, Sparkles } from 'lucide-react';
+import { ArrowLeft, Database, ShieldCheck, LogOut, Pencil, Save } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -9,13 +9,14 @@ import { usePrefs } from '@/client/prefs';
 import { ensureSession } from '@/client/session';
 import type { ProfileData, ProgressData } from '@/shared/protocol';
 import { itemById } from '@/shared/progression';
-import { fetchProgress } from '@/components/progression/ProgressPage';
+import { fetchProgress, ProgressPanel } from '@/components/progression/ProgressPage';
 import { PlayerPortrait } from './PlayerPortrait';
 import { GameHistory } from './GameHistory';
 import { MODE_LABEL } from '@/shared/ratings';
 import { ModeRatings } from './ModeRatings';
 import { useUrlFilters } from '@/client/urlFilters';
 const PROFILE_FILTERS = { tab: 'overview' };
+const TABS = ['overview', 'progress', 'history', 'friends'];
 import { SignInChoices } from '@/components/auth/SignInChoices';
 import { FriendsPanel } from '@/components/social/FriendsPanel';
 import { Logomark } from '@/components/ui/Logomark';
@@ -43,7 +44,7 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
 export function ProfilePage() {
   const prefs = usePrefs();
   const { get, change } = useUrlFilters(PROFILE_FILTERS);
-  const tab = ['overview', 'history', 'friends'].includes(get('tab')) ? get('tab') : 'overview';
+  const tab = TABS.includes(get('tab')) ? get('tab') : 'overview';
   const [data, setData] = useState<ProfileData | null>(null);
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [failed, setFailed] = useState(false);
@@ -91,7 +92,7 @@ export function ProfilePage() {
         {failed && <p className="paper p-5">Couldn&apos;t load your profile. Is the server running?</p>}
         {authError && <p className="paper-flat p-3 text-sm font-semibold text-terracotta">Sign-in didn&apos;t go through. Give it another try.</p>}
 
-        {data && <nav aria-label="Profile sections" role="radiogroup" className="seg">{['overview', 'history', 'friends'].map((name) => (
+        {data && <nav aria-label="Profile sections" role="radiogroup" className="seg">{TABS.map((name) => (
           <button key={name} type="button" role="radio" aria-checked={tab === name} onClick={() => change({ tab: name })} className="seg-opt px-4 capitalize">{name}</button>
         ))}</nav>}
         {data && tab === 'overview' && (
@@ -106,12 +107,6 @@ export function ProfilePage() {
                     {user ? `Signed in with ${data.providers.map((p) => p[0].toUpperCase() + p.slice(1)).join(' & ') || 'your account'}` : 'Guest'}
                   </p>
                 </div>
-                <Link href="/progress" className="btn shrink-0 px-3 py-2" aria-label="Progress" title="Progress">
-                  <Sparkles size={16} /> <span className="hidden sm:inline">Progress</span>
-                </Link>
-                <Link href="/profile/edit" className="btn shrink-0 px-3 py-2" aria-label="Edit profile" title="Edit profile">
-                  <Pencil size={16} /> <span className="hidden sm:inline">Edit profile</span>
-                </Link>
               </div>
               <div>
                 <Stat label="Games played" value={stats.gamesPlayed} />
@@ -126,7 +121,7 @@ export function ProfilePage() {
                 )}
 
               </div>
-              <div className="flex flex-wrap gap-2 empty:hidden">
+              <div className="flex flex-wrap gap-2">
                 {user ? (
                   <button type="button" className="btn btn-ghost px-4 py-2" onClick={() => void signOut()}>
                     <LogOut size={16} /> Sign out
@@ -139,6 +134,9 @@ export function ProfilePage() {
                     </button>
                   )
                 )}
+                <Link href="/profile/edit" className="btn px-4 py-2">
+                  <Pencil size={16} /> Edit profile
+                </Link>
               </div>
               {!data.session.persistence && (
                 <p className="flex items-start gap-2 rounded-xl border-2 border-ink bg-paper-2 p-3 text-xs font-semibold text-ink-soft">
@@ -165,6 +163,7 @@ export function ProfilePage() {
           </section>
         )}
 
+        {data && tab === 'progress' && <ProgressPanel color={color} />}
         {data && tab === 'history' && <GameHistory />}
       </div>
 
