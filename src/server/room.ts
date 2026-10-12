@@ -435,6 +435,7 @@ export class Room {
     if (typeof patch.allowSpectators === 'boolean') next.allowSpectators = patch.allowSpectators;
     if (typeof patch.gold === 'boolean') next.gold = patch.gold;
     if (isDiceMode(patch.dice)) next.dice = patch.dice;
+    if (typeof patch.allowBots === 'boolean') next.allowBots = patch.allowBots;
     this.settings = next;
   }
 
@@ -469,6 +470,7 @@ export class Room {
   addBot(socketId: string): void {
     this.requireHost(socketId);
     if (this.status !== 'lobby') throw new UserError('Bots can only be added in the lobby');
+    if (this.settings.allowBots === false) throw new UserError('This lobby is for people only');
     if (this.seats.length >= this.settings.maxPlayers) throw new UserError('The table is full');
     const used = new Set(this.seats.map((s) => s.name));
     const name = BOT_NAMES.find((n) => !used.has(n)) ?? `Bot ${this.seats.length + 1}`;

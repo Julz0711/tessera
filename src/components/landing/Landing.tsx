@@ -12,15 +12,17 @@ import { useSettingsUI } from "@/client/settingsUI";
 import { cachedSession, fetchSession } from "@/client/session";
 import { api, startConnection } from "@/client/store";
 import { sanitizeName } from "@/shared/text";
+import { DEFAULT_ROOM_SETTINGS } from "@/shared/protocol";
 import { HexSpinner } from "@/components/ui/HexSpinner";
 import { MAPS } from "@/engine/maps";
 import type { ActiveRoom, ProgressData, SessionInfo } from "@/shared/protocol";
-import { MODE_LABEL, ratingPoolFor } from "@/shared/ratings";
+import { MODE_LABEL, ratingPoolFor, type ModeRating } from "@/shared/ratings";
 import { SignInChoices } from "@/components/auth/SignInChoices";
 import { KnightBadge } from "@/components/knight/KnightBadge";
 import { LevelBadge } from "@/components/progression/ItemArt";
 import { fetchProgress } from "@/components/progression/ProgressPage";
 import { Quay } from "@/components/landing/Quay";
+import { FriendsCard } from "@/components/landing/FriendsCard";
 import { Logomark } from "@/components/ui/Logomark";
 import { BetaBadge } from "@/components/ui/BetaBadge";
 import { Modal } from "@/components/ui/Modal";
@@ -89,7 +91,7 @@ function ResumeTables({ rooms, onAbandon }: { rooms: ActiveRoom[]; onAbandon: (r
 }
 
 /** Where you stand, in a line: level, XP bar and the next level unlock. Shown where the quay doesn't fit. */
-function ProgressCard({ data }: { data: ProgressData }) {
+function ProgressCard({ data, dock = false }: { data: ProgressData; dock?: boolean }) {
   const { level } = data;
   const next = data.items
     .filter((i) => !i.unlocked && i.unlock.kind === "level")
@@ -97,7 +99,7 @@ function ProgressCard({ data }: { data: ProgressData }) {
   return (
     <Link
       href="/profile?tab=progress"
-      className="landing-progress-card paper-flat animate-rise mt-6 flex max-w-sm items-center gap-3 p-3 [animation-delay:240ms] hover:brightness-105"
+      className={`paper-flat flex items-center gap-3 p-3 hover:brightness-105 ${dock ? "w-80" : "landing-progress-card animate-rise mt-6 max-w-sm [animation-delay:240ms]"}`}
     >
       <LevelBadge level={level.level} size={36} />
       <span className="min-w-0 flex-1">
@@ -140,6 +142,13 @@ export function Landing() {
     }
   }, []);
 
+  const [ratings, setRatings] = useState<ModeRating[]>([]);
+  const loadRatings = () => {
+    fetch("/api/profile", { credentials: "same-origin" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((d: { ratings?: ModeRating[] } | null) => setRatings(d?.ratings ?? []))
+      .catch(() => undefined);
+  };
   const loadProgress = () => {
     fetchProgress()
       .then((d) => d && setProgress(d))
@@ -148,6 +157,7 @@ export function Landing() {
   useEffect(() => {
     prefs.load();
     loadProgress();
+    loadRatings();
     fetchSession()
       .then(setSession)
       .catch(() => setSessionFailed(true));
@@ -195,25 +205,30 @@ export function Landing() {
     router.push(`/r/${c}`);
   };
 
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState<null | "lobby" | "bots">(null);
   // Opens a room straight away with the player's saved name and colour; both can be changed in the lobby.
-  const createNow = async () => {
+  // A lobby is people only; Play vs bots fills the table with bots.
+  const createNow = async (kind: "lobby" | "bots") => {
     if (creating) return;
-    setCreating(true);
+    setCreating(kind);
     setCodeError(null);
     try {
       await startConnection();
       const user = session?.kind === "user" ? session : null;
-      const r = await api.createRoom({
-        name: sanitizeName(prefs.name || user?.displayName || "", "Guest"),
-        color: user?.color ?? prefs.color,
-        knight: user?.knight ?? prefs.knight,
-      });
+      const r = await api.createRoom(
+        {
+          name: sanitizeName(prefs.name || user?.displayName || "", "Guest"),
+          color: user?.color ?? prefs.color,
+          knight: user?.knight ?? prefs.knight,
+        },
+        { allowBots: kind === "bots" },
+      );
       if (!r.ok) throw new Error(r.error);
+      if (kind === "bots") for (let n = 1; n < DEFAULT_ROOM_SETTINGS.maxPlayers; n++) await api.addBot();
       router.push(`/r/${r.code}`);
     } catch {
       setCodeError("Couldn't create a room right now. Try again in a moment.");
-      setCreating(false);
+      setCreating(null);
     }
   };
 
@@ -278,47 +293,45 @@ export function Landing() {
 
         {tables.length > 0 && <ResumeTables rooms={tables} onAbandon={(r) => { setAbandonError(null); setAbandoning(r); }} />}
 
-        <div className={`landing-actions animate-rise ${tables.length ? "mt-5" : "mt-9"} flex flex-wrap items-center gap-3 [animation-delay:160ms]`}>
+        <div className={`landing-actions animate-rise paper-flat ${tables.length ? "mt-5" : "mt-9"} grid w-[22rem] max-w-full gap-2 p-3 [animation-delay:160ms]`}>
+          <h2 className="text-xs font-bold uppercase tracking-label text-ink-soft">Play</h2>
           {/* With a table to go back to, Rejoin takes the accent colour. */}
-          <button type="button" onClick={createNow} disabled={creating} className={`btn ${tables.length ? "" : "btn-primary"} px-7 py-3.5 text-lg`}>
-            {creating ? <HexSpinner size={20} decorative /> : null}
-            Create game <ArrowRight size={20} strokeWidth={3} />
+          <button type="button" onClick={() => createNow("lobby")} disabled={!!creating} className={`btn ${tables.length ? "" : "btn-primary"} w-full px-5 py-3 text-lg`}>
+            {creating === "lobby" ? <HexSpinner size={20} decorative /> : null}
+            Create lobby <ArrowRight size={20} strokeWidth={3} />
           </button>
-          {!joining ? (
-            <button
-              type="button"
-              className="btn px-6 py-3.5 text-lg"
-              onClick={() => setJoining(true)}
-            >
-              Join game
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => createNow("bots")} disabled={!!creating} className="btn whitespace-nowrap px-3 py-2.5 text-base">
+              {creating === "bots" ? <HexSpinner size={18} decorative /> : <Bot size={18} />}
+              Play vs bots
             </button>
-          ) : (
-            <form
-              onSubmit={submitJoin}
-              className="paper-flat flex items-center gap-2 p-1.5 pl-3"
-            >
-              <input
-                ref={inputRef}
-                value={code}
-                onChange={(e) => {
-                  setCode(e.target.value);
-                  setCodeError(null);
-                }}
-                placeholder="ABCD-2345"
-                aria-label="Room code or invite link"
-                autoCapitalize="characters"
-                autoCorrect="off"
-                spellCheck={false}
-                enterKeyHint="go"
-                aria-invalid={!!codeError}
-                aria-describedby={codeError ? 'room-code-error' : undefined}
-                className="min-w-0 w-36 flex-1 bg-transparent text-lg font-bold uppercase tabular tracking-label text-ink outline-none placeholder:text-ink/30"
-              />
-              <button type="submit" className="btn btn-dark px-4 py-2">
-                Join
+            {!joining ? (
+              <button type="button" className="btn px-3 py-2.5 text-base" onClick={() => setJoining(true)}>
+                Join game
               </button>
-            </form>
-          )}
+            ) : (
+              <form onSubmit={submitJoin} className="flex min-w-0 items-center gap-1 rounded-[4px] border-2 border-ink bg-paper-2 pl-2">
+                <input
+                  ref={inputRef}
+                  value={code}
+                  onChange={(e) => {
+                    setCode(e.target.value);
+                    setCodeError(null);
+                  }}
+                  placeholder="ABCD-2345"
+                  aria-label="Room code or invite link"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="go"
+                  aria-invalid={!!codeError}
+                  aria-describedby={codeError ? 'room-code-error' : undefined}
+                  className="min-w-0 flex-1 bg-transparent text-sm font-bold uppercase tabular tracking-label text-ink outline-none placeholder:text-ink/30"
+                />
+                <button type="submit" className="btn btn-dark m-0.5 px-2.5 py-1.5 text-sm">Go</button>
+              </form>
+            )}
+          </div>
         </div>
         {codeError && (
           <p id="room-code-error" role="alert" className="mt-2 text-sm font-semibold text-terracotta">
@@ -328,7 +341,14 @@ export function Landing() {
         {progress?.enabled && <ProgressCard data={progress} />}
       </section>
 
-      {progress?.enabled && <Quay data={progress} name={name} color={color} onChanged={loadProgress} />}
+      {progress?.enabled && (
+        <div className="landing-dock absolute inset-x-5 bottom-14 z-10 items-end gap-4 sm:inset-x-10">
+          <FriendsCard />
+          <ProgressCard data={progress} dock />
+          <div className="flex-1" />
+          <Quay data={progress} color={color} ratings={ratings} onChanged={() => { loadProgress(); loadRatings(); }} />
+        </div>
+      )}
 
       <footer className="landing-footer relative z-10 flex justify-end gap-4 px-5 pb-4 text-xs font-bold text-foam/60 sm:px-10">
         <Link href="/privacy" className="hover:text-paper">

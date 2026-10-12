@@ -113,11 +113,11 @@ function Nameplate({ seat, onEdit, onRemove, onLook }: { seat: SeatDTO; onEdit?:
   );
 }
 
-function OpenSeat({ host }: { host: boolean }) {
+function OpenSeat({ host, bots }: { host: boolean; bots: boolean }) {
   return (
     <div className="grid min-h-[84px] place-items-center gap-1.5 rounded-[6px] border-2 border-dashed border-foam/25 p-2 text-center">
       <span className="text-xs font-bold text-foam/60">Open seat</span>
-      {host && (
+      {host && bots && (
         <button type="button" className="btn btn-dark gap-1.5 px-2.5 py-1 text-xs leading-none" onClick={() => api.addBot()}>
           <Plus size={14} strokeWidth={2.75} /> Add bot
         </button>
@@ -168,7 +168,7 @@ function Scene({ room, onEditProfile, onWardrobe }: Props) {
             <Pad dashed />
             <Plus size={22} strokeWidth={3} className="absolute bottom-[1.6rem] left-1/2 -translate-x-1/2 text-sea-300/70" aria-hidden="true" />
           </Spot>
-          <div className="p-1.5"><OpenSeat host={host} /></div>
+          <div className="p-1.5"><OpenSeat host={host} bots={room.settings.allowBots !== false} /></div>
         </div>
       ))}
     </div>
@@ -189,7 +189,7 @@ function List({ room, onEditProfile, onWardrobe }: Props) {
             onRemove={host && !seat.isYou ? () => api.removeSeat(seat.playerId) : undefined} />
         </li>
       ))}
-      {Array.from({ length: empty }, (_, k) => <li key={`open${k}`}><OpenSeat host={host} /></li>)}
+      {Array.from({ length: empty }, (_, k) => <li key={`open${k}`}><OpenSeat host={host} bots={room.settings.allowBots !== false} /></li>)}
     </ul>
   );
 }

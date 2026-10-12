@@ -30,6 +30,8 @@ export interface RoomSettings {
   gold?: boolean;
   /** Random or balanced (bag-drawn) dice. Rooms saved before the option lack it (= random). */
   dice?: DiceMode;
+  /** False for a people-only lobby: the host can't add bots. Rooms saved before the option lack it (= bots allowed). */
+  allowBots?: boolean;
 }
 
 export const DEFAULT_ROOM_SETTINGS: RoomSettings = {
