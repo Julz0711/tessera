@@ -382,12 +382,23 @@ function buildOrTrade(view: PlayerView, seat: number): Action | null {
   const top = all[0];
   // Build the most valuable thing we can afford — unless it eats cards a nearly-affordable,
   // more valuable goal still needs.
+  // Saving for a settlement or city counts too, even when a road (or the like) is rated above it, and
+  // from three cards away: bots that spent every brick and lumber on roads never got to their settlement.
+  const saving = all.filter((g) => g.action.type === 'buildSettlement' || g.action.type === 'buildCity');
+  // An affordable settlement or city beats a road, ship or card even when that is rated higher (a road
+  // along the Longest Road race can be), but not the other way round.
+  // The exception is a road that takes the Longest Road (bestRoad adds 6 for that): two points beat a settlement.
+  const urgent = (g: Goal) => g.action.type === 'buildRoad' && g.value >= 6;
+  const affordablePiece = saving.find((g) => hasCards(hand, g.cost));
+  if (affordablePiece && !all.some((g) => urgent(g) && hasCards(hand, g.cost))) return affordablePiece.action;
   for (const g of all) {
     if (!hasCards(hand, g.cost)) continue;
-    if (g !== top && deficit(hand, top.cost) <= 2) {
-      const rest = afterTrade(hand, g.cost, {});
-      if (deficit(rest, top.cost) > deficit(hand, top.cost)) continue;
-    }
+    const protectedGoals = urgent(g) ? [] : (g === top ? [] : [top]).concat(saving.filter((s) => s !== g && s !== top && s.value >= g.value - 3));
+    const eatsSavings = protectedGoals.some((s) => {
+      const gap = deficit(hand, s.cost);
+      return gap > 0 && gap <= (s === top ? 2 : 3) && deficit(afterTrade(hand, g.cost, {}), s.cost) > gap;
+    });
+    if (eatsSavings) continue;
     return g.action;
   }
   // Otherwise trade with the bank toward the most valuable goal that trading can reach.
