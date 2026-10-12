@@ -19,7 +19,7 @@ const BOT_LOOKS = itemsIn('character').filter((i) => i.unlock.kind === 'free').m
 
 function Pad({ color, dashed }: { color?: string; dashed?: boolean }) {
   return (
-    <svg viewBox="0 0 160 52" className="absolute bottom-3 left-1/2 w-[82%] -translate-x-1/2" aria-hidden="true">
+    <svg viewBox="0 0 160 52" className="absolute bottom-3 left-1/2 w-[82%] max-w-[200px] -translate-x-1/2" aria-hidden="true">
       {dashed ? (
         <polygon points="6,22 80,4 154,22 80,40" fill="none" stroke="var(--color-sea-300)" strokeOpacity=".55" strokeWidth="2" strokeDasharray="7 6" strokeLinejoin="round" />
       ) : (
@@ -33,12 +33,17 @@ function Pad({ color, dashed }: { color?: string; dashed?: boolean }) {
   );
 }
 
+/** Figures stand a little smaller on phones so two spots fit side by side. */
+function Floor({ children }: { children: React.ReactNode }) {
+  return <span className="absolute inset-0 origin-bottom scale-[.8] sm:scale-100">{children}</span>;
+}
+
 /** One spot of the room's floor: wall above, floor below; alternate spots shade the wall like facets. */
 function Spot({ index, children }: { index: number; children: React.ReactNode }) {
   const wall = index % 2 ? '#12384a' : 'var(--color-sea-800)';
   return (
     <div
-      className="relative h-48 sm:h-60"
+      className="relative h-40 sm:h-60"
       style={{ background: `linear-gradient(180deg, ${wall} 0 56%, var(--color-sea-950) 56% calc(56% + 3px), #143c4e calc(56% + 3px) 100%)` }}
     >
       {children}
@@ -50,7 +55,7 @@ function Figure({ seat, index }: { seat: SeatDTO; index: number }) {
   const character = seat.crew?.loadout.character ?? BOT_LOOKS[index % BOT_LOOKS.length];
   const banner = seat.crew?.loadout.banner ?? null;
   return (
-    <>
+    <Floor>
       <Pad color={PLAYER_COLORS[seat.color].hex} />
       <span className={`absolute bottom-7 left-1/2 -translate-x-[62%] ${seat.connected ? '' : 'opacity-50'}`}>
         <ItemArt id={character} color={seat.color} size={140} />
@@ -60,11 +65,11 @@ function Figure({ seat, index }: { seat: SeatDTO; index: number }) {
           <ItemArt id={banner} color={seat.color} size={96} />
         </span>
       )}
-    </>
+    </Floor>
   );
 }
 
-function Nameplate({ seat, canRemove, onEdit }: { seat: SeatDTO; canRemove: boolean; onEdit?: () => void }) {
+function Nameplate({ seat, onEdit }: { seat: SeatDTO; onEdit?: () => void }) {
   const title = seat.crew?.loadout.title ? itemById(seat.crew.loadout.title)?.name : null;
   return (
     <div className="paper-flat grid gap-1.5 p-2">
@@ -87,11 +92,6 @@ function Nameplate({ seat, canRemove, onEdit }: { seat: SeatDTO; canRemove: bool
             )}
           </div>
         </div>
-        {canRemove && (
-          <button type="button" onClick={() => api.removeSeat(seat.playerId)} className="btn btn-ghost h-7 w-7 shrink-0 p-0" aria-label={`Remove ${seat.name}`}>
-            <X size={14} />
-          </button>
-        )}
       </div>
       <div className="flex min-h-6 items-center gap-1.5">
         {seat.crew && <LevelBadge level={seat.crew.level} size={20} />}
@@ -111,9 +111,11 @@ export function LobbyRoom({ room, onEditProfile, onWardrobe }: { room: RoomDTO; 
   const host = room.you.isHost;
   const empty = Math.max(0, room.settings.maxPlayers - room.seats.length);
   const spots = room.settings.maxPlayers;
+  // Up to four seats share one row from tablet width; five or six need a wide screen for that.
+  const row = spots > 4 ? 'xl:[grid-template-columns:repeat(var(--spots),minmax(0,1fr))]' : 'md:[grid-template-columns:repeat(var(--spots),minmax(0,1fr))]';
   return (
     <div
-      className="grid grid-cols-2 overflow-hidden rounded-[6px] border-2 border-ink bg-sea-950 sm:grid-cols-3 md:[grid-template-columns:repeat(var(--spots),minmax(0,1fr))]"
+      className={`grid grid-cols-2 overflow-hidden rounded-[6px] border-2 border-ink bg-sea-950 sm:grid-cols-3 ${row}`}
       style={{ '--spots': spots } as React.CSSProperties}
     >
       {room.seats.map((seat, i) => (
@@ -127,9 +129,14 @@ export function LobbyRoom({ room, onEditProfile, onWardrobe }: { room: RoomDTO; 
             ) : (
               <Figure seat={seat} index={i} />
             )}
+            {host && !seat.isYou && (
+              <button type="button" onClick={() => api.removeSeat(seat.playerId)} className="btn btn-dark absolute right-2 top-2 h-8 w-8 p-0" aria-label={`Remove ${seat.name}`} title="Remove">
+                <X size={14} />
+              </button>
+            )}
           </Spot>
           <div className="p-1.5">
-            <Nameplate seat={seat} canRemove={host && !seat.isYou} onEdit={seat.isYou ? onEditProfile : undefined} />
+            <Nameplate seat={seat} onEdit={seat.isYou ? onEditProfile : undefined} />
           </div>
         </div>
       ))}
@@ -138,8 +145,10 @@ export function LobbyRoom({ room, onEditProfile, onWardrobe }: { room: RoomDTO; 
         return (
           <div key={`open${k}`} className="grid content-start">
             <Spot index={i}>
-              <Pad dashed />
-              <Plus size={22} strokeWidth={3} className="absolute bottom-[1.6rem] left-1/2 -translate-x-1/2 text-sea-300/70" aria-hidden="true" />
+              <Floor>
+                <Pad dashed />
+                <Plus size={22} strokeWidth={3} className="absolute bottom-[1.6rem] left-1/2 -translate-x-1/2 text-sea-300/70" aria-hidden="true" />
+              </Floor>
             </Spot>
             <div className="p-1.5">
               <div className="grid min-h-[84px] place-items-center gap-1.5 rounded-[6px] border-2 border-dashed border-foam/25 p-2 text-center">
