@@ -24,7 +24,6 @@
  */
 import {
   PIPS,
-  actorsFor,
   applyAction,
   hasCards,
   legalSettlementSpots,
@@ -44,7 +43,7 @@ import { goals as classicGoals } from '../classic';
 import { resourceWeights, vertexScore } from '../eval';
 import { botAction } from '../index';
 import { seatsToAsk } from '../simulate';
-import { accuracyFromLoss, classify } from './accuracy';
+import { LOSS_THRESHOLDS, accuracyFromLoss, classify } from './accuracy';
 import { describeAction } from './describeAction';
 import { devCardValue, levelling, winChances } from './evaluate';
 import type { FlaggedMove, GameAnalysis, PlayerAccuracy } from './types';
@@ -221,18 +220,18 @@ export function candidatesFor(s: GameState, seat: number, taken: Action, max: nu
   return out.length >= 2 ? out : null;
 }
 
-// ── Rollouts ────────────────────────────────────────────────────────────────
-
-/** Trade responders before the player who offered (who would otherwise withdraw at once), then the rest. */
-function askOrder(s: GameState): number[] {
-  const actors = actorsFor(s);
-  const all = seatsToAsk(s);
-  return [...all.filter((x) => !actors.includes(x)), ...all.filter((x) => actors.includes(x))];
+/** Would one more knight played now take (or tie into) the Largest Army? */
+function takesLargestArmy(s: GameState, seat: number): boolean {
+  const knights = s.players[seat].knightsPlayed + 1;
+  const holder = s.largestArmy;
+  return knights >= 3 && holder !== seat && (holder === null || holder === undefined || knights > s.players[holder].knightsPlayed);
 }
+
+// ── Rollouts ────────────────────────────────────────────────────────────────
 
 /** One bot move for whoever should act next, or null when nobody can (or a bot fails). */
 function botStep(s: GameState): GameState | null {
-  for (const seat of askOrder(s)) {
+  for (const seat of seatsToAsk(s)) {
     let action: Action | null;
     try {
       action = botAction(viewFor(s, seat), seat, { tradeTimedOut: true });
@@ -373,7 +372,13 @@ export function analyseGame(data: Pick<ReplayData, 'initial' | 'steps' | 'incomp
       pct.forEach((p, c) => {
         if (p > pct[best]) best = c;
       });
-      const loss = round1(Math.max(0, pct[best] - pct[0]));
+      let loss = round1(Math.max(0, pct[best] - pct[0]));
+      // Holding a knight keeps its worth (the robber may be on the opponent already, a later 7 or a
+      // blocked builder may need it), which the end-of-turn evaluation can't see: not playing one that
+      // doesn't win the Largest Army is at most an inaccuracy, however the rollouts fell.
+      if (options[best].type === 'playKnight' && options[0].type !== 'playKnight' && !takesLargestArmy(s, d.seat)) {
+        loss = Math.min(loss, LOSS_THRESHOLDS.mistake - 0.1);
+      }
       const p = players[d.seat];
       p.analysed++;
       lossSum[d.seat] += loss;

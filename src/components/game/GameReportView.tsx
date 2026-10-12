@@ -12,6 +12,8 @@ import { PLAYER_COLORS } from '@/shared/colors';
 import { MODE_LABEL, ratingPoolFor } from '@/shared/ratings';
 import { DiceHistogram } from './DiceStats';
 import { RowIcon, TAB_ICONS } from './reportIcons';
+import type { AnalysisStatus } from '@/bots/analysis/types';
+import { AccuracyDetails } from './endgame/AccuracyDetails';
 import { AwardBadges } from './endgame/AwardBadges';
 
 function download(report: GameReport, format: 'csv' | 'json') {
@@ -167,7 +169,8 @@ function TimelineChart({ report, seats, metric }: { report: GameReport; seats: n
 }
 
 /** `only: 'dice'`: just the dice tab, without the tab bar (the running game's view). */
-export function GameReportView({ report, initialSeat, only }: { report: GameReport; initialSeat?: number | null; only?: 'dice' }) {
+/** `analysis`: the move analysis when the game has one (it adds the Accuracy tab). */
+export function GameReportView({ report, initialSeat, only, analysis }: { report: GameReport; initialSeat?: number | null; only?: 'dice'; analysis?: AnalysisStatus | null }) {
   const categories = useMemo(() => reportCategories(report), [report]);
   const [tabState, setTab] = useState<string>('overview');
   const tab = only ?? tabState;
@@ -176,7 +179,7 @@ export function GameReportView({ report, initialSeat, only }: { report: GameRepo
   const stats = report.stats, d = stats?.details;
   const order = report.players.map((_, i) => i).sort((a, b) => report.players[a].rank - report.players[b].rank);
   const seats = order.filter((s) => !hidden.has(s));
-  const tabs = [...categories.map((c) => ({ id: c.id as string, label: c.label })), ...(d?.timeline.length ? [{ id: 'timeline', label: 'Timeline' }] : [])];
+  const tabs = [...categories.map((c) => ({ id: c.id as string, label: c.label })), ...(d?.timeline.length ? [{ id: 'timeline', label: 'Timeline' }] : []), ...(analysis ? [{ id: 'accuracy', label: 'Accuracy' }] : [])];
   const category = categories.find((c) => c.id === tab);
   const elapsed = report.startedAt && report.endedAt ? Math.max(0, Math.round((Date.parse(report.endedAt) - Date.parse(report.startedAt)) / 60000)) : null;
   const toggle = (seat: number) => setHidden((prev) => {
@@ -228,6 +231,7 @@ export function GameReportView({ report, initialSeat, only }: { report: GameRepo
           <tbody>{Array.from({ length: 11 }, (_, i) => i + 2).map((n) => <tr key={n} className="border-t border-ink/10"><th className="p-1.5 text-right">{n}</th><td className="p-1.5 text-right tabular">{stats.dice[n]}</td><td className="p-1.5 text-right tabular">{d?.complete ? d.expectedDice[n].toFixed(1) : '—'}</td><td className="p-1.5 text-right tabular">{d?.longestDrought[n] ?? '—'}</td></tr>)}</tbody></table></div>
         {d && <p className="mt-2 text-xs text-ink-soft">Red die faces 1–6: {d.red.slice(1).join(' · ')}<br />Yellow die faces 1–6: {d.yellow.slice(1).join(' · ')}{report.mode === 'ck' && <><br />Event die: {Object.entries(d.eventDie).map(([face, n]) => `${face} ${n}`).join(' · ')}</>}</p>}
       </details>}
+      {tab === 'accuracy' && analysis && <AccuracyDetails status={analysis} report={report} seats={seats} viewer={initialSeat ?? null} />}
       {tab === 'timeline' && <>
         <div role="group" aria-label="Timeline metric" className="flex flex-wrap gap-1.5">{(Object.keys(TIMELINE_LABEL) as TimelineKey[]).filter((k) => k !== 'improvements' || report.mode === 'ck').map((k) =>
           <button key={k} type="button" aria-pressed={timelineMetric === k} onClick={() => setTimelineMetric(k)} className={`rounded-lg border-2 px-2.5 py-1 text-xs font-bold ${timelineMetric === k ? 'border-ink bg-ink text-paper' : 'border-ink/20 hover:border-ink/60'}`}>{TIMELINE_LABEL[k]}</button>)}</div>

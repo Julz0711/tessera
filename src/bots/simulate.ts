@@ -19,19 +19,31 @@ export interface SimulationResult {
 
 const COLORS: PlayerColor[] = ['red', 'blue', 'orange', 'white', 'green', 'purple'];
 
-/** Seats that may act right now: owed decisions plus pending trade responses. */
+/**
+ * Seats that may act right now: pending trade responders first, then the owed decisions. A responder
+ * goes before the player who offered, who would otherwise withdraw (or wait on them) at once.
+ */
 export function seatsToAsk(s: GameState): number[] {
-  const seats = new Set(actorsFor(s));
+  const actors = actorsFor(s);
+  const responders = new Set<number>();
   if (!s.pending.length) {
     for (const t of s.trades) {
-      for (const seat of t.to) if (seat !== t.from && !t.accepted.includes(seat) && !t.declined.includes(seat)) seats.add(seat);
+      for (const seat of t.to) if (seat !== t.from && !t.accepted.includes(seat) && !t.declined.includes(seat)) responders.add(seat);
     }
   }
-  return [...seats];
+  return [...responders, ...actors.filter((seat) => !responders.has(seat))];
 }
 
 /** Plays a full bot-only game; stops at the first rejected action (a bot or engine bug). */
-export function simulateGame(seed: number, players: number, mode: Mode = 'classic', maxActions = 6000, map: MapId = 'standard'): SimulationResult {
+export function simulateGame(
+  seed: number,
+  players: number,
+  mode: Mode = 'classic',
+  maxActions = 6000,
+  map: MapId = 'standard',
+  /** Which bot plays a seat (the tournament pits versions against each other); default: the live bot. */
+  botFor: (seat: number) => typeof botAction = () => botAction,
+): SimulationResult {
   let s = createGame({
     seed,
     mode,
@@ -45,7 +57,7 @@ export function simulateGame(seed: number, players: number, mode: Mode = 'classi
     for (const seat of seatsToAsk(s)) {
       let action: Action | null;
       try {
-        action = botAction(viewFor(s, seat), seat, { tradeTimedOut: true });
+        action = botFor(seat)(viewFor(s, seat), seat, { tradeTimedOut: true });
       } catch (err) {
         return { state: s, actions, error: `Bot ${seat} crashed: ${(err as Error).stack}` };
       }

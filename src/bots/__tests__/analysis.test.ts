@@ -201,7 +201,7 @@ describe('game analysis', () => {
   // first showed the analysis was too lenient: 89.3 with a single inaccuracy.)
   it.each([
     ['classic', 7, 2],
-    ['ck', 7, 2],
+    ['ck', 9, 2],
   ] as const)('marks down a %s player who skips half their builds (seed %i, seat %i)', (mode, seed, seat) => {
     const game = record(seed, mode, 4, 'standard', undefined, seat);
     const a = analyseGame(game, { prioritySeats: [seat] });

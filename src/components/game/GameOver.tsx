@@ -121,7 +121,7 @@ export function GameOver({ view, room, onClose }: { view: PlayerView; room: Room
             {analysis && <AccuracyPanel status={analysis} report={report} order={order} viewer={view.viewer} />}
           </>
         ) : (
-          <GameReportView report={report} initialSeat={view.viewer} />
+          <GameReportView report={report} initialSeat={view.viewer} analysis={analysis} />
         )}
         <div className="mt-5 flex flex-wrap justify-end gap-2">
           {/* Replays are stored with the game history; the saved report turning up shows the game was written to it. */}

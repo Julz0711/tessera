@@ -78,13 +78,28 @@ export function classicBotAction(view: PlayerView, seat: number, opts: BotOption
     return { type: 'rollDice' };
   }
 
-  for (const offer of view.trades.filter((t) => t.from === seat)) {
-    if (offer.accepted.length) return { type: 'confirmTrade', id: offer.id, partner: offer.accepted[0] };
-    if (opts.tradeTimedOut || offer.declined.length >= offer.to.length) return { type: 'cancelTrade', id: offer.id };
-    return null;
-  }
+  const own = ownOfferStep(view, seat, opts);
+  if (own !== undefined) return own;
 
   return playDevCard(view, seat) ?? buildOrTrade(view, seat) ?? { type: 'endTurn' };
+}
+
+/**
+ * What to do about this seat's open offers: confirm one a partner took, cancel one nobody will take,
+ * or wait (null). Undefined: no open offer.
+ */
+export function ownOfferStep(view: PlayerView, seat: number, opts: BotOptions): Action | null | undefined {
+  for (const offer of view.trades.filter((t) => t.from === seat)) {
+    if (offer.accepted.length) {
+      const partner = argmax(offer.accepted, (x) => -view.players[x].publicVP)!;
+      return { type: 'confirmTrade', id: offer.id, partner };
+    }
+    // Offers to bots only wait for the bots' own answers (they come in the runner's next ticks).
+    const botsOnly = offer.to.every((x) => view.players[x].isBot);
+    if ((opts.tradeTimedOut && !botsOnly) || offer.declined.length >= offer.to.length) return { type: 'cancelTrade', id: offer.id };
+    return null;
+  }
+  return undefined;
 }
 
 // ── Prompts ─────────────────────────────────────────────────────────────────
@@ -189,13 +204,34 @@ function blackForestSetupBonus(view: PlayerView): (v: number) => number {
   return (v) => 8 * (Math.hypot(t.vertices[v].x, t.vertices[v].y) / far);
 }
 
+/** Extra score for a first settlement: a share of the best second spot (not adjacent) once it stands. */
+function pairBonus(view: PlayerView, seat: number, spots: number[], weights: ReturnType<typeof resourceWeights>): (v: number) => number {
+  const t = topo(view);
+  const share = 0.8;
+  return (v) => {
+    const buildings = [...view.buildings];
+    buildings[v] = { owner: seat, city: false, wall: false, metropolis: null } as (typeof buildings)[number];
+    const after = { ...view, buildings };
+    const blocked = new Set([v, ...t.vertices[v].vertices]);
+    // Seconds that stay in reach: not blocked by the distance rule, and not yet taken by someone else.
+    let best = 0;
+    for (const w of spots) {
+      if (blocked.has(w)) continue;
+      best = Math.max(best, vertexScore(after, seat, w, weights));
+    }
+    return share * best;
+  };
+}
+
 export function setupMove(view: PlayerView, seat: number): Action {
   const t = topo(view);
   if (view.setup!.placing === 'settlement') {
     const weights = resourceWeights(view);
     const spots = legalSettlementSpots(view, seat, true);
     const bonus = blackForestSetupBonus(view);
-    return { type: 'buildSettlement', vertex: argmax(spots, (v) => vertexScore(view, seat, v, weights) + bonus(v))! };
+    // The first settlement is judged together with the best second one it leaves room for.
+    const pair = view.setup!.index < view.players.length ? pairBonus(view, seat, spots, weights) : () => 0;
+    return { type: 'buildSettlement', vertex: argmax(spots, (v) => vertexScore(view, seat, v, weights) + bonus(v) + pair(v))! };
   }
   const edges = legalSetupRoads(view);
   const from = view.setup!.lastVertex!;
@@ -376,20 +412,63 @@ export function primaryGoal(view: PlayerView, seat: number): Goal | undefined {
   return { action: { type: 'endTurn' }, cost: COSTS.settlement, value: 0 };
 }
 
+/**
+ * Offers one spare card for one missing card to the other bots (never to people: a bot's offer would
+ * be gone before they could answer). At most one offer per turn, only when a swap brings a goal closer.
+ */
+export function proposeSwap(view: PlayerView, seat: number, all: Goal[]): Action | null {
+  const log = view.log;
+  for (let i = log.length - 1; i >= 0; i--) {
+    const ev = log[i];
+    if (ev.type === 'turnStarted') break;
+    if (ev.type === 'tradeOffered' && ev.seat === seat) return null;
+  }
+  const hand = view.players[seat].hand;
+  const to = view.players
+    .map((_, i) => i)
+    .filter((i) => i !== seat && view.players[i].isBot && view.players[i].resourceCount > 0 && view.players[i].publicVP < view.settings.vpToWin - 2);
+  if (!to.length) return null;
+  for (const g of all) {
+    const need = deficit(hand, g.cost);
+    if (need < 1 || need > 2) continue;
+    const missing = RESOURCES.filter((r) => (g.cost[r] ?? 0) > hand[r]);
+    const spare = RESOURCES.filter((r) => hand[r] - (g.cost[r] ?? 0) >= 1 && !missing.includes(r));
+    if (!missing.length || !spare.length) continue;
+    const give = argmax(spare, (r) => hand[r] - (g.cost[r] ?? 0))!;
+    const want = argmax(missing, (r) => (g.cost[r] ?? 0) - hand[r])!;
+    return { type: 'offerTrade', give: { [give]: 1 }, want: { [want]: 1 }, to };
+  }
+  return null;
+}
+
 function buildOrTrade(view: PlayerView, seat: number): Action | null {
   const hand = view.players[seat].hand;
   const all = goals(view, seat);
   const top = all[0];
   // Build the most valuable thing we can afford — unless it eats cards a nearly-affordable,
   // more valuable goal still needs.
+  // Saving for a settlement or city counts too, even when a road (or the like) is rated above it, and
+  // from three cards away: bots that spent every brick and lumber on roads never got to their settlement.
+  const saving = all.filter((g) => g.action.type === 'buildSettlement' || g.action.type === 'buildCity');
+  // An affordable settlement or city beats a road, ship or card even when that is rated higher (a road
+  // along the Longest Road race can be), but not the other way round.
+  // The exception is a road that takes the Longest Road (bestRoad adds 6 for that): two points beat a settlement.
+  const urgent = (g: Goal) => g.action.type === 'buildRoad' && g.value >= 6;
+  const affordablePiece = saving.find((g) => hasCards(hand, g.cost));
+  if (affordablePiece && !all.some((g) => urgent(g) && hasCards(hand, g.cost))) return affordablePiece.action;
   for (const g of all) {
     if (!hasCards(hand, g.cost)) continue;
-    if (g !== top && deficit(hand, top.cost) <= 2) {
-      const rest = afterTrade(hand, g.cost, {});
-      if (deficit(rest, top.cost) > deficit(hand, top.cost)) continue;
-    }
+    const protectedGoals = urgent(g) ? [] : (g === top ? [] : [top]).concat(saving.filter((s) => s !== g && s !== top && s.value >= g.value - 3));
+    const eatsSavings = protectedGoals.some((s) => {
+      const gap = deficit(hand, s.cost);
+      return gap > 0 && gap <= (s === top ? 2 : 3) && deficit(afterTrade(hand, g.cost, {}), s.cost) > gap;
+    });
+    if (eatsSavings) continue;
     return g.action;
   }
+  // A one-for-one swap with another bot beats the bank's rate.
+  const swap = proposeSwap(view, seat, all);
+  if (swap) return swap;
   // Otherwise trade with the bank toward the most valuable goal that trading can reach.
   for (const g of all) {
     const need = deficit(hand, g.cost);
