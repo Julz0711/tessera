@@ -61,6 +61,8 @@ import {
   shouldAcceptTrade,
   type BotOptions,
   chooseGold,
+  ownOfferStep,
+  proposeSwap,
 } from './classic';
 import { islandBonus } from './voyage';
 import { bankTradeToward, deficit, resourceWeights, vertexScore } from './eval';
@@ -285,6 +287,8 @@ function buildOrTrade(view: PlayerView, seat: number): Action | null {
     }
     return g.action;
   }
+  const swap = proposeSwap(view, seat, all);
+  if (swap) return swap;
   for (const g of all.slice(0, 3)) {
     if (deficit(hand, g.cost) > 3) continue;
     const trade = bankTradeToward(view, seat, hand, g.cost, CARDS);
@@ -456,11 +460,8 @@ export function ckBotAction(view: PlayerView, seat: number, opts: BotOptions = {
     return { type: 'rollDice' };
   }
 
-  for (const offer of view.trades.filter((t) => t.from === seat)) {
-    if (offer.accepted.length) return { type: 'confirmTrade', id: offer.id, partner: offer.accepted[0] };
-    if (opts.tradeTimedOut || offer.declined.length >= offer.to.length) return { type: 'cancelTrade', id: offer.id };
-    return null;
-  }
+  const own = ownOfferStep(view, seat, opts);
+  if (own !== undefined) return own;
 
   // Knights next to the robber chase it away when it sits on our land.
   const chasers = chaseRobberKnights(view, seat);

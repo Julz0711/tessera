@@ -24,7 +24,6 @@
  */
 import {
   PIPS,
-  actorsFor,
   applyAction,
   hasCards,
   legalSettlementSpots,
@@ -230,16 +229,9 @@ function takesLargestArmy(s: GameState, seat: number): boolean {
 
 // ── Rollouts ────────────────────────────────────────────────────────────────
 
-/** Trade responders before the player who offered (who would otherwise withdraw at once), then the rest. */
-function askOrder(s: GameState): number[] {
-  const actors = actorsFor(s);
-  const all = seatsToAsk(s);
-  return [...all.filter((x) => !actors.includes(x)), ...all.filter((x) => actors.includes(x))];
-}
-
 /** One bot move for whoever should act next, or null when nobody can (or a bot fails). */
 function botStep(s: GameState): GameState | null {
-  for (const seat of askOrder(s)) {
+  for (const seat of seatsToAsk(s)) {
     let action: Action | null;
     try {
       action = botAction(viewFor(s, seat), seat, { tradeTimedOut: true });
