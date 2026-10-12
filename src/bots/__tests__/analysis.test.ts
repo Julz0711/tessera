@@ -129,6 +129,16 @@ describe('game analysis', () => {
     }
   });
 
+  it('never holds an unmade offer to the other players against a move', () => {
+    for (const seed of [3, 7, 11]) {
+      const game = record(seed, 'classic', 4);
+      const a = analyseGame(game, unlimited);
+      // The bots do make offers in these games: they are graded as played, but are never the "better" move.
+      expect(game.steps.some((s) => s.action.type === 'offerTrade')).toBe(true);
+      for (const m of a.moves) expect(m.best.startsWith('Offer ')).toBe(false);
+    }
+  });
+
   it('flags a terrible opening placement', () => {
     const game = record(5, 'classic', 4, 'standard', 0);
     const a = analyseGame(game, { ...unlimited, prioritySeats: [0] });

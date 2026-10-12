@@ -1,4 +1,19 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#061419"><title>You’re offline</title>
-<style>*{box-sizing:border-box}body{margin:0;min-height:100dvh;display:grid;place-items:center;padding:24px;background:#061419;color:#f6eddb;font:17px/1.6 system-ui,sans-serif;text-align:center}main{max-width:380px}img{border-radius:24px}h1{font:700 36px/1.1 Georgia,serif}p{color:#b8ccc8}button{min-height:48px;border:2px solid #1f1a14;border-radius:12px;background:#f2b33d;color:#1f1a14;padding:12px 28px;font:700 17px system-ui;cursor:pointer}button:focus-visible{outline:3px solid white;outline-offset:4px}small{display:block;margin-top:24px;color:#b8ccc8}</style><script src="/offline.js" defer></script></head>
-<body><main><img src="/icons/apple-touch-icon.png" width="88" height="88" alt=""><h1>Let’s get you<br>back to the table.</h1><p>You’re offline. Check your Wi-Fi or mobile connection, then try again.</p><button type="button" id="retry">Try again</button><small>This page will reconnect automatically when you’re back online.</small></main></body></html>
+<style>
+/* Self-contained: mirrors the tokens in src/app/globals.css (sea-950, paper, ink, amber, 4/6px radii,
+   hard ink shadow, notched key) because the app's CSS and fonts aren't reachable offline. */
+:root{--sea-950:#061419;--sea-900:#0a2029;--sea-500:#2a7d8e;--foam:#d4ece6;--paper:#fbfcfc;--paper-2:#e9eff0;--ink:#131a1d;--ink-soft:#4b585c;--amber:#f6be4c;--amber-shade:#eaa733;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;display:grid;place-items:center;padding:max(24px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));background:radial-gradient(ellipse at 50% 0%,var(--sea-900),var(--sea-950) 70%);color:var(--ink);font:17px/1.55 Figtree,ui-sans-serif,system-ui,sans-serif;text-align:center;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+main{width:100%;max-width:400px;padding:32px 24px 24px;border:2px solid var(--ink);border-radius:6px;background:var(--paper);box-shadow:0 2px 0 0 var(--ink),0 18px 40px -12px rgb(0 0 0/.55);color-scheme:light}
+img{display:block;margin:0 auto 16px;border-radius:6px}
+h1{margin:0 0 12px;font:700 32px/1.1 Fraunces,'Iowan Old Style',Georgia,serif;font-variation-settings:'SOFT' 100,'WONK' 0}
+p{margin:0 0 24px;color:var(--ink-soft)}
+button{--shade:var(--amber-shade);min-height:48px;padding:12px 32px;border:2px solid var(--ink);border-radius:4px;background:linear-gradient(to top left,var(--shade) 50%,transparent 50%) right bottom/1rem 1rem no-repeat,var(--amber);color:var(--ink);font:700 17px/1 Figtree,ui-sans-serif,system-ui,sans-serif;letter-spacing:.01em;cursor:pointer;transition:background-size .3s cubic-bezier(.4,0,.2,1),scale .12s ease}
+@media (hover:hover){button:hover{background-size:210% 210%,auto}}
+button:active{scale:.97}
+button:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+small{display:block;margin-top:20px;color:var(--ink-soft);font-size:13px}
+</style><script src="/offline.js" defer></script></head>
+<body><main><img src="/icons/apple-touch-icon.png" width="80" height="80" alt=""><h1>Let’s get you<br>back to the table.</h1><p>You’re offline. Check your Wi-Fi or mobile connection, then try again.</p><button type="button" id="retry">Try again</button><small>This page will reconnect automatically when you’re back online.</small></main></body></html>

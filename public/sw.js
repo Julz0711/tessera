@@ -1,5 +1,5 @@
 /* Only public offline assets are cached. Games, API responses, auth and pages always use the network. */
-const CACHE = 'tessera-offline-v1';
+const CACHE = 'tessera-offline-v2';
 const OFFLINE = '/offline.html';
 const ASSETS = [OFFLINE, '/offline.js', '/icons/apple-touch-icon.png'];
 
