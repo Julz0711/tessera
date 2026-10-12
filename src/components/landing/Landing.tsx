@@ -10,6 +10,9 @@ import { LATEST_PATCH, PATCH_SEEN_KEY } from "@/config/patchNotes";
 import { usePrefs } from "@/client/prefs";
 import { useSettingsUI } from "@/client/settingsUI";
 import { cachedSession, fetchSession } from "@/client/session";
+import { api, startConnection } from "@/client/store";
+import { sanitizeName } from "@/shared/text";
+import { HexSpinner } from "@/components/ui/HexSpinner";
 import { MAPS } from "@/engine/maps";
 import type { ActiveRoom, ProgressData, SessionInfo } from "@/shared/protocol";
 import { MODE_LABEL, ratingPoolFor } from "@/shared/ratings";
@@ -192,6 +195,28 @@ export function Landing() {
     router.push(`/r/${c}`);
   };
 
+  const [creating, setCreating] = useState(false);
+  // Opens a room straight away with the player's saved name and colour; both can be changed in the lobby.
+  const createNow = async () => {
+    if (creating) return;
+    setCreating(true);
+    setCodeError(null);
+    try {
+      await startConnection();
+      const user = session?.kind === "user" ? session : null;
+      const r = await api.createRoom({
+        name: sanitizeName(prefs.name || user?.displayName || "", "Guest"),
+        color: user?.color ?? prefs.color,
+        knight: user?.knight ?? prefs.knight,
+      });
+      if (!r.ok) throw new Error(r.error);
+      router.push(`/r/${r.code}`);
+    } catch {
+      setCodeError("Couldn't create a room right now. Try again in a moment.");
+      setCreating(false);
+    }
+  };
+
   const signedIn = session?.kind === "user";
   // Until the session is known, hold the Sign in spot with an invisible twin, never the signed-out UI.
   const showSignIn = session ? !signedIn : sessionFailed;
@@ -255,9 +280,10 @@ export function Landing() {
 
         <div className={`landing-actions animate-rise ${tables.length ? "mt-5" : "mt-9"} flex flex-wrap items-center gap-3 [animation-delay:160ms]`}>
           {/* With a table to go back to, Rejoin takes the accent colour. */}
-          <Link href="/create" className={`btn ${tables.length ? "" : "btn-primary"} px-7 py-3.5 text-lg`}>
+          <button type="button" onClick={createNow} disabled={creating} className={`btn ${tables.length ? "" : "btn-primary"} px-7 py-3.5 text-lg`}>
+            {creating ? <HexSpinner size={20} decorative /> : null}
             Create game <ArrowRight size={20} strokeWidth={3} />
-          </Link>
+          </button>
           {!joining ? (
             <button
               type="button"

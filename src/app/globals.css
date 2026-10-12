@@ -235,8 +235,6 @@ body {
   /* The start key floats over the settings as they scroll under it: a paper collar, a soft shadow
      upwards over the tiles behind it, and a deeper one below. */
   .lobby-start { position: sticky; bottom: max(.75rem, var(--safe-bottom)); z-index: 10; box-shadow: 0 0 0 6px var(--color-paper), 0 -10px 22px 2px rgb(19 26 29 / 0.22), 0 14px 32px rgb(6 20 25 / 0.55); }
-  .create-submit { position: sticky; bottom: 0; z-index: 5; padding: .75rem 0; background: var(--color-paper); }
-  .create-submit button { width: 100%; }
 }
 
 /* The flat board takes exactly the space the HUD leaves, with no guessed offsets. The 3D canvas

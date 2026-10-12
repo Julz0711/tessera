@@ -1,8 +1,6 @@
-import type { Metadata } from 'next';
-import { CreateGame } from '@/components/create/CreateGame';
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = { title: 'New game' };
-
+/** Rooms are created from the main menu now; old links land there. */
 export default function CreatePage() {
-  return <CreateGame />;
+  redirect('/');
 }
