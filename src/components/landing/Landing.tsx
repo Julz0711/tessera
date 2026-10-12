@@ -15,11 +15,12 @@ import { sanitizeName } from "@/shared/text";
 import { DEFAULT_ROOM_SETTINGS } from "@/shared/protocol";
 import { HexSpinner } from "@/components/ui/HexSpinner";
 import { MAPS } from "@/engine/maps";
+import type { PlayerColor } from "@/engine/types";
 import type { ActiveRoom, ProgressData, SessionInfo } from "@/shared/protocol";
 import { MODE_LABEL, ratingPoolFor, type ModeRating } from "@/shared/ratings";
 import { SignInChoices } from "@/components/auth/SignInChoices";
 import { KnightBadge } from "@/components/knight/KnightBadge";
-import { LevelBadge } from "@/components/progression/ItemArt";
+import { ItemArt, LevelBadge } from "@/components/progression/ItemArt";
 import { fetchProgress } from "@/components/progression/ProgressPage";
 import { Quay } from "@/components/landing/Quay";
 import { FriendsCard } from "@/components/landing/FriendsCard";
@@ -91,7 +92,7 @@ function ResumeTables({ rooms, onAbandon }: { rooms: ActiveRoom[]; onAbandon: (r
 }
 
 /** Where you stand, in a line: level, XP bar and the next level unlock. Its own panel on phones; a section of the dock on desktop. */
-function ProgressCard({ data, dock = false }: { data: ProgressData; dock?: boolean }) {
+function ProgressCard({ data, color, dock = false }: { data: ProgressData; color: PlayerColor; dock?: boolean }) {
   const { level } = data;
   const next = data.items
     .filter((i) => !i.unlocked && i.unlock.kind === "level")
@@ -110,10 +111,22 @@ function ProgressCard({ data, dock = false }: { data: ProgressData; dock?: boole
         <span className="mt-1.5 block h-2 overflow-hidden rounded-[4px] border-2 border-ink bg-sea-950" role="progressbar" aria-valuenow={level.into} aria-valuemax={level.need} aria-label="XP to next level">
           <span className="block h-full bg-amber" style={{ width: `${level.need ? Math.min(100, (level.into / level.need) * 100) : 0}%` }} />
         </span>
-        {next && next.unlock.kind === "level" && (
-          <span className="mt-1.5 block truncate text-xs font-bold text-foam/60">Next: {next.name} at level {next.unlock.n}</span>
-        )}
       </span>
+      {next && next.unlock.kind === "level" ? (
+        <span className="relative shrink-0" title={`${next.name} at level ${next.unlock.n}`}>
+          <span className="grid h-14 w-14 place-items-center overflow-hidden rounded-[4px] border-2 border-ink bg-sea-950">
+            <ItemArt id={next.id} color={color} size={72} />
+          </span>
+          <span className="absolute -bottom-2 -right-2 opacity-60 grayscale">
+            <LevelBadge level={next.unlock.n} size={24} />
+          </span>
+          <span className="sr-only">Next: {next.name} at level {next.unlock.n}</span>
+        </span>
+      ) : (
+        <span className="opacity-40 grayscale" title={`Level ${level.level + 1}`} aria-hidden>
+          <LevelBadge level={level.level + 1} size={36} />
+        </span>
+      )}
     </Link>
   );
 }
@@ -338,7 +351,7 @@ export function Landing() {
             {codeError}
           </p>
         )}
-        {progress?.enabled && <ProgressCard data={progress} />}
+        {progress?.enabled && <ProgressCard data={progress} color={color} />}
       </section>
 
       {progress?.enabled && (
@@ -346,7 +359,7 @@ export function Landing() {
           <Quay data={progress} color={color} ratings={ratings} onChanged={() => { loadProgress(); loadRatings(); }} />
           <div className="flex-1" />
           <div className="flex items-end gap-4">
-            <ProgressCard data={progress} dock />
+            <ProgressCard data={progress} color={color} dock />
             <FriendsCard />
           </div>
         </div>
