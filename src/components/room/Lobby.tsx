@@ -1,21 +1,14 @@
 "use client";
 
 import {
-  Bot,
   Check,
   Copy,
-  Crown,
   Eye,
   ArrowLeft,
   Minus,
-  Pencil,
   Play,
   Plus,
   Share2,
-  UserRound,
-  Wifi,
-  WifiOff,
-  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -37,13 +30,10 @@ import {
   TURN_TIMER_OPTIONS,
   type RoomDTO,
   type RoomSettings,
-  type SeatDTO,
 } from "@/shared/protocol";
 import { MODE_LABEL, ratingPoolFor } from "@/shared/ratings";
-import { PLAYER_COLORS } from "@/shared/colors";
-import { KnightBadge } from "@/components/knight/KnightBadge";
-import { Framed, TitleTag } from "@/components/profile/Cosmetics";
-import { ItemArt, LevelBadge } from "@/components/progression/ItemArt";
+import { WardrobeDialog } from "@/components/progression/WardrobeDialog";
+import { LobbyRoom } from "./LobbyRoom";
 import { Modal } from "@/components/ui/Modal";
 import { Logomark } from "@/components/ui/Logomark";
 import {
@@ -133,99 +123,6 @@ export function RoomHeader({
         )}
       </div>
     </header>
-  );
-}
-
-function SeatCard({
-  seat,
-  canRemove,
-  onEdit,
-}: {
-  seat: SeatDTO;
-  canRemove: boolean;
-  onEdit?: () => void;
-}) {
-  const c = PLAYER_COLORS[seat.color];
-  return (
-    <li
-      className="paper-flat animate-pop flex items-center gap-3 p-2.5 pr-3"
-      style={{ boxShadow: `inset 6px 0 0 ${c.hex}` }}
-    >
-      <Framed frame={seat.cosmetics.frame} size={58}>
-        {(s) => (
-          <KnightBadge knight={seat.knight} color={seat.color} size={s} />
-        )}
-      </Framed>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="truncate text-lg font-bold">{seat.name}</span>
-          {seat.isHost && (
-            <Crown
-              size={16}
-              className="shrink-0 text-amber-deep"
-              aria-label="Host"
-            />
-          )}
-          {seat.isYou && (
-            <span className="rounded-md bg-ink px-1.5 text-[10px] font-black uppercase tracking-caps text-paper">
-              You
-            </span>
-          )}
-          <TitleTag title={seat.cosmetics.title} className="shrink-0" />
-          {seat.crew && <LevelBadge level={seat.crew.level} size={22} />}
-        </div>
-        <div className="flex items-center gap-2 text-xs font-semibold text-ink-faint">
-          {seat.isBot ? (
-            <span className="flex items-center gap-1">
-              <Bot size={12} /> Bot
-            </span>
-          ) : seat.isGuest ? (
-            <span>Guest</span>
-          ) : (
-            <span className="flex items-center gap-1">
-              <UserRound size={12} /> Profile
-            </span>
-          )}
-          {!seat.isBot &&
-            (seat.connected ? (
-              <span className="flex items-center gap-1 text-moss">
-                <Wifi size={12} /> online
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-terracotta">
-                <WifiOff size={12} /> reconnecting
-              </span>
-            ))}
-        </div>
-      </div>
-      {seat.crew && (
-        // Placeholder figure and banner until the lobby room scene replaces this list.
-        <div className="flex shrink-0 items-end" aria-hidden="true">
-          <ItemArt id={seat.crew.loadout.character} color={seat.color} size={52} />
-          <ItemArt id={seat.crew.loadout.banner} color={seat.color} size={36} />
-        </div>
-      )}
-      {onEdit && (
-        <button
-          type="button"
-          onClick={onEdit}
-          className="btn btn-ghost h-9 w-9 p-0"
-          aria-label="Edit your look"
-        >
-          <Pencil size={16} />
-        </button>
-      )}
-      {canRemove && (
-        <button
-          type="button"
-          onClick={() => api.removeSeat(seat.playerId)}
-          className="btn btn-ghost h-9 w-9 p-0"
-          aria-label={`Remove ${seat.name}`}
-        >
-          <X size={16} />
-        </button>
-      )}
-    </li>
   );
 }
 
@@ -463,9 +360,9 @@ export function Lobby({ room }: { room: RoomDTO }) {
   const prefs = usePrefs();
   const [editing, setEditing] = useState<ProfileDraft | null>(null);
   const [starting, setStarting] = useState(false);
+  const [wardrobe, setWardrobe] = useState(false);
   const me = room.seats.find((s) => s.isYou);
   const host = room.you.isHost;
-  const empty = Math.max(0, room.settings.maxPlayers - room.seats.length);
   const signedIn = useGame(
     (s) => s.session?.kind === "user" && s.session.persistence,
   );
@@ -495,62 +392,34 @@ export function Lobby({ room }: { room: RoomDTO }) {
   return (
     <div className="lobby-page mx-auto grid w-full max-w-6xl gap-5 px-4 py-5 sm:py-8">
       <RoomHeader room={room} onLeave={leave} />
+      <section className="grid gap-3">
+        <div className="flex items-end justify-between">
+          <h1 className="display text-4xl font-black text-paper">
+            The table
+          </h1>
+          <span className="label-light">
+            {room.seats.length}/{room.settings.maxPlayers} seated
+          </span>
+        </div>
+        <LobbyRoom
+          room={room}
+          onWardrobe={() => setWardrobe(true)}
+          onEditProfile={() =>
+            me &&
+            setEditing({ name: me.name, color: me.color, knight: me.knight })
+          }
+        />
+        {room.spectators.length > 0 && (
+          <p className="flex items-center gap-2 text-sm text-foam/60">
+            <Eye size={15} /> Watching:{" "}
+            {room.spectators
+              .map((s) => s.name + (s.isYou ? " (you)" : ""))
+              .join(", ")}
+          </p>
+        )}
+      </section>
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.25fr_1fr]">
         <section className="grid content-start gap-4">
-          <div className="flex items-end justify-between">
-            <h1 className="display text-4xl font-black text-paper">
-              The table
-            </h1>
-            <span className="label-light">
-              {room.seats.length}/{room.settings.maxPlayers} seated
-            </span>
-          </div>
-          <ul className="grid gap-2.5">
-            {room.seats.map((seat) => (
-              <SeatCard
-                key={seat.playerId}
-                seat={seat}
-                canRemove={host && !seat.isYou}
-                onEdit={
-                  seat.isYou
-                    ? () =>
-                        setEditing({
-                          name: seat.name,
-                          color: seat.color,
-                          knight: seat.knight,
-                        })
-                    : undefined
-                }
-              />
-            ))}
-            {Array.from({ length: empty }, (_, i) => (
-              <li
-                key={`empty${i}`}
-                className="flex items-center justify-between gap-3 rounded-lg border-2 border-dashed border-foam/25 p-3 text-foam/55"
-              >
-                <span className="text-sm font-semibold">
-                  Waiting for a friend…
-                </span>
-                {host && (
-                  <button
-                    type="button"
-                    className="btn btn-dark gap-2 px-3 py-1.5 text-sm leading-none"
-                    onClick={() => api.addBot()}
-                  >
-                    <Plus size={16} strokeWidth={2.75} /> Add bot <Bot size={16} className="-translate-y-px" />
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-          {room.spectators.length > 0 && (
-            <p className="flex items-center gap-2 text-sm text-foam/60">
-              <Eye size={15} /> Watching:{" "}
-              {room.spectators
-                .map((s) => s.name + (s.isYou ? " (you)" : ""))
-                .join(", ")}
-            </p>
-          )}
           <div className="glass flex h-64 min-h-56 flex-col p-3">
             <span className="label-light mb-2">Chat</span>
             <ChatPanel className="flex-1" dark />
@@ -601,6 +470,11 @@ export function Lobby({ room }: { room: RoomDTO }) {
         </aside>
       </div>
 
+      <WardrobeDialog
+        open={wardrobe}
+        onClose={() => setWardrobe(false)}
+        color={me?.color ?? prefs.color}
+      />
       <Modal
         open={!!editing}
         onClose={() => setEditing(null)}

@@ -25,6 +25,19 @@ export async function fetchProgress(): Promise<ProgressData | null> {
   return res.ok ? ((await res.json()) as ProgressData) : null;
 }
 
+/** Saves a loadout and returns the fresh progress; also updates your lobby seat when you sit in one. */
+export async function wearLoadout(loadout: Loadout): Promise<ProgressData | null> {
+  try {
+    const res = await fetch('/api/profile', { method: 'PATCH', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ loadout }) });
+    if (!res.ok) throw new Error();
+    if (useGame.getState().room?.status === 'lobby') void api.crew();
+    return await fetchProgress();
+  } catch {
+    toast("Couldn't save that. Try again in a moment.", 'error');
+    return null;
+  }
+}
+
 const requirement = (i: ItemRow) => unlockText(i.unlock, (id) => featById(id)?.description ?? id);
 
 function Bar({ value, max, tone = 'sea' }: { value: number; max: number; tone?: 'sea' | 'amber' }) {
@@ -119,7 +132,7 @@ function Overview({ data, color }: { data: ProgressData; color: PlayerColor }) {
   );
 }
 
-function Wardrobe({ data, color, slot, onSlot, onWear, saving }: {
+export function Wardrobe({ data, color, slot, onSlot, onWear, saving }: {
   data: ProgressData; color: PlayerColor; slot: Slot; onSlot: (s: Slot) => void; onWear: (l: Loadout) => void; saving: boolean;
 }) {
   const worn = data.loadout;
@@ -182,20 +195,10 @@ export function ProgressPage() {
   }, []);
 
   const wear = async (loadout: Loadout) => {
-    if (!data) return;
     setSaving(true);
-    try {
-      const res = await fetch('/api/profile', { method: 'PATCH', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ loadout }) });
-      if (!res.ok) throw new Error();
-      const fresh = await fetchProgress();
-      if (fresh) setData(fresh);
-      // Sitting in a lobby: show the new look on your seat too.
-      if (useGame.getState().room?.status === 'lobby') void api.crew();
-    } catch {
-      toast("Couldn't save that. Try again in a moment.", 'error');
-    } finally {
-      setSaving(false);
-    }
+    const fresh = await wearLoadout(loadout);
+    if (fresh) setData(fresh);
+    setSaving(false);
   };
 
   return (
