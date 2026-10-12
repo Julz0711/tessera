@@ -230,7 +230,7 @@ export function Landing() {
               Sign in
             </button>
           )}
-          <Link href="/profile?tab=progress" className="btn btn-dark px-3 py-1.5 text-sm">
+          <Link href="/profile" className="btn btn-dark px-3 py-1.5 text-sm">
             <KnightBadge color={color} size={24} />
             {progress?.enabled && <LevelBadge level={progress.level.level} size={22} />}
             <span className="max-w-28 truncate">{name}</span>
@@ -304,7 +304,7 @@ export function Landing() {
 
       {progress?.enabled && <Quay data={progress} name={name} color={color} onChanged={loadProgress} />}
 
-      <footer className="landing-footer relative z-10 flex gap-4 px-5 pb-4 text-xs font-bold text-foam/60 sm:px-10">
+      <footer className="landing-footer relative z-10 flex justify-end gap-4 px-5 pb-4 text-xs font-bold text-foam/60 sm:px-10">
         <Link href="/privacy" className="hover:text-paper">
           Privacy
         </Link>

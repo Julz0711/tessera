@@ -1,6 +1,5 @@
 'use client';
 
-import { Shirt } from 'lucide-react';
 import { useState } from 'react';
 import type { PlayerColor } from '@/engine/types';
 import { PLAYER_COLORS } from '@/shared/colors';
@@ -37,7 +36,6 @@ export function Quay({ data, name, color, onChanged }: { data: ProgressData; nam
               <ItemArt id={loadout.banner} color={color} size={84} />
             </span>
           )}
-          <span className="btn btn-dark absolute right-0 top-0 h-7 gap-1 px-2 text-xs opacity-90 group-hover:opacity-100 group-focus-visible:opacity-100"><Shirt size={14} /> Look</span>
         </span>
         <span className="paper-flat flex items-center gap-2 p-2">
           <SurroundFrame id={loadout.surround} size={40}>
