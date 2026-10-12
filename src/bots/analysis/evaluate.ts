@@ -34,9 +34,9 @@ const ROAD_VALUE = 0.04;
  * Cards already gathered towards the next settlement or city, per card of its cost: saving up is a plan,
  * not idleness. Without it a road (two cards for a little reach) always beat holding the brick and lumber
  * of a settlement one card away. Well under what the finished piece is worth, so skipping an affordable
- * build still costs (a held full set is 0.5 or 0.7 against 1+ for the piece).
+ * build still costs (a piece is worth 1+, and a complete held set is not counted).
  */
-const SAVING_VALUE = { settlement: 0.5, city: 0.7 } as const;
+const SAVING_VALUE = { settlement: 0.8, city: 1 } as const;
 /** C&K: a knight per level, more once active; a city wall. */
 const KNIGHT_VALUE = { idle: 0.2, active: 0.3 } as const;
 const WALL_VALUE = 0.2;
