@@ -67,6 +67,7 @@ export const TAB_ICONS: Record<string, ReactNode> = {
   knights: <KnightGlyph size={I} />,
   exploration: <Compass size={I} />,
   timeline: <LineChart size={I} />,
+  accuracy: <Target size={I} />,
 };
 
 /** An icon per stat row label (rows about one card or track draw that card's art instead). */
