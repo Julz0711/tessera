@@ -5,6 +5,7 @@
  */
 import {
   CARDS,
+  COSTS,
   PIPS,
   RESOURCES,
   TERRAIN_RESOURCE,
@@ -16,6 +17,7 @@ import {
   piecesLeft,
   topo,
   victoryPoints,
+  type Card,
   type GameState,
   type Resource,
 } from '@/engine';
@@ -27,7 +29,14 @@ const OVER_LIMIT_CARD = 0.02;
 const COMMODITY_VALUE = 0.06;
 const DEV_CARD_VALUE = 0.3;
 const PROGRESS_CARD_VALUE = 0.12;
-const ROAD_VALUE = 0.1;
+const ROAD_VALUE = 0.04;
+/**
+ * Cards already gathered towards the next settlement or city, per card of its cost: saving up is a plan,
+ * not idleness. Without it a road (two cards for a little reach) always beat holding the brick and lumber
+ * of a settlement one card away. Well under what the finished piece is worth, so skipping an affordable
+ * build still costs (a held full set is 0.5 or 0.7 against 1+ for the piece).
+ */
+const SAVING_VALUE = { settlement: 0.5, city: 0.7 } as const;
 /** C&K: a knight per level, more once active; a city wall. */
 const KNIGHT_VALUE = { idle: 0.2, active: 0.3 } as const;
 const WALL_VALUE = 0.2;
@@ -107,6 +116,22 @@ export function strength(s: GameState, seat: number, fade = 1, weights = scarcit
       value += held > limit ? OVER_LIMIT_CARD : isCommodity(c) ? COMMODITY_VALUE : CARD_VALUE;
     }
   }
+  // Savings towards a settlement (when there is room for one) or a city (when there is a settlement to upgrade).
+  const have = (cost: Partial<Record<Card, number>>) => {
+    let n = 0;
+    let total = 0;
+    for (const c of CARDS) {
+      const need = cost[c] ?? 0;
+      n += Math.min(need, p.hand[c]);
+      total += need;
+    }
+    // A set that is already complete is a skipped build, not savings.
+    return n < total ? n / total : 0;
+  };
+  const piecesFree = piecesLeft(s, seat);
+  if (piecesFree.settlements > 0 && legalSettlementSpots(s, seat).length) value += fade * SAVING_VALUE.settlement * have(COSTS.settlement);
+  if (piecesFree.cities > 0 && s.buildings.some((b) => b && b.owner === seat && !b.city)) value += fade * SAVING_VALUE.city * have(COSTS.city);
+
   // Development cards (a victory point card is already counted above), the ones just bought at the deck's average.
   for (const c of p.devCards) {
     if (fresh && c.boughtOn >= fresh.from) value += fresh.value - (c.type === 'victoryPoint' ? 1 : 0);
