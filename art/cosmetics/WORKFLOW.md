@@ -13,6 +13,8 @@ art/cosmetics/
   _shared/                          style.md (research, palette, rules), shared bases, preview scene, templates, scaffold.py
   <kind>/<item-id>/                 one folder per item
     brief.md                        look + prompt + notes
+    concept.webp                    image-gen concept sheet (reference only, never shipped)
+  <kind>/_concept-sheet.webp        overview sheet for a whole kind (plinths, surrounds)
     source.blend                    Blender kinds only
     preview.png                     512px render or SVG snapshot, used for review and in the menu
 public/cosmetics/<kind>/<item-id>.glb|.svg   the only file the game loads
