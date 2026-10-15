@@ -46,4 +46,15 @@
 1. custom icon set for all icons used across the app
 2. rethink low poly assets.
    - Settlement, Road, City, Ship, Barbarian, Pirate, Robber, Merchant, Knight
-3. custom icon set
+3. complete rework & streamline customizations for lobby room & profile
+   - drop current customizations: knight styles (goofy anyway), titles, profile picture surroundings
+   - have these new types of customization options: low poly characters, banner, title, profile picture surroundings
+     - banners could be on settles, cities, knights or similar
+   - lobby room should display players who joined. something like this: ![alt text](image-7.png) but obviously in our style
+   - everything in low poly style
+   - customizations should be backed by a level system which is related to playing games, winning games, reaching milestones.
+     - milestones can also grant customizations
+     - clean overview over progress
+   - before adding anything to the code, make a clean artifact design
+4. Guilds with inviting friends. quick rooms, leaderboards, etc.
+5. 3D animated dice
