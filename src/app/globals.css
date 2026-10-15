@@ -186,6 +186,16 @@ body {
 .landing-header { padding-top: max(1.25rem, var(--safe-top)); padding-left: max(1.25rem, var(--safe-left)); padding-right: max(1.25rem, var(--safe-right)); }
 .landing-hero { flex: 1; min-height: min(760px, calc(100svh - 120px)); padding-top: 3rem; }
 .landing-footer { padding-bottom: max(1rem, var(--safe-bottom)); }
+/* The quay (your character) needs room: big and tall screens only. Elsewhere the compact progress card shows. */
+.landing-dock { display: none; }
+@media (min-width: 1024px) and (min-height: 760px) {
+  .landing-dock { display: flex; }
+  .landing-hero-quay { padding-bottom: 17.5rem; }
+  .landing-progress-card { display: none; }
+}
+.landing-link { border-bottom: 2px solid transparent; padding: .25rem 0; }
+.landing-link:hover, .landing-link:focus-visible { border-bottom-color: var(--color-paper); color: var(--color-paper); }
+.landing-link:focus-visible { outline: 2px solid var(--color-paper); outline-offset: 3px; border-radius: 2px; }
 .app-dialog { height: var(--visible-height, 100dvh); top: var(--visible-top, 0px); bottom: auto; padding-top: max(.75rem, var(--safe-top)); padding-bottom: max(.75rem, var(--safe-bottom)); }
 .dialog-sheet { max-height: 100%; min-width: 0; overscroll-behavior-y: contain; }
 /* Pinned near the top (Modal `top`): the top margin comes out of the height, or the sheet runs off the bottom. */
@@ -225,8 +235,6 @@ body {
   /* The start key floats over the settings as they scroll under it: a paper collar, a soft shadow
      upwards over the tiles behind it, and a deeper one below. */
   .lobby-start { position: sticky; bottom: max(.75rem, var(--safe-bottom)); z-index: 10; box-shadow: 0 0 0 6px var(--color-paper), 0 -10px 22px 2px rgb(19 26 29 / 0.22), 0 14px 32px rgb(6 20 25 / 0.55); }
-  .create-submit { position: sticky; bottom: 0; z-index: 5; padding: .75rem 0; background: var(--color-paper); }
-  .create-submit button { width: 100%; }
 }
 
 /* The flat board takes exactly the space the HUD leaves, with no guessed offsets. The 3D canvas

@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { fetchFriends, formatFriendCode, friendAction, type FriendAction } from '@/client/social';
 import { toast } from '@/client/store';
 import type { FriendInfo, FriendsData, PlayerCard } from '@/shared/protocol';
-import { PlayerPortrait, TitleTag } from '@/components/profile/Cosmetics';
+import { PlayerPortrait } from '@/components/profile/PlayerPortrait';
 import { HexSpinner } from '@/components/ui/HexSpinner';
 
 const STATUS: Record<FriendInfo['status'], { label: string; dot: string }> = {
@@ -19,7 +19,7 @@ const STATUS: Record<FriendInfo['status'], { label: string; dot: string }> = {
 function Person({ card, sub, children, profile = false }: { card: PlayerCard; sub?: React.ReactNode; children?: React.ReactNode; profile?: boolean }) {
   return (
     <li className="flex items-center gap-2.5 rounded-xl border-2 border-ink bg-paper-2/70 p-1.5 pr-2">
-      <PlayerPortrait knight={card.knight} color={card.color} avatarUrl={card.avatarUrl} frame={card.cosmetics.frame} size={40} />
+      <PlayerPortrait color={card.color} avatarUrl={card.avatarUrl} size={40} />
       <div className="min-w-0 flex-1">
         <p className="flex items-center gap-1.5 truncate text-sm font-bold leading-tight">
           {profile ? (
@@ -27,7 +27,6 @@ function Person({ card, sub, children, profile = false }: { card: PlayerCard; su
               {card.name}
             </Link>
           ) : <span className="truncate">{card.name}</span>}
-          <TitleTag title={card.cosmetics.title} className="shrink-0" />
         </p>
         <p className="truncate text-xs font-semibold text-ink-faint">{sub ?? (profile ? 'View profile and mode ratings' : 'Player')}</p>
       </div>

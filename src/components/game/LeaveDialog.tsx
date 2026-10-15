@@ -21,7 +21,7 @@ export function LeaveDialog({ view, room, onStay, onLeave }: { view: PlayerView;
   const [leaving, setLeaving] = useState(false);
   const me = view.viewer!;
   const p = view.players[me];
-  const knight = room.seats[me]?.knight;
+  const seated = !!room.seats[me];
   // Standing by the points everyone can see; ties share a place.
   const place = view.players.filter((o) => o.publicVP > p.publicVP).length;
   const tied = view.players.some((o, i) => i !== me && o.publicVP === p.publicVP);
@@ -32,7 +32,7 @@ export function LeaveDialog({ view, room, onStay, onLeave }: { view: PlayerView;
     <Modal open onClose={onStay} title="Leave the table?">
       <div className="grid gap-4">
         <div className="flex items-center gap-3 rounded-xl border-2 border-ink bg-paper-2 p-3">
-          {knight ? <KnightBadge knight={knight} color={p.color} size={56} /> : <span className="h-14 w-14 rounded-full" style={{ background: PLAYER_COLORS[p.color].hex }} />}
+          {seated ? <KnightBadge color={p.color} size={56} /> : <span className="h-14 w-14 rounded-full" style={{ background: PLAYER_COLORS[p.color].hex }} />}
           <div className="grid gap-0.5">
             <span className="display text-lg font-black leading-tight">{p.name}</span>
             <span className="text-sm text-ink-soft">

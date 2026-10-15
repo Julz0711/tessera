@@ -7,7 +7,9 @@ import { FACE_MAX_BYTES, FaceError, loadFace, storeFace } from './faces';
 import type { ProfileData, SessionInfo } from '@/shared/protocol';
 import { accuracyFor, favoriteMode, historyFor, linkedProviders, preferencesFor, ratingFor, sanitizePreferences, updateProfile } from './profileApi';
 import { cosmeticStateFor } from './cosmetics';
+import { progressDataFor } from './progression';
 import { dbEnabled, getDb, logDbError } from './db';
+import { devLogin, handleDevAuth, wantsDevLogin } from './devLogin';
 import { GUEST_TTL_DAYS, newGuestId, resolveIdentity, setGuestCookie, type ServerIdentity } from './identity';
 import { limits } from './rateLimit';
 import { clientIp, originAllowed } from './realtime';
@@ -84,6 +86,7 @@ async function sessionInfo(identity: ServerIdentity | null): Promise<SessionInfo
 /** Ensures the caller has a guest identity (unless signed in) and returns the session summary. */
 async function ensureGuest(req: IncomingMessage, res: ServerResponse): Promise<void> {
   let identity = await resolveIdentity(req.headers.cookie);
+  if (identity?.kind !== 'user' && wantsDevLogin(req)) identity = (await devLogin(req, res).catch((err: unknown) => logDbError('dev login', err))) ?? identity;
   const db = getDb();
   const expiresAt = new Date(Date.now() + GUEST_TTL_DAYS * 86400_000);
   if (!identity) {
@@ -270,6 +273,7 @@ export async function handleHttp(req: IncomingMessage, res: ServerResponse, ctx?
     json(res, 200, { ok: true });
     return true;
   }
+  if (await handleDevAuth(req, res, path)) return true;
   if (path === '/api/auth' || path.startsWith('/api/auth/')) {
     await handleAuth(req, res);
     return true;
@@ -316,6 +320,15 @@ export async function handleHttp(req: IncomingMessage, res: ServerResponse, ctx?
     }
     const data = await friendProfileFor(identity, path.slice('/api/friends/'.length));
     json(res, data ? 200 : 404, data ?? { error: 'Profile unavailable. You can only view accepted friends.' });
+    return true;
+  }
+  if (path === '/api/progress' && req.method === 'GET') {
+    const identity = await resolveIdentity(req.headers.cookie);
+    if (!identity) {
+      json(res, 401, { error: 'No session' });
+      return true;
+    }
+    json(res, 200, await progressDataFor(identity));
     return true;
   }
   if (path === '/api/profile' && (req.method === 'GET' || req.method === 'PATCH')) {

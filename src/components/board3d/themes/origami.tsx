@@ -376,7 +376,7 @@ const KNIGHT_SHIELD = paper([[
   [0, -0.075, 0],
 ]]);
 
-function Knight({ cloth, dark, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+function Knight({ cloth, dark, shadows, headY }: KnightFigureProps) {
   const s = shadows;
   return (
     <>
@@ -388,11 +388,7 @@ function Knight({ cloth, dark, faceMat, faceGeo, shadows, headY }: KnightFigureP
       {/* a faceted head under a folded, pointed crest */}
       <mesh geometry={KNIGHT.head} material={dark} position={[0, headY, 0]} rotation={[0, Math.PI / 4, 0]} castShadow={s} />
       <mesh geometry={KNIGHT.crest} material={dark} position={[0, headY + 0.1, 0]} rotation={[0, Math.PI / 4, 0]} castShadow={s} />
-      {faceMat ? (
-        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.05, 0.0755]} />
-      ) : (
-        <mesh geometry={KNIGHT.face} material={mat('#fbf8f0')} position={[0, headY - 0.05, 0.0755]} />
-      )}
+      <mesh geometry={KNIGHT.face} material={mat('#fbf8f0')} position={[0, headY - 0.05, 0.0755]} />
       {/* a folded paper blade and a triangular shield, both flat and double-sided */}
       <group position={[-0.14, 0.24, 0.03]} rotation={[0, 0.5, 0]}>
         <mesh geometry={KNIGHT_SHIELD} material={cloth} castShadow={s} />

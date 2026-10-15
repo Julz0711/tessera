@@ -29,7 +29,7 @@ try {
   await postgres.createDatabase('social_test');
   await run('node_modules/prisma/build/index.js', ['db', 'push'], { DATABASE_URL: url });
   // One shared database: files run one after another so global queries (leaderboards) see stable data.
-  await run('node_modules/vitest/vitest.mjs', ['run', '--no-file-parallelism', 'src/server/__tests__/socialIntegration.test.ts', 'src/server/__tests__/persistence.test.ts', 'src/server/__tests__/adminIntegration.test.ts'], { DATABASE_URL: url, TEST_SOCIAL_DATABASE_URL: url });
+  await run('node_modules/vitest/vitest.mjs', ['run', '--no-file-parallelism', 'src/server/__tests__/socialIntegration.test.ts', 'src/server/__tests__/persistence.test.ts', 'src/server/__tests__/adminIntegration.test.ts', 'src/server/__tests__/progressionIntegration.test.ts'], { DATABASE_URL: url, TEST_SOCIAL_DATABASE_URL: url });
 } catch (err) {
   console.error(err.message);
   resultCode = 1;

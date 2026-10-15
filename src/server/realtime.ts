@@ -14,6 +14,7 @@ import { setPresenceSource } from './presence';
 import { cosmeticStateFor, seatCosmetics } from './cosmetics';
 import { NO_UNLOCKS } from '@/shared/cosmetics';
 import { isAdminIdentity } from './admin';
+import { crewOf, progressStateFor } from './progression';
 
 export interface SocketData {
   identity: ServerIdentity;
@@ -176,6 +177,9 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
       return { ...profile, cosmetics: seatCosmetics(profile.cosmetics, socket.data.cosmetics) };
     };
 
+    /** Level and loadout for the caller's seat, read from storage (never taken from the client). */
+    const crewNow = async () => crewOf(await progressStateFor(socket.data.identity));
+
     const remember = (profile: JoinProfile | undefined) => {
       if (profile && opts.persistence && 'rememberProfile' in opts.persistence) {
         (opts.persistence as DurablePersistence).rememberProfile(socket.data.identity.key, profile);
@@ -188,14 +192,17 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
           throw new UserError('Too many new rooms. Try again in a minute.');
         });
       }
-      const profile = p && typeof p === 'object' && p.profile && typeof p.profile === 'object' ? await withCosmetics(p.profile) : null;
+      const [profile, crew] = await Promise.all([
+        p && typeof p === 'object' && p.profile && typeof p.profile === 'object' ? withCosmetics(p.profile) : null,
+        crewNow(),
+      ]);
       // The socket may have dropped during the lookup; seating it now would leave a seat nobody holds.
       if (!socket.connected) return;
       reply(ack, () => {
         if (!profile) throw new UserError('Choose a name first');
         leaveCurrent();
         const room = manager.create(socket.data.identity, p.settings);
-        room.join(socket.id, socket.data.identity, { profile });
+        room.join(socket.id, socket.data.identity, { profile, crew });
         socket.data.roomCode = room.code;
         remember(profile);
         return { code: room.code };
@@ -210,12 +217,12 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
       }
       // Not in memory? It may be a running game from before a server restart.
       const room = manager.get(p?.code) ?? (await manager.restore(p?.code));
-      const profile = await withCosmetics(p?.profile);
+      const [profile, crew] = await Promise.all([withCosmetics(p?.profile), crewNow()]);
       if (!socket.connected) return; // dropped while we looked things up (see room:create)
       reply(ack, () => {
         if (!room) throw new UserError("That room doesn't exist (or has ended)");
         if (socket.data.roomCode && socket.data.roomCode !== room.code) leaveCurrent();
-        const dto = room.join(socket.id, socket.data.identity, { profile, spectate: !!p.spectate });
+        const dto = room.join(socket.id, socket.data.identity, { profile, spectate: !!p.spectate, crew });
         socket.data.roomCode = room.code;
         remember(profile);
         return { room: dto };
@@ -240,6 +247,16 @@ export function attachRealtime(server: HttpServer, opts: RealtimeOptions = {}): 
         currentRoom().updateProfile(socket.id, patch);
       }),
     );
+
+    socket.on('room:crew', async (ack) => {
+      if (!limits.lobby.take(socket.id)) {
+        return reply(ack, () => {
+          throw new UserError('Slow down a little');
+        });
+      }
+      const crew = await crewNow();
+      reply(ack, () => currentRoom().setCrew(socket.id, crew));
+    });
 
     socket.on('room:addBot', (ack) =>
       reply(ack, () => {

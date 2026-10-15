@@ -1,6 +1,7 @@
 /**
- * Knight appearance. Every player gets the same basic knight in their color; a player may upload
- * a photo that becomes the knight's face. Without one, the knight keeps its default visor.
+ * Knight appearance as stored. Every player gets the same basic knight in their color. Players
+ * used to be able to upload a photo for the knight's face; that is no longer shown (every knight
+ * wears its visor), but saved looks are still sanitized and kept as they are.
  *
  * `face` is the id (sha-256 hex) of an image stored by the server (see src/server/faces.ts) and
  * served from /api/face/<id> — images are never embedded in game/room payloads.
@@ -28,16 +29,11 @@ export interface KnightCustomization extends KnightLook {
   mighty?: KnightLook;
 }
 
-export type KnightSlot = 1 | 2 | 3;
-export const KNIGHT_SLOTS: KnightSlot[] = [1, 2, 3];
-export const KNIGHT_SLOT_NAMES: Record<KnightSlot, string> = { 1: 'Basic', 2: 'Strong', 3: 'Mighty' };
-const SLOT_KEY = { 2: 'strong', 3: 'mighty' } as const;
-
 export const DEFAULT_KNIGHT: KnightCustomization = { face: null };
 
 const FACE_ID = /^[a-f0-9]{64}$/;
 
-/** Valid ranges for the framing fields (also used by the customizer UI). */
+/** Valid ranges for the framing fields. */
 export const FACE_OFFSET_RANGE = 0.5;
 export const FACE_ZOOM_MIN = 1;
 export const FACE_ZOOM_MAX = 3;
@@ -73,46 +69,6 @@ export function sanitizeKnight(input: unknown): KnightCustomization {
   if (strong) out.strong = sanitizeLook(strong);
   if (mighty) out.mighty = sanitizeLook(mighty);
   return out;
-}
-
-/** Whether knight 2/3 has a look of its own (rather than wearing knight 1's). */
-export function hasOwnLook(knight: KnightCustomization, slot: KnightSlot): boolean {
-  return slot === 1 || knight[SLOT_KEY[slot]] !== undefined;
-}
-
-/** The look of one knight level (knights 2 and 3 fall back to knight 1). */
-export function knightLook(knight: KnightCustomization, slot: KnightSlot): KnightLook {
-  const own = slot === 1 ? undefined : knight[SLOT_KEY[slot]];
-  const src = own ?? knight;
-  const out: KnightLook = { face: src.face };
-  if (src.faceX !== undefined) out.faceX = src.faceX;
-  if (src.faceY !== undefined) out.faceY = src.faceY;
-  if (src.faceZoom !== undefined) out.faceZoom = src.faceZoom;
-  return out;
-}
-
-/** Sets one knight level's look; `null` for knight 2/3 goes back to wearing knight 1's. */
-export function withKnightLook(knight: KnightCustomization, slot: KnightSlot, look: KnightLook | null): KnightCustomization {
-  if (slot === 1) {
-    const { strong, mighty } = knight;
-    const next: KnightCustomization = { ...(look ?? { face: null }) };
-    if (strong) next.strong = strong;
-    if (mighty) next.mighty = mighty;
-    return next;
-  }
-  const next = { ...knight };
-  if (look) next[SLOT_KEY[slot]] = look;
-  else delete next[SLOT_KEY[slot]];
-  return next;
-}
-
-/** Normalized framing (defaults filled in) for anything that draws the face photo. */
-export function faceFrame(knight: KnightLook): { x: number; y: number; zoom: number } {
-  return { x: knight.faceX ?? 0, y: knight.faceY ?? 0, zoom: knight.faceZoom ?? 1 };
-}
-
-export function faceUrl(id: string): string {
-  return `/api/face/${id}`;
 }
 
 /** Armor palette of the basic knight (the player's color is used for tabard, cape and shield). */

@@ -7,6 +7,7 @@
 import { getDb, type Db } from './db';
 import type { ServerIdentity } from './identity';
 import type { RoomManager } from './rooms';
+import { invalidateProgress, type Owner } from './progression';
 import { UserError } from './room';
 
 export interface AdminContext {
@@ -190,6 +191,8 @@ export async function adminDeleteGames(db: Db, ctx: AdminContext, ids: string[])
         if (won) await tx.guestSession.updateMany({ where: { id: p.guestSessionId, gamesWon: { gt: 0 } }, data: { gamesWon: { decrement: 1 } } });
       }
     }
+    // XP and feats are rebuilt from what's left of their history next time they're needed.
+    await invalidateProgress(tx, finished.flatMap((p): Owner[] => (p.userId ? [{ userId: p.userId }] : p.guestSessionId ? [{ guestSessionId: p.guestSessionId }] : [])));
     await tx.game.deleteMany({ where: { id: { in: [...found] } } });
     // A room with no games left is only a lobby record: drop it unless it's still open.
     const roomIds = [...new Set(games.map((g) => g.roomId))];

@@ -94,7 +94,7 @@ const KNIGHT = {
 };
 
 /** Knight: the classic figure, holding a lit lantern up in its shield hand instead of a shield. */
-function Knight({ metal, trim, cloth, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+function Knight({ metal, trim, cloth, shadows, headY }: KnightFigureProps) {
   const s = shadows;
   return (
     <>
@@ -107,15 +107,9 @@ function Knight({ metal, trim, cloth, faceMat, faceGeo, shadows, headY }: Knight
       <mesh geometry={KNIGHT.arm} material={metal} position={[0.11, 0.25, 0.02]} rotation={[0.5, 0, -0.2]} castShadow={s} />
       <mesh geometry={KNIGHT.helmet} material={metal} position={[0, headY - 0.05, 0]} castShadow={s} />
       <mesh geometry={KNIGHT.dome} material={metal} position={[0, headY + 0.015, 0]} castShadow={s} />
-      {faceMat ? (
-        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.05, 0.0755]} />
-      ) : (
-        <>
-          <mesh geometry={KNIGHT.face} material={mat(KNIGHT_STEEL.visor)} position={[0, headY - 0.05, 0.0755]} />
-          <mesh geometry={KNIGHT.visorSlit} material={metal} position={[0, headY - 0.04, 0.078]} />
-          <mesh geometry={KNIGHT.visorSlit} material={metal} position={[0, headY - 0.065, 0.078]} />
-        </>
-      )}
+      <mesh geometry={KNIGHT.face} material={mat(KNIGHT_STEEL.visor)} position={[0, headY - 0.05, 0.0755]} />
+      <mesh geometry={KNIGHT.visorSlit} material={metal} position={[0, headY - 0.04, 0.078]} />
+      <mesh geometry={KNIGHT.visorSlit} material={metal} position={[0, headY - 0.065, 0.078]} />
       {/* the lantern, held out to the left at shoulder height: the cage itself glows warm (like the
           tile and road lanterns above), so nothing opaque hides the light. */}
       <group position={[-0.2, 0.28, 0.05]}>

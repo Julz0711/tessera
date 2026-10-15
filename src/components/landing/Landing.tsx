@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, BookOpen, Bot, LogIn, Menu, ScrollText, Settings, Trophy } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Bot, LogIn, Menu, ScrollText, Settings, Sparkles, Trophy } from "lucide-react";
 import { RulebookDialog } from "@/components/rules/RulebookDialog";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,12 +10,20 @@ import { LATEST_PATCH, PATCH_SEEN_KEY } from "@/config/patchNotes";
 import { usePrefs } from "@/client/prefs";
 import { useSettingsUI } from "@/client/settingsUI";
 import { cachedSession, fetchSession } from "@/client/session";
+import { api, startConnection } from "@/client/store";
+import { sanitizeName } from "@/shared/text";
+import { DEFAULT_ROOM_SETTINGS } from "@/shared/protocol";
+import { HexSpinner } from "@/components/ui/HexSpinner";
 import { MAPS } from "@/engine/maps";
-import type { ActiveRoom, SessionInfo } from "@/shared/protocol";
-import { MODE_LABEL, ratingPoolFor } from "@/shared/ratings";
-import { DEFAULT_KNIGHT } from "@/shared/knight";
+import type { PlayerColor } from "@/engine/types";
+import type { ActiveRoom, ProgressData, SessionInfo } from "@/shared/protocol";
+import { MODE_LABEL, ratingPoolFor, type ModeRating } from "@/shared/ratings";
 import { SignInChoices } from "@/components/auth/SignInChoices";
 import { KnightBadge } from "@/components/knight/KnightBadge";
+import { ItemArt, LevelBadge } from "@/components/progression/ItemArt";
+import { fetchProgress } from "@/components/progression/ProgressPage";
+import { Quay } from "@/components/landing/Quay";
+import { FriendsCard } from "@/components/landing/FriendsCard";
 import { Logomark } from "@/components/ui/Logomark";
 import { BetaBadge } from "@/components/ui/BetaBadge";
 import { Modal } from "@/components/ui/Modal";
@@ -83,6 +91,46 @@ function ResumeTables({ rooms, onAbandon }: { rooms: ActiveRoom[]; onAbandon: (r
   );
 }
 
+/** Where you stand, in a line: level, XP bar and the next level unlock. Its own panel on phones; a section of the dock on desktop. */
+function ProgressCard({ data, color, dock = false }: { data: ProgressData; color: PlayerColor; dock?: boolean }) {
+  const { level } = data;
+  const next = data.items
+    .filter((i) => !i.unlocked && i.unlock.kind === "level")
+    .sort((a, b) => (a.unlock.kind === "level" && b.unlock.kind === "level" ? a.unlock.n - b.unlock.n : 0))[0];
+  return (
+    <Link
+      href="/profile?tab=progress"
+      className={`group flex items-center gap-3 text-paper ${dock ? "glass w-80 p-4 hover:bg-sea-700" : "glass landing-progress-card animate-rise mt-6 max-w-sm p-3 [animation-delay:240ms] hover:bg-sea-700"}`}
+    >
+      <LevelBadge level={level.level} size={36} />
+      <span className="min-w-0 flex-1">
+        <span className="flex items-baseline justify-between gap-2">
+          <span className="font-bold">Level {level.level}</span>
+          <span className="text-xs font-bold tabular text-foam/60">{level.into} / {level.need} XP</span>
+        </span>
+        <span className="mt-1.5 block h-2 overflow-hidden rounded-[4px] border-2 border-ink bg-sea-950" role="progressbar" aria-valuenow={level.into} aria-valuemax={level.need} aria-label="XP to next level">
+          <span className="block h-full bg-amber" style={{ width: `${level.need ? Math.min(100, (level.into / level.need) * 100) : 0}%` }} />
+        </span>
+      </span>
+      {next && next.unlock.kind === "level" ? (
+        <span className="relative shrink-0" title={`${next.name} at level ${next.unlock.n}`}>
+          <span className="grid h-14 w-14 place-items-center overflow-hidden rounded-[4px] border-2 border-ink bg-sea-950">
+            <ItemArt id={next.id} color={color} size={72} />
+          </span>
+          <span className="absolute -bottom-2 -right-2 opacity-60 grayscale">
+            <LevelBadge level={next.unlock.n} size={24} />
+          </span>
+          <span className="sr-only">Next: {next.name} at level {next.unlock.n}</span>
+        </span>
+      ) : (
+        <span className="opacity-40 grayscale" title={`Level ${level.level + 1}`} aria-hidden>
+          <LevelBadge level={level.level + 1} size={36} />
+        </span>
+      )}
+    </Link>
+  );
+}
+
 export function Landing() {
   const router = useRouter();
   const [session, setSession] = useState<SessionInfo | null>(cachedSession);
@@ -93,6 +141,7 @@ export function Landing() {
   const [rules, setRules] = useState(false);
   const [code, setCode] = useState("");
   const [tables, setTables] = useState<ActiveRoom[]>([]);
+  const [progress, setProgress] = useState<ProgressData | null>(null);
   const [codeError, setCodeError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const prefs = usePrefs();
@@ -106,8 +155,22 @@ export function Landing() {
     }
   }, []);
 
+  const [ratings, setRatings] = useState<ModeRating[]>([]);
+  const loadRatings = () => {
+    fetch("/api/profile", { credentials: "same-origin" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((d: { ratings?: ModeRating[] } | null) => setRatings(d?.ratings ?? []))
+      .catch(() => undefined);
+  };
+  const loadProgress = () => {
+    fetchProgress()
+      .then((d) => d && setProgress(d))
+      .catch(() => undefined);
+  };
   useEffect(() => {
     prefs.load();
+    loadProgress();
+    loadRatings();
     fetchSession()
       .then(setSession)
       .catch(() => setSessionFailed(true));
@@ -155,12 +218,38 @@ export function Landing() {
     router.push(`/r/${c}`);
   };
 
+  const [creating, setCreating] = useState<null | "lobby" | "bots">(null);
+  // Opens a room straight away with the player's saved name and colour; both can be changed in the lobby.
+  // A lobby is people only; Play vs bots fills the table with bots.
+  const createNow = async (kind: "lobby" | "bots") => {
+    if (creating) return;
+    setCreating(kind);
+    setCodeError(null);
+    try {
+      await startConnection();
+      const user = session?.kind === "user" ? session : null;
+      const r = await api.createRoom(
+        {
+          name: sanitizeName(prefs.name || user?.displayName || "", "Guest"),
+          color: user?.color ?? prefs.color,
+          knight: user?.knight ?? prefs.knight,
+        },
+        { allowBots: kind === "bots" },
+      );
+      if (!r.ok) throw new Error(r.error);
+      if (kind === "bots") for (let n = 1; n < DEFAULT_ROOM_SETTINGS.maxPlayers; n++) await api.addBot();
+      router.push(`/r/${r.code}`);
+    } catch {
+      setCodeError("Couldn't create a room right now. Try again in a moment.");
+      setCreating(null);
+    }
+  };
+
   const signedIn = session?.kind === "user";
   // Until the session is known, hold the Sign in spot with an invisible twin, never the signed-out UI.
   const showSignIn = session ? !signedIn : sessionFailed;
   const name = session?.displayName || prefs.name || "Guest";
   const color = session?.color ?? prefs.color;
-  const knight = session?.knight ?? prefs.knight ?? DEFAULT_KNIGHT;
 
   return (
     <main className="landing-page relative min-h-dvh overflow-hidden">
@@ -176,66 +265,40 @@ export function Landing() {
           </span>
           <BetaBadge />
         </div>
-        <div className="hidden items-center gap-2 md:flex">
-          <Link
-            href="/patch-notes"
-            className="btn btn-dark relative h-9 w-9 p-0"
-            title={`Patch notes (${LATEST_PATCH})`}
-            aria-label={newPatch ? `Patch notes: ${LATEST_PATCH} is new` : "Patch notes"}
-          >
-            <ScrollText size={17} />
-            {newPatch && (
-              <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-ink bg-amber" />
-            )}
+        <nav className="hidden flex-1 items-center gap-6 pl-8 text-sm font-bold text-foam/70 md:flex" aria-label="Main navigation">
+          <Link href="/profile?tab=progress" className="landing-link">Progress</Link>
+          <Link href="/leaderboard" className="landing-link">Leaderboard</Link>
+          <button type="button" className="landing-link" onClick={() => setRules(true)}>Rules</button>
+          <Link href="/patch-notes" className="landing-link" aria-label={newPatch ? `What’s new: ${LATEST_PATCH} is new` : "What’s new"} title={`Patch notes (${LATEST_PATCH})`}>
+            What’s new
+            {newPatch && <span className="ml-1.5 inline-block h-2 w-2 rounded-full bg-terracotta align-middle" aria-hidden />}
           </Link>
-          <Link
-            href="/leaderboard"
-            className="btn btn-dark h-9 w-9 p-0"
-            title="Leaderboard"
-            aria-label="Leaderboard"
-          >
-            <Trophy size={17} />
-          </Link>
+        </nav>
+        <div className="hidden items-center gap-3 md:flex">
           {!session && !sessionFailed && (
-            <span className="btn btn-dark invisible px-3 py-1.5 text-sm" aria-hidden>
-              <LogIn size={16} /> <span className="hidden sm:inline">Sign in</span>
-            </span>
+            <span className="invisible text-sm font-bold" aria-hidden>Sign in</span>
           )}
           {showSignIn && (
-            <button
-              type="button"
-              className="btn btn-dark px-3 py-1.5 text-sm"
-              title="Sign in"
-              aria-label="Sign in"
-              onClick={() => setSigningIn(true)}
-            >
-              <LogIn size={16} />{" "}
-              <span className="hidden sm:inline">Sign in</span>
+            <button type="button" className="landing-link text-sm font-bold text-foam/70" onClick={() => setSigningIn(true)}>
+              Sign in
             </button>
           )}
-          <button
-            type="button"
-            className="btn btn-dark h-9 w-9 p-0"
-            title="Settings"
-            aria-label="Settings"
-            onClick={() => useSettingsUI.getState().show()}
-          >
-            <Settings size={17} />
-          </button>
-          <Link href="/profile" className="btn btn-dark px-3 py-1.5 text-sm">
-            <KnightBadge knight={knight} color={color} size={24} />
+          <Link href="/profile" className="btn btn-dark h-10 px-3 py-0 text-sm">
+            <KnightBadge color={color} size={24} />
             <span className="max-w-28 truncate">{name}</span>
+            {progress?.enabled && <LevelBadge level={progress.level.level} size={22} />}
           </Link>
+          <button type="button" className="btn btn-dark h-10 w-10 shrink-0 p-0" aria-label="Settings" title="Settings" onClick={() => useSettingsUI.getState().show()}><Settings size={18} /></button>
         </div>
         <div className="flex shrink-0 items-center gap-2 md:hidden">
-          <Link href="/profile" className="btn btn-dark h-11 w-11 p-0" aria-label="Your profile"><KnightBadge knight={knight} color={color} size={28} /></Link>
+          <Link href="/profile" className="btn btn-dark h-11 gap-1 px-2" aria-label="Your profile"><KnightBadge color={color} size={28} />{progress?.enabled && <LevelBadge level={progress.level.level} size={20} />}</Link>
           <button className="btn btn-dark h-11 w-11 p-0" aria-label="Open navigation" aria-haspopup="dialog" onClick={() => setMenu(true)}><Menu size={20} /></button>
         </div>
       </header>
 
-      <section className="landing-hero relative z-10 flex min-h-[calc(100dvh-72px)] flex-col justify-center px-5 pb-16 sm:px-10 md:max-w-160">
+      <section className={`landing-hero ${progress?.enabled ? "landing-hero-quay" : ""} relative z-10 flex min-h-[calc(100dvh-72px)] flex-col justify-center px-5 pb-16 sm:px-10 md:max-w-160`}>
         <h1
-          className="display animate-rise text-[clamp(3.6rem,13vw,8.5rem)] font-black leading-[0.86] tracking-[-0.02em] text-paper"
+          className="display animate-rise text-[clamp(3.6rem,11vw,7rem)] font-black leading-[0.86] tracking-[-0.02em] text-paper"
           style={{ fontVariationSettings: "'SOFT' 100, 'WONK' 1, 'opsz' 144" }}
         >
           {APP_WORDMARK}
@@ -243,55 +306,66 @@ export function Landing() {
 
         {tables.length > 0 && <ResumeTables rooms={tables} onAbandon={(r) => { setAbandonError(null); setAbandoning(r); }} />}
 
-        <div className={`landing-actions animate-rise ${tables.length ? "mt-5" : "mt-9"} flex flex-wrap items-center gap-3 [animation-delay:160ms]`}>
+        <div className={`landing-actions animate-rise glass ${tables.length ? "mt-5" : "mt-9"} grid w-[22rem] max-w-full gap-2 p-3 [animation-delay:160ms]`}>
+          <h2 className="text-xs font-bold uppercase tracking-label text-foam/60">Play</h2>
           {/* With a table to go back to, Rejoin takes the accent colour. */}
-          <Link href="/create" className={`btn ${tables.length ? "" : "btn-primary"} px-7 py-3.5 text-lg`}>
-            Create game <ArrowRight size={20} strokeWidth={3} />
-          </Link>
-          {!joining ? (
-            <button
-              type="button"
-              className="btn px-6 py-3.5 text-lg"
-              onClick={() => setJoining(true)}
-            >
-              Join game
+          <button type="button" onClick={() => createNow("lobby")} disabled={!!creating} className={`btn ${tables.length ? "" : "btn-primary"} w-full px-5 py-3 text-lg`}>
+            {creating === "lobby" ? <HexSpinner size={20} decorative /> : null}
+            Create lobby <ArrowRight size={20} strokeWidth={3} />
+          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => createNow("bots")} disabled={!!creating} className="btn btn-dark whitespace-nowrap px-3 py-2.5 text-base">
+              {creating === "bots" ? <HexSpinner size={18} decorative /> : <Bot size={18} />}
+              Play vs bots
             </button>
-          ) : (
-            <form
-              onSubmit={submitJoin}
-              className="paper-flat flex items-center gap-2 p-1.5 pl-3"
-            >
-              <input
-                ref={inputRef}
-                value={code}
-                onChange={(e) => {
-                  setCode(e.target.value);
-                  setCodeError(null);
-                }}
-                placeholder="ABCD-2345"
-                aria-label="Room code or invite link"
-                autoCapitalize="characters"
-                autoCorrect="off"
-                spellCheck={false}
-                enterKeyHint="go"
-                aria-invalid={!!codeError}
-                aria-describedby={codeError ? 'room-code-error' : undefined}
-                className="min-w-0 w-36 flex-1 bg-transparent text-lg font-bold uppercase tabular tracking-label text-ink outline-none placeholder:text-ink/30"
-              />
-              <button type="submit" className="btn btn-dark px-4 py-2">
-                Join
+            {!joining ? (
+              <button type="button" className="btn btn-dark whitespace-nowrap px-3 py-2.5 text-base" onClick={() => setJoining(true)}>
+                Join game
               </button>
-            </form>
-          )}
+            ) : (
+              <form onSubmit={submitJoin} className="flex min-w-0 items-center gap-1 rounded-[4px] border-2 border-ink bg-sea-950 pl-2">
+                <input
+                  ref={inputRef}
+                  value={code}
+                  onChange={(e) => {
+                    setCode(e.target.value);
+                    setCodeError(null);
+                  }}
+                  placeholder="ABCD-2345"
+                  aria-label="Room code or invite link"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="go"
+                  aria-invalid={!!codeError}
+                  aria-describedby={codeError ? 'room-code-error' : undefined}
+                  className="min-w-0 flex-1 bg-transparent text-sm font-bold uppercase tabular tracking-label text-paper outline-none placeholder:text-foam/30"
+                />
+                <button type="submit" className="btn btn-primary m-0.5 px-2.5 py-1.5 text-sm">Go</button>
+              </form>
+            )}
+          </div>
         </div>
         {codeError && (
           <p id="room-code-error" role="alert" className="mt-2 text-sm font-semibold text-terracotta">
             {codeError}
           </p>
         )}
+        {progress?.enabled && <ProgressCard data={progress} color={color} />}
       </section>
 
-      <footer className="landing-footer relative z-10 flex gap-4 px-5 pb-4 text-xs font-bold text-foam/60 sm:px-10">
+      {progress?.enabled && (
+        <div className="landing-dock absolute inset-x-5 bottom-14 z-10 items-end gap-4 sm:inset-x-10">
+          <Quay data={progress} color={color} ratings={ratings} onChanged={() => { loadProgress(); loadRatings(); }} />
+          <div className="flex-1" />
+          <div className="flex items-end gap-4">
+            <ProgressCard data={progress} color={color} dock />
+            <FriendsCard />
+          </div>
+        </div>
+      )}
+
+      <footer className="landing-footer relative z-10 flex justify-end gap-4 px-5 pb-4 text-xs font-bold text-foam/60 sm:px-10">
         <Link href="/privacy" className="hover:text-paper">
           Privacy
         </Link>
@@ -317,7 +391,8 @@ export function Landing() {
 
       <Modal open={menu} onClose={() => setMenu(false)} title="Menu">
         <nav className="grid gap-2" aria-label="Main navigation">
-          <Link href="/profile" className="btn justify-start px-4 py-3"><KnightBadge knight={knight} color={color} size={24} /> Your profile</Link>
+          <Link href="/profile" className="btn justify-start px-4 py-3"><KnightBadge color={color} size={24} /> Your profile</Link>
+          <Link href="/profile?tab=progress" className="btn justify-start px-4 py-3"><Sparkles size={18} /> Progress</Link>
           <Link href="/leaderboard" className="btn justify-start px-4 py-3"><Trophy size={18} /> Leaderboard</Link>
           <Link href="/patch-notes" className="btn justify-start px-4 py-3"><ScrollText size={18} /> What’s new {newPatch && <span className="ml-auto h-2 w-2 rounded-full bg-terracotta" />}</Link>
           <button className="btn justify-start px-4 py-3" onClick={() => { setMenu(false); setRules(true); }}><BookOpen size={18} /> Rules</button>

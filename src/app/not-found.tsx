@@ -40,9 +40,6 @@ export default function NotFound() {
           <Link href="/" className="btn btn-primary px-7 py-3.5 text-lg">
             <ArrowLeft size={20} strokeWidth={3} /> Back home
           </Link>
-          <Link href="/create" className="btn px-6 py-3.5 text-lg">
-            Create game
-          </Link>
         </div>
       </section>
     </main>

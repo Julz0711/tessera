@@ -4,7 +4,7 @@ import { ArrowLeft, DoorOpen, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { FriendInfo, FriendProfileData } from '@/shared/protocol';
-import { PlayerPortrait, TitleTag } from './Cosmetics';
+import { PlayerPortrait } from './PlayerPortrait';
 import { MODE_LABEL, ratingPoolFor } from '@/shared/ratings';
 import { ModeRatings } from './ModeRatings';
 import { Logomark } from '@/components/ui/Logomark';
@@ -62,11 +62,10 @@ export function FriendProfilePage({ code }: { code: string }) {
           <>
             <section className="paper grid gap-6 p-5 sm:p-7">
               <div className="flex items-center gap-4">
-                <PlayerPortrait knight={friend.knight} color={friend.color} avatarUrl={friend.avatarUrl} frame={friend.cosmetics.frame} size={80} />
+                <PlayerPortrait color={friend.color} avatarUrl={friend.avatarUrl} size={80} />
                 <div className="min-w-0">
                   <p className="label mb-1">Friend profile</p>
                   <h1 className="display break-words text-3xl font-black sm:text-4xl">{friend.name}</h1>
-                  <TitleTag title={friend.cosmetics.title} />
                   <p className="mt-1 text-sm font-semibold text-ink-soft">{STATUS[friend.status]}</p>
                 </div>
               </div>

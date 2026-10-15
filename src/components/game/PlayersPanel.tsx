@@ -10,8 +10,8 @@ import { TRACK_STYLE } from '@/client/progressText';
 import type { RoomDTO } from '@/shared/protocol';
 import { PLAYER_COLORS } from '@/shared/colors';
 import { KnightBadge } from '@/components/knight/KnightBadge';
-import { Framed } from '@/components/profile/Cosmetics';
-import { titleInfo } from '@/shared/cosmetics';
+import { SurroundFrame } from '@/components/progression/ItemArt';
+import { itemById } from '@/shared/progression';
 import { BACK_BG, CardBackArt, type BackKind } from './cardArtLowPoly';
 import { ReactionBubble, ReactionCover } from './Reactions';
 import { Modal } from '@/components/ui/Modal';
@@ -218,7 +218,7 @@ export function PlayersPanel({
           <div className="flex min-w-0 items-center gap-1 pr-0.5">
             <span
               className="min-w-0 truncate text-sm font-bold leading-tight"
-              title={seatInfo?.cosmetics.title ? titleInfo(seatInfo.cosmetics.title).name : undefined}
+              title={seatInfo?.crew?.loadout.title ? itemById(seatInfo.crew.loadout.title)?.name : undefined}
             >
               {p.name}
               {seat === view.viewer && <span className="ml-1 text-xs font-bold text-ink-faint">(you)</span>}
@@ -236,10 +236,12 @@ export function PlayersPanel({
         // Avatar with the victory points underneath, as on colonist.
         const avatar = (
           <div className="relative mb-1.5 shrink-0" data-seat-anchor={seat}>
-            {seatInfo ? (
-              <Framed frame={seatInfo.cosmetics.frame} size={compact ? 36 : 40}>
-                {(sz) => <KnightBadge knight={seatInfo.knight} color={p.color} size={sz} />}
-              </Framed>
+            {seatInfo?.crew ? (
+              <SurroundFrame id={seatInfo.crew.loadout.surround} size={compact ? 36 : 40}>
+                <KnightBadge color={p.color} size={compact ? 36 : 40} />
+              </SurroundFrame>
+            ) : seatInfo ? (
+              <KnightBadge color={p.color} size={compact ? 36 : 40} />
             ) : (
               <div className={`${compact ? 'h-9 w-9' : 'h-10 w-10'} rounded-full`} style={{ background: c.hex }} />
             )}

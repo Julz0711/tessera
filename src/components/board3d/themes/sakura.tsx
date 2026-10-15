@@ -343,7 +343,7 @@ const KNIGHT = {
   tsuba: new THREE.CylinderGeometry(0.02, 0.02, 0.008, 8),
 };
 
-function Knight({ trim, cloth, dark, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+function Knight({ trim, cloth, dark, shadows, headY }: KnightFigureProps) {
   const s = shadows;
   return (
     <>
@@ -362,14 +362,8 @@ function Knight({ trim, cloth, dark, faceMat, faceGeo, shadows, headY }: KnightF
         <mesh key={side} geometry={KNIGHT.wing} material={dark} position={[side * 0.08, headY - 0.02, -0.01]} rotation={[0, side * 0.75, 0]} castShadow={s} />
       ))}
       <mesh geometry={KNIGHT.crest} material={mat('#e8c35a', { metal: 0.4, rough: 0.4 })} position={[0, headY + 0.09, -0.01]} rotation={[Math.PI / 2, 0, Math.PI / 2]} />
-      {faceMat ? (
-        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.05, 0.0755]} />
-      ) : (
-        <>
-          <mesh geometry={KNIGHT.face} material={trim} position={[0, headY - 0.05, 0.0755]} />
-          <mesh geometry={KNIGHT.eyeSlit} material={dark} position={[0, headY - 0.03, 0.078]} />
-        </>
-      )}
+      <mesh geometry={KNIGHT.face} material={trim} position={[0, headY - 0.05, 0.0755]} />
+      <mesh geometry={KNIGHT.eyeSlit} material={dark} position={[0, headY - 0.03, 0.078]} />
       {/* the katana, sheathed and worn diagonally at the hip */}
       <group position={[0.12, 0.16, -0.04]} rotation={[0, 0, 0.9]}>
         <mesh geometry={KNIGHT.saya} material={mat('#26201c')} castShadow={s} />

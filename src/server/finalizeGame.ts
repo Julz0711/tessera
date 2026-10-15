@@ -4,6 +4,7 @@ import { buildReport, standings } from '@/engine/report';
 import { ratingPoolFor, type RatingPool } from '@/shared/ratings';
 import type { Db } from './db';
 import type { PersistGame } from './persistence';
+import { awardFinishedGame } from './progression';
 import { ratingChanges } from './rating';
 
 /** Extra rating an abandoner loses on top of their last-place result (and they never gain from it). */
@@ -69,6 +70,7 @@ export async function finalizeGame(db: Db, game: PersistGame): Promise<void> {
       report.players[p.seat].isBot = p.isBot;
     }
     const edited = !!game.state.adminEdited;
+    if (edited) report.adminEdited = true;
     for (const p of players) {
       const won = p.seat === game.state.winner && !abandoned(p);
       const unrated = p.isBot && !abandoned(p) ? 'Bot' : !p.userId ? 'Guest player' : edited ? 'Edited by an admin' : 'Needs two signed-in players';
@@ -89,6 +91,8 @@ export async function finalizeGame(db: Db, game: PersistGame): Promise<void> {
     const endedAt = new Date();
     await tx.game.update({ where: { id: game.gameId }, data: { winnerPlayerId: game.state.winner === null ? null : players.find((p) => p.seat === game.state.winner)?.id,
       endedAt, turns: game.state.turn.n, hasReport: true, report: JSON.parse(JSON.stringify(report)) } });
+    // XP and feats, last: a first-time rebuild from history must already see this game's report.
+    await awardFinishedGame(tx, { id: game.gameId, endedAt, adminEdited: edited }, report, players);
   }, { timeout: 30_000 });
 }
 

@@ -240,6 +240,8 @@ export const api = {
   },
   settings: (patch: Partial<RoomSettings>) => request((s, ack) => s.emit('room:settings', patch, ack)).then(report),
   profile: (patch: Partial<JoinProfile>) => request((s, ack) => s.emit('room:profile', patch, ack)).then(report),
+  /** Shows a changed loadout on your lobby seat (no-op outside a lobby). */
+  crew: () => request((s, ack) => s.emit('room:crew', ack)),
   addBot: () => request((s, ack) => s.emit('room:addBot', ack)).then(report),
   removeSeat: (playerId: string) => request((s, ack) => s.emit('room:removeSeat', playerId, ack)).then(report),
   start: () => request((s, ack) => s.emit('room:start', ack)).then(report),

@@ -462,7 +462,7 @@ const KNIGHT = {
   blade: new THREE.BoxGeometry(0.022, 0.26, 0.008),
 };
 
-function Knight({ metal, trim, cloth, faceMat, faceGeo, shadows, headY }: KnightFigureProps) {
+function Knight({ metal, trim, cloth, shadows, headY }: KnightFigureProps) {
   const s = shadows;
   const neon = MINT;
   return (
@@ -479,11 +479,7 @@ function Knight({ metal, trim, cloth, faceMat, faceGeo, shadows, headY }: Knight
       <mesh geometry={KNIGHT.helm} material={metal} position={[0, headY, 0]} castShadow={s} />
       <mesh geometry={KNIGHT.antenna} material={trim} position={[0.05, headY + 0.1, -0.03]} rotation={[0.3, 0, 0]} />
       <mesh geometry={KNIGHT.antennaTip} material={lit(neon, 1.8)} position={[0.06, headY + 0.14, -0.05]} />
-      {faceMat ? (
-        <mesh geometry={faceGeo ?? KNIGHT.face} material={faceMat} position={[0, headY - 0.05, 0.0755]} />
-      ) : (
-        <mesh geometry={KNIGHT.face} material={mat('#0d0e12')} position={[0, headY - 0.05, 0.0755]} />
-      )}
+      <mesh geometry={KNIGHT.face} material={mat('#0d0e12')} position={[0, headY - 0.05, 0.0755]} />
       <mesh geometry={KNIGHT.visorRing} material={lit(neon, 2)} position={[0, headY - 0.05, 0.076]} />
       {/* the energy blade, glowing instead of steel */}
       <group position={[0.14, 0.2, 0.07]}>
