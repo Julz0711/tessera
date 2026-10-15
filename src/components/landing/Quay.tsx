@@ -1,55 +1,64 @@
 'use client';
 
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import type { PlayerColor } from '@/engine/types';
 import { PLAYER_COLORS } from '@/shared/colors';
-import { itemById } from '@/shared/progression';
 import type { ProgressData } from '@/shared/protocol';
-import { KnightBadge } from '@/components/knight/KnightBadge';
-import { ItemArt, LevelBadge, SurroundFrame } from '@/components/progression/ItemArt';
+import { MODE_LABEL, type ModeRating } from '@/shared/ratings';
+import { ItemArt } from '@/components/progression/ItemArt';
 import { WardrobeDialog } from '@/components/progression/WardrobeDialog';
 import { Pad } from '@/components/room/LobbyRoom';
 
 /**
- * Your character on the quay: the lobby's pad, figure and nameplate, bottom left of the main menu.
- * The whole thing opens the wardrobe. Shown on large screens only (see .landing-quay).
+ * Your character on the quay with your rating below it, bottom right of the main menu. The
+ * character opens the wardrobe; the arrows step through every mode you have a rating in.
+ * Shown on large screens only (see .landing-dock).
  */
-export function Quay({ data, name, color, onChanged }: { data: ProgressData; name: string; color: PlayerColor; onChanged: () => void }) {
+export function Quay({ data, color, ratings, onChanged }: { data: ProgressData; color: PlayerColor; ratings: ModeRating[]; onChanged: () => void }) {
   const [open, setOpen] = useState(false);
+  const [i, setI] = useState(0);
   const { loadout } = data;
-  const title = loadout.title ? itemById(loadout.title)?.name : null;
+  const shown = ratings.filter((r) => r.ratedGames > 0);
+  const cur = shown.length ? shown[Math.min(i, shown.length - 1)] : null;
+  const step = (d: number) => setI((n) => (n + d + shown.length) % shown.length);
   return (
-    <div className="landing-quay absolute bottom-14 left-5 z-10 sm:left-10">
+    <div className="w-60">
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="group relative block w-60 text-left"
+        className="group relative block h-40 w-full"
         aria-label="Change your character, banner, title and surround"
       >
-        <span className="relative block h-40">
-          <Pad color={PLAYER_COLORS[color].hex} />
-          <span className="absolute bottom-7 left-1/2 -translate-x-[62%]">
-            <ItemArt id={loadout.character} color={color} size={120} />
-          </span>
-          {loadout.banner && (
-            <span className="absolute bottom-10 left-[60%]">
-              <ItemArt id={loadout.banner} color={color} size={84} />
-            </span>
-          )}
+        <Pad color={PLAYER_COLORS[color].hex} />
+        <span className="absolute bottom-7 left-1/2 -translate-x-[62%]">
+          <ItemArt id={loadout.character} color={color} size={120} />
         </span>
-        <span className="paper-flat flex items-center gap-2 p-2">
-          <SurroundFrame id={loadout.surround} size={40}>
-            <KnightBadge color={color} size={40} />
-          </SurroundFrame>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate font-bold leading-tight">{name}</span>
-            <span className="mt-0.5 flex min-w-0 items-center gap-1.5">
-              <LevelBadge level={data.level.level} size={20} />
-              {title && <span className="truncate text-xs font-bold text-ink-soft">{title}</span>}
-            </span>
+        {loadout.banner && (
+          <span className="absolute bottom-10 left-[60%]">
+            <ItemArt id={loadout.banner} color={color} size={84} />
           </span>
-        </span>
+        )}
       </button>
+      <div className="glass flex items-center gap-2 p-3 text-paper">
+        <div className="min-w-0 flex-1" aria-live="polite">
+          <p className="text-xs font-bold uppercase tracking-label text-foam/60">Your rating{cur ? ` · ${MODE_LABEL[cur.pool]}` : ''}</p>
+          {cur ? (
+            <>
+              <p className="display text-3xl font-black leading-tight tabular">{cur.rating.toLocaleString()}</p>
+              <p className="text-xs font-bold text-foam/60">{cur.ratedGames} rated {cur.ratedGames === 1 ? 'game' : 'games'}{cur.place ? ` · #${cur.place}` : ''}</p>
+            </>
+          ) : (
+            <p className="mt-1 text-sm font-bold text-foam/70">No rated games yet</p>
+          )}
+        </div>
+        {shown.length > 1 && (
+          <div className="flex shrink-0 gap-1">
+            <button type="button" className="btn btn-dark h-8 w-8 p-0" aria-label="Previous mode" onClick={() => step(-1)}><ChevronLeft size={16} /></button>
+            <button type="button" className="btn btn-dark h-8 w-8 p-0" aria-label="Next mode" onClick={() => step(1)}><ChevronRight size={16} /></button>
+          </div>
+        )}
+      </div>
       <WardrobeDialog open={open} onClose={() => { setOpen(false); onChanged(); }} color={color} />
     </div>
   );

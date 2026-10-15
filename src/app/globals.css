@@ -187,9 +187,9 @@ body {
 .landing-hero { flex: 1; min-height: min(760px, calc(100svh - 120px)); padding-top: 3rem; }
 .landing-footer { padding-bottom: max(1rem, var(--safe-bottom)); }
 /* The quay (your character) needs room: big and tall screens only. Elsewhere the compact progress card shows. */
-.landing-quay { display: none; }
+.landing-dock { display: none; }
 @media (min-width: 1024px) and (min-height: 760px) {
-  .landing-quay { display: block; }
+  .landing-dock { display: flex; }
   .landing-hero-quay { padding-bottom: 17.5rem; }
   .landing-progress-card { display: none; }
 }
