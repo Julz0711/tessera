@@ -1,105 +1,116 @@
 # Tessera
 
-*The name lives in `src/config/app.ts` (or `NEXT_PUBLIC_APP_NAME`).*
+A browser-based multiplayer strategy board game for friends. Create a private room, share its link, and build, trade, and compete on an interactive 3D board—or switch to a 2D view.
 
-A free, browser-based multiplayer strategy board game for friend groups: open the site, create a
-private room, share the link, and play on a low-poly **3D** board — or flip to a clean **2D** board
-at any time. Classic rules and the **Knights & Barbarians** expansion mode, bots, spectators, chat, trading, reconnect,
-optional Google/Discord profiles with stats and game history.
+**Beta:** features and rules are still evolving. The repository's default branch is `feat/game`.
+
+[Features](#features) · [Quick start](#quick-start) · [Optional services](#optional-services) · [Deployment](#deployment) · [Development](#development)
+
+## Features
+
+| Area | What is included |
+| --- | --- |
+| Rules | Classic play and Knights & Barbarians, with multiple board layouts and sea/exploration scenarios. |
+| Multiplayer | Private rooms, invite links, spectators, chat, and player trading. |
+| Solo play | Fill seats with heuristic bots. |
+| Boards | Switch between a low-poly 3D board and a 2D SVG board, with configurable themes. |
+| Reconnection | Rejoin your seat after a reload or connection change; autopilot handles required moves for absent players. |
+| Profiles | Optional Google/Discord sign-in, statistics, and game history when PostgreSQL is configured. |
+| Review | Finished-game replay and analysis code for reviewing decisions. |
+
+The server validates player actions and sends player-specific views that omit opponents' private cards and hidden engine state.
 
 ## Quick start
 
-```bash
-npm install
-npm run dev          # http://localhost:3000 (next free port if 3000 is taken)
-```
+Requirements: **Node.js 22.12+** and npm.
 
-That's all you need to play: guests, private rooms, bots, both game modes, chat, spectators and
-reconnect all work **in memory, without a database**.
-
-Play solo against bots: **Create game → Fill seats with bots → Create room → Start game.**
-Play with friends: create a room and send them the invite link (`/r/ABCD2345`).
-
-### Optional: database (profiles, history, stats, restart-safe games)
-
-```bash
-npm run db:local     # embedded PostgreSQL on :5433 (keep it running)
-# add to .env:  DATABASE_URL=postgresql://postgres:postgres@localhost:5433/settlers
-npm run db:push      # create the tables
+```sh
+git clone --branch feat/game https://github.com/Julz0711/tessera.git
+cd tessera
+npm ci
 npm run dev
 ```
 
-Any PostgreSQL works (Neon, Supabase, RDS, Docker…). With a database, running games are
-snapshotted and **survive a server restart** — players just reload and continue.
+Open [localhost:3000](http://localhost:3000), or the port printed by the server.
 
-### Optional: Google / Discord sign-in
+Create a room, choose the game settings in the lobby, and share the `/r/<code>` invite link. Add bots in the lobby to play solo.
 
-Create OAuth apps and put the credentials in `.env` (see `.env.example`):
+Guest rooms, bots, chat, spectators, and reconnection work without a database. In this mode, server state is held in memory and is lost when the server restarts.
 
-| Provider | Console | Redirect URL |
-| --- | --- | --- |
-| Google | console.cloud.google.com → Credentials → OAuth client (Web) | `http://localhost:3000/api/auth/callback/google` |
-| Discord | discord.com/developers → Applications → OAuth2 | `http://localhost:3000/api/auth/callback/discord` |
+## Optional services
 
-Sign-in needs `DATABASE_URL`. Guests who sign in keep their stats, finished games and knight —
-"Save my profile" on the profile page.
+### PostgreSQL
 
-### Production
+A database enables persistent profiles, history, statistics, and restart-safe game snapshots.
 
-```bash
-npm run build
-AUTH_SECRET=... DATABASE_URL=... npm start
+```sh
+npm run db:local
 ```
 
-Serve it behind HTTPS (the guest cookie becomes `Secure` automatically). Behind a proxy set
-`TRUST_PROXY=1` and `APP_URL`.
+Keep that process running. In `.env`, set:
 
-### Deploy for free (Render + Neon)
+```dotenv
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/settlers
+```
 
-The game server keeps websocket connections open, so it needs a real Node host (not serverless).
+Then, in another terminal:
 
-1. **Database:** create a free project at [neon.com](https://neon.com) (0.5 GB, no card needed, doesn't expire)
-   and copy its connection string.
-2. **Server:** at [render.com](https://render.com), New → Blueprint → pick this repo. `render.yaml` sets up a free
-   web service; paste the Neon string as `DATABASE_URL`. The build creates the tables (`prisma db push`).
-3. Optional: set `APP_URL` to the public address (e.g. `https://tessera.onrender.com`). Only needed if the
-   game is also opened from another domain; its own address always works.
-4. Sign-in (optional): add `AUTH_GOOGLE_*` / `AUTH_DISCORD_*` with the live callback URLs
-   (`https://<your-app>/api/auth/callback/google`, …). Without them everyone plays as a guest.
+```sh
+npm run db:push
+npm run dev
+```
 
-Free-tier limits: the server sleeps after 15 minutes without visitors, and the first visit after that
-takes about a minute to wake it. Games in progress survive that (they're restored from the database).
+An external PostgreSQL instance can replace the bundled local database.
 
-## Scripts
+### Google and Discord sign-in
 
-| Script | What it does |
+Configure the provider credentials in [.env.example](.env.example) and set `DATABASE_URL`.
+
+| Provider | Local callback |
 | --- | --- |
-| `npm run dev` | Next.js + game server in development |
-| `npm run build` / `npm start` | Production build / server |
-| `npm test` | Unit, self-play and server integration tests (DB tests run when `DATABASE_URL` is set) |
-| `npm run typecheck` | TypeScript |
-| `npm run db:local` / `db:push` | Local embedded PostgreSQL / sync the Prisma schema |
+| Google | `http://localhost:3000/api/auth/callback/google` |
+| Discord | `http://localhost:3000/api/auth/callback/discord` |
 
-## How it's built
+Use your deployed HTTPS origin for production callbacks. Guests can use **Save my profile** to retain their profile and history when signing in.
 
-```
-server.ts                 one process: Next.js pages + Socket.IO game server + /api/auth, /api/session, /api/face
-src/engine/               pure, seeded rules engine (Classic + Knights & Barbarians), views with hidden info removed
-src/bots/                 heuristic bots for both modes (also used for autopilot of absent players)
-src/server/               rooms/lobby, identity (guest cookies, Auth.js sessions), persistence, rate limits
-src/app, src/components/  pages, lobby, HUD; board3d (React Three Fiber, low-poly) and board2d (SVG)
-prisma/schema.prisma      users, accounts, sessions, profiles, guest_sessions, rooms, games, players, events, snapshots
+## Deployment
+
+Tessera runs a custom Node server with long-lived Socket.IO connections. Deploy to a host that supports that process and WebSockets.
+
+```sh
+npm run build
+npm start
 ```
 
-- **Server-authoritative.** Clients send intents; the engine validates them; each player receives a
-  view without other players' cards, deck order or the RNG state.
-- **Reconnect.** Seats belong to your identity, not your socket: reload, switch Wi-Fi or come back
-  later and you're back in your seat. While you're away (or when the optional turn timer runs out)
-  an autopilot makes only the required moves so the table never stalls.
-- **Privacy & security.** Random per-game player ids (never account ids or names), non-guessable
-  8-character room codes, HMAC-signed httpOnly guest cookies, database sessions, OAuth tokens never
-  stored, Origin-checked WebSockets, rate limits on sessions, rooms, joins, actions, chat and
-  uploads, and uploaded knight faces are re-encoded, type-checked and served with strict headers.
+Configure `AUTH_SECRET` and `DATABASE_URL` in the host environment. Serve over HTTPS; behind a reverse proxy set `TRUST_PROXY=1` and `APP_URL` to your public origin.
 
-Rules as implemented, including the Knights & Barbarians interpretations, are documented in
-[`src/engine/ck/README.md`](src/engine/ck/README.md). Design notes: [`docs/superpowers/specs`](docs/superpowers/specs).
+[render.yaml](render.yaml) provides a Render deployment blueprint. See [the deployment checklist](docs/deploy-checklist.md) for operational checks and [privacy operations](docs/privacy-operations.md) for data handling. Hosting limits and pricing depend on the provider's current plan.
+
+## Development
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Next.js and the game server in development. |
+| `npm run build` / `npm start` | Build and serve production. |
+| `npm test` | Unit, bot self-play, and server integration tests. |
+| `npm run typecheck` | Check TypeScript. |
+| `npm run db:local` | Run local PostgreSQL. |
+| `npm run db:push` | Apply the Prisma schema. |
+| `npm run test:privacy` / `npm run test:social` | Additional privacy and social checks. |
+
+Database-dependent tests need `DATABASE_URL`.
+
+## Architecture
+
+| Path | Responsibility |
+| --- | --- |
+| [server.ts](server.ts) | Custom Node process serving Next.js, sockets, and API handlers. |
+| [src/engine/](src/engine/) | Pure, seeded rules engine and hidden-information views. |
+| [src/bots/](src/bots/) | Heuristic players, simulations, and analysis. |
+| [src/server/](src/server/) | Rooms, identity, persistence, validation, and rate limits. |
+| [src/components/](src/components/) | Lobby, game interface, 2D/3D boards, and replay views. |
+| [src/client/](src/client/) | Client state, preferences, interaction, audio, and themes. |
+| [prisma/schema.prisma](prisma/schema.prisma) | Persistent identity, room, game, and event records. |
+| [src/config/app.ts](src/config/app.ts) | Product name, tagline, and beta label. |
+
+See [rules as implemented](src/engine/ck/README.md) for Knights & Barbarians interpretations and [board themes](docs/board-themes.md) for visual customization.
